@@ -785,11 +785,17 @@ def create_app():
 
     # --- DB URI seçimi: ENV > /var/data (Render diski) > /tmp (geçici) ---
     default_uri = "sqlite:////var/data/riskapp.db"
-    # Render’da kalıcı disk mount edilmediyse /tmp’a düş
+# Render’da kalıcı disk mount edilmediyse /tmp’a düş
     if os.getenv("RENDER") and not os.path.ismount("/var/data"):
         default_uri = "sqlite:////tmp/riskapp.db"
 
-    db_uri = os.getenv("DATABASE_URI", default_uri)
+    # Render Postgres: DATABASE_URL (preferred). Yerelde istersen DATABASE_URI kullanmaya devam edebilirsin.
+    db_uri = (os.getenv("DATABASE_URI") or os.getenv("DATABASE_URL") or default_uri).strip()
+
+    # Render bazı durumlarda "postgres://" döndürür; SQLAlchemy "postgresql+psycopg2://" ister
+    if db_uri.startswith("postgres://"):
+        db_uri = db_uri.replace("postgres://", "postgresql+psycopg2://", 1)
+
     app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["CONSENSUS_THRESHOLD"] = 30
@@ -798,23 +804,23 @@ def create_app():
 
     # --- SQLite ise klasörü garanti et; izin hatasında /tmp’a fallback yap ---
     if db_uri.startswith("sqlite:"):
-        from urllib.parse import urlparse
-        db_path = urlparse(db_uri).path  # /var/data/riskapp.db veya /tmp/riskapp.db
-        dir_path = os.path.dirname(db_path) or "/tmp"
-        try:
-            os.makedirs(dir_path, exist_ok=True)
-        except PermissionError:
-            # /var/data yazılamıyorsa otomatik /tmp'a geç
-            fallback = "/tmp/riskapp.db"
-            os.makedirs("/tmp", exist_ok=True)
-            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{fallback}"
+            db_path = urlparse(db_uri).path  # /var/data/riskapp.db veya /tmp/riskapp.db
+            dir_path = os.path.dirname(db_path) or "/tmp"
+            try:
+                os.makedirs(dir_path, exist_ok=True)
+            except PermissionError:
+                # /var/data yazılamıyorsa otomatik /tmp'a geç
+                fallback = "/tmp/riskapp.db"
+                os.makedirs("/tmp", exist_ok=True)
+                app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{fallback}"
 
+        # --- Tüm veritabanları için tablo/seed ---
     with app.app_context():
-        db.create_all()
-        ensure_schema()
-        seed_if_empty()
-
-    return app
+            db.create_all()
+            if db_uri.startswith("sqlite:"):
+                ensure_schema()  # PRAGMA/ALTER sadece SQLite için
+            seed_if_empty()
+        
 
 
     # -------------------------------------------------
