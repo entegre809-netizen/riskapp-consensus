@@ -20,6 +20,10 @@ PKG_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 if PKG_ROOT not in _sys.path:
     _sys.path.insert(0, PKG_ROOT)
 
+
+from urllib.parse import urlparse
+
+
 from flask import Blueprint
 # --- Proje içi paket-absolute importlar ---
 from riskapp.models import db, Risk, Evaluation, Comment, Suggestion, Account, ProjectInfo, RiskCategory
@@ -778,19 +782,29 @@ def make_ai_risk_comment(risk_id: int) -> str:
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "dev-secret-change-me"
-    
-# ...
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URI", "sqlite:////data/riskapp.db")
 
-    app.config["SQLALCHEMY_TRACKMODIFICATIONS"] = False
-    app.config["CONSENSUS_THRESHOLD"] = 30  # Konsensüs eşiği (oy adedi)
+    # 1) ENV varsa onu kullan, yoksa /var/data'ya yaz
+    db_uri = os.getenv("DATABASE_URI", "sqlite:////var/data/riskapp.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+
+    # 2) Doğru config anahtarı
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    app.config["CONSENSUS_THRESHOLD"] = 30
 
     db.init_app(app)
+
+    # 3) SQLite ise klasörü garanti et (permission hatasını çözer)
+    if db_uri.startswith("sqlite:"):
+        db_path = urlparse(db_uri).path  # /var/data/riskapp.db
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     with app.app_context():
         db.create_all()
         ensure_schema()
         seed_if_empty()
+
+    return app
 
     # -------------------------------------------------
     #  Yetki kontrol dekoratörü
