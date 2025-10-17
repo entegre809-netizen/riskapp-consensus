@@ -8,7 +8,9 @@ import json, os
 
 # Projedeki mevcut modeller (SQLAlchemy)
 # Not: import hatası olmaması için bu isimler korunuyor.
-from models import db, Risk, Evaluation  # type: ignore
+# riskapp/ai_local/ps_estimator.py
+from riskapp.models import db, Risk, Evaluation
+ # type: ignore
 
 # -----------------------------
 #  Heuristik Kurallar (Makalelerden)
