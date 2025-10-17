@@ -783,16 +783,13 @@ def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "dev-secret-change-me"
 
-    # --- DB URI seçimi: ENV > /var/data (Render diski) > /tmp (geçici) ---
-    default_uri = "sqlite:////var/data/riskapp.db"
-# Render’da kalıcı disk mount edilmediyse /tmp’a düş
-    if os.getenv("RENDER") and not os.path.ismount("/var/data"):
-        default_uri = "sqlite:////tmp/riskapp.db"
+    # 1) DB URI önceliği:
+    #    - PROD: DATABASE_URL / DATABASE_URI (Postgres tercih)
+    #    - YOKSA: her zaman /tmp üzerinde SQLite (Render'da yazılabilir)
+    default_sqlite_uri = "sqlite:////tmp/riskapp.db"
+    db_uri = (os.getenv("DATABASE_URI") or os.getenv("DATABASE_URL") or default_sqlite_uri).strip()
 
-    # Render Postgres: DATABASE_URL (preferred). Yerelde istersen DATABASE_URI kullanmaya devam edebilirsin.
-    db_uri = (os.getenv("DATABASE_URI") or os.getenv("DATABASE_URL") or default_uri).strip()
-
-    # Render bazı durumlarda "postgres://" döndürür; SQLAlchemy "postgresql+psycopg2://" ister
+    # Render bazı durumlarda postgres:// döndürür; SQLAlchemy postgresql+psycopg2:// ister
     if db_uri.startswith("postgres://"):
         db_uri = db_uri.replace("postgres://", "postgresql+psycopg2://", 1)
 
@@ -800,60 +797,46 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["CONSENSUS_THRESHOLD"] = 30
 
+    # 2) SQLite ise: thread ayarı + dosya/klasör garantisi
+    if db_uri.startswith("sqlite:"):
+        # Gunicorn/çoklu thread için
+        engine_opts = app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {})
+        conn_args = engine_opts.setdefault("connect_args", {})
+        conn_args.update({"check_same_thread": False})
+
+        # /tmp/riskapp.db'yi önceden oluştur (permission/issues önleme)
+        db_path = urlparse(db_uri).path or "/tmp/riskapp.db"
+        dir_path = os.path.dirname(db_path) or "/tmp"
+        os.makedirs(dir_path, exist_ok=True)
+        try:
+            fd = os.open(db_path, os.O_CREAT | os.O_RDWR, 0o666)
+            os.close(fd)
+        except Exception:
+            # En kötü ihtimalle /tmp fallback (Render'da zaten yazılabilir)
+            db_path = "/tmp/riskapp.db"
+            os.makedirs("/tmp", exist_ok=True)
+            fd = os.open(db_path, os.O_CREAT | os.O_RDWR, 0o666)
+            os.close(fd)
+            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+
+    # 3) DB init
     db.init_app(app)
 
-    # --- SQLite ise klasörü garanti et; izin hatasında /tmp’a fallback yap ---
-    if db_uri.startswith("sqlite:"):
-        db_path = urlparse(db_uri).path  # /var/data/riskapp.db veya /tmp/riskapp.db
-        dir_path = os.path.dirname(db_path) or "/tmp"
-        try:
-            os.makedirs(dir_path, exist_ok=True)
-        except PermissionError:
-            # /var/data yazılamıyorsa otomatik /tmp'a geç
-            fallback = "/tmp/riskapp.db"
-            os.makedirs("/tmp", exist_ok=True)
-            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{fallback}"
-
-    # --- Tüm veritabanları için tablo/seed ---
+    # 4) Şema/seed (tek noktadan, stabil sırayla)
     with app.app_context():
-        from sqlalchemy.exc import OperationalError
-
-        def _fallback_to_tmp():
-            tmp_uri = "sqlite:////tmp/riskapp.db"
-            try:
-                os.makedirs("/tmp", exist_ok=True)
-            except Exception:
-                pass
-            app.config["SQLALCHEMY_DATABASE_URI"] = tmp_uri
-            db.engine.dispose()
-
-        # SQLite için ek güvence: dosyayı önceden "dokun"
-        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
-            db_path = urlparse(app.config["SQLALCHEMY_DATABASE_URI"]).path
-            try:
-                os.makedirs(os.path.dirname(db_path) or "/tmp", exist_ok=True)
-                # dosyayı oluşturmayı dene
-                with open(db_path, "a", encoding="utf-8"):
-                    pass
-            except Exception:
-                _fallback_to_tmp()
-
-        # create_all + gerekli ise fallback ile yeniden dene
-        try:
-            db.create_all()
-        except OperationalError as e:
-            msg = str(e).lower()
-            if "unable to open database file" in msg and app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
-                _fallback_to_tmp()
-                db.create_all()
-            else:
-                raise
-
-        # Şema düzeltmeleri sadece SQLite için
+        db.create_all()
         if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
             ensure_schema()
-
         seed_if_empty()
+
+        # performans için yardımcı indeksler (idempotent)
+        try:
+            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_project ON risks(project_id)"))
+            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_start   ON risks(start_month)"))
+            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_end     ON risks(end_month)"))
+            db.session.commit()
+        except Exception:
+            pass
             
 
 
