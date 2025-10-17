@@ -805,39 +805,54 @@ def create_app():
         conn_args.update({"check_same_thread": False})
 
         # /tmp/riskapp.db'yi önceden oluştur (permission/issues önleme)
-        db_path = urlparse(db_uri).path or "/tmp/riskapp.db"
-        dir_path = os.path.dirname(db_path) or "/tmp"
-        os.makedirs(dir_path, exist_ok=True)
-        try:
-            fd = os.open(db_path, os.O_CREAT | os.O_RDWR, 0o666)
-            os.close(fd)
-        except Exception:
-            # En kötü ihtimalle /tmp fallback (Render'da zaten yazılabilir)
+        # /tmp dışına yazma girişimlerini otomatik olarak güvenli alana (/tmp) düşür
+        raw_path = urlparse(db_uri).path or "/tmp/riskapp.db"
+        db_path = os.path.normpath(raw_path)
+
+        unsafe_dirs = {"", "/", "/data", "//data"}
+        dir_path = os.path.dirname(db_path)
+
+        # Kök/korumalı dizinler veya yazılamayan klasörler -> /tmp fallback
+        if (not dir_path) or (dir_path in unsafe_dirs) or (not os.access(dir_path, os.W_OK)):
             db_path = "/tmp/riskapp.db"
-            os.makedirs("/tmp", exist_ok=True)
-            fd = os.open(db_path, os.O_CREAT | os.O_RDWR, 0o666)
-            os.close(fd)
-            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+            dir_path = "/tmp"
 
-    # 3) DB init
-    db.init_app(app)
-
-    # 4) Şema/seed (tek noktadan, stabil sırayla)
-    with app.app_context():
-        db.create_all()
-        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
-            ensure_schema()
-        seed_if_empty()
-
-        # performans için yardımcı indeksler (idempotent)
         try:
-            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_project ON risks(project_id)"))
-            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_start   ON risks(start_month)"))
-            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_end     ON risks(end_month)"))
-            db.session.commit()
+            os.makedirs(dir_path, exist_ok=True)
+            # dosyayı oluştur/elle yokla
+            with open(db_path, "a"):
+                pass
         except Exception:
-            pass
-            
+            # her durumda son çare /tmp
+            db_path = "/tmp/riskapp.db"
+            dir_path = "/tmp"
+            os.makedirs(dir_path, exist_ok=True)
+            with open(db_path, "a"):
+                pass
+
+        # SQLAlchemy URI'sini normalize edip geri yaz
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+
+
+            # 3) DB init
+        db.init_app(app)
+
+                # 4) Şema/seed (tek noktadan, stabil sırayla)
+        with app.app_context():
+                    db.create_all()
+                    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
+                        ensure_schema()
+                    seed_if_empty()
+
+                    # performans için yardımcı indeksler (idempotent)
+                    try:
+                        db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_project ON risks(project_id)"))
+                        db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_start   ON risks(start_month)"))
+                        db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_end     ON risks(end_month)"))
+                        db.session.commit()
+                    except Exception:
+                        pass
+                        
 
 
     # -------------------------------------------------
