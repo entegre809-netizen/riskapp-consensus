@@ -719,14 +719,19 @@ def make_ai_risk_comment(risk_id: int) -> str:
         return "⚠️ Risk bulunamadı."
 
     # 1) P/S (DB + Excel priors + makale heuristikleri)
-    ps = PSEstimator(alpha=5.0); ps.fit(db.session)
+    ps = PSEstimator(alpha=5.0)
+    ps.fit(db.session)
     hint = ps.suggest(r.category or None)
 
-    # 2) Benzer kayıtlar / makale kuralları (bağlam)
-    ai = AILocal.load_or_create()
-    query = f"{r.category or ''} {r.title or ''} {r.description or ''}"
-    hits = ai.search(query, k=5)
-    rules = [h for h in hits if h.get("label") == "paper_rule"]
+    # 2) Benzer kayıtlar / makale kuralları (bağlam) — lokal AI yoksa sessizce devam et
+    rules = []
+    try:
+        ai = AILocal.load_or_create()
+        query = f"{r.category or ''} {r.title or ''} {r.description or ''}"
+        hits = ai.search(query, k=5)
+        rules = [h for h in hits if h.get("label") == "paper_rule"]
+    except Exception:
+        rules = []
 
     # 3) Aksiyonlar / KPI’lar (departman + RACI dahil)
     cat_lower = (r.category or "").lower()
@@ -747,13 +752,15 @@ def make_ai_risk_comment(risk_id: int) -> str:
         f"S {hint['n_cat'][1]}/{hint['n_all'][1]})"
     )
     if hint.get("applied_rules"):
-        lines.append(f"- Uygulanan makale kuralları: " + ", ".join(hint["applied_rules"]))
+        lines.append("- Uygulanan makale kuralları: " + ", ".join(hint["applied_rules"]))
 
     lines.append("\n### 2) Departman & RACI")
     if actions:
         ex = actions[0]
         lines.append(f"- **Departman:** {ex['dept']}")
-        lines.append(f"- **R:** {ex['R']}  | **A:** {ex['A']}  | **C:** {', '.join(ex['C']) if isinstance(ex['C'], list) else ex['C']}  | **I:** {', '.join(ex['I']) if isinstance(ex['I'], list) else ex['I']}")
+        C0 = ", ".join(ex["C"]) if isinstance(ex["C"], list) else ex["C"]
+        I0 = ", ".join(ex["I"]) if isinstance(ex["I"], list) else ex["I"]
+        lines.append(f"- **R:** {ex['R']}  | **A:** {ex['A']}  | **C:** {C0}  | **I:** {I0}")
 
     lines.append("\n### 3) Ne Yapılacak? (Aksiyon Planı)")
     for i, a in enumerate(actions, 1):
@@ -771,7 +778,7 @@ def make_ai_risk_comment(risk_id: int) -> str:
     if rules:
         lines.append("\n### 6) Makale Bağlamı")
         for rr in rules:
-            lines.append(f"- {rr.get('text','')}")
+            lines.append(f"- {rr.get('text', '')}")
 
     return "\n".join(lines)
 
