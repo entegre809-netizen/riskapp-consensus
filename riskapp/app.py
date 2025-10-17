@@ -783,21 +783,31 @@ def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "dev-secret-change-me"
 
-    # 1) ENV varsa onu kullan, yoksa /var/data'ya yaz
-    db_uri = os.getenv("DATABASE_URI", "sqlite:////var/data/riskapp.db")
+    # --- DB URI seçimi: ENV > /var/data (Render diski) > /tmp (geçici) ---
+    default_uri = "sqlite:////var/data/riskapp.db"
+    # Render’da kalıcı disk mount edilmediyse /tmp’a düş
+    if os.getenv("RENDER") and not os.path.ismount("/var/data"):
+        default_uri = "sqlite:////tmp/riskapp.db"
+
+    db_uri = os.getenv("DATABASE_URI", default_uri)
     app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
-
-    # 2) Doğru config anahtarı
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
     app.config["CONSENSUS_THRESHOLD"] = 30
 
     db.init_app(app)
 
-    # 3) SQLite ise klasörü garanti et (permission hatasını çözer)
+    # --- SQLite ise klasörü garanti et; izin hatasında /tmp’a fallback yap ---
     if db_uri.startswith("sqlite:"):
-        db_path = urlparse(db_uri).path  # /var/data/riskapp.db
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        from urllib.parse import urlparse
+        db_path = urlparse(db_uri).path  # /var/data/riskapp.db veya /tmp/riskapp.db
+        dir_path = os.path.dirname(db_path) or "/tmp"
+        try:
+            os.makedirs(dir_path, exist_ok=True)
+        except PermissionError:
+            # /var/data yazılamıyorsa otomatik /tmp'a geç
+            fallback = "/tmp/riskapp.db"
+            os.makedirs("/tmp", exist_ok=True)
+            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{fallback}"
 
     with app.app_context():
         db.create_all()
@@ -805,6 +815,7 @@ def create_app():
         seed_if_empty()
 
     return app
+
 
     # -------------------------------------------------
     #  Yetki kontrol dekoratörü
