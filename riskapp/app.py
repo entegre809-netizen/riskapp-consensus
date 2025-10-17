@@ -804,23 +804,57 @@ def create_app():
 
     # --- SQLite ise klasörü garanti et; izin hatasında /tmp’a fallback yap ---
     if db_uri.startswith("sqlite:"):
-            db_path = urlparse(db_uri).path  # /var/data/riskapp.db veya /tmp/riskapp.db
-            dir_path = os.path.dirname(db_path) or "/tmp"
-            try:
-                os.makedirs(dir_path, exist_ok=True)
-            except PermissionError:
-                # /var/data yazılamıyorsa otomatik /tmp'a geç
-                fallback = "/tmp/riskapp.db"
-                os.makedirs("/tmp", exist_ok=True)
-                app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{fallback}"
+        db_path = urlparse(db_uri).path  # /var/data/riskapp.db veya /tmp/riskapp.db
+        dir_path = os.path.dirname(db_path) or "/tmp"
+        try:
+            os.makedirs(dir_path, exist_ok=True)
+        except PermissionError:
+            # /var/data yazılamıyorsa otomatik /tmp'a geç
+            fallback = "/tmp/riskapp.db"
+            os.makedirs("/tmp", exist_ok=True)
+            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{fallback}"
 
-        # --- Tüm veritabanları için tablo/seed ---
+    # --- Tüm veritabanları için tablo/seed ---
     with app.app_context():
+        from sqlalchemy.exc import OperationalError
+
+        def _fallback_to_tmp():
+            tmp_uri = "sqlite:////tmp/riskapp.db"
+            try:
+                os.makedirs("/tmp", exist_ok=True)
+            except Exception:
+                pass
+            app.config["SQLALCHEMY_DATABASE_URI"] = tmp_uri
+            db.engine.dispose()
+
+        # SQLite için ek güvence: dosyayı önceden "dokun"
+        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
+            db_path = urlparse(app.config["SQLALCHEMY_DATABASE_URI"]).path
+            try:
+                os.makedirs(os.path.dirname(db_path) or "/tmp", exist_ok=True)
+                # dosyayı oluşturmayı dene
+                with open(db_path, "a", encoding="utf-8"):
+                    pass
+            except Exception:
+                _fallback_to_tmp()
+
+        # create_all + gerekli ise fallback ile yeniden dene
+        try:
             db.create_all()
-            if db_uri.startswith("sqlite:"):
-                ensure_schema()  # PRAGMA/ALTER sadece SQLite için
-            seed_if_empty()
-        
+        except OperationalError as e:
+            msg = str(e).lower()
+            if "unable to open database file" in msg and app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
+                _fallback_to_tmp()
+                db.create_all()
+            else:
+                raise
+
+        # Şema düzeltmeleri sadece SQLite için
+        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
+            ensure_schema()
+
+        seed_if_empty()
+            
 
 
     # -------------------------------------------------
