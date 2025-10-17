@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Risk Yönetim{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <!-- Sol: Genel Görünüm -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Genel Görünüm</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn" href="{{ url_for('risk_select') }}">Riskler</a>
+        {% if session.get('role') == 'admin' %}
+          <a class="btn" href="{{ url_for('categories_index') }}">Kategori Yönetimi</a>
+        {% endif %}
+        <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+      </div>
+    </div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Başlık</th>
+          <th>Kategori</th>
+          <th>Skor</th>
+          <th>Durum</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in risks[:8] %}
+        <tr>
+          <td><a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a></td>
+          <td>{{ r.category or "-" }}</td>
+          <td>
+            {% if r.score() %}
+              {% set sc = r.score() %}
+              <span class="badge {% if sc<10 %}score-low{% elif sc<16 %}score-mid{% else %}score-high{% endif %}">
+                {{ '%.2f'|format(sc) }}
+              </span>
+            {% else %}
+              <span class="badge">—</span>
+            {% endif %}
+          </td>
+          <td>{{ r.status }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="small">Henüz risk bulunmuyor. “+ Yeni Risk” ile ekleyin.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="small">Son güncellenen 8 risk gösteriliyor. Tümü için “Riskler” sayfasına gidin.</div>
+  </div>
+
+  <!-- Sağ: Risk Matrisi -->
+  <div class="card">
+    <h3>Risk Matrisi (Olasılık × Şiddet)</h3>
+
+    <div class="matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
+      {# Şiddet satırları 5'ten 1'e, olasılık sütunları 1'den 5'e #}
+      {% for s in range(5,0,-1) %}
+        {% for p in range(1,6) %}
+          {% set count = matrix[5-s][p-1] %}
+          {% set score = p * s %}
+          <div class="cell"
+               title="P={{p}}, S={{s}} · Skor {{score}} · {{count}} adet">
+            <div class="cell-score">{{ score }}</div>
+            <div class="cell-count small">{{ count }} adet</div>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    <div class="small" style="margin-top:6px;">
+      Üstte skor, altta o hücredeki risk adedi gösterilir.
+    </div>
+
+    <div class="small" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+      <span class="badge score-low">Düşük</span>
+      <span class="badge score-mid">Orta</span>
+      <span class="badge score-high">Yüksek</span>
+    </div>
+  </div>
+</div>
+
+<!-- Alt: Hızlı İşlemler -->
+<div class="card" style="margin-top:12px">
+  <h3>Hızlı İşlemler</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <a class="btn" href="{{ url_for('risk_identify') }}">📋 Risk Tanımla</a>
+    {% if session.get('role') == 'admin' %}
+      <a class="btn" href="{{ url_for('categories_index') }}">🗂️ Kategori Yönetimi</a>
+      <a class="btn" href="{{ url_for('import_suggestions') }}">⬆️ CSV İçe Aktar</a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('risks_export_csv') }}">⬇️ CSV Dışa Aktar</a>
+    <a class="btn" href="{{ url_for('settings_account') }}">⚙️ Hesap Ayarları</a>
+    <a class="btn" href="{{ url_for('settings_project') }}">🏷️ Proje Bilgileri</a>
+  </div>
+</div>
+{% endblock %}

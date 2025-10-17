@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <title>Kategori Yönetimi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .table-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px}
+    .actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end}
+    details > summary { cursor: pointer; }
+    .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0">Kategori Yönetimi</h2>
+          <p class="small" style="margin:.25rem 0 0">Ekle, düzenle, sil; pasif kategoriler listelerde gizlenir.</p>
+        </div>
+        <!-- next=identify ise gösterilecek geri dön butonu -->
+        <a id="backToIdentify" href="/identify" class="btn" style="display:none">← Risk Tanımlama’ya dön</a>
+      </div>
+
+      <!-- bildirim alanı -->
+      <div id="flash" class="flash info" style="display:none"></div>
+
+      <!-- arama -->
+      <form id="searchForm" class="searchbar" style="margin:.5rem 0 1rem">
+        <input class="input" id="q" name="q" placeholder="Ara: ad, kod, açıklama…">
+        <button class="btn" type="submit">Ara</button>
+        <button class="btn" type="button" id="clearSearch">Temizle</button>
+      </form>
+
+      <div class="grid grid-2">
+        <!-- yeni kategori -->
+        <div class="card" style="background:transparent;border-style:dashed">
+          <h3 style="margin:0 0 .5rem">Yeni Kategori</h3>
+          <form id="createForm">
+            <div>
+              <label>Ad</label>
+              <input class="input" name="name" required placeholder="Örn: DİZAYN TASARIM RİSKLERİ">
+            </div>
+            <div class="grid grid-2" style="margin-top:.5rem">
+              <div>
+                <label>Kod</label>
+                <input class="input" name="code" placeholder="Örn: DTR">
+              </div>
+              <div>
+                <label>Renk</label>
+                <input class="input" type="color" name="color" value="#0ea371">
+              </div>
+            </div>
+            <div style="margin-top:.5rem">
+              <label>Açıklama</label>
+              <textarea class="input" name="description" rows="2" placeholder="İsteğe bağlı"></textarea>
+            </div>
+            <div style="margin-top:.6rem;display:flex;justify-content:flex-end;gap:.5rem">
+              <button class="btn btn-primary" type="submit">Ekle</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- liste -->
+        <div>
+          <div class="table-scroll">
+            <table class="table" style="min-width:820px">
+              <thead>
+                <tr>
+                  <th style="width:48px">#</th>
+                  <th>Ad</th>
+                  <th style="width:120px">Kod</th>
+                  <th style="width:110px">Renk</th>
+                  <th>Açıklama</th>
+                  <th style="width:110px">Durum</th>
+                  <th style="width:220px">İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyCats"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===============================
+   Global state + yardımcılar
+   =============================== */
+let CATS = [];
+
+const $  = (sel, ctx=document) => ctx.querySelector(sel);
+const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+const flashEl = $("#flash");
+
+function flash(msg, type="info") {
+  flashEl.className = `flash ${type}`;
+  flashEl.textContent = msg;
+  flashEl.style.display = "block";
+  setTimeout(()=>{ flashEl.style.display="none"; }, 2200);
+}
+function normalize(s){ return (s||"").toString().trim(); }
+function matchQuery(cat, q) {
+  if (!q) return true;
+  const hay = (cat.name + " " + (cat.code||"") + " " + (cat.description||"")).toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+function makeColorBadge(color) {
+  const span = document.createElement("span");
+  span.className = "badge";
+  if (color) {
+    span.style.backgroundColor = String(color).trim();
+    span.style.borderColor = "transparent";
+    span.textContent = color;
+  } else {
+    span.textContent = "—";
+  }
+  return span;
+}
+function getParam(name){
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
+const shouldGoIdentify = ()=> (getParam("next")||"").toLowerCase()==="identify";
+
+/* ===============================
+   API helpers
+   =============================== */
+async function loadCategories(q=""){
+  const url = q ? `/api/categories?q=${encodeURIComponent(q)}` : "/api/categories";
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("Liste alınamadı");
+  CATS = await res.json();
+}
+async function createCategory(fd){
+  const res = await fetch("/api/categories", { method:"POST", body: fd });
+  const j = await res.json().catch(()=>null);
+  if(!res.ok){
+    throw new Error((j && j.error) || "Kaydedilemedi");
+  }
+  return j; // { ok: true, id: ... }
+}
+async function updateCategory(id, fd){
+  const res = await fetch(`/api/categories/${id}`, { method:"PATCH", body: fd });
+  const j = await res.json().catch(()=>null);
+  if(!res.ok){
+    throw new Error((j && j.error) || "Güncellenemedi");
+  }
+  return j;
+}
+async function deleteCategory(id){
+  const res = await fetch(`/api/categories/${id}`, { method:"DELETE" });
+  const j = await res.json().catch(()=>null);
+  if(!res.ok){
+    throw new Error((j && j.error) || "Silinemedi");
+  }
+  return j;
+}
+
+/* ===============================
+   RENDER
+   =============================== */
+function renderTable() {
+  const q = normalize($("#q").value);
+  const tbody = $("#tbodyCats");
+  tbody.innerHTML = "";
+
+  const list = CATS
+    .slice()
+    .sort((a,b)=>{
+      if (a.is_active !== b.is_active) return (a.is_active ? -1 : 1); // aktifler önce
+      return a.name.localeCompare(b.name, "tr");
+    })
+    .filter(c => matchQuery(c, q));
+
+  if (!list.length) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.textContent = "Kategori yok.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  for (const c of list) {
+    const tr = document.createElement("tr");
+
+    // id
+    const tdId = document.createElement("td");
+    tdId.textContent = String(c.id);
+    tr.appendChild(tdId);
+
+    // ad
+    const tdName = document.createElement("td");
+    tdName.style.fontWeight = "800";
+    tdName.textContent = c.name || "";
+    tr.appendChild(tdName);
+
+    // kod
+    const tdCode = document.createElement("td");
+    const badgeCode = document.createElement("span");
+    badgeCode.className = "badge";
+    badgeCode.textContent = c.code || "—";
+    tdCode.appendChild(badgeCode);
+    tr.appendChild(tdCode);
+
+    // renk
+    const tdColor = document.createElement("td");
+    tdColor.appendChild(makeColorBadge(c.color));
+    tr.appendChild(tdColor);
+
+    // açıklama
+    const tdDesc = document.createElement("td");
+    tdDesc.className = "small";
+    tdDesc.textContent = c.description || "—";
+    tr.appendChild(tdDesc);
+
+    // durum
+    const tdStatus = document.createElement("td");
+    const statusSpan = document.createElement("span");
+    statusSpan.className = "badge " + (c.is_active ? "score-low" : "score-mid");
+    statusSpan.textContent = c.is_active ? "Aktif" : "Pasif";
+    tdStatus.appendChild(statusSpan);
+    tr.appendChild(tdStatus);
+
+    // işlem (details)
+    const tdActions = document.createElement("td");
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.className = "btn";
+    summary.textContent = "Düzenle";
+    details.appendChild(summary);
+
+    const innerCard = document.createElement("div");
+    innerCard.className = "card";
+    innerCard.style.marginTop = ".5rem";
+
+    // edit form
+    const form = document.createElement("form");
+    form.className = "grid grid-2 js-edit";
+    form.dataset.id = String(c.id);
+
+    const g1 = document.createElement("div");
+    g1.style.gridColumn = "1 / -1";
+    const labName = document.createElement("label");
+    labName.textContent = "Ad";
+    const inpName = document.createElement("input");
+    inpName.className = "input";
+    inpName.name = "name";
+    inpName.required = true;
+    inpName.value = c.name || "";
+    g1.appendChild(labName);
+    g1.appendChild(inpName);
+
+    const g2 = document.createElement("div");
+    const labCode = document.createElement("label");
+    labCode.textContent = "Kod";
+    const inpCode = document.createElement("input");
+    inpCode.className = "input";
+    inpCode.name = "code";
+    inpCode.value = c.code || "";
+    g2.appendChild(labCode);
+    g2.appendChild(inpCode);
+
+    const g3 = document.createElement("div");
+    const labColor = document.createElement("label");
+    labColor.textContent = "Renk";
+    const inpColor = document.createElement("input");
+    inpColor.className = "input";
+    inpColor.type = "color";
+    inpColor.name = "color";
+    inpColor.value = c.color || "#0ea371";
+    g3.appendChild(labColor);
+    g3.appendChild(inpColor);
+
+    const g4 = document.createElement("div");
+    g4.style.gridColumn = "1 / -1";
+    const labDesc = document.createElement("label");
+    labDesc.textContent = "Açıklama";
+    const txtDesc = document.createElement("textarea");
+    txtDesc.className = "input";
+    txtDesc.name = "description";
+    txtDesc.rows = 2;
+    txtDesc.value = c.description || "";
+    g4.appendChild(labDesc);
+    g4.appendChild(txtDesc);
+
+    const g5 = document.createElement("div");
+    g5.style.display = "flex";
+    g5.style.alignItems = "center";
+    g5.style.gap = ".4rem";
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.id = "ia_" + c.id;
+    chk.name = "is_active";
+    chk.checked = !!c.is_active;
+    const lbl = document.createElement("label");
+    lbl.htmlFor = chk.id;
+    lbl.style.margin = "0";
+    lbl.textContent = "Aktif";
+    g5.appendChild(chk);
+    g5.appendChild(lbl);
+
+    const g6 = document.createElement("div");
+    g6.style.gridColumn = "1 / -1";
+    g6.className = "actions";
+    const btnSave = document.createElement("button");
+    btnSave.className = "btn btn-primary";
+    btnSave.type = "submit";
+    btnSave.textContent = "Kaydet";
+    g6.appendChild(btnSave);
+
+    form.appendChild(g1);
+    form.appendChild(g2);
+    form.appendChild(g3);
+    form.appendChild(g4);
+    form.appendChild(g5);
+    form.appendChild(g6);
+
+    // delete form
+    const delForm = document.createElement("form");
+    delForm.className = "js-delete actions";
+    delForm.dataset.id = String(c.id);
+    delForm.style.marginTop = ".5rem";
+    const btnDel = document.createElement("button");
+    btnDel.className = "btn btn-danger";
+    btnDel.type = "submit";
+    btnDel.textContent = "Sil";
+    delForm.appendChild(btnDel);
+
+    innerCard.appendChild(form);
+    innerCard.appendChild(delForm);
+    details.appendChild(innerCard);
+
+    tdActions.appendChild(details);
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  }
+}
+
+/* ===============================
+   OLAYLAR
+   =============================== */
+// Arama
+$("#searchForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  try{
+    await loadCategories(normalize($("#q").value));
+    renderTable();
+  }catch(err){ flash(err.message || "Kategoriler alınamadı","danger"); }
+});
+$("#clearSearch").addEventListener("click", async ()=>{
+  $("#q").value = "";
+  try{
+    await loadCategories();
+    renderTable();
+  }catch(err){ flash(err.message || "Kategoriler alınamadı","danger"); }
+});
+
+// Ekle
+$("#createForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  if(!normalize(fd.get("name"))){ flash("Kategori adı zorunlu.","danger"); return; }
+  try{
+    await createCategory(fd);
+    e.target.reset();
+    if (shouldGoIdentify()){
+      flash("Kategori eklendi, yönlendiriliyor…","success");
+      window.location.href = "/identify";
+      return;
+    }
+    await loadCategories(normalize($("#q").value));
+    renderTable();
+    flash("Kategori eklendi.","success");
+  }catch(err){ flash(err.message || "Hata","danger"); }
+});
+
+// Düzenle / Sil (delegation)
+document.addEventListener("submit", async (e)=>{
+  const editForm = e.target.closest(".js-edit");
+  if (editForm) {
+    e.preventDefault();
+    const id = Number(editForm.dataset.id);
+    const fd = new FormData(editForm);
+    if(!normalize(fd.get("name"))){ flash("Ad zorunlu.","danger"); return; }
+    // checkbox işaretli değilse formda hiç gelmez; backend false anlasın diye boş değer geçelim
+    if(!fd.get("is_active")) fd.set("is_active", "");
+    try{
+      await updateCategory(id, fd);
+      if (shouldGoIdentify()){
+        flash("Kategori güncellendi, yönlendiriliyor…","success");
+        window.location.href = "/identify";
+        return;
+      }
+      await loadCategories(normalize($("#q").value));
+      renderTable();
+      flash("Kategori güncellendi.","success");
+    }catch(err){ flash(err.message || "Hata","danger"); }
+    return;
+  }
+
+  const delForm = e.target.closest(".js-delete");
+  if (delForm) {
+    e.preventDefault();
+    const id = Number(delForm.dataset.id);
+    if (!confirm("Silinsin mi? Kullanımda ise pasif yapmayı düşünebilirsin.")) return;
+    try{
+      await deleteCategory(id);
+      if (shouldGoIdentify()){
+        flash("Kategori silindi, yönlendiriliyor…","success");
+        window.location.href = "/identify";
+        return;
+      }
+      await loadCategories(normalize($("#q").value));
+      renderTable();
+      flash("Kategori silindi.","success");
+    }catch(err){ flash(err.message || "Hata","danger"); }
+  }
+});
+
+// İlk yükleme
+(async function init(){
+  // URL parametrelerinden q ve next
+  const url = new URL(window.location.href);
+  const qParam = url.searchParams.get("q") || "";
+  const nextParam = (url.searchParams.get("next") || "").toLowerCase();
+
+  // arama kutusunu doldur
+  $("#q").value = qParam;
+
+  // geri dön butonu görünürlüğü
+  if (nextParam === "identify") {
+    $("#backToIdentify").style.display = "inline-flex";
+  }
+
+  try{
+    // q parametresine göre ilk liste
+    await loadCategories(qParam);
+    renderTable();
+  }catch(err){
+    flash("Kategoriler yüklenemedi.","danger");
+  }
+})();
+</script>
+</body>
+</html>

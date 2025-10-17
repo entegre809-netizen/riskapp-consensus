@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Kayıt Ol · Proje Bilgileri{% endblock %}
+{% block content %}
+<div class="wizard">
+  <div class="panel" style="max-width:680px;margin:auto">
+    <h2>Yeni Hesap ve Proje Kaydı</h2>
+    <p class="small">Lütfen hem kullanıcı hem proje bilgilerinizi girin. <span class="muted">(*) zorunlu alan</span></p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="stack" style="gap:.5rem;margin-bottom:.75rem">
+          {% for cat, msg in messages %}
+            <div class="flash {{cat}}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% set errors = errors or {} %}
+
+    <form method="post" class="grid grid-2" id="registerForm" novalidate>
+      {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
+
+      <div style="grid-column:1/-1"><h3 style="margin-top:.5rem">Kullanıcı Bilgileri</h3></div>
+
+      <div class="field">
+        <label for="language">Lisan *</label>
+        {% set lang_val = (request.form.get('language') or 'Türkçe') %}
+        <select class="input" id="language" name="language" required aria-invalid="{{ 'true' if errors.get('language') }}">
+          <option value="Türkçe" {{ 'selected' if lang_val == 'Türkçe' else '' }}>Türkçe</option>
+          <option value="English" {{ 'selected' if lang_val == 'English' else '' }}>English</option>
+        </select>
+        {% if errors.get('language') %}<small class="error">{{ errors.get('language') }}</small>{% endif %}
+      </div>
+
+      {# Yalnızca harf + boşluk, 2–60 karakter #}
+      <div class="field">
+        <label for="contact_name">Yetkili Kişi *</label>
+        <input class="input"
+               id="contact_name" name="contact_name"
+               placeholder="Ad Soyad" required
+               value="{{ request.form.get('contact_name','')|e }}"
+               autocomplete="name" inputmode="text" maxlength="60"
+               pattern="^[A-Za-zÇĞİÖŞÜçğıöşü\s]{2,60}$"
+               title="Sadece harf ve boşluk; 2–60 karakter"
+               aria-invalid="{{ 'true' if errors.get('contact_name') }}">
+        {% if errors.get('contact_name') %}<small class="error">{{ errors.get('contact_name') }}</small>{% endif %}
+      </div>
+
+      {# Harf + boşluk + . ' - ,  2–80 karakter #}
+      <div class="field">
+        <label for="contact_title">Ünvan</label>
+        <input class="input" id="contact_title" name="contact_title"
+               placeholder="örn. Proje Müdürü"
+               value="{{ request.form.get('contact_title','')|e }}"
+               autocomplete="organization-title" inputmode="text" maxlength="80"
+               pattern="^[A-Za-zÇĞİÖŞÜçğıöşü\s\.\'\-,]{2,80}$"
+               title="Harf ve temel noktalama (. , ' -) kullanın; 2–80 karakter"
+               aria-invalid="{{ 'true' if errors.get('contact_title') }}">
+        {% if errors.get('contact_title') %}<small class="error">{{ errors.get('contact_title') }}</small>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="email">E-posta *</label>
+        <input class="input" id="email" type="email" name="email"
+               placeholder="ornek@firma.com" required autocomplete="email"
+               inputmode="email" maxlength="120"
+               value="{{ request.form.get('email','')|e }}"
+               aria-invalid="{{ 'true' if errors.get('email') }}">
+        {% if errors.get('email') %}<small class="error">{{ errors.get('email') }}</small>{% endif %}
+      </div>
+
+      <div class="field" style="grid-column:1/-1">
+        <label for="password">Şifre *</label>
+        <div class="input-group">
+          <input class="input" id="password" type="password" name="password"
+                 placeholder="En az 8 karakter" required minlength="8" maxlength="128"
+                 autocomplete="new-password"
+                 pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\-_.!@#$%^&*]{8,128}$"
+                 title="En az bir harf ve bir rakam içermeli; özel karakter olarak - _ . ! @ # $ % ^ & * kullanılabilir"
+                 aria-describedby="pwdHelp"
+                 aria-invalid="{{ 'true' if errors.get('password') }}">
+          <button class="btn btn-ghost" id="togglePwd" type="button" aria-controls="password" aria-pressed="false">Göster</button>
+        </div>
+        <small id="pwdHelp" class="muted">En az 8 karakter; harf + rakam önerilir.</small>
+        {% if errors.get('password') %}<small class="error">{{ errors.get('password') }}</small>{% endif %}
+      </div>
+
+      <hr style="grid-column:1/-1;border:none;border-top:1px solid var(--border,#ddd)">
+
+      <div style="grid-column:1/-1"><h3>Proje Bilgileri</h3></div>
+
+      {# Proje/İşyeri: en az bir harf zorunlu, rakam/boşluk izinli, sınırlı noktalama #}
+      <div class="field">
+        <label for="workplace_name">Proje / İş Yeri Unvanı *</label>
+        <input class="input" id="workplace_name" name="workplace_name" required
+               value="{{ request.form.get('workplace_name','')|e }}"
+               autocomplete="organization" inputmode="text" maxlength="80"
+               pattern="(?=.*[A-Za-zÇĞİÖŞÜçğıöşü])[A-Za-z0-9ÇĞİÖŞÜçğıöşü\s\.\&'\-,()]{2,80}"
+               title="En az bir harf içermeli; harf/rakam/boşluk ve . & ' - , ( ) kullanılabilir; 2–80 karakter"
+               aria-invalid="{{ 'true' if errors.get('workplace_name') }}">
+        {% if errors.get('workplace_name') %}<small class="error">{{ errors.get('workplace_name') }}</small>{% endif %}
+      </div>
+
+      {# Süre: basit, harf + rakam + boşluk + / -  (örn: 12 ay, 6-9 ay, proje boyunca) #}
+      <div class="field">
+        <label for="project_duration">Proje Süresi</label>
+        <input class="input" id="project_duration" name="project_duration"
+               placeholder="örn. 12 ay, 6-9 ay, proje boyunca"
+               value="{{ request.form.get('project_duration','')|e }}"
+               inputmode="text" maxlength="40"
+               pattern="^[A-Za-zÇĞİÖŞÜçğıöşü0-9\s/\-]{2,40}$"
+               title="Harf/rakam/boşluk ve / - kullanın; 2–40 karakter"
+               aria-invalid="{{ 'true' if errors.get('project_duration') }}">
+        {% if errors.get('project_duration') %}<small class="error">{{ errors.get('project_duration') }}</small>{% endif %}
+      </div>
+
+      {# Adres: temel karakter kümesi; emojiler ve anlamsız semboller temizlenecek #}
+      <div class="field" style="grid-column:1/-1">
+        <label for="workplace_address">Adres *</label>
+        <textarea class="input" id="workplace_address" name="workplace_address"
+                  rows="3" required autocomplete="street-address" maxlength="180"
+                  pattern="^[A-Za-zÇĞİÖŞÜçğıöşü0-9\s\.\,'/\\\-#():;]{5,180}$"
+                  title="Harf/rakam/boşluk ve ., ' / \ - # ( ) : ; kullanılabilir; 5–180 karakter"
+                  aria-invalid="{{ 'true' if errors.get('workplace_address') }}">{{ request.form.get('workplace_address','')|e }}</textarea>
+        {% if errors.get('workplace_address') %}<small class="error">{{ errors.get('workplace_address') }}</small>{% endif %}
+      </div>
+
+      <div class="field" style="grid-column:1/-1">
+        <label class="checkbox">
+          <input type="checkbox" name="kvkk_accepted" id="kvkk_accepted"
+                 {% if request.form.get('kvkk_accepted') %}checked{% endif %} required
+                 aria-invalid="{{ 'true' if errors.get('kvkk_accepted') }}">
+          <span>KVKK/Aydınlatma metnini okudum ve kabul ediyorum *</span>
+        </label>
+        {% if errors.get('kvkk_accepted') %}<small class="error">{{ errors.get('kvkk_accepted') }}</small>{% endif %}
+      </div>
+
+      <div style="grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <a class="btn" href="{{ url_for('welcome') }}">Geri</a>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <button class="btn btn-ghost" type="reset">Temizle</button>
+          <button class="btn btn-success" id="submitBtn">Kaydı Tamamla</button>
+        </div>
+      </div>
+    </form>
+
+    <p class="tiny muted" style="margin-top:.75rem">Sorun yaşarsanız <a href="mailto:support@ornek.com">support@ornek.com</a>.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById('registerForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const pwd = document.getElementById('password');
+  const togglePwd = document.getElementById('togglePwd');
+
+  // Şifre göster/gizle
+  if (togglePwd && pwd) {
+    togglePwd.addEventListener('click', () => {
+      const isText = pwd.type === 'text';
+      pwd.type = isText ? 'password' : 'text';
+      togglePwd.setAttribute('aria-pressed', String(!isText));
+      togglePwd.textContent = isText ? 'Göster' : 'Gizle';
+      pwd.focus();
+    });
+  }
+
+  // Alan bazlı temizleyiciler (emojileri ve anlamsız sembolleri engelle)
+  const CLEAN_RULES = {
+    contact_name: /[^A-Za-zÇĞİÖŞÜçğıöşü\s]/g,
+    contact_title: /[^A-Za-zÇĞİÖŞÜçğıöşü\s\.\'\-,]/g,
+    workplace_name: /[^A-Za-z0-9ÇĞİÖŞÜçğıöşü\s\.\&'\-,()]/g,
+    project_duration: /[^A-Za-zÇĞİÖŞÜçğıöşü0-9\s/\-]/g,
+    workplace_address: /[^A-Za-z0-9ÇĞİÖŞÜçğıöşü\s\.\,'\/\\\-#():;]/g
+  };
+
+  const fields = Object.keys(CLEAN_RULES);
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const cleaner = () => {
+      const pattern = CLEAN_RULES[id];
+      const before = el.value;
+      let after = before.replace(/\p{Extended_Pictographic}/gu, ''); // emojileri sil
+      after = after.replace(pattern, ''); // istenmeyenleri sil
+      if (after !== before) {
+        const pos = el.selectionStart;
+        el.value = after;
+        if (typeof pos === 'number') el.setSelectionRange(pos - (before.length - after.length), pos - (before.length - after.length));
+      }
+    };
+
+    el.addEventListener('input', cleaner);
+    el.addEventListener('paste', (e) => {
+      setTimeout(cleaner, 0);
+    });
+  });
+
+  // Sadece sayı girişi engelle: adı/ünvanı/işyeri adı için en az bir harf zorunlu
+  function hasLetter(s) { return /[A-Za-zÇĞİÖŞÜçğıöşü]/.test(s); }
+  form.addEventListener('submit', (e) => {
+    // native doğrulama + ek kontroller
+    const nameOk = hasLetter(document.getElementById('contact_name').value);
+    const titleEl = document.getElementById('contact_title');
+    const titleOk = !titleEl.value || hasLetter(titleEl.value);
+    const workOk = hasLetter(document.getElementById('workplace_name').value);
+
+    if (!form.checkValidity() || !nameOk || !titleOk || !workOk) {
+      e.preventDefault();
+      [...form.elements].forEach(el => { if (el.willValidate) el.classList.toggle('is-invalid', !el.checkValidity()); });
+      if (!nameOk) document.getElementById('contact_name').classList.add('is-invalid');
+      if (!titleOk) document.getElementById('contact_title').classList.add('is-invalid');
+      if (!workOk) document.getElementById('workplace_name').classList.add('is-invalid');
+      (form.querySelector('.is-invalid') || document.getElementById('contact_name')).focus();
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Gönderiliyor...';
+  });
+
+  form.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el && el.willValidate) {
+      el.classList.toggle('is-invalid', !el.checkValidity());
+    }
+  });
+
+  const nameEl = document.getElementById('contact_name');
+  if (nameEl && !nameEl.value) nameEl.focus();
+})();
+</script>
+
+<style>
+  .field { display:flex; flex-direction:column; gap:.35rem; }
+  .input-group { display:flex; gap:.5rem; align-items:stretch; }
+  .input-group .input { flex:1; }
+  .muted { opacity:.8; }
+  .tiny { font-size:.85em; }
+  .error { color: var(--danger, #b00020); }
+  .is-invalid { border-color: var(--danger, #b00020) !important; box-shadow: 0 0 0 .125rem rgba(176,0,32,.15); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border, #ddd); }
+  .checkbox { display:flex; gap:.5rem; align-items:flex-start; }
+  .stack { display:flex; flex-direction:column; }
+</style>
+{% endblock %}

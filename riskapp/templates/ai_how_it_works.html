@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}AI Nasıl Çalışır?{% endblock %}
+{% block content %}
+<style>
+  .stage {
+    display: grid;
+    grid-template-columns: 1fr 56px 1fr 56px 1fr 56px 1fr;
+    gap: 16px;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .node {
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #23314d;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, .35);
+    position: relative;
+    min-height: 110px;
+  }
+  .node h3 {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    color: #93c5fd;
+  }
+  .node p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #cbd5e1;
+  }
+  .arrow {
+    position: relative;
+    height: 56px;
+  }
+  .pipe {
+    position: absolute;
+    top: 26px;
+    left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #23314d, #334155);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .dot {
+    position: absolute;
+    top: -6px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #60a5fa;
+    box-shadow: 0 0 10px #60a5fa, 0 0 20px #60a5fa;
+    animation: flow 2.2s linear infinite;
+  }
+  @keyframes flow {
+    0%   { left: -10px; opacity: .0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { left: calc(100% - 6px); opacity: .0; }
+  }
+
+  /* adım vurgu */
+  .node.active {
+    outline: 2px solid #60a5fa;
+    box-shadow: 0 0 0 4px rgba(96,165,250,.15), 0 6px 24px rgba(14,165,233,.25);
+  }
+  .legend {
+    display: flex; gap: 8px; align-items: center; margin-top: 18px; color:#94a3b8; font-size: 13px;
+  }
+  .legend .chip { width:10px; height:10px; border-radius:50%; background:#60a5fa; box-shadow:0 0 6px #60a5fa; }
+  .controls {
+    display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;
+  }
+  .btn-ghost {
+    background: #0b1220; color:#cbd5e1; border:1px solid #23314d; padding:8px 12px; border-radius:10px; cursor:pointer;
+  }
+  .btn-ghost:hover { border-color:#3b82f6; color:#e5e7eb; }
+</style>
+
+<div class="card">
+  <h2>AI Nasıl Çalışır? (RAG + Rerank + Özet)</h2>
+  <p class="small" style="color:#9fb2c7">
+    Aşağıdaki akış, uygulamadaki yerel yapay zekanın bir soruyu nasıl cevapladığını görselleştirir.
+  </p>
+
+  <div class="stage" id="pipeline">
+    <!-- 1 -->
+    <div class="node" data-step="0">
+      <h3>1) Kullanıcı Sorusu</h3>
+      <p>Formdaki istek / risk sorusu alınır.</p>
+    </div>
+    <div class="arrow">
+      <div class="pipe"><span class="dot" style="animation-delay:0s"></span></div>
+    </div>
+
+    <!-- 2 -->
+    <div class="node" data-step="1">
+      <h3>2) Embedding</h3>
+      <p>Cümleler vektöre çevrilir (örn. MiniLM / BGE).</p>
+    </div>
+    <div class="arrow">
+      <div class="pipe"><span class="dot" style="animation-delay:.15s"></span></div>
+    </div>
+
+    <!-- 3 -->
+    <div class="node" data-step="2">
+      <h3>3) Vektör Arama</h3>
+      <p>FAISS / KNN ile en benzer kayıtlar bulunur.</p>
+    </div>
+    <div class="arrow">
+      <div class="pipe"><span class="dot" style="animation-delay:.3s"></span></div>
+    </div>
+
+    <!-- 4 -->
+    <div class="node" data-step="3">
+      <h3>4) Rerank</h3>
+      <p>Cross-Encoder ile ilk 10 sonuç yeniden sıralanır.</p>
+    </div>
+    <div class="arrow">
+      <div class="pipe"><span class="dot" style="animation-delay:.45s"></span></div>
+    </div>
+
+    <!-- 5 -->
+    <div class="node" data-step="4">
+      <h3>5) Cevap / Özet</h3>
+      <p>Seçilen bağlamla Türkçe, adım adım bir çıktı üretilir.</p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="chip"></span>
+    <span>Akıştaki noktalar veri hareketini gösterir. Aşağıdaki kontrollerle adım adım ilerleyebilirsin.</span>
+  </div>
+
+  <div class="controls">
+    <button class="btn-ghost" id="btnPlay">Oynat</button>
+    <button class="btn-ghost" id="btnPause">Duraklat</button>
+    <button class="btn-ghost" id="btnStep">Bir Adım İlerle</button>
+    <button class="btn-ghost" id="btnReset">Sıfırla</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const nodes = Array.from(document.querySelectorAll('.node'));
+  let timer = null;
+  let step = -1;
+  const DURATION = 1200; // ms
+
+  function highlight(i){
+    nodes.forEach(n => n.classList.remove('active'));
+    if (i >= 0 && i < nodes.length) nodes[i].classList.add('active');
+  }
+
+  function next(){
+    step = (step + 1) % nodes.length;
+    highlight(step);
+  }
+
+  function play(){
+    if (timer) return;
+    next();
+    timer = setInterval(next, DURATION);
+  }
+  function pause(){
+    clearInterval(timer);
+    timer = null;
+  }
+  function reset(){
+    pause();
+    step = -1;
+    highlight(-1);
+  }
+
+  document.getElementById('btnPlay').addEventListener('click', play);
+  document.getElementById('btnPause').addEventListener('click', pause);
+  document.getElementById('btnStep').addEventListener('click', () => { pause(); next(); });
+  document.getElementById('btnReset').addEventListener('click', reset);
+
+  // otomatik küçük demo
+  setTimeout(play, 600);
+})();
+</script>
+{% endblock %}

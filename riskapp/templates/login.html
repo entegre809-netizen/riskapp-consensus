@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Giriş</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* Hafif dokunuşlar: mevcut temayı bozmadan */
+    .card { padding: 1.25rem; }
+    .field { display:flex; flex-direction:column; gap:.4rem; margin-bottom:.8rem; }
+    .input-group { display:flex; gap:.5rem; align-items:stretch; }
+    .input-group .input { flex:1; }
+    .muted { opacity:.8; font-size:.9em; }
+    .tiny { font-size:.85em; }
+    .error { color: var(--danger, #b00020); }
+    .is-invalid { border-color: var(--danger, #b00020) !important; box-shadow: 0 0 0 .12rem rgba(176,0,32,.15); }
+    .btn-ghost { background: transparent; border:1px solid var(--border, #ddd); }
+    .actions { margin-top:12px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width:420px">
+    <div class="card" role="form" aria-labelledby="loginTitle">
+      <h2 id="loginTitle">Giriş</h2>
+
+      {# Flash mesajları #}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="flash {{cat}}" role="alert">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form id="loginForm" method="post" novalidate>
+        {# Flask-WTF kullanıyorsan CSRF'i enjekte et #}
+        {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
+
+        <div class="field">
+          <label for="email">E-posta</label>
+          <input class="input" id="email" type="email" name="email"
+                 placeholder="ornek@firma.com"
+                 value="{{ (email or '')|trim|e }}"
+                 required inputmode="email" autocomplete="email" maxlength="120"
+                 aria-invalid="false" aria-describedby="emailHelp">
+          <small id="emailHelp" class="muted tiny">Kurumsal e-postanızı girin (boşluk/emoji kabul edilmez).</small>
+        </div>
+
+        <div class="field">
+          <label for="password">Şifre</label>
+          <div class="input-group">
+            <input class="input" id="password" type="password" name="password"
+                   placeholder="••••••••" required minlength="8" maxlength="128"
+                   autocomplete="current-password"
+                   pattern="^(?=.*[A-Za-z])(?=.*\d).{8,128}$"
+                   title="En az bir harf ve bir rakam içermelidir."
+                   aria-invalid="false" aria-describedby="pwdHelp">
+            <button class="btn btn-ghost" type="button" id="togglePwd" aria-controls="password" aria-pressed="false">Göster</button>
+          </div>
+          <small id="pwdHelp" class="muted tiny">En az 8 karakter, harf + rakam önerilir.</small>
+        </div>
+
+        <div class="field" style="margin-top:.2rem; margin-bottom:.2rem;">
+          <label style="display:flex; align-items:center; gap:.5rem;" for="remember">
+            <input id="remember" name="remember" type="checkbox" {% if remember %}checked{% endif %}>
+            <span>Beni hatırla</span>
+          </label>
+        </div>
+
+        <div class="actions">
+          <a class="btn" href="{{ url_for('setup_step1') }}">Hesabın yok mu? Kayıt ol</a>
+          <a class="btn" href="{{ url_for('forgot_password') }}">Şifremi unuttum</a>
+          <button class="btn btn-primary" id="submitBtn" type="submit" style="margin-left:auto">Giriş yap</button>
+        </div>
+      </form>
+
+      <p class="tiny muted" style="margin-top:.75rem">Girişte sorun mu yaşıyorsun? <a href="mailto:support@ornek.com">support@ornek.com</a></p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const form = document.getElementById('loginForm');
+      const btn = document.getElementById('submitBtn');
+      const email = document.getElementById('email');
+      const pwd = document.getElementById('password');
+      const togglePwd = document.getElementById('togglePwd');
+
+      // Trim + geçersiz karakter temizleme (email için boşluk/emoji yok)
+      function stripEmojis(s){ return s.replace(/\p{Extended_Pictographic}/gu, ''); }
+      function cleanEmail(v){ return stripEmojis(v).replace(/\s+/g,''); }
+      function cleanPassword(v){ return stripEmojis(v); }
+
+      email.addEventListener('input', () => {
+        const before = email.value;
+        const after = cleanEmail(before);
+        if (after !== before) {
+          const pos = email.selectionStart;
+          email.value = after;
+          if (typeof pos === 'number') email.setSelectionRange(pos - (before.length - after.length), pos - (before.length - after.length));
+        }
+        email.classList.toggle('is-invalid', !email.checkValidity());
+      });
+
+      pwd.addEventListener('input', () => {
+        const before = pwd.value;
+        const after = cleanPassword(before);
+        if (after !== before) {
+          const pos = pwd.selectionStart;
+          pwd.value = after;
+          if (typeof pos === 'number') pwd.setSelectionRange(pos - (before.length - after.length), pos - (before.length - after.length));
+        }
+        pwd.classList.toggle('is-invalid', !pwd.checkValidity());
+      });
+
+      // Şifre göster/gizle
+      if (togglePwd) {
+        togglePwd.addEventListener('click', () => {
+          const isText = pwd.type === 'text';
+          pwd.type = isText ? 'password' : 'text';
+          togglePwd.textContent = isText ? 'Göster' : 'Gizle';
+          togglePwd.setAttribute('aria-pressed', String(!isText));
+          pwd.focus();
+        });
+      }
+
+      // Enter ile submit çalışsın; çift tık engeli + basit doğrulama
+      form.addEventListener('submit', (e) => {
+        // HTML5 doğrulaması
+        if (!form.checkValidity()) {
+          e.preventDefault();
+          [email, pwd].forEach(el => el.classList.toggle('is-invalid', !el.checkValidity()));
+          (form.querySelector('.is-invalid') || email).focus();
+          return;
+        }
+        // Ek mantık: email boşluk içermez, min uzunluk ve pattern zaten var
+        // Çift gönderimi engelle
+        btn.disabled = true;
+        btn.textContent = 'Gönderiliyor...';
+      });
+
+      // İlk odak email alanında
+      if (!email.value) email.focus();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Sorumlu Özeti{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Sorumlu Özeti</h2>
+  <p class="small">Kim hangi risklerden sorumlu? Ortalama RPN’e göre sıralanmıştır.</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="width:28%">Sorumlu</th>
+        <th style="width:12%">Risk Sayısı</th>
+        <th style="width:18%">Ortalama RPN</th>
+        <th>En Kritik Risk</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.responsible }}</strong></td>
+          <td>{{ row.count }}</td>
+          <td>
+            {% if row.avg_rpn is not none %}
+              <span class="badge">{{ '%.2f'|format(row.avg_rpn) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if row.critical %}
+              <a href="{{ url_for('risk_detail', risk_id=row.critical.id) }}">{{ row.critical.title }}</a>
+              {% set cr = row.critical.avg_rpn() %}
+              {% if cr is not none %}
+                <span class="small">· RPN {{ '%.2f'|format(cr) }}</span>
+              {% endif %}
+              <div class="small" style="color:#6b7280">
+                {{ row.critical.category or '-' }} · {{ row.critical.status }}
+              </div>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="4">Sorumlusu atanmış risk bulunamadı.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="small" style="margin-top:8px">
+    Not: Ortalama RPN, her sorumlunun üzerindeki risklerin <em>mevcut ortalama RPN</em> değerlerinden hesaplanır.
+  </div>
+</div>
+
+{% endblock %}

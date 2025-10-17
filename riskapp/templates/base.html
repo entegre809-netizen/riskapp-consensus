@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{% block title %}Risk Yönetim{% endblock %}</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    /* ================================
+       2026 Modern UI — Çift Tema
+       ================================ */
+
+    /* ===== Tema: Koyu (varsayılan tokenlar) ===== */
+    :root,
+    [data-theme="dark"]{
+      --bg: #0b1020;
+      --bg-soft: #0f1630;
+      --card: #121a38cc;
+      --card-solid:#121a38;
+
+      --text: #e8ecff;
+      --muted:#a5b1d6;
+
+      --line: #263055;
+
+      --brand: #0a0f25;
+      --brand-2:#0f1736;
+      --primary: #6ea8ff;
+      --primary-2:#8fb9ff;
+      --success: #39d98a;
+      --warning: #ffcc66;
+      --danger:  #ff6b6b;
+
+      --low:#34d399;
+      --mid:#f59e0b;
+      --high:#ef4444;
+
+      --ring: #6ea8ff;
+
+      --elev: 0 6px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
+      --elev-card: 0 8px 30px rgba(8,15,40,.45);
+      --glass-blur: saturate(140%) blur(6px);
+
+      --radius: 16px;
+      --radius-sm: 12px;
+      --pad: 14px;
+
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    /* ===== Tema: Açık ===== */
+    [data-theme="light"]{
+      --bg: #f8fbff;
+      --bg-soft: #ffffff;
+      --card: #ffffffea;
+      --card-solid:#ffffff;
+
+      --text: #0a1328;
+      --muted:#455377;
+
+      --line: #e4eaf6;
+
+      --brand:   #ffedb3;
+      --brand-2: #fff6d8;
+      --primary:   #ffc92e;
+      --primary-2: #ffe07a;
+      --success: #0ea371;
+      --warning: #f59e0b;
+      --danger:  #e05656;
+
+      --ring: #ffe08a;
+
+      --elev: 0 10px 28px rgba(15,23,42,.06), inset 0 0 0 1px rgba(15,23,42,.02);
+      --elev-card: 0 16px 36px rgba(15,23,42,.10);
+      --glass-blur: saturate(118%) blur(5px);
+
+      --radius: 16px;
+      --radius-sm: 12px;
+      --pad: 14px;
+
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box }
+    html,body{
+      margin:0; padding:0; font-family:var(--font);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 0% 0%, color-mix(in oklab, var(--brand-2) 55%, transparent) 0%, transparent 60%),
+        radial-gradient(1000px 600px at 100% 0%, color-mix(in oklab, var(--brand) 45%, transparent) 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, color-mix(in oklab, var(--bg) 90%, #ffffff 10%) 100%);
+      min-height:100%;
+      transition: background .25s ease, color .25s ease;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    h1,h2,h3{ line-height:1.2; margin:.2rem 0 .7rem; letter-spacing:.01em; }
+    h1{ font-size: clamp(1.45rem, 2.2vw, 1.85rem); font-weight:900; }
+    h2{ font-size: clamp(1.25rem, 1.9vw, 1.55rem); font-weight:850; }
+    h3{ font-size: clamp(1.08rem, 1.6vw, 1.25rem); font-weight:800; }
+
+    a{ color:#1247ff; text-decoration:none; font-weight:700; }
+    a:hover{ text-decoration:underline; }
+    [data-theme="dark"] a{ color:#9fc0ff; }
+
+    /* ====== Layout ====== */
+    .layout{ display:flex; min-height:100vh; }
+    .sidebar{
+      width:280px; background:linear-gradient(180deg, var(--brand) 0%, var(--brand-2) 100%);
+      color:#1b2338; padding:18px 0; position:sticky; top:0; height:100vh;
+      box-shadow: var(--elev);
+      border-right:1px solid #eef1f8;
+      transition: background .25s ease, color .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    [data-theme="dark"] .sidebar{
+      color:#dbe5ff;
+      border-right:1px solid rgba(255,255,255,.06);
+    }
+    .brand{
+      font-size:1.12rem; font-weight:900; text-align:center; margin:0 0 .8rem; padding:0 1rem;
+      letter-spacing:.02em; color:#131a2f;
+    }
+    [data-theme="dark"] .brand{ color:#eaf1ff; }
+
+    .main{ flex:1; padding:26px min(4vw,36px) 38px; backdrop-filter: var(--glass-blur); }
+
+    /* ====== Menü ====== */
+    .menu-section{ margin:12px 0 16px; }
+    .menu-section h4{
+      margin:.3rem 0 .3rem 1rem; font-size:.8rem; text-transform:uppercase;
+      letter-spacing:.1em; color:#616b86; font-weight:900; opacity:.9;
+    }
+    [data-theme="dark"] .menu-section h4{ color:#9fb3ff; }
+
+    .menu-section a{
+      display:flex; align-items:center; gap:.55rem;
+      padding:.66rem 1.15rem; text-decoration:none; color:#253052;
+      border-left:3px solid transparent; transition:.18s ease;
+      border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+      position:relative; font-weight:700;
+    }
+    .menu-section a:hover{ background:rgba(0,0,0,.05); color:#0e172c; }
+    .menu-section a.active{
+      background:linear-gradient(90deg, color-mix(in oklab, var(--primary) 32%, transparent), transparent);
+      color:#0e172c; border-left-color: var(--primary);
+      box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 28%, transparent);
+    }
+    [data-theme="dark"] .menu-section a{ color:#cfe0ff; }
+    [data-theme="dark"] .menu-section a:hover{ background:rgba(255,255,255,.06); color:#fff; }
+    [data-theme="dark"] .menu-section a.active{
+      background:linear-gradient(90deg, rgba(110,168,255,.18), rgba(110,168,255,0));
+      color:#fff; border-left-color: var(--primary);
+      box-shadow: inset 0 0 0 1px rgba(110,168,255,.15);
+    }
+    .submenu{ margin-left:.25rem; border-left:2px dashed rgba(0,0,0,.08); }
+    [data-theme="dark"] .submenu{ border-left-color: rgba(255,255,255,.06); }
+    .submenu a{ padding-left:1.2rem; font-size:.98rem; }
+
+    /* ====== Kart / Grid / Tablo ====== */
+    .card{
+      background: var(--card);
+      border:1px solid #e8edf7;
+      border-radius: var(--radius);
+      padding: clamp(16px, 2.2vw, 22px);
+      box-shadow: var(--elev-card);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      animation: cardIn .35s ease both;
+      transition: background .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    [data-theme="dark"] .card{ border:1px solid rgba(255,255,255,.08); }
+    @keyframes cardIn{ from{ transform: translateY(6px); opacity:.0 } to{ transform:none; opacity:1 } }
+
+    .grid{ display:grid; gap:14px; }
+    .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+    @media (max-width: 980px){
+      .grid-2, .grid-3{ grid-template-columns: 1fr; }
+      .sidebar{ width:240px; }
+    }
+
+    .table{ width:100%; border-collapse:separate; border-spacing:0; }
+    .table th, .table td{
+      padding:.8rem .9rem; border-bottom:1px solid #e8edf7;
+      text-align:left; font-size:.96rem;
+    }
+    [data-theme="dark"] .table th, 
+    [data-theme="dark"] .table td{
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .table thead th{
+      font-size:.82rem; text-transform:uppercase; letter-spacing:.09em;
+      color:var(--muted);
+      background: linear-gradient(180deg, #fff7db, #ffeeb9);
+      position:sticky; top:0; z-index:1;
+      border-bottom:1px solid #f3e4a9;
+      font-weight:900;
+    }
+    [data-theme="dark"] .table thead th{
+      background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.02));
+      color:#d9e2ff;
+      border-bottom-color: rgba(255,255,255,.12);
+    }
+    .table tr:hover td{ background:#fffdf4; }
+    [data-theme="dark"] .table tr:hover td{ background:rgba(255,255,255,.05); }
+
+    /* ====== Form ====== */
+    label{
+      display:block; font-size:.86rem; color:#2a3553; margin-bottom:.4rem; font-weight:850;
+    }
+    [data-theme="dark"] label{ color:#dde6ff; }
+
+    .input, select.input, textarea.input{
+      width:100%; padding:.78rem .85rem;
+      border:1px solid #dde4f1; border-radius:12px;
+      background: linear-gradient(180deg, #ffffff, #f7faff);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.02);
+      color:#0b1020; outline:none;
+      transition: .2s border-color, .2s box-shadow, .2s background, .2s color;
+      font-weight:600;
+    }
+    .input::placeholder{ color:#8691a9; opacity:.95; }
+    .input:focus{
+      border-color: color-mix(in oklab, var(--primary) 60%, #000 0%);
+      box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 45%, transparent), inset 0 0 0 1px rgba(0,0,0,.04);
+      background: #ffffff;
+    }
+
+    /* --- Koyu form alanları --- */
+    [data-theme="dark"] .input, 
+    [data-theme="dark"] select.input, 
+    [data-theme="dark"] textarea.input{
+      border:1px solid rgba(150,170,220,.35);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      color:#f6f8ff;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+      font-weight:600;
+    }
+    [data-theme="dark"] .input::placeholder{ color:#aebbff; opacity:.9; }
+    [data-theme="dark"] .input:focus{
+      border-color: rgba(110,168,255,.85);
+      box-shadow: 0 0 0 4px rgba(110,168,255,.22), inset 0 0 0 1px rgba(110,168,255,.35);
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      color:#ffffff;
+    }
+
+    /* Koyu temada kontroller dark çizilsin */
+    [data-theme="dark"] input,
+    [data-theme="dark"] select,
+    [data-theme="dark"] textarea { color-scheme: dark; }
+
+    /* Select ok ikonu */
+    select.input,
+    .form-select{
+      appearance: none;
+      -webkit-appearance: none;
+      background-clip: padding-box;
+      padding-right: 2.2rem;
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2310182d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right .65rem center;
+    }
+    [data-theme="dark"] select.input,
+    [data-theme="dark"] .form-select{
+      background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23e8ecff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    }
+
+    /* === KOYU TEMA: multiple/select listbox beyazlığını kapat === */
+    [data-theme="dark"] select,
+    [data-theme="dark"] select.input,
+    [data-theme="dark"] .form-select{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      color: #e8ecff;
+      border: 1px solid rgba(150,170,220,.35);
+    }
+    [data-theme="dark"] select[multiple],
+    [data-theme="dark"] select[size]{
+      background: #0f172a !important;
+      border: 1px solid rgba(150,170,220,.35);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+    }
+    [data-theme="dark"] select option{
+      background:#0f172a; color:#e8ecff;
+    }
+    [data-theme="dark"] select[multiple] option:hover{
+      background: rgba(110,168,255,.18);
+    }
+    [data-theme="dark"] select[multiple] option:checked{
+      background: rgba(110,168,255,.35) !important;
+      color:#0a1228;
+    }
+    [data-theme="dark"] select optgroup{
+      background:#0f172a; color:#aebdf7;
+    }
+
+    /* Tarih ikonları */
+    input[type="date"].input::-webkit-calendar-picker-indicator { opacity: .9; }
+    [data-theme="dark"] input[type="date"].input::-webkit-calendar-picker-indicator{
+      filter: invert(1) brightness(1.1);
+    }
+
+    /* ====== Butonlar ====== */
+    .btn{
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:1px solid #e7ecf7; background: linear-gradient(180deg, #ffffff, #f4f7ff);
+      color:#0f182d; padding:.66rem 1rem; border-radius:12px; cursor:pointer;
+      transition: transform .08s ease, filter .15s ease, box-shadow .2s ease, background .25s ease, color .25s ease, border-color .25s ease;
+      box-shadow: 0 10px 18px rgba(13,19,33,.08), inset 0 0 0 1px rgba(255,255,255,.95);
+      font-weight:900;
+      text-decoration:none;
+    }
+    .btn:hover{ filter:brightness(1.03); box-shadow: 0 14px 24px rgba(13,19,33,.12), inset 0 0 0 1px rgba(255,255,255,1); }
+    .btn:active{ transform: translateY(1px); }
+    .btn-primary{
+      background: linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary) 78%, #000 22%));
+      color:#0a1228; border-color: transparent; text-shadow: 0 1px 0 rgba(255,255,255,.35);
+    }
+    .btn-primary:hover{ filter:brightness(1.02); box-shadow: 0 10px 24px rgba(255,210,77,.25); }
+    .btn-success{ background: linear-gradient(180deg, #3de097, #18c578); color:#06141d; border-color: transparent; font-weight:800; }
+    [data-theme="dark"] .btn{
+      border:1px solid rgba(255,255,255,.12); 
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      color:#eaf0ff;
+      box-shadow: 0 6px 16px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+
+    /* ====== Rozetler / Flash ====== */
+    .badge{
+      display:inline-block; padding:.28rem .6rem; border-radius:999px; font-size:.86rem;
+      border:1px solid #eaeef7; background: #fffdf5;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.8);
+      color:#4b3a0f; font-weight:800;
+    }
+    [data-theme="dark"] .badge{
+      border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.08); color:#eaeef7;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .score-low{ background:rgba(16,185,129,.18); color:#116b4f; border-color:rgba(16,185,129,.28); }
+    .score-mid{ background:rgba(245,158,11,.18); color:#6f4b00; border-color:rgba(245,158,11,.28); }
+    .score-high{ background:rgba(239,68,68,.18); color:#7a1e1e; border-color:rgba(239,68,68,.28); }
+
+    .flash{
+      margin:.7rem 0; padding:.85rem 1rem; border-radius:12px; font-size:.98rem; border:1px solid #ffe3a1;
+      background: linear-gradient(180deg, #fff7df, #fff1c9); color:#3a2c0e; 
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.85); font-weight:800;
+    }
+    .flash.success{ background:linear-gradient(180deg, #eafff4, #d8ffee); color:#073a2a; border-color:#baffdf; }
+    .flash.danger{ background:linear-gradient(180deg, #ffefef, #ffe3e3); color:#5a1c1c; border-color:#ffc9c9; }
+    .flash.info{ background:linear-gradient(180deg, #f5f9ff, #eef4ff); color:#17223a; border-color:#dbe6ff; }
+    [data-theme="dark"] .flash{ 
+      border-color: rgba(255,255,255,.15);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.06));
+      color:#f3f6ff;
+    }
+
+    .small{ font-size:.86rem; color:var(--muted); font-weight:600; }
+
+    /* ====== Yorumlar ====== */
+    .comment{
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      border:1px solid #e7ecf6; border-radius:12px; padding:.8rem .9rem;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.02);
+      color:#0b1020;
+    }
+    .comment.system{ background:linear-gradient(180deg, #fffef6, #fff8e8); color:#3c2f10; border-style:dashed; }
+    [data-theme="dark"] .comment{
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      border:1px solid rgba(255,255,255,.12);
+      color:#f1f4ff;
+    }
+    [data-theme="dark"] .comment.system{
+      background: linear-gradient(180deg, rgba(255,223,128,.12), rgba(255,223,128,.08));
+      color:#fff4cc;
+      border-color: rgba(255,223,128,.35);
+    }
+
+    /* ======== ÖZEL: Beyaz kalan paneli koyu temada kapat ======== */
+    html[data-theme="dark"] .main [style*="background:#fff"],
+    html[data-theme="dark"] .main [style*="background: #fff"],
+    html[data-theme="dark"] .main [style*="background-color:#fff"],
+    html[data-theme="dark"] .main [style*="background-color: #fff"],
+    html[data-theme="dark"] .main .panel,
+    html[data-theme="dark"] .main .box,
+    html[data-theme="dark"] .main .assessments,
+    html[data-theme="dark"] .main .rpn,
+    html[data-theme="dark"] .main .evaluation,
+    html[data-theme="dark"] .main .evaluations {
+      background: var(--card) !important;
+      border: 1px solid rgba(255,255,255,.12) !important;
+      color: var(--text) !important;
+      box-shadow: var(--elev-card) !important;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+    }
+    html[data-theme="dark"] .main .assessments *,
+    html[data-theme="dark"] .main .rpn *,
+    html[data-theme="dark"] .main .evaluation *,
+    html[data-theme="dark"] .main .evaluations *{
+      color: inherit !important;
+    }
+
+    /* ====== Yazdırma ====== */
+    @media print {
+      .noprint { display:none !important; }
+      body{ background:#fff; color:#111; }
+      .sidebar{ display:none }
+      .main{ padding:0 }
+      .card{ box-shadow:none; border:1px solid #ddd; background:#fff; color:#111; }
+      .table th, .table td{ border-color:#eee; }
+    }
+
+    @media (prefers-reduced-motion: no-preference){
+      html, body, .card, .btn, .sidebar{
+        transition: background .25s ease, color .25s ease, box-shadow .25s ease, border-color .25s ease;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SOL MENÜ -->
+  <aside class="sidebar">
+    <div class="brand">⚠️ Risk Yönetimi</div>
+
+    <!-- Tema düğmesi -->
+    <div style="padding:0 1rem 1rem" class="noprint">
+      <button id="themeToggle" class="btn" onclick="window.__toggleTheme?.()">
+        🌙 Koyu Tema
+      </button>
+    </div>
+
+    <!-- Mini Proje Seçici -->
+    {% if session.get('account_id') %}
+      {% set _acc_id = session.get('account_id') %}
+      {% set _projects = ProjectInfo.query.filter_by(account_id=_acc_id).order_by(ProjectInfo.created_at.desc()).all() %}
+      {% if _projects and _projects|length > 1 %}
+        <form method="post" action="{{ url_for('switch_project') }}" class="small" style="padding:0 1rem .75rem">
+          <label for="project_id" style="color:#253052;display:block;margin-bottom:6px;font-weight:900">Aktif Proje</label>
+          <select class="input" id="project_id" name="project_id" onchange="this.form.submit()">
+            {% set _pid = session.get('project_id') %}
+            {% for p in _projects %}
+              <option value="{{ p.id }}" {{ 'selected' if _pid==p.id }}>
+                {{ p.workplace_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    <div class="menu-section">
+      <h4>Dashboard</h4>
+      <a href="{{ url_for('dashboard') }}"
+         class="{{ 'active' if request.endpoint=='dashboard' }}">Genel Görünüm</a>
+    </div>
+
+    <div class="menu-section">
+      <h4>Risk</h4>
+      <div class="submenu">
+        <a href="{{ url_for('risk_identify') }}"
+           class="{{ 'active' if request.endpoint=='risk_identify' }}">
+           Risk / Kategorisi Görüntüleme
+        </a>
+        <a href="{{ url_for('risk_new') }}"
+           class="{{ 'active' if request.endpoint=='risk_new' }}">
+          Yeni Risk Tanımlama
+        </a>
+        <a href="{{ url_for('risk_select') }}"
+           class="{{ 'active' if request.endpoint=='risk_select' }}">
+          Risklerim
+        </a>
+        <a href="{{ url_for('categories_index') }}"
+           class="{{ 'active' if request.endpoint=='categories_index' }}">
+          Kategoriler
+        </a>
+        <a href="{{ url_for('schedule') }}"
+           class="{{ 'active' if request.endpoint=='schedule' }}">
+          Zaman Çizelgesi
+        </a>
+        <a href="{{ url_for('reports') }}"
+           class="{{ 'active' if request.endpoint=='reports' }}">
+          Raporlar
+        </a>
+
+        {% if session.get('role') == 'admin' %}
+          <a href="{{ url_for('import_suggestions') }}"
+             class="{{ 'active' if request.endpoint=='import_suggestions' }}">
+            Risk ve Kategori Aktarma (CSV,Excel)
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('responsibles') }}"
+           class="{{ 'active' if request.endpoint=='responsibles' }}">
+          Sorumlu Özeti
+        </a>
+
+        <!-- Yeni: Excel (Biçimli) dışa aktar -->
+        <a href="{{ url_for('risks_export_xlsx', title='DENİZ YAPILARI İNŞAAT PROJESİ RİSK ANALİZİ') }}">
+          Excel (Biçimli) Dışa Aktar
+        </a>
+        
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <h4>Ayarlar</h4>
+      <div class="submenu">
+        {% if session.get('role') == 'admin' %}
+          <a href="{{ url_for('admin_users') }}"
+             class="{{ 'active' if request.endpoint=='admin_users' }}">
+            Kullanıcı Yönetimi
+          </a>
+        {% endif %}
+        <a href="{{ url_for('settings_account') }}"
+           class="{{ 'active' if request.endpoint=='settings_account' }}">
+          Hesap Bilgileri
+        </a>
+        <a href="{{ url_for('settings_project') }}"
+           class="{{ 'active' if request.endpoint=='settings_project' }}">
+          Proje Bilgileri
+        </a>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <h4>Hesap</h4>
+      {% if session.get('username') %}
+        <div class="small" style="padding:.25rem 1.25rem .5rem">
+          👋 {{ session.get('username') }}
+          {% if session.get('role') %} · {{ session.get('role')|capitalize }}{% endif %}
+        </div>
+      {% endif %}
+      <a href="{{ url_for('logout') }}">Oturumu Kapat</a>
+    </div>
+  </aside>
+
+  <!-- ANA İÇERİK -->
+  <main class="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="flash {{cat}}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+<!-- Tema toggle + (opsiyonel) panel auto-mark -->
+<script>
+(function(){
+  const KEY = 'riskapp.theme';
+  const root = document.documentElement;
+  const btn  = () => document.getElementById('themeToggle');
+
+  function applyTheme(t){
+    root.setAttribute('data-theme', t);
+    localStorage.setItem(KEY, t);
+    if (btn()){
+      btn().textContent = (t === 'light') ? '🌙 Koyu Tema' : '🌞 Açık Tema';
+    }
+  }
+
+  const saved = localStorage.getItem(KEY);
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const initial = saved || (prefersDark ? 'dark' : 'light');
+  applyTheme(initial);
+
+  window.__toggleTheme = function(){
+    const current = root.getAttribute('data-theme') || 'light';
+    applyTheme(current === 'light' ? 'dark' : 'light');
+  };
+
+  function markAssessmentsPanel(){
+    const candidates = document.querySelectorAll('.card, .panel, .section, .box, .content, .container');
+    candidates.forEach(el => {
+      const titleEl = el.querySelector('h1, h2, h3, .title, .header');
+      if (!titleEl) return;
+      const t = (titleEl.textContent || '').trim().toLowerCase();
+      if (t.startsWith('değerlendirmeler') || t === 'rpn' || t.includes('p / s / d')){
+        el.classList.add('assessments');
+      }
+    });
+  }
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', markAssessmentsPanel);
+  } else {
+    markAssessmentsPanel();
+  }
+})();
+</script>
+</body>
+</html>

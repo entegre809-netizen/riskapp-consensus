@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Kütüphane İçe Aktar (CSV){% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Kütüphane İçe Aktar (CSV)</h2>
+  <p class="small">Bu sayfa, risk kütüphanesini (Suggestion) CSV'den topluca ekler. Kategori başlıklarını otomatik algılar.</p>
+
+  <form method="post" enctype="multipart/form-data" class="grid">
+    <div>
+      <label>CSV Dosyası</label>
+      <input class="input" type="file" name="file" accept=".csv" required>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end">
+      <a class="btn" href="{{ url_for('risk_identify') }}">Vazgeç</a>
+      <button class="btn btn-primary">İçe Aktar</button>
+    </div>
+  </form>
+
+  <details style="margin-top:12px">
+    <summary class="small">Beklenen kolon düzeni</summary>
+    <pre class="small" style="white-space:pre-wrap">
+0: Risk Kodları (örn: UYR01) — boşsa kategori satırı olabilir
+1: Risk Faktörü / Kategorileri (ad)
+3: Ortalama Risk Olasılığı (1..5 veya 3,00 gibi)
+4: Ortalama Risk Etkisi (1..5 veya 4,00 gibi)
+(2 ve 5 kullanılmıyor)
+Kategori satırları: Kod boş, ad hücresinde “... RİSKLERİ” yazan satırlar.
+    </pre>
+  </details>
+</div>
+{% endblock %}

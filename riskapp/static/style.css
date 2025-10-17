@@ -1,0 +1,321 @@
+/* ===========================
+   Tema Değişkenleri (Koyu varsayılan)
+=========================== */
+:root{
+  --bg:#0b0f14;
+  --card:#121821;
+  --muted:#8aa0b2;
+  --fg:#e6eef8;
+
+  --accent:#22c55e;
+  --danger:#ef4444;
+  --warn:#f59e0b;
+
+  --line:#1f2937;
+
+  --ink:#cfe0f0;            /* sidebar metin */
+  --ink-dim:#9db0c0;
+  --ink-strong:#e6eef8;
+
+  --surface:#0f1a24;        /* ana içerik arka planı */
+  --surface-2:#0b1420;      /* sidebar arka plan */
+  --surface-3:#111c29;      /* user box */
+  --surface-4:#122136;      /* flash/info */
+  --outline:#1b2a40;
+
+  --ring:#3b82f6;
+}
+
+/* ===========================
+   Açık Tema Override'ları
+   (base.html: <html data-theme="light">)
+=========================== */
+html[data-theme="light"]{
+  --bg:#f7f9ff;
+  --card:#ffffff;
+  --muted:#556384;
+  --fg:#0a1328;
+
+  --accent:#16a34a;
+  --danger:#dc2626;
+  --warn:#d97706;
+
+  --line:#e6ebf4;
+
+  --ink:#25324b;
+  --ink-dim:#6b7692;
+  --ink-strong:#0a1328;
+
+  --surface:#f7faff;     /* .main arka plan */
+  --surface-2:#fff7d6;   /* sidebar degrade üst tonu */
+  --surface-3:#ffffff;
+  --surface-4:#fff3cc;
+  --outline:#e6ebf4;
+
+  --ring:#ffd65a;
+}
+
+/* İsteğe bağlı: koyu temayı açıkça atamak istersen */
+/*html[data-theme="dark"]{
+  /* :root ile aynı; boş bırakılabilir */
+/*}
+
+/* ===========================
+   Global
+=========================== */
+*{box-sizing:border-box}
+html,body{
+  margin:0; padding:0;
+  background:var(--bg); color:var(--fg);
+  font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  transition: background .25s ease, color .25s ease;
+}
+a{color:#93c5fd; text-decoration:none}
+html[data-theme="light"] a{ color:#1247ff }
+a:hover{ text-decoration:underline }
+img{max-width:100%; height:auto}
+
+/* Kart ve konteyner */
+.container{max-width:1100px; margin:24px auto; padding:0 16px}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+  transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+html[data-theme="light"] .card{
+  box-shadow:0 14px 36px rgba(15,23,42,.10);
+}
+
+/* ===========================
+   Butonlar
+=========================== */
+.btn{
+  display:inline-block;
+  padding:10px 14px;
+  border-radius:12px;
+  background:#334155;
+  color:#e5e7eb;
+  border:1px solid var(--line);
+  cursor:pointer;
+  transition:opacity .15s ease, transform .02s ease, box-shadow .25s ease, background .25s ease, color .25s ease;
+  font-weight:700;
+}
+.btn:hover{opacity:.95}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:#2563eb}
+.btn-success{background:#16a34a}
+.btn-danger{background:#b91c1c}
+
+html[data-theme="light"] .btn{
+  background:linear-gradient(180deg,#ffffff,#f4f7ff);
+  color:#0f182d;
+  border-color:#e6ebf4;
+  box-shadow:0 10px 18px rgba(13,19,33,.08), inset 0 0 0 1px rgba(255,255,255,.95);
+}
+html[data-theme="light"] .btn-primary{
+  background:linear-gradient(180deg,#ffd24d,#f7bf2a);
+  color:#0a1228; border-color:transparent; text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+html[data-theme="light"] .btn-success{ background:#22c55e; color:#072417 }
+html[data-theme="light"] .btn-danger{ background:#ef4444; color:#fff1f1 }
+
+/* ===========================
+   Formlar
+=========================== */
+.input, textarea, select{
+  width:100%;
+  background:#0f172a;
+  border:1px solid #243042;
+  color:var(--fg);
+  padding:10px;
+  border-radius:12px;
+  transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+textarea{resize:vertical}
+label{display:block; margin:8px 0 6px 2px; color:#cbd5e1; font-size:.95rem; font-weight:700}
+
+.input:focus, textarea:focus, select:focus{
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent);
+}
+
+/* Açık tema formlar */
+html[data-theme="light"] .input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] select{
+  background:#ffffff;
+  border:1px solid #e6ebf4;
+  color:#0a1328;
+}
+html[data-theme="light"] label{ color:#2a3553 }
+
+/* ===========================
+   Grid / Layout yardımcıları
+=========================== */
+.grid{display:grid; gap:16px}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+/* ===========================
+   Tablo
+=========================== */
+.table{width:100%; border-collapse:collapse}
+.table th,.table td{
+  border-bottom:1px solid var(--line);
+  padding:10px; text-align:left;
+}
+.table th{
+  font-size:.86rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+html[data-theme="light"] .table th,.table td{
+  border-bottom-color:#e6ebf4;
+}
+.badge{
+  padding:4px 8px; border-radius:999px; font-size:.8rem;
+  border:1px solid var(--line); background:#0f172a; color:var(--fg);
+}
+html[data-theme="light"] .badge{
+  background:#fff7df; border-color:#ffe3a1; color:#3a2c0e; font-weight:700;
+}
+
+/* ===========================
+   Yorumlar / Mesajlar
+=========================== */
+.comment{
+  padding:8px 12px; border:1px solid var(--line);
+  border-radius:12px; background:#0b1220;
+}
+.comment.system{color:#94a3b8; background:#0b0f14; border-style:dashed}
+
+.flash{padding:10px 12px; border-radius:12px; margin-bottom:12px}
+.flash.success{background:#052e1c; color:#b7f3cc; border:1px solid #164e3a}
+.flash.danger{background:#3a0b0b; color:#fbbbbb; border:1px solid #7f1d1d}
+.flash.info{background:#0b1220; border:1px solid #1e3a5f; color:#cfe8ff}
+
+html[data-theme="light"] .flash{
+  border:1px solid #ffe3a1; color:#3a2c0e;
+}
+html[data-theme="light"] .flash.success{ background:linear-gradient(180deg,#eafff4,#d8ffee); color:#073a2a; border-color:#baffdf }
+html[data-theme="light"] .flash.danger{ background:linear-gradient(180deg,#ffefef,#ffe3e3); color:#5a1c1c; border-color:#ffc9c9 }
+html[data-theme="light"] .flash.info{ background:linear-gradient(180deg,#f5f9ff,#eef4ff); color:#17223a; border-color:#dbe6ff }
+
+/* ===========================
+   Risk Matrisi
+=========================== */
+.matrix{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
+.cell{
+  padding:10px; border-radius:10px; text-align:center;
+  background:#0b1220; border:1px solid #1f2a3a; color:var(--fg);
+}
+.score-low{background:#064e3b}     /* düşük risk */
+.score-mid{background:#78350f}     /* orta risk  */
+.score-high{background:#7f1d1d}    /* yüksek risk */
+
+html[data-theme="light"] .cell{
+  background:#ffffff; color:#0a1328; border-color:#e6ebf4;
+}
+html[data-theme="light"] .score-low{ background:#d1fae5 }
+html[data-theme="light"] .score-mid{ background:#fde68a }
+html[data-theme="light"] .score-high{ background:#fecaca }
+
+/* Araçlar */
+.searchbar{display:flex; gap:8px}
+.small{font-size:.9rem; color:#a3b5c3}
+html[data-theme="light"] .small{ color:#556384 }
+
+/* Footer */
+.footer{margin-top:32px; color:#94a3b8; font-size:.9rem}
+html[data-theme="light"] .footer{ color:#6b7692 }
+
+/* ===========================
+   SOL MENÜ DÜZENİ (base.html)
+=========================== */
+.layout{
+  display:grid; grid-template-columns:260px 1fr; min-height:100vh;
+  background:var(--surface);
+}
+.sidebar{
+  background:var(--surface-2); color:var(--ink);
+  display:flex; flex-direction:column; gap:16px;
+  padding:20px 16px; border-right:1px solid var(--outline);
+  position:sticky; top:0; height:100vh;
+}
+.brand{display:flex; align-items:center; gap:10px}
+.brand .logo{
+  width:36px; height:36px; display:grid; place-items:center;
+  background:#172435; border-radius:10px
+}
+.brand .title{font-weight:700; letter-spacing:.3px}
+
+.userbox{
+  background:var(--surface-3);
+  padding:10px 12px; border:1px solid var(--outline); border-radius:12px
+}
+.userbox .user{font-weight:600}
+.userbox .role{font-size:.85rem; color:#9fb0c3}
+html[data-theme="light"] .userbox .role{ color:#6b7692 }
+
+.menu{display:flex; flex-direction:column; gap:8px; margin-top:6px}
+.menu a{
+  display:block;
+  padding:10px 12px; border-radius:10px;
+  color:var(--ink); border:1px solid transparent;
+  background:transparent;
+}
+.menu a:hover{background:#122136; border-color:var(--outline)}
+.menu a.active{background:#1a2740; border-color:#2a3b55}
+.menu a.btn{background:#2563eb; border-color:#1e40af}
+.menu a.btn:hover{opacity:.95}
+.menu a.btn.active{outline:2px solid #3b82f6}
+
+html[data-theme="light"] .menu a{
+  color:#25324b;
+}
+html[data-theme="light"] .menu a:hover{
+  background:#fff9e3; border-color:#f3e4a9;
+}
+html[data-theme="light"] .menu a.active{
+  background:linear-gradient(90deg,#fff3c1,#fff9e9);
+  border-color:#f3e4a9;
+}
+
+/* Ana içerik alanı */
+.main{
+  background:var(--surface);
+  color:var(--ink-strong);
+  padding:24px;
+  border:1px solid color-mix(in oklab, var(--ink-strong) 10%, transparent);
+  box-shadow:0 8px 24px rgba(0,0,0,.06);
+}
+html[data-theme="light"] .main{
+  border-color:#e6ebf4;
+  box-shadow:0 12px 28px rgba(15,23,42,.08);
+}
+
+/* Eski top-nav sınıfları bu layoutta kullanılmıyor */
+.nav{display:none}
+
+/* ===========================
+   Responsive
+=========================== */
+@media (max-width: 1024px){
+  .grid-2{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+}
+@media (max-width: 900px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:relative;height:auto}
+  .main{ padding:16px }
+}
+@media (max-width: 880px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:relative;height:auto}
+}
