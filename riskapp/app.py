@@ -1660,6 +1660,10 @@ def create_app():
         db.session.commit()
         flash("Değerlendirme eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
+    @app.get("/health")
+    def health():
+     return {"ok": True}, 200
+
 
     # -------------------------------------------------
     #  Raporlar
