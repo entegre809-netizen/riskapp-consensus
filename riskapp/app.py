@@ -870,7 +870,7 @@ def create_app():
             @wraps(fn)
             def wrapper(*args, **kwargs):
                 if "username" not in session:
-                    return redirect(url_for("welcome"))
+                    return redirect(url_for("login"))
                 if session.get("role") != role:
                     flash("Bu işlemi yapmak için yetkiniz yok.", "danger")
                     return redirect(url_for("dashboard"))
@@ -881,9 +881,9 @@ def create_app():
     @app.before_request
     def require_login():
         # Giriş gerektirmeyen endpoint'ler
-        allowed = {"static", "welcome", "login", "setup_step1", "forgot_password"}
+        allowed = {"static", "login", "setup_step1", "forgot_password"}
         if "username" not in session and (request.endpoint not in allowed):
-            return redirect(url_for("welcome"))
+            return redirect(url_for("login"))
 
     # -------------------------------------------------
     #  Şifre Sıfırlama
