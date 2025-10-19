@@ -9,6 +9,11 @@
       {% for c,m in messages %}<div class="flash {{c}}">{{m}}</div>{% endfor %}
     {% endwith %}
 
+    <div class="row" style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
+      <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">Geri</a>
+      <a class="btn" href="{{ url_for('admin_refcodes_list') }}">Ref Kodları Yönetimi</a>
+    </div>
+
     <table class="table">
       <thead>
         <tr>
@@ -16,7 +21,9 @@
           <th>E-posta</th>
           <th>Ünvan</th>
           <th>Rol</th>
-          <th style="width:240px">İşlem</th>
+          <th>Durum</th>
+          <th>Ref Kodu</th>
+          <th style="width:420px">İşlem</th>
         </tr>
       </thead>
       <tbody>
@@ -25,20 +32,61 @@
             <td>{{ u.contact_name }}</td>
             <td>{{ u.email }}</td>
             <td>{{ u.contact_title or '-' }}</td>
+
             <td><span class="badge">{{ u.role or 'uzman' }}</span></td>
+
             <td>
-              <form method="post" style="display:flex; gap:8px; align-items:center">
-                <input type="hidden" name="user_id" value="{{ u.id }}">
-                <select name="new_role" class="input">
-                  <option value="uzman" {{ 'selected' if (u.role or 'uzman')=='uzman' }}>uzman</option>
-                  <option value="admin" {{ 'selected' if u.role=='admin' }}>admin</option>
-                </select>
-                <button class="btn btn-primary">Güncelle</button>
-              </form>
+              {% set st = (u.status or 'pending') %}
+              <span class="badge {{ 'success' if st=='active' else 'warning' if st=='pending' else 'secondary' }}">
+                {{ st }}
+              </span>
+            </td>
+
+            <td>
+              {% if u.ref_code %}
+                <code>{{ u.ref_code }}</code>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap">
+                <!-- Rol güncelle -->
+                <form method="post" style="display:flex; gap:8px; align-items:center">
+                  <input type="hidden" name="user_id" value="{{ u.id }}">
+                  <select name="new_role" class="input">
+                    <option value="uzman" {{ 'selected' if (u.role or 'uzman')=='uzman' }}>uzman</option>
+                    <option value="admin"  {{ 'selected' if u.role=='admin' }}>admin</option>
+                  </select>
+                  <button class="btn btn-primary">Güncelle</button>
+                </form>
+
+                <!-- Ref ata & aktive et -->
+                <form method="post" action="{{ url_for('admin_assign_ref', uid=u.id) }}" style="display:flex; gap:8px; align-items:center">
+                  <input class="input" name="ref_code" placeholder="Kod (boş: üret)" style="width:160px">
+                  <button class="btn">Ref Ata & Aktifleştir</button>
+                </form>
+
+                <!-- Mevcut kodu yeniden gönder -->
+                {% if u.ref_code %}
+                  <form method="post" action="{{ url_for('admin_resend_ref', uid=u.id) }}">
+                    <button class="btn btn-secondary">Kodu Yeniden Gönder</button>
+                  </form>
+                {% endif %}
+              </div>
+
+              <div class="muted" style="margin-top:6px; font-size:.9em;">
+                {% if (u.status or 'pending') != 'active' %}
+                  Not: Bu kullanıcı giriş yapabilmek için <em>active</em> olmalı ve kendisine bir ref kodu atanmalıdır.
+                {% else %}
+                  Not: Girişte e-posta + şifre + <em>ref kodu</em> gereklidir.
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="5">Kayıtlı kullanıcı bulunamadı.</td></tr>
+          <tr><td colspan="7">Kayıtlı kullanıcı bulunamadı.</td></tr>
         {% endfor %}
       </tbody>
     </table>

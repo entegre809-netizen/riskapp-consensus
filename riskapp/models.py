@@ -6,7 +6,6 @@ db = SQLAlchemy()
 
 # -------------------------------------------------
 # P×S EŞİKLERİ  (1..25 ölçeği)
-# İstersen config'e taşıyabilirsin.
 # -------------------------------------------------
 # Öneri (P×S):
 #   0..5   → acceptable
@@ -237,13 +236,15 @@ class Account(db.Model):
     email         = db.Column(db.String(200), unique=True, nullable=False, index=True)
     role          = db.Column(db.String(20), default="uzman")   # admin | uzman
     password_hash = db.Column(db.String(255), nullable=False)
-    # YENİ: referans / kampanya kodu alanı
+    # Referans / kampanya kodu
     ref_code      = db.Column(db.String(32), nullable=True, index=True)
+    # Hesap durumu: pending | active | disabled
+    status        = db.Column(db.String(20), default="pending", index=True)
 
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f"<Account {self.email} role={self.role}>"
+        return f"<Account {self.email} role={self.role} status={self.status}>"
 
 
 # --------------------------------

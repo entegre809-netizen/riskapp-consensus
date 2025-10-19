@@ -61,6 +61,17 @@
           <small id="pwdHelp" class="muted tiny">En az 8 karakter, harf + rakam önerilir.</small>
         </div>
 
+        <!-- YENİ: Referans Kodu -->
+        <div class="field">
+          <label for="ref_code">Referans Kodu</label>
+          <input class="input" id="ref_code" type="text" name="ref_code"
+                 placeholder="PRJ-2025-123456"
+                 value="{{ (ref_code or '')|trim|e }}"
+                 inputmode="text" maxlength="32" autocomplete="one-time-code"
+                 aria-invalid="false" aria-describedby="refHelp">
+          <small id="refHelp" class="muted tiny">Admin’in atadığı kod. İlk/tek admin için gerekmez.</small>
+        </div>
+
         <div class="field" style="margin-top:.2rem; margin-bottom:.2rem;">
           <label style="display:flex; align-items:center; gap:.5rem;" for="remember">
             <input id="remember" name="remember" type="checkbox" {% if remember %}checked{% endif %}>
@@ -85,6 +96,7 @@
       const btn = document.getElementById('submitBtn');
       const email = document.getElementById('email');
       const pwd = document.getElementById('password');
+      const ref = document.getElementById('ref_code');
       const togglePwd = document.getElementById('togglePwd');
 
       // Trim + geçersiz karakter temizleme (email için boşluk/emoji yok)
@@ -114,6 +126,19 @@
         pwd.classList.toggle('is-invalid', !pwd.checkValidity());
       });
 
+      // YENİ: ref_code otomatik UPPERCASE + boşluk sil
+      if (ref) {
+        ref.addEventListener('input', () => {
+          const before = ref.value;
+          const after = before.toUpperCase().replace(/\s+/g,'');
+          if (after !== before) {
+            const pos = ref.selectionStart;
+            ref.value = after;
+            if (typeof pos === 'number') ref.setSelectionRange(pos - (before.length - after.length), pos - (before.length - after.length));
+          }
+        });
+      }
+
       // Şifre göster/gizle
       if (togglePwd) {
         togglePwd.addEventListener('click', () => {
@@ -127,15 +152,12 @@
 
       // Enter ile submit çalışsın; çift tık engeli + basit doğrulama
       form.addEventListener('submit', (e) => {
-        // HTML5 doğrulaması
         if (!form.checkValidity()) {
           e.preventDefault();
           [email, pwd].forEach(el => el.classList.toggle('is-invalid', !el.checkValidity()));
           (form.querySelector('.is-invalid') || email).focus();
           return;
         }
-        // Ek mantık: email boşluk içermez, min uzunluk ve pattern zaten var
-        // Çift gönderimi engelle
         btn.disabled = true;
         btn.textContent = 'Gönderiliyor...';
       });

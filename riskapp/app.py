@@ -20,8 +20,12 @@ PKG_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 if PKG_ROOT not in _sys.path:
     _sys.path.insert(0, PKG_ROOT)
 
+import os, smtplib
+from email.message import EmailMessage
 
 from urllib.parse import urlparse
+from dotenv import load_dotenv
+load_dotenv()  # proje kökündeki .env dosyasını okur
 
 
 from flask import Blueprint
@@ -190,7 +194,25 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE accounts ADD COLUMN ref_code TEXT"))
         changed = True
 
-    # evaluations.detection (RPN için)
+    # accounts.status (pending/active/disabled)
+    if not has_col("accounts", "status"):
+        db.session.execute(text(
+            "ALTER TABLE accounts ADD COLUMN status TEXT DEFAULT 'pending'"
+        ))
+        db.session.execute(text(
+            "UPDATE accounts SET status='pending' WHERE status IS NULL"
+        ))
+        changed = True
+
+    # İndeksleri her koşulda dene (IF NOT EXISTS güvenli)
+    db.session.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_accounts_status ON accounts(status)"
+    ))
+    db.session.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_accounts_ref_code ON accounts(ref_code)"
+    ))
+
+    # evaluations.detection (eski RPN alanı için geriye uyum)
     if not has_col("evaluations", "detection"):
         db.session.execute(text("ALTER TABLE evaluations ADD COLUMN detection INTEGER"))
         changed = True
@@ -211,14 +233,18 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN default_sev INTEGER"))
         changed = True
 
-    # created_at / updated_at
+    # suggestions.created_at / updated_at (backfill)
     if not has_col("suggestions", "created_at"):
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN created_at DATETIME"))
         db.session.execute(text("UPDATE suggestions SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
         changed = True
     if not has_col("suggestions", "updated_at"):
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN updated_at DATETIME"))
+        db.session.execute(text("UPDATE suggestions SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL"))
         changed = True
+
+    if changed:
+        db.session.commit()
 
     # referral_codes tablosu
     db.session.execute(text("""
@@ -241,16 +267,15 @@ def ensure_schema():
         db.session.commit()
 
 def _gen_ref_code(prefix="PRJ", year=None, digits=6):
-    """Örn: PRJ-2025-000123 (benzersizliği DB’de kontrol ediyoruz)."""
     y = year or datetime.now().year
     while True:
         seq = "".join(choices(string.digits, k=digits))
         code = f"{prefix}-{y}-{seq}"
-        row = db.session.execute(text(
-            "SELECT 1 FROM referral_codes WHERE code=:c"
-        ), {"c": code}).fetchone()
-        if not row:
+        exists = Account.query.filter(Account.ref_code == code).first()
+        if not exists:
             return code
+
+
 
 # -------------------------------------------------
 #  CSV / XLSX / XLS dosyadan satır okuma helper'ı
@@ -383,6 +408,7 @@ def _unique(seq):
             seen.add(key)
             out.append(x)
     return out
+
 
 # Kategori anahtar kümeleri (normalize edilmiş aramayla eşleşir)
 KEYSETS = {
@@ -828,7 +854,52 @@ def make_ai_risk_comment(risk_id: int) -> str:
 
     return "\n".join(lines)
 
+def send_email(to_email: str, subject: str, body: str):
+    """
+    Gerçek SMTP ile e-posta gönderir.
+    ENV değişkenleri:
+      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_TLS
+    Örn (Gmail, SSL): HOST=smtp.gmail.com PORT=465 SMTP_TLS=0
+         (Gmail, STARTTLS): HOST=smtp.gmail.com PORT=587 SMTP_TLS=1
+    """
+    host = os.getenv("SMTP_HOST")
+    port = int(os.getenv("SMTP_PORT", "465"))
+    user = os.getenv("SMTP_USER")
+    pwd  = os.getenv("SMTP_PASS")
+    from_addr = os.getenv("SMTP_FROM", user or "no-reply@example.com")
+    use_tls = os.getenv("SMTP_TLS", "").lower() in ("1","true","yes")
 
+    if not host or not port:
+        print(f"[MAIL-ERROR] SMTP config eksik (host/port). To={to_email} Subject={subject}")
+        return False
+
+    msg = EmailMessage()
+    msg["From"] = from_addr
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.set_content(body)
+
+    try:
+        if use_tls:
+            # STARTTLS (genelde 587)
+            with smtplib.SMTP(host, port, timeout=20) as s:
+                s.ehlo()
+                s.starttls()
+                s.ehlo()
+                if user and pwd:
+                    s.login(user, pwd)
+                s.send_message(msg)
+        else:
+            # SSL (genelde 465)
+            with smtplib.SMTP_SSL(host, port, timeout=20) as s:
+                if user and pwd:
+                    s.login(user, pwd)
+                s.send_message(msg)
+        print(f"[MAIL] sent to {to_email} subj={subject}")
+        return True
+    except Exception as e:
+        print(f"[MAIL-ERROR] send failed -> {e}")
+        return False
 # -------------------------------------------------
 #  Flask uygulaması oluştur
 # -------------------------------------------------
@@ -1009,21 +1080,39 @@ def create_app():
     # -------------------------------------------------
     #  Giriş — e-posta + şifre
     # -------------------------------------------------
-    @app.route("/login", methods=["GET", "POST"])
+    @app.route("/login", methods=["GET","POST"])
     def login():
-        # Henüz hiç hesap yoksa kayıt sayfasına yönlendir
         if Account.query.count() == 0:
             return redirect(url_for("setup_step1"))
 
         if request.method == "POST":
-            email = request.form.get("email", "").strip()
-            password = request.form.get("password", "")
-            acc = Account.query.filter_by(email=email).first()
+            email = (request.form.get("email") or "").strip()
+            password = request.form.get("password") or ""
+            ref_code_input = (request.form.get("ref_code") or "").strip().upper()
 
+            acc = Account.query.filter_by(email=email).first()
             if not acc or not check_password_hash(acc.password_hash, password):
                 flash("E-posta veya şifre hatalı.", "danger")
                 return render_template("login.html", email=email)
 
+            # İlk kurucu admin için istisna (tek hesap + admin + ref_code yok)
+            bootstrap_ok = (Account.query.count() == 1 and acc.role == "admin" and not acc.ref_code)
+
+            if not bootstrap_ok:
+                if (acc.status or "pending") != "active":
+                    flash("Hesabınız henüz aktif değil. Admin onayı bekleniyor.", "warning")
+                    return render_template("login.html", email=email)
+                if not acc.ref_code:
+                    flash("Referans kodu atanmadı. Lütfen admin ile iletişime geçin.", "warning")
+                    return render_template("login.html", email=email)
+                if not ref_code_input:
+                    flash("Referans kodu zorunludur.", "danger")
+                    return render_template("login.html", email=email)
+                if acc.ref_code.strip().upper() != ref_code_input:
+                    flash("Referans kodu geçersiz.", "danger")
+                    return render_template("login.html", email=email)
+
+            # Giriş
             session["account_id"] = acc.id
             session["username"] = acc.contact_name
             session["role"] = acc.role or "uzman"
@@ -1758,9 +1847,11 @@ def create_app():
         db.session.commit()
         flash("Değerlendirme eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
+    
+
     @app.get("/health")
     def health():
-     return {"ok": True}, 200
+        return {"ok": True}, 200
 
 
     # -------------------------------------------------
@@ -1913,7 +2004,7 @@ def create_app():
             workplace_name = request.form.get("workplace_name", "").strip()
             workplace_address = request.form.get("workplace_address", "").strip()
             project_duration = request.form.get("project_duration", "").strip()
-            ref_code = (request.form.get("ref_code") or "").strip().upper()  # <-- YENİ
+            # NOT: ref_code artık kayıt ekranında alınmıyor
 
             # Zorunlu alan kontrolü
             if not all([name, email, password, workplace_name, workplace_address]):
@@ -1925,47 +2016,10 @@ def create_app():
                 flash("Bu e-posta adresi zaten kayıtlı, lütfen giriş yapın.", "danger")
                 return render_template("setup_step1.html", form=request.form)
 
-            # İlk kullanıcı admin olur ve referanssız kayıt olabilir
+            # İlk kullanıcı admin + active (bootstrap), diğerleri uzman + pending
             first_user = (Account.query.count() == 0)
-
-            # İlk kullanıcı haricinde referans kodu zorunlu
-            if not first_user:
-                if not ref_code:
-                    flash("Referans kodu zorunludur.", "danger")
-                    return render_template("setup_step1.html", form=request.form)
-
-                # Kod var mı / kullanılmamış mı / e-posta kilidi ve son kullanma uygun mu?
-                row = db.session.execute(text("""
-                    SELECT id, code, assigned_email, is_used, expires_at
-                    FROM referral_codes
-                    WHERE code = :c
-                """), {"c": ref_code}).fetchone()
-
-                if not row:
-                    flash("Geçersiz referans kodu.", "danger")
-                    return render_template("setup_step1.html", form=request.form)
-
-                if row.is_used:
-                    flash("Bu referans kodu zaten kullanılmış.", "danger")
-                    return render_template("setup_step1.html", form=request.form)
-
-                if row.assigned_email and str(row.assigned_email).strip().lower() != email.lower():
-                    flash("Bu referans kodu farklı bir e-posta için kilitli.", "danger")
-                    return render_template("setup_step1.html", form=request.form)
-
-                if row.expires_at:
-                    try:
-                        # expires_at TEXT/DATETIME olabilir — YYYY-MM-DD kabul ediyoruz
-                        exp = str(row.expires_at)[:10]
-                        if date.fromisoformat(exp) < date.today():
-                            flash("Referans kodunun süresi dolmuş.", "danger")
-                            return render_template("setup_step1.html", form=request.form)
-                    except Exception:
-                        # format bozuksa süre kontrolünü es geç
-                        pass
-
-            # Rol ata
-            role = "admin" if first_user else "uzman"
+            role   = "admin"  if first_user else "uzman"
+            status = "active" if first_user else "pending"
 
             # Hesap oluştur
             acc = Account(
@@ -1975,7 +2029,8 @@ def create_app():
                 email=email,
                 password_hash=generate_password_hash(password),
                 role=role,
-                ref_code=(ref_code if not first_user else None)  # <-- YENİ: accounts.ref_code kolonuna yaz
+                status=status,
+                # ref_code: yönetici atayana dek None
             )
             db.session.add(acc)
             db.session.flush()  # acc.id için
@@ -1988,28 +2043,34 @@ def create_app():
                 project_duration=project_duration or None
             )
             db.session.add(proj)
-
-            # Referans kodunu kullanılmış olarak işaretle
-            if not first_user:
-                db.session.execute(text("""
-                    UPDATE referral_codes
-                    SET is_used = 1,
-                        assigned_email = COALESCE(assigned_email, :eml)
-                    WHERE code = :c
-                """), {"c": ref_code, "eml": email})
-
             db.session.commit()
 
-            # Oturumu başlat
-            flash("Kayıt tamamlandı, proje bilgileri kaydedildi.", "success")
-            session["account_id"] = acc.id
-            session["username"] = acc.contact_name
-            session["role"] = acc.role
-            session["project_id"] = proj.id
-            return redirect(url_for("dashboard"))
+            if first_user:
+                # İlk admin otomatik giriş
+                flash("İlk admin hesabı oluşturuldu.", "success")
+                session["account_id"] = acc.id
+                session["username"]   = acc.contact_name
+                session["role"]       = acc.role
+                session["project_id"] = proj.id
+                return redirect(url_for("dashboard"))
+            else:
+                # Başvuru alındı — admin onayı sonrası ref kodu mail edilecek
+                send_email(
+                    to_email=email,
+                    subject="Kayıt alındı — admin onayı bekleniyor",
+                    body=(
+                        f"Merhaba {name},\n\n"
+                        "Kayıt talebiniz alındı. Admin onayı sonrasında size Referans Kodunuz e-posta ile iletilecek. "
+                        "Giriş için e-posta + şifre + referans kodu gereklidir.\n\n"
+                        "Teşekkürler."
+                    )
+                )
+                flash("Kayıt alındı. Admin onayı sonrası referans kodu e-posta ile gönderilecek.", "info")
+                return redirect(url_for("login"))
 
         # GET
         return render_template("setup_step1.html")
+
 
     # -------------------------------------------------
     #  AYARLAR — Hesap ve Proje
@@ -2588,6 +2649,52 @@ def create_app():
         db.session.commit()
         flash("Ref No güncellendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
+    @app.post("/admin/users/<int:uid>/assign-ref")
+    @role_required("admin")
+    def admin_assign_ref(uid):
+        acc = Account.query.get_or_404(uid)
+        # formdan kod gelirse kullan, yoksa üret
+        code = (request.form.get("ref_code") or "").strip().upper() or _gen_ref_code(prefix="PRJ")
+        # tekillik
+        clash = Account.query.filter(Account.ref_code == code, Account.id != acc.id).first()
+        if clash:
+            flash("Bu referans kodu başka bir kullanıcıda mevcut.", "danger")
+            return redirect(url_for("admin_users"))
+
+        acc.ref_code = code
+        acc.status = "active"
+        db.session.commit()
+
+        send_email(
+            to_email=acc.email,
+            subject="Referans Kodunuz",
+            body=(
+                f"Merhaba {acc.contact_name},\n\n"
+                f"Giriş için referans kodunuz: {code}\n"
+                "Lütfen girişte e-posta + şifre + referans kodu kullanın.\n"
+            )
+        )
+        flash("Kullanıcı aktifleştirildi ve referans kodu atandı.", "success")
+        return redirect(url_for("admin_users"))
+
+    @app.post("/admin/users/<int:uid>/resend-ref")
+    @role_required("admin")
+    def admin_resend_ref(uid):
+        acc = Account.query.get_or_404(uid)
+        if not acc.ref_code:
+            flash("Bu kullanıcıya henüz referans kodu atanmadı.", "warning")
+            return redirect(url_for("admin_users"))
+        send_email(
+            to_email=acc.email,
+            subject="Referans Kodunuz (Yeniden Gönderim)",
+            body=(
+                f"Merhaba {acc.contact_name},\n\n"
+                f"Referans Kodunuz: {acc.ref_code}\n"
+                "Girişte e-posta + şifre + referans kodu gereklidir.\n"
+            )
+        )
+        flash("Referans kodu e-posta ile tekrar gönderildi.", "success")
+        return redirect(url_for("admin_users"))
 
 
     # -------------------------------------------------
@@ -2973,8 +3080,10 @@ BAĞLAM (benzer öneriler):
         events = []
         for r in rows:
             s, e = r.start_month, r.end_month
-            if s and not e: e = s
-            if e and not s: s = e
+            if s and not e:
+                e = s
+            if e and not s:
+                s = e
             if not s and not e:
                 continue
 
@@ -2982,21 +3091,24 @@ BAĞLAM (benzer öneriler):
             end_incl  = last_day(e)
             end_excl  = (datetime.fromisoformat(end_incl) + timedelta(days=1)).date().isoformat() if end_incl else None
 
-            gname = (r.grade() or "none").lower()
-            gcls  = {"high":"critical","medium":"moderate","low":"low","none":"acceptable"}.get(gname, "acceptable")
+            # risk seviyesi → className
+            _gmap = {"high": "critical", "medium": "moderate", "low": "low", "none": "acceptable"}
+            gname = _gmap.get((r.grade() or "none").lower(), "acceptable")
 
             events.append({
                 "id": r.id,
-                "title": r.title,
+                "title": (r.title or "Risk"),
                 "start": start_iso,
-                "end": end_excl,     # FullCalendar end exclusive
+                "end": end_excl,           # FullCalendar end exclusive kullanır
                 "allDay": True,
-                "classNames": [f"gx-{gcls}"],
+                "className": [f"gx-{gname}"],
                 "extendedProps": {
                     "category": r.category,
-                    "responsible": r.responsible,
                     "status": r.status,
-                    "rpn": r.avg_rpn()
+                    "responsible": r.responsible,
+                    "rpn": r.avg_rpn(),
+                    "start_month": r.start_month,
+                    "end_month": r.end_month,
                 }
             })
 
@@ -3039,6 +3151,23 @@ BAĞLAM (benzer öneriler):
 
         return jsonify({"ok": True})
 
+    @app.get("/admin/tools/test-mail")
+    @role_required("admin")
+    def admin_test_mail():
+        acc = Account.query.get(session.get("account_id"))
+        to = (request.args.get("to") or (acc.email if acc else None) or "").strip()
+        if not to:
+            flash("Alıcı e-posta bulunamadı. ?to=mail@ornek.com ile deneyin.", "warning")
+            return redirect(url_for("admin_users"))
+
+        ok = send_email(
+            to_email=to,
+            subject="SMTP Test — RiskApp",
+            body="Bu bir test mesajıdır. SMTP ayarlarınız çalışıyor. 📬"
+        )
+        flash("Test e-postası gönderildi." if ok else "E-posta gönderimi başarısız. Log’a bakınız.",
+            "success" if ok else "danger")
+        return redirect(url_for("admin_users"))
 
     @api.get("/schedule/export/ics")
     def api_schedule_export_ics():
@@ -3217,7 +3346,9 @@ BAĞLAM (benzer öneriler):
             status=500,
             mimetype="text/plain; charset=utf-8",
         )
-
+    
+    
+    app.register_blueprint(api, url_prefix="/api")
     return app
 
 
