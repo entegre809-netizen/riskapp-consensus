@@ -52,6 +52,14 @@ try:
 except Exception:
     pdfkit = None
 
+import re as _re  # importlar arasında yoksa ekle
+
+# Ref No formatı (örn: R-PRJ12-2025-0034)
+_REF_PATTERN = _re.compile(r"^R-[A-Z0-9]{2,10}-\d{4}-\d{3,6}$")
+
+from random import choices
+import string
+
 
 def _parse_ym(s):
     """'YYYY-MM' ya da 'YYYY-MM-DD' -> (y, m) | None"""
@@ -156,20 +164,30 @@ def ensure_schema():
 
     changed = False
 
-    # risks tablosu için yeni alanlar
+    # --- risks tablosu için yeni alanlar ---
     for col in ["risk_type", "responsible", "mitigation", "duration", "start_month", "end_month"]:
         if not has_col("risks", col):
             db.session.execute(text(f"ALTER TABLE risks ADD COLUMN {col} TEXT"))
             changed = True
 
-    # YENİ: risks.project_id
+    # risks.project_id
     if not has_col("risks", "project_id"):
         db.session.execute(text("ALTER TABLE risks ADD COLUMN project_id INTEGER"))
         changed = True
 
-    # accounts.role
+    # ✅ risks.ref_code (Ref No — admin atar, benzersiz)
+    if not has_col("risks", "ref_code"):
+        db.session.execute(text("ALTER TABLE risks ADD COLUMN ref_code TEXT"))
+        changed = True
+
+    # --- accounts.role ---
     if not has_col("accounts", "role"):
         db.session.execute(text("ALTER TABLE accounts ADD COLUMN role TEXT DEFAULT 'uzman'"))
+        changed = True
+
+    # accounts.ref_code (kayıtta kullanılan referans)
+    if not has_col("accounts", "ref_code"):
+        db.session.execute(text("ALTER TABLE accounts ADD COLUMN ref_code TEXT"))
         changed = True
 
     # evaluations.detection (RPN için)
@@ -177,7 +195,7 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE evaluations ADD COLUMN detection INTEGER"))
         changed = True
 
-    # project_info.project_duration (tek-adım kayıt için)
+    # project_info.project_duration
     if not has_col("project_info", "project_duration"):
         db.session.execute(text("ALTER TABLE project_info ADD COLUMN project_duration TEXT"))
         changed = True
@@ -193,7 +211,7 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN default_sev INTEGER"))
         changed = True
 
-    # created_at / updated_at (bazı kurulumlarda yoktu)
+    # created_at / updated_at
     if not has_col("suggestions", "created_at"):
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN created_at DATETIME"))
         db.session.execute(text("UPDATE suggestions SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
@@ -202,9 +220,37 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN updated_at DATETIME"))
         changed = True
 
+    # referral_codes tablosu
+    db.session.execute(text("""
+        CREATE TABLE IF NOT EXISTS referral_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            assigned_email TEXT,
+            is_used INTEGER DEFAULT 0,
+            created_by INTEGER,
+            expires_at TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """))
+    try:
+        db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_refcodes_code ON referral_codes(code)"))
+    except Exception:
+        pass
+
     if changed:
         db.session.commit()
 
+def _gen_ref_code(prefix="PRJ", year=None, digits=6):
+    """Örn: PRJ-2025-000123 (benzersizliği DB’de kontrol ediyoruz)."""
+    y = year or datetime.now().year
+    while True:
+        seq = "".join(choices(string.digits, k=digits))
+        code = f"{prefix}-{y}-{seq}"
+        row = db.session.execute(text(
+            "SELECT 1 FROM referral_codes WHERE code=:c"
+        ), {"c": code}).fetchone()
+        if not row:
+            return code
 
 # -------------------------------------------------
 #  CSV / XLSX / XLS dosyadan satır okuma helper'ı
@@ -790,13 +836,11 @@ def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "dev-secret-change-me"
 
-    # 1) DB URI önceliği:
-    #    - PROD: DATABASE_URL / DATABASE_URI (Postgres tercih)
-    #    - YOKSA: her zaman /tmp üzerinde SQLite (Render'da yazılabilir)
+    # 1) DB URI önceliği
     default_sqlite_uri = "sqlite:////tmp/riskapp.db"
     db_uri = (os.getenv("DATABASE_URI") or os.getenv("DATABASE_URL") or default_sqlite_uri).strip()
 
-    # Render bazı durumlarda postgres:// döndürür; SQLAlchemy postgresql+psycopg2:// ister
+    # Render bazen postgres:// döndürür; SQLAlchemy postgresql+psycopg2:// ister
     if db_uri.startswith("postgres://"):
         db_uri = db_uri.replace("postgres://", "postgresql+psycopg2://", 1)
 
@@ -812,7 +856,6 @@ def create_app():
         conn_args.update({"check_same_thread": False})
 
         # /tmp/riskapp.db'yi önceden oluştur (permission/issues önleme)
-        # /tmp dışına yazma girişimlerini otomatik olarak güvenli alana (/tmp) düşür
         raw_path = urlparse(db_uri).path or "/tmp/riskapp.db"
         db_path = os.path.normpath(raw_path)
 
@@ -826,9 +869,8 @@ def create_app():
 
         try:
             os.makedirs(dir_path, exist_ok=True)
-            # dosyayı oluştur/elle yokla
             with open(db_path, "a"):
-                pass
+                pass  # dosyayı yoksa yarat
         except Exception:
             # her durumda son çare /tmp
             db_path = "/tmp/riskapp.db"
@@ -840,27 +882,32 @@ def create_app():
         # SQLAlchemy URI'sini normalize edip geri yaz
         app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 
+    # 3) DB init (SQLite/Postgres fark etmeksizin burada)
+    db.init_app(app)
 
-            # 3) DB init
-        db.init_app(app)
+    # 4) Şema/seed (tek noktadan, stabil sırayla)
+    with app.app_context():
+        db.create_all()
 
-                # 4) Şema/seed (tek noktadan, stabil sırayla)
-        with app.app_context():
-                    db.create_all()
-                    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
-                        ensure_schema()
-                    seed_if_empty()
+        # Sadece SQLite'ta geriye dönük ALTER işlemleri
+        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
+            ensure_schema()
 
-                    # performans için yardımcı indeksler (idempotent)
-                    try:
-                        db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_project ON risks(project_id)"))
-                        db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_start   ON risks(start_month)"))
-                        db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_end     ON risks(end_month)"))
-                        db.session.commit()
-                    except Exception:
-                        pass
-                        
+        # Seed
+        seed_if_empty()
 
+        # performans için yardımcı indeksler (idempotent)
+        try:
+            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_project ON risks(project_id)"))
+            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_start   ON risks(start_month)"))
+            db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_end     ON risks(end_month)"))
+            # Ref No benzersizliği (kolon varsa uygulanır)
+            db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_risks_ref_code ON risks(ref_code)"))
+            db.session.commit()
+        except Exception:
+            pass
+
+   
 
     # -------------------------------------------------
     #  Yetki kontrol dekoratörü
@@ -1010,6 +1057,50 @@ def create_app():
                 si = min(max(int(round(asv)), 1), 5) - 1
                 matrix[si][pi] += 1
         return render_template("dashboard.html", risks=risks, matrix=matrix)
+    
+    @app.get("/admin/refcodes")
+    @role_required("admin")
+    def admin_refcodes_list():
+        rows = db.session.execute(text("""
+            SELECT id, code, assigned_email, is_used, created_by, expires_at, created_at
+            FROM referral_codes
+            ORDER BY is_used ASC, created_at DESC
+        """)).fetchall()
+        return render_template("admin_refcodes.html", rows=rows)
+
+    @app.post("/admin/refcodes/create")
+    @role_required("admin")
+    def admin_refcodes_create():
+        # Tek kod oluştur (prefix opsiyonel), istersen count ile çoğaltırız.
+        prefix = (request.form.get("prefix") or "PRJ").strip().upper()
+        expires = (request.form.get("expires_at") or "").strip() or None  # YYYY-MM-DD ya da boş
+        code = _gen_ref_code(prefix=prefix)
+        db.session.execute(text("""
+            INSERT INTO referral_codes (code, assigned_email, is_used, created_by, expires_at)
+            VALUES (:code, NULL, 0, :uid, :exp)
+        """), {"code": code, "uid": session.get("account_id"), "exp": expires})
+        db.session.commit()
+        flash(f"Referans kodu üretildi: {code}", "success")
+        return redirect(url_for("admin_refcodes_list"))
+
+    @app.post("/admin/refcodes/<int:rid>/delete")
+    @role_required("admin")
+    def admin_refcodes_delete(rid):
+        db.session.execute(text("DELETE FROM referral_codes WHERE id=:i"), {"i": rid})
+        db.session.commit()
+        flash("Kod silindi.", "success")
+        return redirect(url_for("admin_refcodes_list"))
+
+    @app.post("/admin/refcodes/<int:rid>/lock")
+    @role_required("admin")
+    def admin_refcodes_lock(rid):
+        email = (request.form.get("email") or "").strip()
+        db.session.execute(text("""
+            UPDATE referral_codes SET assigned_email=:e WHERE id=:i
+        """), {"e": email or None, "i": rid})
+        db.session.commit()
+        flash("Kod kilidi güncellendi.", "success")
+        return redirect(url_for("admin_refcodes_list"))
 
     # -------------------------------------------------
     #  CSV Export – Riskler
@@ -1813,37 +1904,83 @@ def create_app():
     @app.route("/setup/1", methods=["GET", "POST"])
     def setup_step1():
         if request.method == "POST":
+            # Form alanları
             lang = request.form.get("language") or "Türkçe"
             name = request.form.get("contact_name", "").strip()
             title = request.form.get("contact_title", "").strip()
             email = request.form.get("email", "").strip()
             password = request.form.get("password", "")
-
             workplace_name = request.form.get("workplace_name", "").strip()
             workplace_address = request.form.get("workplace_address", "").strip()
             project_duration = request.form.get("project_duration", "").strip()
+            ref_code = (request.form.get("ref_code") or "").strip().upper()  # <-- YENİ
 
+            # Zorunlu alan kontrolü
             if not all([name, email, password, workplace_name, workplace_address]):
                 flash("Lütfen zorunlu alanları doldurun.", "danger")
                 return render_template("setup_step1.html", form=request.form)
 
+            # E-posta tekillik kontrolü
             if Account.query.filter_by(email=email).first():
                 flash("Bu e-posta adresi zaten kayıtlı, lütfen giriş yapın.", "danger")
                 return render_template("setup_step1.html", form=request.form)
 
-            role = "admin" if Account.query.count() == 0 else "uzman"
+            # İlk kullanıcı admin olur ve referanssız kayıt olabilir
+            first_user = (Account.query.count() == 0)
 
+            # İlk kullanıcı haricinde referans kodu zorunlu
+            if not first_user:
+                if not ref_code:
+                    flash("Referans kodu zorunludur.", "danger")
+                    return render_template("setup_step1.html", form=request.form)
+
+                # Kod var mı / kullanılmamış mı / e-posta kilidi ve son kullanma uygun mu?
+                row = db.session.execute(text("""
+                    SELECT id, code, assigned_email, is_used, expires_at
+                    FROM referral_codes
+                    WHERE code = :c
+                """), {"c": ref_code}).fetchone()
+
+                if not row:
+                    flash("Geçersiz referans kodu.", "danger")
+                    return render_template("setup_step1.html", form=request.form)
+
+                if row.is_used:
+                    flash("Bu referans kodu zaten kullanılmış.", "danger")
+                    return render_template("setup_step1.html", form=request.form)
+
+                if row.assigned_email and str(row.assigned_email).strip().lower() != email.lower():
+                    flash("Bu referans kodu farklı bir e-posta için kilitli.", "danger")
+                    return render_template("setup_step1.html", form=request.form)
+
+                if row.expires_at:
+                    try:
+                        # expires_at TEXT/DATETIME olabilir — YYYY-MM-DD kabul ediyoruz
+                        exp = str(row.expires_at)[:10]
+                        if date.fromisoformat(exp) < date.today():
+                            flash("Referans kodunun süresi dolmuş.", "danger")
+                            return render_template("setup_step1.html", form=request.form)
+                    except Exception:
+                        # format bozuksa süre kontrolünü es geç
+                        pass
+
+            # Rol ata
+            role = "admin" if first_user else "uzman"
+
+            # Hesap oluştur
             acc = Account(
                 language=lang,
                 contact_name=name,
                 contact_title=title,
                 email=email,
                 password_hash=generate_password_hash(password),
-                role=role
+                role=role,
+                ref_code=(ref_code if not first_user else None)  # <-- YENİ: accounts.ref_code kolonuna yaz
             )
             db.session.add(acc)
-            db.session.flush()
+            db.session.flush()  # acc.id için
 
+            # Proje oluştur
             proj = ProjectInfo(
                 account_id=acc.id,
                 workplace_name=workplace_name,
@@ -1851,16 +1988,27 @@ def create_app():
                 project_duration=project_duration or None
             )
             db.session.add(proj)
+
+            # Referans kodunu kullanılmış olarak işaretle
+            if not first_user:
+                db.session.execute(text("""
+                    UPDATE referral_codes
+                    SET is_used = 1,
+                        assigned_email = COALESCE(assigned_email, :eml)
+                    WHERE code = :c
+                """), {"c": ref_code, "eml": email})
+
             db.session.commit()
 
+            # Oturumu başlat
             flash("Kayıt tamamlandı, proje bilgileri kaydedildi.", "success")
-
             session["account_id"] = acc.id
             session["username"] = acc.contact_name
             session["role"] = acc.role
             session["project_id"] = proj.id
             return redirect(url_for("dashboard"))
 
+        # GET
         return render_template("setup_step1.html")
 
     # -------------------------------------------------
@@ -2412,6 +2560,35 @@ def create_app():
 
         users = Account.query.order_by(Account.created_at.desc()).all()
         return render_template("admin_users.html", users=users)
+    
+
+    @app.post("/admin/risks/<int:rid>/set-ref")
+    @role_required("admin")
+    def admin_set_risk_ref(rid):
+        r = Risk.query.get_or_404(rid)
+        code = (request.form.get("ref_code") or "").strip().upper()
+
+        if not code:
+            flash("Ref No boş olamaz.", "danger")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        if not _REF_PATTERN.match(code):
+            flash("Ref No formatı hatalı. Örn: R-PRJ12-2025-0034", "danger")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        exists = db.session.execute(
+            text("SELECT id FROM risks WHERE ref_code = :c AND id != :id LIMIT 1"),
+            {"c": code, "id": r.id}
+        ).fetchone()
+        if exists:
+            flash("Bu Ref No başka bir kayıtta kullanılıyor.", "danger")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        r.ref_code = code
+        db.session.commit()
+        flash("Ref No güncellendi.", "success")
+        return redirect(url_for("risk_detail", risk_id=r.id))
+
 
     # -------------------------------------------------
     #  Proje değiştir
@@ -2852,9 +3029,7 @@ BAĞLAM (benzer öneriler):
         else:
             r.end_month = r.start_month
 
-        db.session.commit()
-
-        # küçük sistem notu
+        # tek commit sürümü:
         db.session.add(Comment(
             risk_id=r.id,
             text=f"Tarih güncellendi: {r.start_month or '—'} → {r.end_month or '—'}",
@@ -2863,6 +3038,7 @@ BAĞLAM (benzer öneriler):
         db.session.commit()
 
         return jsonify({"ok": True})
+
 
     @api.get("/schedule/export/ics")
     def api_schedule_export_ics():

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Referans Kodları</h2>
+
+<form method="post" action="{{ url_for('admin_refcodes_create') }}" class="card" style="margin-bottom:1rem; padding:1rem;">
+  <label>Prefix
+    <input name="prefix" value="PRJ">
+  </label>
+  <label>Bitiş (opsiyonel, YYYY-MM-DD)
+    <input name="expires_at" placeholder="2025-12-31">
+  </label>
+  <button class="btn btn-primary">Kod Üret</button>
+</form>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Kod</th><th>Atanan e-posta</th><th>Kullanım</th><th>Son Tarih</th><th>Oluşturan</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><code>{{ r.code }}</code></td>
+      <td>
+        <form method="post" action="{{ url_for('admin_refcodes_lock', rid=r.id) }}" style="display:flex; gap:.5rem; align-items:center;">
+          <input name="email" value="{{ r.assigned_email or '' }}" placeholder="kilitlemek için e-posta">
+          <button class="btn btn-ghost tiny">Kaydet</button>
+        </form>
+      </td>
+      <td>{{ 'Kullanıldı' if r.is_used else 'Boş' }}</td>
+      <td>{{ r.expires_at or '—' }}</td>
+      <td>#{{ r.created_by or '—' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('admin_refcodes_delete', rid=r.id) }}" onsubmit="return confirm('Silinsin mi?')">
+          <button class="btn btn-danger tiny">Sil</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
