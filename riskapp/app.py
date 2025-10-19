@@ -856,11 +856,11 @@ def make_ai_risk_comment(risk_id: int) -> str:
 
 def send_email(to_email: str, subject: str, body: str):
     """
-    Gerçek SMTP ile e-posta gönderir.
-    ENV değişkenleri:
-      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_TLS
-    Örn (Gmail, SSL): HOST=smtp.gmail.com PORT=465 SMTP_TLS=0
-         (Gmail, STARTTLS): HOST=smtp.gmail.com PORT=587 SMTP_TLS=1
+    SMTP ile e-posta gönder. Hata olduğunda ayrıntılı döner.
+    ENV:
+      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_TLS (1=starttls/587, 0=ssl/465)
+      SMTP_DEBUG=1  (opsiyonel: SMTP konuşmasını logla)
+      SMTP_FALLBACK=1 (opsiyonel: seçilen mod başarısızsa diğer moda dene)
     """
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT", "465"))
@@ -868,38 +868,59 @@ def send_email(to_email: str, subject: str, body: str):
     pwd  = os.getenv("SMTP_PASS")
     from_addr = os.getenv("SMTP_FROM", user or "no-reply@example.com")
     use_tls = os.getenv("SMTP_TLS", "").lower() in ("1","true","yes")
+    debug_on = os.getenv("SMTP_DEBUG", "").lower() in ("1","true","yes")
+    do_fallback = os.getenv("SMTP_FALLBACK", "").lower() in ("1","true","yes")
 
     if not host or not port:
-        print(f"[MAIL-ERROR] SMTP config eksik (host/port). To={to_email} Subject={subject}")
-        return False
+        msg = f"[MAIL-ERROR] SMTP config eksik (SMTP_HOST/SMTP_PORT). To={to_email} Subject={subject}"
+        print(msg)
+        return False, msg
 
-    msg = EmailMessage()
-    msg["From"] = from_addr
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.set_content(body)
+    def _send_starttls():
+        import smtplib
+        with smtplib.SMTP(host, port, timeout=25) as s:
+            if debug_on: s.set_debuglevel(1)
+            s.ehlo()
+            s.starttls()
+            s.ehlo()
+            if user and pwd:
+                s.login(user, pwd)
+            s.sendmail(from_addr, [to_email], f"From: {from_addr}\r\nTo: {to_email}\r\nSubject: {subject}\r\n\r\n{body}")
+
+    def _send_ssl():
+        import smtplib
+        with smtplib.SMTP_SSL(host, port, timeout=25) as s:
+            if debug_on: s.set_debuglevel(1)
+            if user and pwd:
+                s.login(user, pwd)
+            s.sendmail(from_addr, [to_email], f"From: {from_addr}\r\nTo: {to_email}\r\nSubject: {subject}\r\n\r\n{body}")
 
     try:
         if use_tls:
-            # STARTTLS (genelde 587)
-            with smtplib.SMTP(host, port, timeout=20) as s:
-                s.ehlo()
-                s.starttls()
-                s.ehlo()
-                if user and pwd:
-                    s.login(user, pwd)
-                s.send_message(msg)
+            _send_starttls()
         else:
-            # SSL (genelde 465)
-            with smtplib.SMTP_SSL(host, port, timeout=20) as s:
-                if user and pwd:
-                    s.login(user, pwd)
-                s.send_message(msg)
+            _send_ssl()
         print(f"[MAIL] sent to {to_email} subj={subject}")
-        return True
-    except Exception as e:
-        print(f"[MAIL-ERROR] send failed -> {e}")
-        return False
+        return True, ""
+    except Exception as e1:
+        print(f"[MAIL-ERROR] primary send failed -> {e1}")
+        if do_fallback:
+            try:
+                if use_tls:
+                    # primary starttls idi, ssl'e düş
+                    _send_ssl()
+                else:
+                    # primary ssl idi, starttls'e düş
+                    _send_starttls()
+                print(f"[MAIL] sent (fallback) to {to_email} subj={subject}")
+                return True, ""
+            except Exception as e2:
+                msg = f"[MAIL-ERROR] fallback failed -> {e2}"
+                print(msg)
+                return False, f"{e1} | FALLBACK: {e2}"
+        else:
+            return False, str(e1)
+
 # -------------------------------------------------
 #  Flask uygulaması oluştur
 # -------------------------------------------------
