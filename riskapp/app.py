@@ -998,10 +998,27 @@ def create_app():
 
     @app.before_request
     def require_login():
-        # Giriş gerektirmeyen endpoint'ler
-        allowed = {"static", "login", "setup_step1", "forgot_password"}
-        if "username" not in session and (request.endpoint not in allowed):
+        # Giriş gerektirmeyen endpoint'ler (endpoint adları)
+        allowed = {"static", "login", "setup_step1", "forgot_password", "health"}
+        ep = (request.endpoint or "")
+
+        # (Opsiyonel) Herkese açık bırakmak istediğin API endpoint'leri (endpoint adları)
+        public_api = {
+            # "api_category_names",  # örnek: /api/category-names herkese açık olsun istiyorsan yorumdan çıkar
+        }
+
+        # --- API çağrıları: /api/... veya api_* endpoint'leri için 401 JSON döndür ---
+        if request.path.startswith("/api/") or ep.startswith("api_"):
+            if ep in public_api:
+                return  # public API -> oturum şartı yok
+            if "username" not in session:
+                return jsonify({"error": "unauthorized"}), 401
+            return  # oturum varsa devam
+
+        # --- Web sayfaları için klasik redirect ---
+        if "username" not in session and (ep not in allowed):
             return redirect(url_for("login"))
+
 
     # -------------------------------------------------
     #  Şifre Sıfırlama
@@ -3348,7 +3365,7 @@ BAĞLAM (benzer öneriler):
         )
     
     
-    app.register_blueprint(api, url_prefix="/api")
+    
     return app
 
 
