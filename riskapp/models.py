@@ -237,6 +237,9 @@ class Account(db.Model):
     email         = db.Column(db.String(200), unique=True, nullable=False, index=True)
     role          = db.Column(db.String(20), default="uzman")   # admin | uzman
     password_hash = db.Column(db.String(255), nullable=False)
+    # YENİ: referans / kampanya kodu alanı
+    ref_code      = db.Column(db.String(32), nullable=True, index=True)
+
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
