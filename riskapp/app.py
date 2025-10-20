@@ -1013,6 +1013,67 @@ def create_app():
             pass
 
    
+    def _build_suggestions_by_category(category_rows):
+        """
+        RiskCategory satırlarından -> { "cat_id": [ {text, risk_code, default_prob, default_sev}, ... ] }
+        döner. Suggestion.category alanı kategori ADI tuttuğu için adı id’ye map’liyoruz.
+        """
+        id_to_name = {str(c.id): c.name for c in category_rows}
+        name_to_id = {c.name: str(c.id) for c in category_rows}
+
+        try:
+            q = (Suggestion.query
+                .filter(Suggestion.is_active.is_(True))
+                .order_by(Suggestion.category.asc()))
+            sug_rows = q.all()
+        except Exception:
+            sug_rows = []
+
+        out = {}
+        for s in sug_rows:
+            cat_name = (s.category or "").strip()
+            cat_id = name_to_id.get(cat_name)
+            if not cat_id:
+                continue
+            out.setdefault(cat_id, []).append({
+                "text": s.text,
+                "risk_code": getattr(s, "risk_code", None),
+                "default_prob": getattr(s, "default_prob", None),
+                "default_sev": getattr(s, "default_sev", None),
+            })
+        return out
+    @app.get("/api/suggestions")
+    def api_suggestions():
+        """
+        ?cat_ids=1,3,7 -> { "1":[{text,...}], "3":[...], ... }
+        """
+        cat_ids_param = (request.args.get("cat_ids") or "").strip()
+        if not cat_ids_param:
+            return jsonify({})
+
+        req_ids = [s for s in cat_ids_param.split(",") if s.strip()]
+        cats = (RiskCategory.query
+                .filter(RiskCategory.is_active.is_(True), RiskCategory.id.in_(req_ids))
+                .all())
+        name_to_id = {c.name: str(c.id) for c in cats}
+
+        rows = (Suggestion.query
+                .filter(Suggestion.is_active.is_(True),
+                        Suggestion.category.in_(list(name_to_id.keys())))
+                .all())
+
+        out = {}
+        for s in rows:
+            cid = name_to_id.get((s.category or "").strip())
+            if not cid:
+                continue
+            out.setdefault(cid, []).append({
+                "text": s.text,
+                "risk_code": getattr(s, "risk_code", None),
+                "default_prob": getattr(s, "default_prob", None),
+                "default_sev": getattr(s, "default_sev", None),
+            })
+        return jsonify(out)
 
     # -------------------------------------------------
     #  Yetki kontrol dekoratörü
