@@ -11,16 +11,26 @@
   {% endwith %}
 
   <style>
-    /* ---- Basit yardımcılar ---- */
     .mt-1 { margin-top: 6px; }
     .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
     .grid-3 { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
-    @media (max-width: 900px){
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 900px){ .grid-2, .grid-3 { grid-template-columns: 1fr; } }
 
-    /* ---- Çoklu seçime ikon koyma (tekli select’lere ok ikonu) ---- */
-    /* HATA DÜZELTİLDİ: url(...) içinde backslash yok, her satır ; ile biter */
+    .two-col { display:grid; grid-template-columns: 1fr 360px; gap:16px; }
+    @media (max-width: 1100px){ .two-col{ grid-template-columns: 1fr; } }
+
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--elev-card)}
+    .panel h3{margin:.2rem 0 .6rem}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+    .chip{font:700 .8rem var(--font);padding:.2rem .5rem;border-radius:999px;border:1px solid var(--line);background:color-mix(in oklab,var(--bg) 95%,transparent)}
+    .suggest-list{display:flex;flex-direction:column;gap:10px;max-height:62vh;overflow:auto}
+    .suggest-card{border:1px solid color-mix(in oklab,var(--line) 80%,transparent);border-radius:12px;padding:10px;background:color-mix(in oklab,var(--bg-soft) 98%,transparent)}
+    .suggest-card h4{margin:0 0 6px;font-size:.94rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+    .suggest-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;padding:8px;border-radius:10px}
+    .suggest-item:hover{background:color-mix(in oklab,var(--primary) 6%,transparent)}
+    .code{font:600 .82rem var(--mono);padding:.1rem .5rem;border-radius:999px;border:1px solid var(--line);background:color-mix(in oklab,var(--bg) 92%,transparent)}
+    .inline{display:flex;gap:8px;align-items:center}
+
     select.input:not([multiple]),
     .form-select:not([multiple]) {
       appearance: none;
@@ -31,7 +41,6 @@
       background-image:
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2310182d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
     }
-    /* Koyu tema: ok beyaz tonda */
     [data-theme="dark"] select.input:not([multiple]),
     [data-theme="dark"] .form-select:not([multiple]) {
       background-image:
@@ -39,188 +48,283 @@
     }
   </style>
 
-  <form method="post" class="grid grid-2" id="risk-new-form">
-    <!-- Başlık -->
-    <div>
-      <label>Başlık</label>
-      <input class="input" name="title" value="{{ form.get('title') if form else '' }}" required>
-    </div>
+  <!-- BOOTSTRAP JSON (linter-safe) -->
+  <script type="application/json" id="bootstrap_suggestions">
+    {{ (suggestions_by_category or {}) | tojson }}
+  </script>
+  <!-- Endpoint’ler (linter-safe) -->
+  <meta id="endpoints"
+        data-suggestions="{{ url_for('api_suggestions') if 'api_suggestions' in globals() else '/api/suggestions' }}">
 
-    <!-- Kategoriler (çoklu seçim) -->
-    <div>
-      <label class="form-label">Kategoriler</label>
-      {% set selected = form.getlist('category_id') if form else [] %}
-      <select name="category_id" class="form-select input" multiple size="6" required>
-        {% for c in categories %}
-          <option value="{{ c.id }}"
-                  {% if (c.id|string) in selected %}selected{% endif %}>
-            {{ c.name }}{% if c.code %} ({{ c.code|lower }}){% endif %}
-          </option>
-        {% endfor %}
-      </select>
-      <div class="small mt-1">
-        Birden fazla kategori seçebilirsiniz (Ctrl/Cmd veya Shift ile). Seçtiğiniz her kategori için ayrı bir risk oluşturulur.
-      </div>
-    </div>
-
-    <!-- Risk Tipi -->
-    <div>
-      <label>Risk Tipi</label>
-      {% set rt = form.get('risk_type') if form else '' %}
-      <select class="input" name="risk_type">
-        <option value=""        {% if rt == '' %}selected{% endif %}>—</option>
-        <option value="product" {% if rt == 'product' %}selected{% endif %}>Ürün Riski</option>
-        <option value="project" {% if rt == 'project' %}selected{% endif %}>Proje Riski</option>
-        <option value="process"    {% if rt == 'process' %}selected{% endif %}>Süreç/Operasyon</option>
-        <option value="schedule"   {% if rt == 'schedule' %}selected{% endif %}>Zaman/Program</option>
-        <option value="cost"       {% if rt == 'cost' %}selected{% endif %}>Maliyet/Finans</option>
-        <option value="quality"    {% if rt == 'quality' %}selected{% endif %}>Kalite</option>
-        <option value="safety"     {% if rt == 'safety' %}selected{% endif %}>İSG/Güvenlik</option>
-        <option value="supplier"   {% if rt == 'supplier' %}selected{% endif %}>Tedarikçi/Altyüklenici</option>
-        <option value="legal"      {% if rt == 'legal' %}selected{% endif %}>Hukuk/Sözleşme</option>
-        <option value="compliance" {% if rt == 'compliance' %}selected{% endif %}>Uyum/Regülasyon</option>
-        <option value="environment"{% if rt == 'environment' %}selected{% endif %}>Çevresel</option>
-        <option value="security"   {% if rt == 'security' %}selected{% endif %}>Bilgi Güvenliği</option>
-        <option value="stakeholder"{% if rt == 'stakeholder' %}selected{% endif %}>Paydaş/İletişim</option>
-        <option value="technology" {% if rt == 'technology' %}selected{% endif %}>Teknoloji/Altyapı</option>
-      </select>
-    </div>
-
-    <!-- Sorumlu -->
-    <div>
-      <label>Sorumlu</label>
-      <input class="input" name="responsible" value="{{ form.get('responsible') if form else '' }}" placeholder="Ad Soyad">
-    </div>
-
-    <!-- Olasılık -->
-    <div>
-      <label>Olasılık (P · 1–5)</label>
-      {% set pval = (form.get('probability')|int) if form and form.get('probability') else None %}
-      <select class="input" name="probability">
-        {% for i in range(1,6) %}
-          {% set sel = (pval == i) or ((pval is none) and i==3) %}
-          <option value="{{ i }}" {% if sel %}selected{% endif %}>{{ i }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <!-- Şiddet -->
-    <div>
-      <label>Şiddet (S · 1–5)</label>
-      {% set sval = (form.get('severity')|int) if form and form.get('severity') else None %}
-      <select class="input" name="severity">
-        {% for i in range(1,6) %}
-          {% set sel = (sval == i) or ((sval is none) and i==3) %}
-          <option value="{{ i }}" {% if sel %}selected{% endif %}>{{ i }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <!-- Detection (opsiyonel) -->
-    
-    <!-- Zaman / Etki -->
-    <div class="grid-3" style="grid-column:1/-1;">
-      <!-- GÖRÜNÜR: gün/ay/yıl seçilebilen HTML date inputları -->
+  <div class="two-col">
+    <!-- SOL: FORM -->
+    <form method="post" class="grid grid-2" id="risk-new-form">
       <div>
-        <label>Başlangıç Tarihi</label>
-        <input class="input" type="date" id="start_date">
-      </div>
-      <div>
-        <label>Bitiş Tarihi</label>
-        <input class="input" type="date" id="end_date">
-      </div>
-      <div>
-        <label>Etki Süresi</label>
-        <input class="input" name="duration" placeholder="örn. 6 ay / proje boyunca" value="{{ form.get('duration') if form else '' }}">
+        <label>Başlık</label>
+        <input class="input" id="title" name="title"
+               value="{{ form.get('title') if form else '' }}"
+               list="titleOptions"
+               placeholder="Bir başlık yazın veya öneri seçin…" required>
+        <datalist id="titleOptions"></datalist>
+        <div class="small mt-1">Kategori seçince öneriler otomatik gelir. Öneri seçersen olasılık/şiddet de dolabilir.</div>
       </div>
 
-      <!-- Backend uyumu: GİZLİ YYYY-MM alanları (DB bu formatı bekliyor) -->
-      <input type="hidden" name="start_month" id="start_month" value="{{ form.get('start_month') if form else '' }}">
-      <input type="hidden" name="end_month"   id="end_month"   value="{{ form.get('end_month') if form else '' }}">
-    </div>
-
-    <!-- Açıklama ve Mitigation -->
-    <div class="grid-2" style="grid-column:1/-1;">
       <div>
-        <label>Açıklama</label>
-        <textarea class="input" name="description" rows="4" placeholder="Riski tanımlayın">{{ form.get('description') if form else '' }}</textarea>
+        <label class="form-label">Kategoriler</label>
+        {% set selected = form.getlist('category_id') if form else [] %}
+        <select id="cats" name="category_id" class="form-select input" multiple size="8" required>
+          {% for c in categories %}
+            <option value="{{ c.id }}" data-name="{{ c.name }}"
+                    {% if (c.id|string) in selected %}selected{% endif %}>
+              {{ c.name }}{% if c.code %} ({{ c.code|lower }}){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        <div class="small mt-1">Birden fazla kategori seçebilirsiniz (Ctrl/Cmd veya Shift ile). Seçtiğiniz her kategori için ayrı bir risk oluşturulur.</div>
       </div>
-      <div>
-        <label>Önlemler (Mitigation)</label>
-        <textarea class="input" name="mitigation" rows="4" placeholder="Önerilen faaliyetler">{{ form.get('mitigation') if form else '' }}</textarea>
-      </div>
-    </div>
 
-    <!-- Butonlar -->
-    <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end">
-      <a class="btn" href="{{ url_for('risk_select') }}">İptal</a>
-      <button class="btn btn-primary">Oluştur</button>
-    </div>
-  </form>
+      <div>
+        <label>Risk Tipi</label>
+        {% set rt = form.get('risk_type') if form else '' %}
+        <select class="input" name="risk_type">
+          <option value=""        {% if rt == '' %}selected{% endif %}>—</option>
+          <option value="product" {% if rt == 'product' %}selected{% endif %}>Ürün Riski</option>
+          <option value="project" {% if rt == 'project' %}selected{% endif %}>Proje Riski</option>
+          <option value="process" {% if rt == 'process' %}selected{% endif %}>Süreç/Operasyon</option>
+          <option value="schedule"{% if rt == 'schedule' %}selected{% endif %}>Zaman/Program</option>
+          <option value="cost"    {% if rt == 'cost' %}selected{% endif %}>Maliyet/Finans</option>
+          <option value="quality" {% if rt == 'quality' %}selected{% endif %}>Kalite</option>
+          <option value="safety"  {% if rt == 'safety' %}selected{% endif %}>İSG/Güvenlik</option>
+          <option value="supplier"{% if rt == 'supplier' %}selected{% endif %}>Tedarikçi/Altyüklenici</option>
+          <option value="legal"   {% if rt == 'legal' %}selected{% endif %}>Hukuk/Sözleşme</option>
+          <option value="compliance"{% if rt == 'compliance' %}selected{% endif %}>Uyum/Regülasyon</option>
+          <option value="environment"{% if rt == 'environment' %}selected{% endif %}>Çevresel</option>
+          <option value="security"{% if rt == 'security' %}selected{% endif %}>Bilgi Güvenliği</option>
+          <option value="stakeholder"{% if rt == 'stakeholder' %}selected{% endif %}>Paydaş/İletişim</option>
+          <option value="technology"{% if rt == 'technology' %}selected{% endif %}>Teknoloji/Altyapı</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Sorumlu</label>
+        <input class="input" name="responsible" value="{{ form.get('responsible') if form else '' }}" placeholder="Ad Soyad">
+      </div>
+
+      <div>
+        <label>Olasılık (P · 1–5)</label>
+        {% set pval = (form.get('probability')|int) if form and form.get('probability') else None %}
+        <select class="input" id="prob" name="probability">
+          {% for i in range(1,6) %}
+            {% set sel = (pval == i) or ((pval is none) and i==3) %}
+            <option value="{{ i }}" {% if sel %}selected{% endif %}>{{ i }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label>Şiddet (S · 1–5)</label>
+        {% set sval = (form.get('severity')|int) if form and form.get('severity') else None %}
+        <select class="input" id="sev" name="severity">
+          {% for i in range(1,6) %}
+            {% set sel = (sval == i) or ((sval is none) and i==3) %}
+            <option value="{{ i }}" {% if sel %}selected{% endif %}>{{ i }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="grid-3" style="grid-column:1/-1;">
+        <div>
+          <label>Başlangıç Tarihi</label>
+          <input class="input" type="date" id="start_date">
+        </div>
+        <div>
+          <label>Bitiş Tarihi</label>
+          <input class="input" type="date" id="end_date">
+        </div>
+        <div>
+          <label>Etki Süresi</label>
+          <input class="input" name="duration" placeholder="örn. 6 ay / proje boyunca" value="{{ form.get('duration') if form else '' }}">
+        </div>
+        <input type="hidden" name="start_month" id="start_month" value="{{ form.get('start_month') if form else '' }}">
+        <input type="hidden" name="end_month"   id="end_month"   value="{{ form.get('end_month') if form else '' }}">
+      </div>
+
+      <div class="grid-2" style="grid-column:1/-1;">
+        <div>
+          <label>Açıklama</label>
+          <textarea class="input" name="description" rows="4" placeholder="Riski tanımlayın">{{ form.get('description') if form else '' }}</textarea>
+        </div>
+        <div>
+          <label>Önlemler (Mitigation)</label>
+          <textarea class="input" name="mitigation" rows="4" placeholder="Önerilen faaliyetler">{{ form.get('mitigation') if form else '' }}</textarea>
+        </div>
+      </div>
+
+      <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end">
+        <a class="btn" href="{{ url_for('risk_select') }}">İptal</a>
+        <button class="btn btn-primary">Oluştur</button>
+      </div>
+    </form>
+
+    <!-- SAĞ: Öneriler -->
+    <aside class="panel">
+      <h3>Seçilen Kategorilere Ait Şablonlar</h3>
+      <div class="chips" id="chips"></div>
+      <div class="suggest-list" id="suggestList">
+        <div class="small">Kategori seçtiğinizde burada otomatik görünecek.</div>
+      </div>
+    </aside>
+  </div>
 
   <script>
   (function(){
+    // ===== LINTER-SAFE BOOTSTRAP/ENDPOINT OKUMA =====
+    const bootstrapTag = document.getElementById('bootstrap_suggestions');
+    let BOOTSTRAP = {};
+    try { BOOTSTRAP = JSON.parse(bootstrapTag?.textContent || '{}'); } catch(e){ BOOTSTRAP = {}; }
+    const API_SUG = document.getElementById('endpoints')?.dataset.suggestions || '/api/suggestions';
+
+    const $  = (s,ctx=document)=>ctx.querySelector(s);
+    const $$ = (s,ctx=document)=>Array.from(ctx.querySelectorAll(s));
+
+    const catsSel   = $('#cats');
+    const titleInp  = $('#title');
+    const dataList  = $('#titleOptions');
+    const probInp   = $('#prob');
+    const sevInp    = $('#sev');
+    const chipsBox  = $('#chips');
+    const suggestUl = $('#suggestList');
+
+    function selectedCatIds(){ return Array.from(catsSel.selectedOptions).map(o=>o.value); }
+    function selectedCatNames(){ return Array.from(catsSel.selectedOptions).map(o=>o.dataset.name || o.textContent.trim()); }
+
+    async function fetchSuggestions(catIds){
+      if (!catIds.length) return {};
+      if (Object.keys(BOOTSTRAP).length){
+        const out={}; catIds.forEach(id=>{ if(BOOTSTRAP[id]) out[id]=BOOTSTRAP[id]; });
+        return out;
+      }
+      const url = new URL(API_SUG, window.location.origin);
+      url.searchParams.set('cat_ids', catIds.join(','));
+      try{
+        const res = await fetch(url, {headers:{'Accept':'application/json'}});
+        if(!res.ok) return {};
+        return await res.json(); // { "12":[...], "34":[...] }
+      }catch{ return {}; }
+    }
+
+    async function refreshUI(){
+      const ids = selectedCatIds();
+      const names = selectedCatNames();
+
+      chipsBox.innerHTML = '';
+      names.forEach(n=>{ const s=document.createElement('span'); s.className='chip'; s.textContent=n; chipsBox.appendChild(s); });
+
+      const data = await fetchSuggestions(ids);
+
+      dataList.innerHTML = '';
+      Object.values(data).flat().forEach(item=>{
+        const opt=document.createElement('option');
+        opt.value=item.text;
+        opt.label=(item.risk_code?item.risk_code+' • ':'')+item.text;
+        dataList.appendChild(opt);
+      });
+
+      suggestUl.innerHTML='';
+      if(!ids.length){
+        suggestUl.innerHTML='<div class="small">Kategori seçtiğinizde burada otomatik görünecek.</div>';
+        return;
+      }
+
+      ids.forEach(id=>{
+        const arr = data[id] || [];
+        const catName = (Array.from(catsSel.options).find(o=>o.value===id)?.dataset.name) || id;
+        const card = document.createElement('div'); card.className='suggest-card';
+        const h = document.createElement('h4'); h.textContent = catName; card.appendChild(h);
+
+        if(!arr.length){
+          const empty=document.createElement('div'); empty.className='small'; empty.textContent='Bu kategori için şablon yok.';
+          card.appendChild(empty);
+        }else{
+          arr.forEach(item=>{
+            const row=document.createElement('div'); row.className='suggest-item';
+            const btn = document.createElement('button');
+            btn.type='button'; btn.className='btn btn-primary btn-sm';
+            btn.textContent='Seç';
+            btn.addEventListener('click', ()=>{
+              if (titleInp) titleInp.value = item.text || '';
+              if (probInp && item.default_prob) probInp.value = item.default_prob;
+              if (sevInp  && item.default_sev)  sevInp.value  = item.default_sev;
+              titleInp?.focus();
+            });
+            const left = document.createElement('div'); left.className='small'; left.textContent=item.text;
+            const right = document.createElement('div'); right.className='inline';
+            if (item.risk_code){ const code=document.createElement('span'); code.className='code'; code.textContent=item.risk_code; right.appendChild(code); }
+            right.appendChild(btn);
+            row.appendChild(left); row.appendChild(right);
+            card.appendChild(row);
+          });
+        }
+        suggestUl.appendChild(card);
+      });
+    }
+
+    titleInp.addEventListener('change', ()=>{
+      const v=titleInp.value.trim(); if(!v) return;
+      const ids=selectedCatIds();
+      if(Object.keys(BOOTSTRAP).length){
+        for(const id of ids){
+          const hit=(BOOTSTRAP[id]||[]).find(x=>x.text===v);
+          if(hit){
+            if(probInp && hit.default_prob) probInp.value=hit.default_prob;
+            if(sevInp  && hit.default_sev)  sevInp.value =hit.default_sev;
+            break;
+          }
+        }
+      }
+    });
+
+    catsSel.addEventListener('change', refreshUI);
+    refreshUI();
+
+    // ===== Tarih senkronu (YYYY-MM gizli alanlar) =====
     const startDate = document.getElementById('start_date');
     const endDate   = document.getElementById('end_date');
     const startYM   = document.getElementById('start_month');
     const endYM     = document.getElementById('end_month');
 
-    // "YYYY-MM" -> "YYYY-MM-01"
-    function firstDayOfYM(ym){
-      if(!ym || ym.length < 7) return "";
-      return ym + "-01";
-    }
-    // "YYYY-MM" -> "YYYY-MM-(28/29/30/31)"
+    function firstDayOfYM(ym){ if(!ym||ym.length<7) return ""; return ym+"-01"; }
     function lastDayOfYM(ym){
-      if(!ym || ym.length < 7) return "";
-      const parts = ym.split("-");
-      const Y = parseInt(parts[0],10), M = parseInt(parts[1],10);
-      if(!Y || !M) return "";
-      const d = new Date(Y, M, 0);
-      const day = String(d.getDate()).padStart(2,'0');
-      return ym + "-" + day;
+      if(!ym||ym.length<7) return "";
+      const parts=ym.split("-"); const Y=parseInt(parts[0],10), M=parseInt(parts[1],10);
+      const d=new Date(Y,M,0); return ym+"-"+String(d.getDate()).padStart(2,'0');
     }
-    // "YYYY-MM-DD" -> "YYYY-MM"
-    function toYM(dateStr){
-      if(!dateStr || dateStr.length < 10) return "";
-      return dateStr.slice(0,7);
-    }
+    function toYM(dateStr){ return (dateStr&&dateStr.length>=10)?dateStr.slice(0,7):""; }
 
-    // Açılışta: gizli YYYY-MM değerlerinden görünür tarihleri hydrate et
-    (function hydrateVisibleDatesFromHidden(){
-      const preStartYM = startYM.value || "";
-      const preEndYM   = endYM.value   || "";
-      if (preStartYM && !startDate.value){
-        startDate.value = firstDayOfYM(preStartYM);
-      }
-      if (preEndYM && !endDate.value){
-        endDate.value = lastDayOfYM(preEndYM);
-      }
+    (function hydrate(){
+      const a=startYM.value||"", b=endYM.value||"";
+      if(a && !startDate.value) startDate.value = firstDayOfYM(a);
+      if(b && !endDate.value)   endDate.value   = lastDayOfYM(b);
     })();
 
-    // Değiştikçe: gizli YYYY-MM alanlarını senkronla ve mantıksal kontrol yap
-    if (startDate) startDate.addEventListener('change', ()=>{
+    startDate?.addEventListener('change', ()=>{
       startYM.value = toYM(startDate.value);
       if(endDate.value && new Date(endDate.value) < new Date(startDate.value)){
-        endDate.value = startDate.value;
-        endYM.value = toYM(endDate.value);
+        endDate.value = startDate.value; endYM.value = toYM(endDate.value);
       }
     });
-    if (endDate) endDate.addEventListener('change', ()=>{
+    endDate?.addEventListener('change', ()=>{
       endYM.value = toYM(endDate.value);
       if(startDate.value && new Date(endDate.value) < new Date(startDate.value)){
-        startDate.value = endDate.value;
-        startYM.value = toYM(startDate.value);
+        startDate.value = endDate.value; startYM.value = toYM(startDate.value);
       }
     });
 
-    // Submit: son kez garanti senkron
     document.getElementById('risk-new-form').addEventListener('submit', ()=>{
-      if (startDate.value && !startYM.value) startYM.value = toYM(startDate.value);
-      if (endDate.value   && !endYM.value)   endYM.value   = toYM(endDate.value);
+      if(startDate.value && !startYM.value) startYM.value = toYM(startDate.value);
+      if(endDate.value   && !endYM.value)   endYM.value   = toYM(endDate.value);
     });
   })();
   </script>
-
 </div>
 {% endblock %}
