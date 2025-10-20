@@ -68,11 +68,18 @@
                   <button class="btn">Ref Ata & Aktifleştir</button>
                 </form>
 
-                <!-- Mevcut kodu yeniden gönder -->
+                <!-- Mevcut kodu yeniden gönder / Gmail ile gönder -->
                 {% if u.ref_code %}
                   <form method="post" action="{{ url_for('admin_resend_ref', uid=u.id) }}">
                     <button class="btn btn-secondary">Kodu Yeniden Gönder</button>
                   </form>
+
+                  <!-- Gmail compose ile aç -->
+                  <a class="btn btn-outline-primary"
+                     href="{{ url_for('admin_compose_ref', uid=u.id) }}"
+                     target="_blank" rel="noopener">
+                    Gmail ile gönder
+                  </a>
                 {% endif %}
               </div>
 

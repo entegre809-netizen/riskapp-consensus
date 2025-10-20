@@ -23,7 +23,8 @@ if PKG_ROOT not in _sys.path:
 import os, smtplib
 from email.message import EmailMessage
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
+
 from dotenv import load_dotenv
 load_dotenv()  # proje kökündeki .env dosyasını okur
 
@@ -2735,6 +2736,40 @@ def create_app():
         )
         flash("Referans kodu e-posta ile tekrar gönderildi.", "success")
         return redirect(url_for("admin_users"))
+    
+    @app.get("/admin/users/<int:uid>/compose-ref")
+    @role_required("admin")
+    def admin_compose_ref(uid):
+        acc = Account.query.get_or_404(uid)
+        if not acc.ref_code:
+            flash("Bu kullanıcıya henüz referans kodu atanmadı.", "warning")
+            return redirect(url_for("admin_users"))
+
+        subject = "Referans Kodunuz"
+        body = (
+            f"Merhaba {acc.contact_name},\n\n"
+            f"Referans Kodunuz: {acc.ref_code}\n"
+            "Girişte e-posta + şifre + referans kodu gereklidir.\n\n"
+            "İyi çalışmalar."
+        )
+
+        gmail_url = (
+            "https://mail.google.com/mail/?view=cm&fs=1"
+            f"&to={quote(acc.email)}"
+            f"&su={quote(subject)}"
+            f"&body={quote(body)}"
+        )
+        return redirect(gmail_url)
+    @app.post("/admin/users/<int:uid>/resend-ref")
+    @role_required("admin")
+    def admin_resend_ref(uid):
+        acc = Account.query.get_or_404(uid)
+        if not acc.ref_code:
+            flash("Bu kullanıcıya henüz referans kodu atanmadı.", "warning")
+            return redirect(url_for("admin_users"))
+        # Gmail compose’a yönlendir
+        return redirect(url_for("admin_compose_ref", uid=uid))
+
 
 
     # -------------------------------------------------
