@@ -31,6 +31,10 @@
     .code{font:600 .82rem var(--mono);padding:.1rem .5rem;border-radius:999px;border:1px solid var(--line);background:color-mix(in oklab,var(--bg) 92%,transparent)}
     .inline{display:flex;gap:8px;align-items:center}
 
+    /* Küçük buton */
+    .btn.btn-sm{ padding:6px 10px; font-size:.88rem; border-radius:10px; }
+
+    /* Tekli select ok ikonu */
     select.input:not([multiple]),
     .form-select:not([multiple]) {
       appearance: none;
@@ -53,8 +57,7 @@
     {{ (suggestions_by_category or {}) | tojson }}
   </script>
   <!-- Endpoint’ler (linter-safe) -->
-  <meta id="endpoints"
-        data-suggestions="{{ url_for('api_suggestions') if 'api_suggestions' in globals() else '/api/suggestions' }}">
+  <meta id="endpoints" data-suggestions="{{ api_suggestions_url }}">
 
   <div class="two-col">
     <!-- SOL: FORM -->
