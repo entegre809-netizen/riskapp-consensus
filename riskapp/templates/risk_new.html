@@ -51,7 +51,7 @@
     }
   </style>
 
-  <!-- BOOTSTRAP JSON -->
+  <!-- Linter-safe bootstrap JSON -->
   <script type="application/json" id="bootstrap_suggestions">
     {{ (suggestions_by_category or {}) | tojson }}
   </script>
@@ -180,7 +180,7 @@
 
   <script>
   (function(){
-    // ===== BOOTSTRAP/ENDPOINT =====
+    // ===== LINTER-SAFE BOOTSTRAP/ENDPOINT =====
     const bootstrapTag = document.getElementById('bootstrap_suggestions');
     let BOOTSTRAP = {};
     try { BOOTSTRAP = JSON.parse(bootstrapTag?.textContent || '{}'); } catch(e){ BOOTSTRAP = {}; }
@@ -202,10 +202,13 @@
 
     async function fetchSuggestions(catIds){
       if (!catIds.length) return {};
+      // Eğer server render ile geldi ise, oradan oku:
       if (Object.keys(BOOTSTRAP).length){
-        const out={}; catIds.forEach(id=>{ if(BOOTSTRAP[id]) out[id]=BOOTSTRAP[id]; });
+        const out = {};
+        catIds.forEach(id => { if (BOOTSTRAP[id]) out[id] = BOOTSTRAP[id]; });
         return out;
       }
+      // Aksi halde API'den çek
       const url = new URL(API_SUG, window.location.origin);
       url.searchParams.set('cat_ids', catIds.join(','));
       try{
@@ -219,11 +222,17 @@
       const ids = selectedCatIds();
       const names = selectedCatNames();
 
+      // üstte chip'ler
       chipsBox.innerHTML = '';
-      names.forEach(n=>{ const s=document.createElement('span'); s.className='chip'; s.textContent=n; chipsBox.appendChild(s); });
+      names.forEach(n=>{
+        const s=document.createElement('span');
+        s.className='chip'; s.textContent=n; chipsBox.appendChild(s);
+      });
 
+      // önerileri al
       const data = await fetchSuggestions(ids);
 
+      // başlık datalist’i
       dataList.innerHTML = '';
       Object.values(data).flat().forEach(item=>{
         const opt=document.createElement('option');
@@ -232,6 +241,7 @@
         dataList.appendChild(opt);
       });
 
+      // sağ panel kartları
       suggestUl.innerHTML='';
       if(!ids.length){
         suggestUl.innerHTML='<div class="small">Kategori seçtiğinizde burada otomatik görünecek.</div>';
@@ -241,15 +251,22 @@
       ids.forEach(id=>{
         const arr = data[id] || [];
         const catName = (Array.from(catsSel.options).find(o=>o.value===id)?.dataset.name) || id;
-        const card = document.createElement('div'); card.className='suggest-card';
-        const h = document.createElement('h4'); h.textContent = catName; card.appendChild(h);
+
+        const card = document.createElement('div');
+        card.className='suggest-card';
+
+        const h = document.createElement('h4');
+        h.textContent = catName; card.appendChild(h);
 
         if(!arr.length){
-          const empty=document.createElement('div'); empty.className='small'; empty.textContent='Bu kategori için şablon yok.';
+          const empty=document.createElement('div');
+          empty.className='small';
+          empty.textContent='Bu kategori için şablon yok.';
           card.appendChild(empty);
         }else{
           arr.forEach(item=>{
             const row=document.createElement('div'); row.className='suggest-item';
+
             const btn = document.createElement('button');
             btn.type='button'; btn.className='btn btn-primary btn-sm';
             btn.textContent='Seç';
@@ -259,11 +276,23 @@
               if (sevInp  && item.default_sev)  sevInp.value  = item.default_sev;
               titleInp?.focus();
             });
-            const left = document.createElement('div'); left.className='small'; left.textContent=item.text;
-            const right = document.createElement('div'); right.className='inline';
-            if (item.risk_code){ const code=document.createElement('span'); code.className='code'; code.textContent=item.risk_code; right.appendChild(code); }
+
+            const left = document.createElement('div');
+            left.className='small';
+            left.textContent=item.text;
+
+            const right = document.createElement('div');
+            right.className='inline';
+            if (item.risk_code){
+              const code=document.createElement('span');
+              code.className='code';
+              code.textContent=item.risk_code;
+              right.appendChild(code);
+            }
             right.appendChild(btn);
-            row.appendChild(left); row.appendChild(right);
+
+            row.appendChild(left);
+            row.appendChild(right);
             card.appendChild(row);
           });
         }
@@ -271,6 +300,7 @@
       });
     }
 
+    // başlık değişince varsayılan P/S setle (bootstrap varsa)
     titleInp.addEventListener('change', ()=>{
       const v=titleInp.value.trim(); if(!v) return;
       const ids=selectedCatIds();
