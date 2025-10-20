@@ -53,24 +53,15 @@
     background: linear-gradient(180deg, color-mix(in oklab, var(--bg-soft) 98%, transparent), transparent);
     border-bottom:1px solid color-mix(in oklab, var(--line) 88%, transparent);
   }
-  .table-select tbody tr:nth-child(even) td{
-    background: color-mix(in oklab, var(--bg) 96%, transparent);
-  }
-  .table-select tbody tr:hover td{
-    background: color-mix(in oklab, var(--primary) 5%, transparent);
-  }
+  .table-select tbody tr:nth-child(even) td{ background: color-mix(in oklab, var(--bg) 96%, transparent); }
+  .table-select tbody tr:hover td{ background: color-mix(in oklab, var(--primary) 5%, transparent); }
 
   /* Kolon hizaları */
-  .table-select th:nth-child(1),
-  .table-select td:nth-child(1){ width: 48px; }
-  .table-select th:nth-child(4),
-  .table-select td:nth-child(4){ width: 120px; text-align:center; }
-  .table-select th:nth-child(5),
-  .table-select td:nth-child(5),
-  .table-select th:nth-child(6),
-  .table-select td:nth-child(6){ width: 110px; text-align:center; }
-  .table-select th:last-child,
-  .table-select td:last-child{ width: 150px; }
+  .table-select th:nth-child(1), .table-select td:nth-child(1){ width: 48px; }
+  .table-select th:nth-child(4), .table-select td:nth-child(4){ width: 120px; text-align:center; }
+  .table-select th:nth-child(5), .table-select td:nth-child(5),
+  .table-select th:nth-child(6), .table-select td:nth-child(6){ width: 110px; text-align:center; }
+  .table-select th:last-child, .table-select td:last-child{ width: 150px; }
 
   .risk-badge{ display:inline-flex; align-items:center; gap:.4rem }
   .risk-code{ display:inline-block; min-width:3ch }
@@ -129,12 +120,29 @@
     background: color-mix(in oklab, var(--bg-soft) 95%, transparent);
   }
 
-  /* Dar ekranda sağ “İşlem” sabit kalsın */
+  /* Dar ekranda sağ “İşlem” sabit kalsın DIŞI — varsayılan kapalı (hotfix ile birlikte) */
   @media (max-width: 1100px){
-    .table-select th:nth-child(7), .table-select td:nth-child(7){
-      position: sticky; right: 0; background: inherit;
-    }
+    .table-select th:last-child, .table-select td:last-child{ position: static !important; }
   }
+
+  /* ====== RISK TABLE OVERLAP HOTFIX ====== */
+  .table-wrap{ overflow-x: auto !important; overflow-y: visible !important; }
+  .table-select{ table-layout: auto !important; min-width: 980px; }
+  .table-select thead th{
+    position: sticky; top: 0; z-index: 3; background: inherit;
+  }
+  .table-select td, .table-select th{ position: relative; z-index: 1; }
+  .table-select th:last-child, .table-select td:last-child{
+    position: static !important; right: auto !important; background: inherit; z-index: 2; white-space: nowrap;
+  }
+  .row-actions{ display: inline-flex !important; gap: 8px !important; flex-wrap: nowrap !important; align-items: center; }
+  .row-actions form{ margin:0 }
+  .row-actions .btn{ white-space: nowrap; }
+  .table-select th:nth-child(2), .table-select td:nth-child(2){ min-width: 180px; }
+  .table-select th:nth-child(3), .table-select td:nth-child(3){ min-width: 260px; }
+  .cat-card:hover{ transform: none !important; }
+  .table-select tbody tr:nth-child(even) td,
+  .table-select tbody tr:hover td{ background-clip: padding-box; }
 </style>
 
 <div class="card">
@@ -188,7 +196,7 @@
     </div>
   {% endif %}
 
-  <!-- Ana seçim formu (arka planda ID json gönderir) -->
+  <!-- Ana seçim formu -->
   <form method="post" id="select-form" action="{{ url_for('risk_identify') }}">
     <input type="hidden" name="action" value="add_selected">
     <input type="hidden" name="selected_json" id="selected_json">
@@ -263,7 +271,6 @@
               {% set row_idx = loop.index0 %}
               {% set cb_id = 'sel-' ~ cat_idx ~ '-' ~ row_idx %}
 
-              <!-- Görünen satır -->
               <tr>
                 <td>
                   <input
@@ -278,7 +285,6 @@
                   >
                 </td>
 
-                <!-- RİSK (kısa başlık + rozet) -->
                 <td>
                   <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
                     <span class="risk-badge">
@@ -288,19 +294,13 @@
                   </label>
                 </td>
 
-                <!-- RİSK FAKTÖRÜ (uzun metin) -->
-                <td class="small">
-                  {{ s.text }}
-                </td>
-
-                <!-- Ayrı Risk Kodu sütunu -->
+                <td class="small">{{ s.text }}</td>
                 <td><span class="badge">{{ s.risk_code or '—' }}</span></td>
-
                 <td>{{ s.default_prob if s.default_prob is not none else '—' }}</td>
                 <td>{{ s.default_sev  if s.default_sev  is not none else '—' }}</td>
                 <td>
                   <div class="row-actions">
-                    {% if session.get('role') == 'admin' %} 
+                    {% if session.get('role') == 'admin' %}
                       <button class="btn btn-edit" type="button" data-sid="{{ s.id }}">Düzenle</button>
                       <form method="post"
                             action="{{ url_for('admin_suggestion_delete', sid=s.id) }}"
@@ -315,7 +315,6 @@
               </tr>
 
               {% if session.get('role') == 'admin' %}
-              <!-- Düzenleme satırı -->
               <tr id="editrow-{{ s.id }}" class="edit-row" hidden>
                 <td colspan="7">
                   <div class="inline-edit">
@@ -375,9 +374,7 @@
   <!-- Sticky Action Bar: seçim olunca görünür -->
   <div class="actionbar noprint" id="actionbar">
     <span class="chip" id="selCounter">0 seçili</span>
-    <button type="submit" class="btn btn-success" form="select-form">
-      Seçilenleri Ekle
-    </button>
+    <button type="submit" class="btn btn-success" form="select-form">Seçilenleri Ekle</button>
   </div>
 </div>
 
@@ -386,10 +383,8 @@
   const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
   const $  = (sel, ctx=document) => ctx.querySelector(sel);
 
-  // grup sayaç
   function updateCount(groupIdx){
-    const boxes = $$('.chk-' + groupIdx);
-    const sel = boxes.filter(b => b.checked).length;
+    const sel = $$('.chk-' + groupIdx).filter(b => b.checked).length;
     const el = $('#count-' + groupIdx);
     if (el) el.textContent = '(' + sel + ' seçili)';
   }
@@ -408,8 +403,7 @@
     tg.addEventListener('change', () => {
       const g = tg.getAttribute('data-group');
       $$('.chk-' + g).forEach(c => c.checked = tg.checked);
-      updateCount(g);
-      updateGlobalCount();
+      updateCount(g); updateGlobalCount();
     });
     updateCount(tg.getAttribute('data-group'));
   });
@@ -419,11 +413,9 @@
     c.classList.add('chk');
     c.addEventListener('change', () => {
       const g = c.getAttribute('data-group');
-      updateCount(g);
-      updateGlobalCount();
+      updateCount(g); updateGlobalCount();
     });
   });
-  // ilk yüklemede durum
   updateGlobalCount();
 
   // inline edit aç/kapat
@@ -444,28 +436,25 @@
     }
   });
 
-  // seçili ID'leri JSON olarak gönder (disable ile çift tıklamayı engelle)
+  // seçili ID'leri JSON olarak gönder
   (function(){
     const form = $('#select-form'); if (!form) return;
     form.addEventListener('submit', function(){
-      const checked = $$('input[type="checkbox"][name="selected"]:checked');
-      const ids = checked.map(el => parseInt(el.value, 10)).filter(v => !isNaN(v));
+      const ids = $$('input[type="checkbox"][name="selected"]:checked')
+        .map(el => parseInt(el.value, 10)).filter(v => !isNaN(v));
       const hidden = $('#selected_json'); if (hidden) hidden.value = JSON.stringify(ids);
       $$('input[type="checkbox"][name="selected"]').forEach(el => el.disabled = true);
     });
   })();
 
-  // risk kodu rozetine tıklayınca kopyala (soft feedback)
+  // risk kodu rozetine tıkla → kopyala
   document.addEventListener('click', async (e) => {
-    const badge = e.target.closest('.risk-badge .badge');
-    if (!badge) return;
+    const badge = e.target.closest('.risk-badge .badge'); if (!badge) return;
     const code = badge.getAttribute('data-copy') || badge.textContent.trim();
     if (!code || code === '—') return;
-    try {
-      await navigator.clipboard.writeText(code);
-      badge.style.outline='2px solid currentColor';
-      setTimeout(() => badge.style.outline='', 700);
-    } catch (_) {}
+    try { await navigator.clipboard.writeText(code);
+      badge.style.outline='2px solid currentColor'; setTimeout(()=>badge.style.outline='', 700);
+    } catch {}
   });
 
   // kategori panelini daralt/aç (ikonlu metin)
@@ -484,25 +473,28 @@
     setLabel();
   });
 
-  // Ctrl/⌘ + K → odak arama
+  // Ctrl/⌘ + K → aramaya odak
   document.addEventListener('keydown', (e) => {
     const isMac = navigator.platform.toUpperCase().includes('MAC');
     if ((isMac && e.metaKey && e.key.toLowerCase()==='k') || (!isMac && e.ctrlKey && e.key.toLowerCase()==='k')){
-      e.preventDefault();
-      const q = $('#q'); if (q){ q.focus(); q.select(); }
+      e.preventDefault(); const q = $('#q'); if (q){ q.focus(); q.select(); }
     }
   });
 
-  // aramada debounce (enter’a basmadan 500ms sonra gönder)
+  // aramada debounce + Enter
   (function(){
-    const q = $('#q'); const form = $('#filter-form');
-    if(!q || !form) return;
+    const q = $('#q'); const form = $('#filter-form'); if(!q || !form) return;
     let t=null;
-    q.addEventListener('input', ()=>{
-      if(t) clearTimeout(t);
-      t = setTimeout(()=> form.requestSubmit(), 500);
-    });
+    q.addEventListener('input', ()=>{ if(t) clearTimeout(t); t = setTimeout(()=> form.requestSubmit(), 500); });
     q.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); form.requestSubmit(); } });
+  })();
+
+  // tablo genişse: yatay scroll’u zorla (görsel taşma olmasın)
+  (function(){
+    document.querySelectorAll('.table-wrap').forEach(w => {
+      const t = w.querySelector('table'); if(!t) return;
+      if (t.scrollWidth > w.clientWidth) w.style.overflowX = 'auto';
+    });
   })();
 </script>
 {% endblock %}
