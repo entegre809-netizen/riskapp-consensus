@@ -1971,13 +1971,13 @@ def create_app():
                 flash(f"{len(created_risks)} risk oluşturuldu (seçili kategoriler için ayrı kayıtlar).", "success")
                 return redirect(url_for("risk_select"))
 
-        # GET
+        # GET → risk_identify'den gelen query param'ları form gibi kullan
         return render_template(
             "risk_new.html",
             categories=categories,
             api_suggestions_url=api_suggestions_url,
             suggestions_by_category=suggestions_by_category,  # ✅ BOOTSTRAP gönder
-            form=None,  # ilk açılışta boş)
+            form=request.args,  # <<< kritik: GET’te request.args'i form gibi geçir
         )
 
 
