@@ -4,6 +4,11 @@
 {% block content %}
 <style>
   /* ---------- Sayfa-özel (base tokenlarını kullanır) ---------- */
+  :root{
+    --gap-1: 6px; --gap-2: 10px; --gap-3: 14px; --gap-4: 18px;
+    --round-sm: 10px; --round: 14px;
+  }
+
   .toolbar {
     position: sticky; top: 8px; z-index: 2;
     display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap;
@@ -16,42 +21,56 @@
   }
   .toolbar .group{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end }
   .toolbar .fill{ flex:1 }
+  .input, select.input{ height: 40px; padding: .5rem .75rem; }
 
-  .cat-grid{ display:grid; gap:14px; grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .cat-grid{ display:grid; gap:var(--gap-4); grid-template-columns: repeat(3, minmax(0,1fr)); }
   @media (max-width:1200px){ .cat-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
   @media (max-width:820px){ .cat-grid{ grid-template-columns: 1fr; } }
 
   .cat-card{
     border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
-    border-radius: var(--radius);
+    border-radius: var(--round);
     padding:12px; background: var(--card);
-    box-shadow: var(--elev-card);
+    box-shadow: 0 8px 26px rgba(0,0,0,.07);
   }
   .cat-head{ display:flex; align-items:flex-end; gap:.55rem; margin:4px 0 10px }
-  .cat-count{ font-weight:900; color:var(--muted) }
+  .cat-head h3{ letter-spacing:.02em; font-variant: all-small-caps; font-weight: 900; opacity:.9 }
+  .cat-count{ font-weight:900; color:var(--muted); background: color-mix(in oklab, var(--brand-2) 80%, transparent); padding:.12rem .5rem; border-radius:999px; }
 
   .bulk-row{ margin:6px 0 10px; display:flex; justify-content:space-between; align-items:center; gap:.5rem }
   .bulk-row .right{ display:flex; gap:.5rem; align-items:center }
 
-  .table-select{ width:100%; border-collapse:separate; border-spacing:0 }
+  .table-select{ width:100%; border-collapse:separate; border-spacing:0; border-radius: 12px; overflow: clip; }
   .table-select th,.table-select td{
-    padding:.7rem .75rem;
+    padding:.6rem .7rem;
     border-bottom:1px solid color-mix(in oklab, var(--line) 82%, transparent);
     vertical-align:top; font-size:.96rem;
   }
   .table-select thead th{
     position:sticky; top:0; z-index:1;
-    text-transform:uppercase; letter-spacing:.06em; font-weight:1000;
+    text-transform:uppercase; letter-spacing:.08em; font-weight:1000; font-size:.76rem;
     color:var(--muted);
-    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    background: linear-gradient(180deg, color-mix(in oklab, var(--bg-soft) 98%, transparent), transparent);
     border-bottom:1px solid color-mix(in oklab, var(--line) 88%, transparent);
   }
   .table-select tbody tr:nth-child(even) td{
-    background: color-mix(in oklab, var(--bg) 94%, transparent);
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
   }
   .table-select tbody tr:hover td{
-    background: color-mix(in oklab, var(--primary) 6%, transparent);
+    background: color-mix(in oklab, var(--primary) 5%, transparent);
   }
+
+  /* Kolon hizaları */
+  .table-select th:nth-child(1),
+  .table-select td:nth-child(1){ width: 48px; }
+  .table-select th:nth-child(4),
+  .table-select td:nth-child(4){ width: 120px; text-align:center; }
+  .table-select th:nth-child(5),
+  .table-select td:nth-child(5),
+  .table-select th:nth-child(6),
+  .table-select td:nth-child(6){ width: 110px; text-align:center; }
+  .table-select th:last-child,
+  .table-select td:last-child{ width: 150px; }
 
   .risk-badge{ display:inline-flex; align-items:center; gap:.4rem }
   .risk-code{ display:inline-block; min-width:3ch }
@@ -64,8 +83,24 @@
   }
   .edit-row[hidden]{ display:none }
   .row-actions{ display:flex; gap:.5rem; flex-wrap:wrap }
-  .btn-danger{ background:#b91c1c; color:#fff; border-color:transparent }
-  .btn-ghost{ background:transparent; border:1px dashed color-mix(in oklab, var(--line) 70%, transparent) }
+
+  /* Butonlar: kompakt ve sakin */
+  .btn{ padding:.5rem .8rem; border-radius: 10px; }
+  .btn-danger{
+    background: color-mix(in oklab, var(--danger) 18%, transparent);
+    color: color-mix(in oklab, var(--danger) 85%, #fff 15%);
+    border: 1px solid color-mix(in oklab, var(--danger) 35%, transparent);
+    box-shadow: none;
+  }
+  .btn-danger:hover{ background: color-mix(in oklab, var(--danger) 28%, transparent); }
+  [data-theme="dark"] .btn-danger{
+    background: color-mix(in oklab, var(--danger) 25%, transparent);
+    border-color: color-mix(in oklab, var(--danger) 45%, transparent);
+    color:#ffecec;
+  }
+  .btn-ghost{ background:transparent; border:1px dashed color-mix(in oklab, var(--line) 70%, transparent); opacity:.9 }
+  .btn-ghost:hover{ opacity:1 }
+  .btn.btn-edit{ background: color-mix(in oklab, var(--primary) 16%, transparent); border-color: transparent; }
 
   .pager{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-end; margin-top:12px }
   .pager .btn[aria-disabled="true"]{ pointer-events:none; opacity:.5 }
@@ -79,6 +114,27 @@
   .text-muted{ opacity:.8 }
   .kbd{ font: 600 .82rem var(--mono); padding:.08rem .35rem; border-radius:6px;
         border:1px solid color-mix(in oklab, var(--line) 80%, transparent) }
+
+  /* Sticky action bar (seçim yapılınca gösterilecek) */
+  .actionbar{
+    position: sticky; bottom: 8px; z-index: 5;
+    display: none; /* JS ile görünür */
+    margin-top: 10px;
+    justify-content: flex-end; gap: var(--gap-2);
+  }
+  .actionbar .chip{
+    align-self:center; font-weight:900; font-size:.9rem;
+    padding:.35rem .6rem; border-radius:999px;
+    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 95%, transparent);
+  }
+
+  /* Dar ekranda sağ “İşlem” sabit kalsın */
+  @media (max-width: 1100px){
+    .table-select th:nth-child(7), .table-select td:nth-child(7){
+      position: sticky; right: 0; background: inherit;
+    }
+  }
 </style>
 
 <div class="card">
@@ -184,7 +240,7 @@
             <strong>Tümünü seç / kaldır</strong>
           </label>
           <div class="right small">
-            <button type="button" class="btn btn-ghost btn-collapse" data-target="#cat-{{ slug }}" title="Kategori tablosunu daralt/aç">Daralt</button>
+            <button type="button" class="btn btn-ghost btn-collapse" data-target="#cat-{{ slug }}" title="Kategori tablosunu daralt/aç">Daralt ▼</button>
             <a class="btn btn-ghost" href="#top" title="Sayfa başına dön">↑</a>
           </div>
         </div>
@@ -244,7 +300,7 @@
                 <td>{{ s.default_sev  if s.default_sev  is not none else '—' }}</td>
                 <td>
                   <div class="row-actions">
-                    {% if session.get('role') == 'admin' %}
+                    {% if session.get('role') == 'admin' %} 
                       <button class="btn btn-edit" type="button" data-sid="{{ s.id }}">Düzenle</button>
                       <form method="post"
                             action="{{ url_for('admin_suggestion_delete', sid=s.id) }}"
@@ -316,7 +372,9 @@
        href="{{ url_for('risk_identify', q=(q or None), cat=(cat or None), page=pages) }}">Son »</a>
   </div>
 
-  <div style="display:flex; justify-content:flex-end; margin-top:12px" class="noprint">
+  <!-- Sticky Action Bar: seçim olunca görünür -->
+  <div class="actionbar noprint" id="actionbar">
+    <span class="chip" id="selCounter">0 seçili</span>
     <button type="submit" class="btn btn-success" form="select-form">
       Seçilenleri Ekle
     </button>
@@ -328,12 +386,21 @@
   const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
   const $  = (sel, ctx=document) => ctx.querySelector(sel);
 
-  // sayaç
+  // grup sayaç
   function updateCount(groupIdx){
     const boxes = $$('.chk-' + groupIdx);
     const sel = boxes.filter(b => b.checked).length;
     const el = $('#count-' + groupIdx);
     if (el) el.textContent = '(' + sel + ' seçili)';
+  }
+
+  // global sayaç + action bar
+  const bar = $('#actionbar');
+  const counter = $('#selCounter');
+  function updateGlobalCount(){
+    const total = $$('input[type="checkbox"][name="selected"]:checked').length;
+    if(counter) counter.textContent = total + ' seçili';
+    if(bar) bar.style.display = total > 0 ? 'flex' : 'none';
   }
 
   // toplu seç / kaldır
@@ -342,18 +409,22 @@
       const g = tg.getAttribute('data-group');
       $$('.chk-' + g).forEach(c => c.checked = tg.checked);
       updateCount(g);
+      updateGlobalCount();
     });
     updateCount(tg.getAttribute('data-group'));
   });
 
-  // tek tek değiştikçe sayaç güncelle
+  // tek tek değiştikçe sayaçlar
   $$('input[type="checkbox"][name="selected"]').forEach(c => {
     c.classList.add('chk');
     c.addEventListener('change', () => {
       const g = c.getAttribute('data-group');
       updateCount(g);
+      updateGlobalCount();
     });
   });
+  // ilk yüklemede durum
+  updateGlobalCount();
 
   // inline edit aç/kapat
   document.addEventListener('click', (e) => {
@@ -384,7 +455,7 @@
     });
   })();
 
-  // risk kodu rozetine tıklayınca kopyala
+  // risk kodu rozetine tıklayınca kopyala (soft feedback)
   document.addEventListener('click', async (e) => {
     const badge = e.target.closest('.risk-badge .badge');
     if (!badge) return;
@@ -392,26 +463,30 @@
     if (!code || code === '—') return;
     try {
       await navigator.clipboard.writeText(code);
-      badge.classList.add('score-low');
-      setTimeout(() => badge.classList.remove('score-low'), 800);
+      badge.style.outline='2px solid currentColor';
+      setTimeout(() => badge.style.outline='', 700);
     } catch (_) {}
   });
 
-  // kategori panelini daralt/aç
+  // kategori panelini daralt/aç (ikonlu metin)
   $$('.btn-collapse').forEach(btn => {
+    const sel = btn.getAttribute('data-target');
+    const box = document.querySelector(sel + ' .table-wrap');
+    function setLabel(){
+      const collapsed = box && box.style.display === 'none';
+      btn.textContent = collapsed ? 'Genişlet ▲' : 'Daralt ▼';
+    }
     btn.addEventListener('click', () => {
-      const sel = btn.getAttribute('data-target');
-      const box = document.querySelector(sel + ' .table-wrap');
       if (!box) return;
-      const collapsed = box.style.display === 'none';
-      box.style.display = collapsed ? '' : 'none';
-      btn.textContent = collapsed ? 'Daralt' : 'Genişlet';
+      box.style.display = (box.style.display === 'none') ? '' : 'none';
+      setLabel();
     });
+    setLabel();
   });
 
   // Ctrl/⌘ + K → odak arama
   document.addEventListener('keydown', (e) => {
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
+    const isMac = navigator.platform.toUpperCase().includes('MAC');
     if ((isMac && e.metaKey && e.key.toLowerCase()==='k') || (!isMac && e.ctrlKey && e.key.toLowerCase()==='k')){
       e.preventDefault();
       const q = $('#q'); if (q){ q.focus(); q.select(); }
@@ -427,6 +502,7 @@
       if(t) clearTimeout(t);
       t = setTimeout(()=> form.requestSubmit(), 500);
     });
+    q.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); form.requestSubmit(); } });
   })();
 </script>
 {% endblock %}
