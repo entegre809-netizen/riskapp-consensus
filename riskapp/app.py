@@ -1795,6 +1795,14 @@ def create_app():
             form=MultiDict(prefill),  # <<< kritik: GET’te form gibi kullanılacak yapı
         )
 
+    # --- Geriye dönük uyumluluk: şablonlar 'risk_identify' bekliyor ---
+    @app.route("/identify", endpoint="risk_identify", methods=["GET"])
+    def risk_identify():
+        """
+        url_for('risk_identify') çağrılarını çalıştırmak için basit alias.
+        Gelen query parametrelerini koruyarak risk_new'e yönlendirir.
+        """
+        return redirect(url_for("risk_new", **request.args))
 
     # -------------------------------------------------
     #  Şablon (Suggestion) düzenleme / silme (ADMIN)
