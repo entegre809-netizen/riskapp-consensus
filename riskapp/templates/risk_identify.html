@@ -198,7 +198,7 @@
 
   <!-- Ana seçim formu -->
   <form method="post" id="select-form" action="{{ url_for('risk_identify') }}">
-    <input type="hidden" name="action" value="add_selected">
+    <!-- action artık butonlardan gelecek -->
     <input type="hidden" name="selected_json" id="selected_json">
   </form>
 
@@ -374,7 +374,14 @@
   <!-- Sticky Action Bar: seçim olunca görünür -->
   <div class="actionbar noprint" id="actionbar">
     <span class="chip" id="selCounter">0 seçili</span>
-    <button type="submit" class="btn btn-success" form="select-form">Seçilenleri Ekle</button>
+    <!-- mevcut davranış -->
+    <button type="submit" class="btn btn-success" form="select-form" name="action" value="add_selected">
+      Seçilenleri Ekle
+    </button>
+    <!-- yeni akış: risk_new’de oluştur -->
+    <button type="submit" class="btn btn-primary" form="select-form" name="action" value="pick_for_new" title="Seçili şablonları risk_new ekranına taşı">
+      Seç ve risk_new’de oluştur
+    </button>
   </div>
 </div>
 

@@ -10,6 +10,39 @@
     {% endfor %}
   {% endwith %}
 
+  {# === SEPET KARTI: identify'den gelen seçili şablonlar === #}
+  {% if picked_suggestions and picked_suggestions|length > 0 %}
+  <div class="card" style="margin: .5rem 0 1rem; border:1px dashed var(--line); background: color-mix(in oklab, var(--bg-soft) 96%, transparent)">
+    <h3 style="margin:.2rem 0 .4rem">Tanımlı risklerden seçtiklerin</h3>
+    <p class="small" style="margin:.1rem 0 .8rem; opacity:.85">
+      Aşağıdaki şablonlardan doğrudan risk kaydı oluşturabilir ya da formu doldurarak ayrı bir risk de açabilirsiniz.
+    </p>
+
+    <details>
+      <summary class="small" style="cursor:pointer">Seçilenleri gör ({{ picked_suggestions|length }})</summary>
+      <ul style="margin:.6rem 0 0 1rem">
+        {% for s in picked_suggestions %}
+          <li class="small" style="margin:.15rem 0">
+            <strong>{{ s.category or 'Genel' }}</strong> — {{ s.text }}
+            {% if s.risk_code %}<span class="badge" style="margin-left:.35rem">{{ s.risk_code }}</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
+
+    <form method="post" style="margin-top: .8rem; display:flex; gap:.5rem; flex-wrap:wrap">
+      <input type="hidden" name="action" value="create_from_picked">
+      <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
+      <button class="btn btn-primary" type="submit">
+        Seçili şablonlardan risk oluştur
+      </button>
+      <a class="btn btn-ghost" href="{{ url_for('risk_identify') }}">
+        Şablon seçimine dön
+      </a>
+    </form>
+  </div>
+  {% endif %}
+
   <style>
     .mt-1 { margin-top: 6px; }
     .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }

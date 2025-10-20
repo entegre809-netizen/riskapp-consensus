@@ -1518,7 +1518,7 @@ def create_app():
         q       = (request.args.get("q") or "").strip()
         cat     = (request.args.get("cat") or "").strip()   # "__all__" veya "" (Genel/Kategorisiz) ya da gerçek ad
         page    = int(request.args.get("page", 1) or 1)
-        per_page =  175 # ihtiyacına göre 25/100 yapabilirsin
+        per_page = 175  # ihtiyacına göre 25/100 yapabilirsin
 
         # Kategori dropdown'ını doldur: önce aktif RiskCategory; yoksa Suggestion'lardan türet
         rcats = (RiskCategory.query
@@ -1584,11 +1584,12 @@ def create_app():
         categories = dict(sorted(categories.items(), key=lambda kv: kv[0].lower()))
 
         # -----------------------------
-        # 4) POST: Seçilenlerden Risk oluştur
+        # 4) POST: Seçilenlerden işlem
         # -----------------------------
         if request.method == "POST":
             action = request.form.get("action")
 
+            # A) riskleri doğrudan oluştur (mevcut davranış)
             if action == "add_selected":
                 # 1) Klasik checkbox listesi
                 selected_ids = request.form.getlist("selected")
@@ -1637,6 +1638,34 @@ def create_app():
                 flash(f"{cnt} risk eklendi.", "success")
                 return redirect(url_for("dashboard"))
 
+            # B) Seç ve risk_new'e dön (yeni akış)
+            if action == "pick_for_new":
+                # 1) Klasik checkbox listesi
+                selected_ids = request.form.getlist("selected")
+
+                # 2) Büyük formlar için JSON payload (frontend 'selected_json' doldurabilir)
+                if not selected_ids:
+                    raw = request.form.get("selected_json", "[]")
+                    try:
+                        data = json.loads(raw)
+                        selected_ids = [int(x) for x in data if str(x).isdigit()]
+                    except Exception:
+                        selected_ids = []
+
+                if not selected_ids:
+                    flash("Lütfen en az bir şablon seçin.", "danger")
+                    return render_template(
+                        "risk_identify.html",
+                        categories=categories,
+                        q=q, cat=cat, page=page, pages=pages, total=total,
+                        per_page=per_page, filter_cat_names=filter_cat_names
+                    )
+
+                # Seçimleri session'a koy ve risk_new'e yönlendir
+                session["picked_suggestions"] = [int(x) for x in selected_ids]
+                flash(f"{len(selected_ids)} şablon seçildi. risk_new ekranında oluşturabilirsiniz.", "success")
+                return redirect(url_for("risk_new"))
+
         # -----------------------------
         # 5) Şablon render
         # -----------------------------
@@ -1646,6 +1675,7 @@ def create_app():
             q=q, cat=cat, page=page, pages=pages, total=total,
             per_page=per_page, filter_cat_names=filter_cat_names
         )
+
 
     # -------------------------------------------------
     #  Şablon (Suggestion) düzenleme / silme (ADMIN)
@@ -1743,7 +1773,7 @@ def create_app():
     # -------------------------------------------------
     @app.route("/risks/new", methods=["GET", "POST"])
     def risk_new():
-        # Aktif kategoriler
+        # Aktif kategorileri getir (dropdownda kullanıyoruz)
         categories = (
             RiskCategory.query
             .filter(RiskCategory.is_active.is_(True))
@@ -1751,113 +1781,93 @@ def create_app():
             .all()
         )
 
-        # Frontend için API endpoint
+        # Frontend'in kullanacağı API endpoint'i (varsa) — yoksa fallback
         try:
             api_suggestions_url = url_for("api_suggestions")
         except Exception:
             api_suggestions_url = "/api/suggestions"
 
-        # (İstersek) başlangıçta boş
-        suggestions_by_category = {}
+        # --- PICKED (identify’den gelen sepet) ---
+        picked_ids = session.get("picked_rows") or []   # [int,...]
+        picked_suggestions = []
+        if picked_ids:
+            picked_suggestions = (
+                Suggestion.query
+                .filter(Suggestion.id.in_(picked_ids))
+                .order_by(Suggestion.category.asc(), Suggestion.id.desc())
+                .all()
+            )
 
         if request.method == "POST":
-            action = (request.form.get("action") or "").strip()  # << yeni
+            action = (request.form.get("action") or "").strip()
 
-            # Ortak alanlar
-            description  = request.form.get("description")  or None
-            risk_type    = request.form.get("risk_type")    or None
-            responsible  = request.form.get("responsible")  or None
-            mitigation   = request.form.get("mitigation")   or None
-            duration     = request.form.get("duration")     or None
-            start_month  = request.form.get("start_month")  or None
-            end_month    = request.form.get("end_month")    or None
-            owner = session.get("username")
-            pid   = _get_active_project_id()
-
-            # İlk değerlendirme (opsiyonel)
-            def _norm_1_5(x):
+            # === A) Seçili şablonlardan doğrudan oluştur ===
+            if action == "create_from_picked":
+                raw = (request.form.get("picked_ids") or "").strip()
                 try:
-                    v = int(x)
-                    return min(max(v, 1), 5)
+                    sel_ids = [int(x) for x in (raw.split(",") if raw else []) if str(x).isdigit()]
                 except Exception:
-                    return None
-            p_init = _norm_1_5(request.form.get("probability"))
-            s_init = _norm_1_5(request.form.get("severity"))
+                    sel_ids = []
 
-            # === 1) ŞABLONDAN EKLE (risk_identify gibi) ===
-            if action == "add_from_templates":
-                # Büyük formlar için JSON ile seçili id’ler gelebilir
-                selected_ids = request.form.getlist("selected")
-                if not selected_ids:
-                    raw = request.form.get("selected_json", "[]")
-                    try:
-                        data = json.loads(raw)
-                        selected_ids = [int(x) for x in data if str(x).isdigit()]
-                    except Exception:
-                        selected_ids = []
-
-                if not selected_ids:
-                    flash("Lütfen en az bir şablon seçin.", "danger")
+                if not sel_ids:
+                    flash("Şablon seçimi boş görünüyor.", "warning")
                     return render_template(
                         "risk_new.html",
                         categories=categories,
                         api_suggestions_url=api_suggestions_url,
-                        suggestions_by_category=suggestions_by_category,
-                        form=request.form
+                        suggestions_by_category={},
+                        picked_suggestions=picked_suggestions,
                     )
 
+                owner = session.get("username")
+                pid   = _get_active_project_id()
+
                 created = 0
-                for sid in selected_ids:
-                    s = Suggestion.query.get(int(sid))
+                for sid in sel_ids:
+                    s = Suggestion.query.get(sid)
                     if not s:
                         continue
-
-                    # Şablonun metnini başlık + açıklama olarak kullan
-                    title = (s.text or "")[:150]
-                    cat_name = (s.category or "").strip() or None
-
                     r = Risk(
-                        title=title,
-                        category=cat_name,
-                        description=description or s.text,   # formdaki açıklama boşsa s.text’i kullan
+                        title=(s.text or "")[:150],
+                        category=s.category or None,
+                        description=s.text or None,
                         owner=owner,
-                        risk_type=risk_type,
-                        responsible=responsible,
-                        mitigation=mitigation,
-                        duration=duration,
-                        start_month=start_month,
-                        end_month=end_month,
                         project_id=pid,
                     )
                     db.session.add(r)
                     db.session.flush()
-
-                    # Varsayılan P/Ş: form öncelikli, yoksa şablondan al
-                    pp = p_init if p_init is not None else (s.default_prob or None)
-                    ss = s_init if s_init is not None else (s.default_sev or None)
-                    if pp is not None and ss is not None:
+                    db.session.add(Comment(
+                        risk_id=r.id,
+                        text=f"Tanımlı şablondan oluşturuldu: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
+                        is_system=True
+                    ))
+                    # İstersen varsayılan P/S’yi ilk değerlendirme olarak da yazabiliriz:
+                    def _toi(v):
+                        try:
+                            vv = int(v); return max(1, min(5, vv))
+                        except Exception:
+                            return None
+                    p0 = _toi(getattr(s, "default_prob", None))
+                    s0 = _toi(getattr(s, "default_sev", None))
+                    if p0 and s0:
                         db.session.add(Evaluation(
                             risk_id=r.id,
                             evaluator=owner or "System",
-                            probability=int(pp),
-                            severity=int(ss),
+                            probability=p0,
+                            severity=s0,
                             detection=None,
-                            comment="Şablondan ilk değerlendirme"
+                            comment="Şablon varsayılan değerlerinden"
                         ))
-
-                    db.session.add(Comment(
-                        risk_id=r.id,
-                        text=f"Şablondan oluşturuldu (Suggestion #{s.id}): {datetime.utcnow().isoformat(timespec='seconds')} UTC",
-                        is_system=True
-                    ))
                     created += 1
 
                 db.session.commit()
-                flash(f"{created} risk şablonlardan oluşturuldu.", "success")
+                # sepeti boşalt (kullanıcı tekrar görmek istemez)
+                session.pop("picked_rows", None)
+
+                flash(f"{created} risk oluşturuldu.", "success")
                 return redirect(url_for("dashboard"))
 
-            # === 2) TEK-KAYIT (mevcut davranış) ===
-            # (Eski akış: başlık zorunlu + çoklu kategori → her kategori için bir risk)
+            # === B) Eski/klasik “formdan tek risk” akışı ===
             title = (request.form.get("title") or "").strip()
             if not title:
                 flash("Başlık zorunludur.", "danger")
@@ -1866,9 +1876,11 @@ def create_app():
                     form=request.form,
                     categories=categories,
                     api_suggestions_url=api_suggestions_url,
-                    suggestions_by_category=suggestions_by_category,
+                    suggestions_by_category={},
+                    picked_suggestions=picked_suggestions,
                 )
 
+            # Çoklu kategori: <select multiple name="category_id">
             raw_ids = request.form.getlist("category_id")
             if not raw_ids:
                 flash("Lütfen en az bir kategori seçin.", "danger")
@@ -1877,10 +1889,11 @@ def create_app():
                     form=request.form,
                     categories=categories,
                     api_suggestions_url=api_suggestions_url,
-                    suggestions_by_category=suggestions_by_category,
+                    suggestions_by_category={},
+                    picked_suggestions=picked_suggestions,
                 )
 
-            # seçili kategori adları
+            # Seçilen id'lerden aktif kategori adlarını topla
             selected_cats = []
             for cid in raw_ids:
                 try:
@@ -1897,10 +1910,35 @@ def create_app():
                     form=request.form,
                     categories=categories,
                     api_suggestions_url=api_suggestions_url,
-                    suggestions_by_category=suggestions_by_category,
+                    suggestions_by_category={},
+                    picked_suggestions=picked_suggestions,
                 )
 
+            # Ortak alanlar
+            description  = request.form.get("description")  or None
+            risk_type    = request.form.get("risk_type")    or None
+            responsible  = request.form.get("responsible")  or None
+            mitigation   = request.form.get("mitigation")   or None
+            duration     = request.form.get("duration")     or None
+            start_month  = request.form.get("start_month")  or None  # "YYYY-MM"
+            end_month    = request.form.get("end_month")    or None  # "YYYY-MM"
+
+            owner = session.get("username")
+            pid   = _get_active_project_id()
+
+            def _norm_1_5(x):
+                try:
+                    v = int(x)
+                    return min(max(v, 1), 5)
+                except Exception:
+                    return None
+
+            p_init = _norm_1_5(request.form.get("probability"))
+            s_init = _norm_1_5(request.form.get("severity"))
+
             created_risks = []
+
+            # Her kategori için ayrı risk oluştur
             for cat_name in selected_cats:
                 r = Risk(
                     title=title,
@@ -1916,8 +1954,9 @@ def create_app():
                     project_id=pid,
                 )
                 db.session.add(r)
-                db.session.flush()
+                db.session.flush()  # r.id için
 
+                # İlk değerlendirme varsa
                 if p_init is not None and s_init is not None:
                     db.session.add(Evaluation(
                         risk_id=r.id,
@@ -1942,7 +1981,7 @@ def create_app():
                 flash("Risk oluşturuldu.", "success")
                 return redirect(url_for("risk_detail", risk_id=created_risks[0].id))
             else:
-                flash(f"{len(created_risks)} risk oluşturuldu.", "success")
+                flash(f"{len(created_risks)} risk oluşturuldu (seçili kategoriler için ayrı kayıtlar).", "success")
                 return redirect(url_for("risk_select"))
 
         # GET
@@ -1950,9 +1989,11 @@ def create_app():
             "risk_new.html",
             categories=categories,
             api_suggestions_url=api_suggestions_url,
-            suggestions_by_category=suggestions_by_category,
-            form=None,
+            suggestions_by_category={},
+            form=None,                   # ilk açılışta boş
+            picked_suggestions=picked_suggestions,  # sepet varsa UI göstereceğiz
         )
+
 
     # -------------------------------------------------
     #  Risk Listesi / Arama
