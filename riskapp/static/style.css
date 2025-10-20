@@ -1,7 +1,23 @@
+/* ==========================================================================
+   RiskApp UI — 2025 Modern CSS
+   - Geriye dönük UYUMLU: mevcut class adları korunmuştur
+   - Yeni: tasarım token'ları, color-scheme, prefers-* medyaları,
+           focus-visible, container queries, yumuşak animasyonlar
+===========================================================================*/
+
+/* Sistem varsayılanını da destekle */
+@media (prefers-color-scheme: dark){
+  :root { color-scheme: dark; }
+}
+@media (prefers-color-scheme: light){
+  :root { color-scheme: light; }
+}
+
 /* ===========================
-   Tema Değişkenleri (Koyu varsayılan)
+   Temel Tasarım Token'ları
 =========================== */
 :root{
+  /* Renkler (Koyu varsayılan) */
   --bg:#0b0f14;
   --card:#121821;
   --muted:#8aa0b2;
@@ -24,13 +40,42 @@
   --outline:#1b2a40;
 
   --ring:#3b82f6;
+
+  /* Tipografi ve ölçü sistemleri */
+  --font: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  --fs-1: clamp(12px, .78rem + .1vw, 13px);
+  --fs-2: clamp(13px, .82rem + .2vw, 14px);
+  --fs-3: clamp(14px, .88rem + .2vw, 15px);
+  --fs-4: clamp(15px, .92rem + .25vw, 16px);
+  --fs-5: clamp(16px, 1rem + .3vw, 18px);
+  --fs-6: clamp(18px, 1.05rem + .5vw, 22px);
+
+  /* Radius / shadow / spacing */
+  --radius: 14px;
+  --radius-lg: 18px;
+  --radius-sm: 10px;
+
+  --shadow-1: 0 10px 30px rgba(0,0,0,.25);
+  --shadow-2: 0 18px 40px rgba(0,0,0,.30);
+  --shadow-1l: 0 14px 36px rgba(15,23,42,.10);
+
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Animasyon/Transition */
+  --elevate: 220ms cubic-bezier(.22,1,.36,1);
+  --fade: 160ms ease;
+  --ring-alpha: 24%;
 }
 
-/* ===========================
-   Açık Tema Override'ları
-   (base.html: <html data-theme="light">)
-=========================== */
+/* Açık Tema Override (manuel tetik: <html data-theme="light">) */
 html[data-theme="light"]{
+  color-scheme: light;
+
   --bg:#f7f9ff;
   --card:#ffffff;
   --muted:#556384;
@@ -46,79 +91,119 @@ html[data-theme="light"]{
   --ink-dim:#6b7692;
   --ink-strong:#0a1328;
 
-  --surface:#f7faff;     /* .main arka plan */
-  --surface-2:#fff7d6;   /* sidebar degrade üst tonu */
+  --surface:#f7faff;
+  --surface-2:#fff7d6;
   --surface-3:#ffffff;
   --surface-4:#fff3cc;
   --outline:#e6ebf4;
 
   --ring:#ffd65a;
+
+  --shadow-1: var(--shadow-1l);
+  --shadow-2: 0 22px 56px rgba(15,23,42,.12);
 }
 
-/* İsteğe bağlı: koyu temayı açıkça atamak istersen */
-/*html[data-theme="dark"]{
-  /* :root ile aynı; boş bırakılabilir */
-/*}
-
 /* ===========================
-   Global
+   Reset ve Global
 =========================== */
-*{box-sizing:border-box}
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
 html,body{
   margin:0; padding:0;
   background:var(--bg); color:var(--fg);
-  font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-  transition: background .25s ease, color .25s ease;
+  font-family:var(--font);
+  font-size: var(--fs-4);
+  line-height: 1.55;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  transition: background var(--fade), color var(--fade);
 }
-a{color:#93c5fd; text-decoration:none}
+
+/* Scrollbar incelik (destekleyenlerde) */
+*{ scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--ink) 40%, transparent) transparent; }
+*::-webkit-scrollbar{ height:10px; width:10px }
+*::-webkit-scrollbar-thumb{ background: color-mix(in oklab, var(--ink) 35%, transparent); border-radius: 999px }
+*::-webkit-scrollbar-track{ background: transparent }
+
+/* Linkler */
+a{ color:#93c5fd; text-decoration:none; transition:color var(--fade); }
 html[data-theme="light"] a{ color:#1247ff }
 a:hover{ text-decoration:underline }
-img{max-width:100%; height:auto}
 
-/* Kart ve konteyner */
-.container{max-width:1100px; margin:24px auto; padding:0 16px}
+/* Görseller */
+img{ max-width:100%; height:auto; border-radius: 8px; }
+
+/* Hareket azaltma tercihi */
+@media (prefers-reduced-motion: reduce){
+  *{ animation: none !important; transition: none !important; }
+}
+
+/* ===========================
+   Konteyner / Kart
+=========================== */
+.container{
+  max-width:1140px; margin:var(--space-6) auto; padding:0 var(--space-4);
+  container-type: inline-size; /* @container için */
+}
+
 .card{
   background:var(--card);
   border:1px solid var(--line);
-  border-radius:16px;
-  padding:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,.25);
-  transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+  border-radius:var(--radius);
+  padding:var(--space-5);
+  box-shadow:var(--shadow-1);
+  transition: transform var(--elevate), box-shadow var(--elevate), background var(--fade), border-color var(--fade);
 }
-html[data-theme="light"] .card{
-  box-shadow:0 14px 36px rgba(15,23,42,.10);
-}
+.card:hover{ transform: translateY(-1px); box-shadow:var(--shadow-2); }
+html[data-theme="light"] .card{ box-shadow:var(--shadow-1l); }
 
 /* ===========================
    Butonlar
 =========================== */
 .btn{
-  display:inline-block;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
   padding:10px 14px;
   border-radius:12px;
   background:#334155;
   color:#e5e7eb;
   border:1px solid var(--line);
   cursor:pointer;
-  transition:opacity .15s ease, transform .02s ease, box-shadow .25s ease, background .25s ease, color .25s ease;
   font-weight:700;
+  line-height:1;
+  transition: transform .02s ease, box-shadow var(--elevate), background var(--fade), color var(--fade), border-color var(--fade), opacity var(--fade);
+  will-change: transform;
 }
-.btn:hover{opacity:.95}
+.btn:hover{opacity:.96}
 .btn:active{transform:translateY(1px)}
-.btn-primary{background:#2563eb}
-.btn-success{background:#16a34a}
-.btn-danger{background:#b91c1c}
+.btn:disabled{opacity:.6; cursor:not-allowed}
 
+.btn-primary{background:#2563eb; border-color: color-mix(in oklab, #2563eb 55%, var(--line));}
+.btn-success{background:#16a34a; border-color: color-mix(in oklab, #16a34a 55%, var(--line));}
+.btn-danger{ background:#b91c1c; border-color: color-mix(in oklab, #b91c1c 55%, var(--line)); }
+
+/* Buton focus-visible halkası */
+.btn:focus-visible{
+  outline: none;
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--ring) var(--ring-alpha), transparent),
+    0 2px 18px color-mix(in oklab, var(--ring) 24%, transparent);
+}
+
+/* Açık tema butonları */
 html[data-theme="light"] .btn{
-  background:linear-gradient(180deg,#ffffff,#f4f7ff);
+  background:linear-gradient(180deg,#ffffff,#f6f8ff);
   color:#0f182d;
   border-color:#e6ebf4;
-  box-shadow:0 10px 18px rgba(13,19,33,.08), inset 0 0 0 1px rgba(255,255,255,.95);
+  box-shadow:
+    0 8px 18px rgba(13,19,33,.08),
+    inset 0 0 0 1px rgba(255,255,255,.95);
 }
 html[data-theme="light"] .btn-primary{
   background:linear-gradient(180deg,#ffd24d,#f7bf2a);
-  color:#0a1228; border-color:transparent; text-shadow:0 1px 0 rgba(255,255,255,.35);
+  color:#0a1228; border-color:transparent;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
 }
 html[data-theme="light"] .btn-success{ background:#22c55e; color:#072417 }
 html[data-theme="light"] .btn-danger{ background:#ef4444; color:#fff1f1 }
@@ -131,20 +216,35 @@ html[data-theme="light"] .btn-danger{ background:#ef4444; color:#fff1f1 }
   background:#0f172a;
   border:1px solid #243042;
   color:var(--fg);
-  padding:10px;
+  padding:12px 12px;
   border-radius:12px;
-  transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  font-size: var(--fs-3);
+  transition:border-color var(--fade), box-shadow var(--fade), background var(--fade);
 }
-textarea{resize:vertical}
-label{display:block; margin:8px 0 6px 2px; color:#cbd5e1; font-size:.95rem; font-weight:700}
+textarea{ resize: vertical; min-height: 120px; }
+label{
+  display:block; margin:8px 0 6px 2px;
+  color:#cbd5e1; font-size:.95rem; font-weight:700
+}
 
-.input:focus, textarea:focus, select:focus{
+/* Daha iyi focus görünürlüğü */
+.input:focus-visible, textarea:focus-visible, select:focus-visible{
   outline: none;
   border-color: var(--ring);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent);
 }
 
-/* Açık tema formlar */
+/* Hata/başarı durumları (opsiyonel yardımcı sınıflar) */
+.input.is-error, textarea.is-error, select.is-error{
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger) 24%, transparent);
+}
+.input.is-valid, textarea.is-valid, select.is-valid{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+/* Açık tema form */
 html[data-theme="light"] .input,
 html[data-theme="light"] textarea,
 html[data-theme="light"] select{
@@ -157,29 +257,40 @@ html[data-theme="light"] label{ color:#2a3553 }
 /* ===========================
    Grid / Layout yardımcıları
 =========================== */
-.grid{display:grid; gap:16px}
+.grid{display:grid; gap:var(--space-4)}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+/* Container query ile dar alanlarda otomatik tek kolona düş */
+@container (max-width: 720px){
+  .grid-2{ grid-template-columns: 1fr; }
+  .grid-3{ grid-template-columns: 1fr 1fr; }
+}
 
 /* ===========================
    Tablo
 =========================== */
-.table{width:100%; border-collapse:collapse}
+.table{width:100%; border-collapse:separate; border-spacing:0}
 .table th,.table td{
   border-bottom:1px solid var(--line);
-  padding:10px; text-align:left;
+  padding:12px 10px; text-align:left;
 }
 .table th{
-  font-size:.86rem;
+  font-size:.82rem;
   letter-spacing:.06em;
   text-transform:uppercase;
   color:var(--muted);
 }
+.table tr:hover td{
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+}
 html[data-theme="light"] .table th,.table td{
   border-bottom-color:#e6ebf4;
 }
+
+/* Küçük rozet */
 .badge{
-  padding:4px 8px; border-radius:999px; font-size:.8rem;
+  padding:4px 10px; border-radius:999px; font-size:.8rem; font-weight:600;
   border:1px solid var(--line); background:#0f172a; color:var(--fg);
 }
 html[data-theme="light"] .badge{
@@ -190,34 +301,41 @@ html[data-theme="light"] .badge{
    Yorumlar / Mesajlar
 =========================== */
 .comment{
-  padding:8px 12px; border:1px solid var(--line);
+  padding:10px 12px; border:1px solid var(--line);
   border-radius:12px; background:#0b1220;
 }
 .comment.system{color:#94a3b8; background:#0b0f14; border-style:dashed}
 
-.flash{padding:10px 12px; border-radius:12px; margin-bottom:12px}
-.flash.success{background:#052e1c; color:#b7f3cc; border:1px solid #164e3a}
-.flash.danger{background:#3a0b0b; color:#fbbbbb; border:1px solid #7f1d1d}
-.flash.info{background:#0b1220; border:1px solid #1e3a5f; color:#cfe8ff}
-
-html[data-theme="light"] .flash{
-  border:1px solid #ffe3a1; color:#3a2c0e;
+/* Flash kutuları */
+.flash{
+  padding:12px 14px; border-radius:12px; margin-bottom:12px;
+  backdrop-filter: saturate(110%) blur(2px);
+  border:1px solid color-mix(in oklab, var(--outline) 90%, transparent);
 }
+.flash.success{background:#052e1c; color:#b7f3cc; border-color:#164e3a}
+.flash.danger{ background:#3a0b0b; color:#fbbbbb; border-color:#7f1d1d}
+.flash.info{   background:#0b1220; color:#cfe8ff; border-color:#1e3a5f}
+
+html[data-theme="light"] .flash{ border:1px solid #ffe3a1; color:#3a2c0e; }
 html[data-theme="light"] .flash.success{ background:linear-gradient(180deg,#eafff4,#d8ffee); color:#073a2a; border-color:#baffdf }
-html[data-theme="light"] .flash.danger{ background:linear-gradient(180deg,#ffefef,#ffe3e3); color:#5a1c1c; border-color:#ffc9c9 }
-html[data-theme="light"] .flash.info{ background:linear-gradient(180deg,#f5f9ff,#eef4ff); color:#17223a; border-color:#dbe6ff }
+html[data-theme="light"] .flash.danger{  background:linear-gradient(180deg,#ffefef,#ffe3e3); color:#5a1c1c; border-color:#ffc9c9 }
+html[data-theme="light"] .flash.info{    background:linear-gradient(180deg,#f5f9ff,#eef4ff); color:#17223a; border-color:#dbe6ff }
 
 /* ===========================
    Risk Matrisi
 =========================== */
 .matrix{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
 .cell{
-  padding:10px; border-radius:10px; text-align:center;
+  padding:12px; border-radius:10px; text-align:center;
   background:#0b1220; border:1px solid #1f2a3a; color:var(--fg);
+  transition: transform var(--elevate), box-shadow var(--elevate);
+  will-change: transform;
 }
-.score-low{background:#064e3b}     /* düşük risk */
-.score-mid{background:#78350f}     /* orta risk  */
-.score-high{background:#7f1d1d}    /* yüksek risk */
+.cell:hover{ transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,.28); }
+
+.score-low{background:#064e3b}
+.score-mid{background:#78350f}
+.score-high{background:#7f1d1d}
 
 html[data-theme="light"] .cell{
   background:#ffffff; color:#0a1328; border-color:#e6ebf4;
@@ -226,12 +344,12 @@ html[data-theme="light"] .score-low{ background:#d1fae5 }
 html[data-theme="light"] .score-mid{ background:#fde68a }
 html[data-theme="light"] .score-high{ background:#fecaca }
 
-/* Araçlar */
-.searchbar{display:flex; gap:8px}
+/* ===========================
+   Araçlar / Metinler
+=========================== */
+.searchbar{display:flex; gap:8px; align-items:center}
 .small{font-size:.9rem; color:#a3b5c3}
 html[data-theme="light"] .small{ color:#556384 }
-
-/* Footer */
 .footer{margin-top:32px; color:#94a3b8; font-size:.9rem}
 html[data-theme="light"] .footer{ color:#6b7692 }
 
@@ -244,9 +362,9 @@ html[data-theme="light"] .footer{ color:#6b7692 }
 }
 .sidebar{
   background:var(--surface-2); color:var(--ink);
-  display:flex; flex-direction:column; gap:16px;
+  display:flex; flex-direction:column; gap:var(--space-4);
   padding:20px 16px; border-right:1px solid var(--outline);
-  position:sticky; top:0; height:100vh;
+  position:sticky; top:0; height:100dvh;
 }
 .brand{display:flex; align-items:center; gap:10px}
 .brand .logo{
@@ -265,23 +383,20 @@ html[data-theme="light"] .userbox .role{ color:#6b7692 }
 
 .menu{display:flex; flex-direction:column; gap:8px; margin-top:6px}
 .menu a{
-  display:block;
+  display:flex; align-items:center; gap:10px;
   padding:10px 12px; border-radius:10px;
   color:var(--ink); border:1px solid transparent;
   background:transparent;
+  transition: background var(--fade), border-color var(--fade), color var(--fade);
 }
 .menu a:hover{background:#122136; border-color:var(--outline)}
 .menu a.active{background:#1a2740; border-color:#2a3b55}
-.menu a.btn{background:#2563eb; border-color:#1e40af}
+.menu a.btn{background:#2563eb; border-color:#1e40af; color:white; font-weight:700}
 .menu a.btn:hover{opacity:.95}
 .menu a.btn.active{outline:2px solid #3b82f6}
 
-html[data-theme="light"] .menu a{
-  color:#25324b;
-}
-html[data-theme="light"] .menu a:hover{
-  background:#fff9e3; border-color:#f3e4a9;
-}
+html[data-theme="light"] .menu a{ color:#25324b; }
+html[data-theme="light"] .menu a:hover{ background:#fff9e3; border-color:#f3e4a9; }
 html[data-theme="light"] .menu a.active{
   background:linear-gradient(90deg,#fff3c1,#fff9e9);
   border-color:#f3e4a9;
@@ -294,6 +409,7 @@ html[data-theme="light"] .menu a.active{
   padding:24px;
   border:1px solid color-mix(in oklab, var(--ink-strong) 10%, transparent);
   box-shadow:0 8px 24px rgba(0,0,0,.06);
+  border-radius: var(--radius-lg);
 }
 html[data-theme="light"] .main{
   border-color:#e6ebf4;
@@ -302,6 +418,17 @@ html[data-theme="light"] .main{
 
 /* Eski top-nav sınıfları bu layoutta kullanılmıyor */
 .nav{display:none}
+
+/* ===========================
+   Erişilebilirlik / Focus
+=========================== */
+:where(a, button, .btn, .input, textarea, select):focus-visible{
+  outline: none;
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--ring) var(--ring-alpha), transparent),
+    0 2px 18px color-mix(in oklab, var(--ring) 24%, transparent);
+  border-color: var(--ring);
+}
 
 /* ===========================
    Responsive
@@ -318,4 +445,14 @@ html[data-theme="light"] .main{
 @media (max-width: 880px){
   .layout{grid-template-columns:1fr}
   .sidebar{position:relative;height:auto}
+}
+
+/* ===========================
+   Yüksek Kontrast Tercihi
+=========================== */
+@media (prefers-contrast: more){
+  .btn, .input, textarea, select, .card, .menu a{
+    border-width: 2px;
+  }
+  .menu a.active{ outline: 3px solid color-mix(in oklab, var(--ring) 40%, transparent); }
 }
