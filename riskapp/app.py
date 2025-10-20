@@ -87,7 +87,11 @@ def _next_ym(y, m):
     y, m = int(y), int(m)
     return (y + (m // 12), 1 if m == 12 else m + 1)
 
+import unicodedata as _ud
 
+def _normcat(s: str) -> str:
+    # boşlukları kırp + Unicode'u NFC'ye getir + casefold ile küçük harf
+    return _ud.normalize("NFC", (s or "").strip()).casefold()
 # -------------------------------------------------
 # AI çıktı temizleyiciler (tekrar/eko önleme)
 # -------------------------------------------------
@@ -1052,19 +1056,23 @@ def create_app():
             return jsonify({})
 
         req_ids = [s for s in cat_ids_param.split(",") if s.strip()]
+
+        # İstenen kategori satırlarını çek
         cats = (RiskCategory.query
                 .filter(RiskCategory.is_active.is_(True), RiskCategory.id.in_(req_ids))
                 .all())
-        name_to_id = {c.name: str(c.id) for c in cats}
 
+        # normalize edilmiş ad -> id map
+        normname_to_id = {_normcat(c.name): str(c.id) for c in cats}
+
+        # Tüm aktif önerileri al, normalize ad ile id’ye bağla
         rows = (Suggestion.query
-                .filter(Suggestion.is_active.is_(True),
-                        Suggestion.category.in_(list(name_to_id.keys())))
+                .filter(Suggestion.is_active.is_(True))
                 .all())
 
         out = {}
         for s in rows:
-            cid = name_to_id.get((s.category or "").strip())
+            cid = normname_to_id.get(_normcat(s.category))
             if not cid:
                 continue
             out.setdefault(cid, []).append({
@@ -1074,6 +1082,7 @@ def create_app():
                 "default_sev": getattr(s, "default_sev", None),
             })
         return jsonify(out)
+
 
     # -------------------------------------------------
     #  Yetki kontrol dekoratörü
