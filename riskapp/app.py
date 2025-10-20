@@ -857,18 +857,27 @@ def make_ai_risk_comment(risk_id: int) -> str:
 
 def send_email(to_email: str, subject: str, body: str):
     """
-    SMTP ile e-posta gönder. Hata olduğunda ayrıntılı döner.
+    Güvenli ve UTF-8 uyumlu SMTP mail gönderimi.
     ENV:
-      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_TLS (1=starttls/587, 0=ssl/465)
-      SMTP_DEBUG=1  (opsiyonel: SMTP konuşmasını logla)
-      SMTP_FALLBACK=1 (opsiyonel: seçilen mod başarısızsa diğer moda dene)
+      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+      SMTP_TLS=1 -> STARTTLS (genelde 587)
+      SMTP_TLS=0 -> SSL/TLS   (genelde 465)
+      SMTP_DEBUG=1 -> SMTP diyaloğunu logla
+      SMTP_FALLBACK=1 -> bir mod başarısızsa diğerini dene
     """
+    import os, smtplib
+    from email.message import EmailMessage
+
     host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT", "465"))
+    # Port belirtilmemişse moda göre mantıklı varsayılan ver
+    use_tls = os.getenv("SMTP_TLS", "").lower() in ("1", "true", "yes")
+    port = int(os.getenv("SMTP_PORT", "0") or "0")
+    if port == 0:
+        port = 587 if use_tls else 465
+
     user = os.getenv("SMTP_USER")
     pwd  = os.getenv("SMTP_PASS")
     from_addr = os.getenv("SMTP_FROM", user or "no-reply@example.com")
-    use_tls = os.getenv("SMTP_TLS", "").lower() in ("1","true","yes")
     debug_on = os.getenv("SMTP_DEBUG", "").lower() in ("1","true","yes")
     do_fallback = os.getenv("SMTP_FALLBACK", "").lower() in ("1","true","yes")
 
@@ -877,8 +886,14 @@ def send_email(to_email: str, subject: str, body: str):
         print(msg)
         return False, msg
 
+    # Mesajı UTF-8 olarak hazırla (Türkçe karakterler sorunsuz)
+    msg = EmailMessage()
+    msg["From"] = from_addr
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.set_content(body)  # text/plain; charset="utf-8"
+
     def _send_starttls():
-        import smtplib
         with smtplib.SMTP(host, port, timeout=25) as s:
             if debug_on: s.set_debuglevel(1)
             s.ehlo()
@@ -886,15 +901,14 @@ def send_email(to_email: str, subject: str, body: str):
             s.ehlo()
             if user and pwd:
                 s.login(user, pwd)
-            s.sendmail(from_addr, [to_email], f"From: {from_addr}\r\nTo: {to_email}\r\nSubject: {subject}\r\n\r\n{body}")
+            s.send_message(msg)
 
     def _send_ssl():
-        import smtplib
         with smtplib.SMTP_SSL(host, port, timeout=25) as s:
             if debug_on: s.set_debuglevel(1)
             if user and pwd:
                 s.login(user, pwd)
-            s.sendmail(from_addr, [to_email], f"From: {from_addr}\r\nTo: {to_email}\r\nSubject: {subject}\r\n\r\n{body}")
+            s.send_message(msg)
 
     try:
         if use_tls:
@@ -908,19 +922,17 @@ def send_email(to_email: str, subject: str, body: str):
         if do_fallback:
             try:
                 if use_tls:
-                    # primary starttls idi, ssl'e düş
-                    _send_ssl()
+                    _send_ssl()      # STARTTLS başarısızsa SSL'e düş
                 else:
-                    # primary ssl idi, starttls'e düş
-                    _send_starttls()
+                    _send_starttls() # SSL başarısızsa STARTTLS'e düş
                 print(f"[MAIL] sent (fallback) to {to_email} subj={subject}")
                 return True, ""
             except Exception as e2:
                 msg = f"[MAIL-ERROR] fallback failed -> {e2}"
                 print(msg)
                 return False, f"{e1} | FALLBACK: {e2}"
-        else:
-            return False, str(e1)
+        return False, str(e1)
+
 
 # -------------------------------------------------
 #  Flask uygulaması oluştur

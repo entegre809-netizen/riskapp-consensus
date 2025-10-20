@@ -1,12 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Kullanıcı Yönetimi{% endblock %}
+
 {% block content %}
 <div class="container">
   <div class="card">
     <h2>Kullanıcı Yönetimi</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for c,m in messages %}<div class="flash {{c}}">{{m}}</div>{% endfor %}
+      {% if messages %}
+        {% for c,m in messages %}
+          <div class="flash {{c}}">{{m}}</div>
+        {% endfor %}
+      {% endif %}
     {% endwith %}
 
     <div class="row" style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
@@ -53,7 +58,7 @@
             <td>
               <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap">
                 <!-- Rol güncelle -->
-                <form method="post" style="display:flex; gap:8px; align-items:center">
+                <form method="post" action="{{ url_for('admin_users') }}" style="display:flex; gap:8px; align-items:center">
                   <input type="hidden" name="user_id" value="{{ u.id }}">
                   <select name="new_role" class="input">
                     <option value="uzman" {{ 'selected' if (u.role or 'uzman')=='uzman' }}>uzman</option>
@@ -68,18 +73,11 @@
                   <button class="btn">Ref Ata & Aktifleştir</button>
                 </form>
 
-                <!-- Mevcut kodu yeniden gönder / Gmail ile gönder -->
+                <!-- Mevcut kodu yeniden gönder (Gmail compose yönlendirme) -->
                 {% if u.ref_code %}
                   <form method="post" action="{{ url_for('admin_resend_ref', uid=u.id) }}">
                     <button class="btn btn-secondary">Kodu Yeniden Gönder</button>
                   </form>
-
-                  <!-- Gmail compose ile aç -->
-                  <a class="btn btn-outline-primary"
-                     href="{{ url_for('admin_compose_ref', uid=u.id) }}"
-                     target="_blank" rel="noopener">
-                    Gmail ile gönder
-                  </a>
                 {% endif %}
               </div>
 
