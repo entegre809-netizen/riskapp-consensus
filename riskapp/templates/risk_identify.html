@@ -1,13 +1,92 @@
 {% extends "base.html" %}
 {% block title %}Risk Tanımlama{% endblock %}
+
 {% block content %}
+<style>
+  /* ---------- Sayfa-özel (base tokenlarını kullanır) ---------- */
+  .toolbar {
+    position: sticky; top: 8px; z-index: 2;
+    display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap;
+    padding: .75rem; margin: 0 0 1rem;
+    border:1px solid color-mix(in oklab, var(--line) 82%, transparent);
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--bg-soft) 98%, transparent);
+    box-shadow: var(--elev-1);
+    backdrop-filter: var(--glass-blur);
+  }
+  .toolbar .group{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end }
+  .toolbar .fill{ flex:1 }
+
+  .cat-grid{ display:grid; gap:14px; grid-template-columns: repeat(3, minmax(0,1fr)); }
+  @media (max-width:1200px){ .cat-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width:820px){ .cat-grid{ grid-template-columns: 1fr; } }
+
+  .cat-card{
+    border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    border-radius: var(--radius);
+    padding:12px; background: var(--card);
+    box-shadow: var(--elev-card);
+  }
+  .cat-head{ display:flex; align-items:flex-end; gap:.55rem; margin:4px 0 10px }
+  .cat-count{ font-weight:900; color:var(--muted) }
+
+  .bulk-row{ margin:6px 0 10px; display:flex; justify-content:space-between; align-items:center; gap:.5rem }
+  .bulk-row .right{ display:flex; gap:.5rem; align-items:center }
+
+  .table-select{ width:100%; border-collapse:separate; border-spacing:0 }
+  .table-select th,.table-select td{
+    padding:.7rem .75rem;
+    border-bottom:1px solid color-mix(in oklab, var(--line) 82%, transparent);
+    vertical-align:top; font-size:.96rem;
+  }
+  .table-select thead th{
+    position:sticky; top:0; z-index:1;
+    text-transform:uppercase; letter-spacing:.06em; font-weight:1000;
+    color:var(--muted);
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    border-bottom:1px solid color-mix(in oklab, var(--line) 88%, transparent);
+  }
+  .table-select tbody tr:nth-child(even) td{
+    background: color-mix(in oklab, var(--bg) 94%, transparent);
+  }
+  .table-select tbody tr:hover td{
+    background: color-mix(in oklab, var(--primary) 6%, transparent);
+  }
+
+  .risk-badge{ display:inline-flex; align-items:center; gap:.4rem }
+  .risk-code{ display:inline-block; min-width:3ch }
+
+  .inline-edit{
+    border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklab, var(--bg-soft) 98%, transparent);
+    padding:10px;
+  }
+  .edit-row[hidden]{ display:none }
+  .row-actions{ display:flex; gap:.5rem; flex-wrap:wrap }
+  .btn-danger{ background:#b91c1c; color:#fff; border-color:transparent }
+  .btn-ghost{ background:transparent; border:1px dashed color-mix(in oklab, var(--line) 70%, transparent) }
+
+  .pager{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-end; margin-top:12px }
+  .pager .btn[aria-disabled="true"]{ pointer-events:none; opacity:.5 }
+  .totalinfo{ color:var(--muted); font-size:.9rem; margin-top:.35rem }
+
+  /* küçük iyileştirmeler */
+  .input-search{ min-width: clamp(220px, 26vw, 340px) }
+  .w-code{ width:110px }
+  .w-num{ width:130px }
+  .w-ops{ width:170px }
+  .text-muted{ opacity:.8 }
+  .kbd{ font: 600 .82rem var(--mono); padding:.08rem .35rem; border-radius:6px;
+        border:1px solid color-mix(in oklab, var(--line) 80%, transparent) }
+</style>
 
 <div class="card">
   <h2 style="margin:0 0 .35rem; letter-spacing:.01em">Tanımlı Risklerden Seç</h2>
 
-  <!-- Üst araç çubuğu -->
-  <div class="topbar" style="display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap; margin:.5rem 0 1rem;">
-    <form method="get" action="{{ url_for('risk_identify') }}" class="filter-form" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end;">
+  <!-- Sticky Üst araç çubuğu -->
+  <div class="toolbar noprint" role="region" aria-label="Filtreler">
+    <form method="get" action="{{ url_for('risk_identify') }}" class="group" id="filter-form">
       <div>
         <label class="small" for="cat">Kategori</label>
         <select id="cat" name="cat" class="input" style="min-width:220px">
@@ -19,76 +98,32 @@
         </select>
       </div>
       <div>
-        <label class="small" for="q">Ara</label>
-        <input id="q" name="q" class="input" value="{{ q or '' }}" placeholder="Metin / kod ara…" style="min-width:260px">
+        <label class="small" for="q">Ara <span class="text-muted">(Ctrl/⌘+K)</span></label>
+        <input id="q" name="q" class="input input-search" value="{{ q or '' }}" placeholder="Metin / kod ara…">
       </div>
-      <div><button class="btn" type="submit">Uygula</button></div>
+      <div>
+        <label class="small">&nbsp;</label>
+        <button class="btn" type="submit" title="Filtreleri uygula">Uygula</button>
+      </div>
       {% if q or (cat and cat != '__all__') %}
-        <div><a class="btn" href="{{ url_for('risk_identify') }}">Sıfırla</a></div>
+      <div>
+        <label class="small">&nbsp;</label>
+        <a class="btn btn-ghost" href="{{ url_for('risk_identify') }}" title="Filtreleri temizle">Sıfırla</a>
+      </div>
       {% endif %}
     </form>
 
-    <div style="flex:1"></div>
-    <div style="display:flex; gap:.5rem;">
-      <a class="btn" href="{{ url_for('categories_index') }}?next=identify">Kategori Yönetimi</a>
-      <a class="btn" href="{{ url_for('import_suggestions') }}">CSV/XLSX İçe Aktar</a>
+    <div class="fill"></div>
+
+    <div class="group">
+      <a class="btn" href="{{ url_for('categories_index') }}?next=identify" title="Kategorileri yönet">Kategori Yönetimi</a>
+      <a class="btn" href="{{ url_for('import_suggestions') }}" title="CSV / XLSX ile içe aktar">CSV/XLSX İçe Aktar</a>
     </div>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for c,m in messages %}<div class="flash {{c}}">{{m}}</div>{% endfor %}
   {% endwith %}
-
-  <style>
-    .cat-grid{ display:grid; gap:14px; grid-template-columns: repeat(3, minmax(0,1fr)); }
-    @media (max-width:1200px){ .cat-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-    @media (max-width:820px){ .cat-grid{ grid-template-columns: 1fr; } }
-
-    .cat-card{ border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
-               border-radius:12px; padding:12px; background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
-               box-shadow: 0 6px 18px rgba(0,0,0,.08); }
-
-    .cat-head{ display:flex; align-items:flex-end; gap:.5rem; margin:4px 0 8px }
-    .cat-count{ font-weight:800; color:var(--muted); }
-
-    .bulk-row{ margin:6px 0 10px; }
-    .bulk-row label{ cursor:pointer; user-select:none; font-weight:700; }
-
-    .table-select{ width:100%; border-collapse:separate; border-spacing:0; }
-    .table-select th, .table-select td{
-      padding:.6rem .7rem;
-      border-bottom:1px solid color-mix(in oklab, var(--line) 82%, transparent);
-      vertical-align:top; font-size:.95rem;
-    }
-    .table-select thead th{
-      position:sticky; top:0; z-index:1;
-      text-transform:uppercase; letter-spacing:.06em; font-weight:900;
-      color:var(--muted);
-      background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-      border-bottom:1px solid color-mix(in oklab, var(--line) 88%, transparent);
-    }
-    .table-select tbody tr:nth-child(even) td{ background: color-mix(in oklab, var(--bg) 92%, transparent); }
-    .table-select tbody tr:hover td{ background: color-mix(in oklab, var(--primary) 6%, transparent); }
-
-    .risk-label{ font-weight:800; letter-spacing:.01em; cursor:pointer; }
-
-    .edit-row[hidden]{ display:none; }
-    .inline-edit{
-      border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
-      border-radius:12px; background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-      padding:10px;
-    }
-    .row-actions{ display:flex; gap:.5rem; flex-wrap:wrap }
-    .btn.btn-danger{ background:#b91c1c; color:#fff; border-color:transparent }
-
-    .grid{ display:grid; gap:.6rem; }
-    .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)); }
-    @media (max-width:900px){ .grid-2{ grid-template-columns: 1fr; } }
-
-    .pager{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-end; margin-top:12px; }
-    .pager .btn[aria-disabled="true"]{ pointer-events:none; opacity:.5; }
-    .totalinfo{ color:var(--muted); font-size:.9rem; margin-left:auto; }
-  </style>
 
   {% if not categories or categories|length == 0 %}
     <div class="flash info">
@@ -97,7 +132,7 @@
     </div>
   {% endif %}
 
-  <!-- Ana seçim formu -->
+  <!-- Ana seçim formu (arka planda ID json gönderir) -->
   <form method="post" id="select-form" action="{{ url_for('risk_identify') }}">
     <input type="hidden" name="action" value="add_selected">
     <input type="hidden" name="selected_json" id="selected_json">
@@ -107,8 +142,9 @@
     {% for cat, risks in categories.items() %}
       {% set cat_idx = loop.index0 %}
       {% set cat_name = cat or 'Genel / Kategorisiz' %}
+      {% set slug = (cat_name|lower|replace(' ', '-')|replace('/', '-')|replace('.', '-') ) %}
 
-      <section class="cat-card" id="cat-{{ cat_name|replace(' ', '-') }}">
+      <section class="cat-card" id="cat-{{ slug }}" aria-label="{{ cat_name }}">
         <div class="cat-head">
           <h3 style="margin:0">{{ cat_name }}</h3>
           <span class="small cat-count" id="count-{{ cat_idx }}">(0 seçili)</span>
@@ -142,119 +178,125 @@
         </details>
         {% endif %}
 
-        <div class="small bulk-row">
-          <label>
+        <div class="bulk-row">
+          <label class="small">
             <input type="checkbox" class="toggle-all" data-group="{{ cat_idx }}">
-            Tümünü seç / kaldır
+            <strong>Tümünü seç / kaldır</strong>
           </label>
+          <div class="right small">
+            <button type="button" class="btn btn-ghost btn-collapse" data-target="#cat-{{ slug }}" title="Kategori tablosunu daralt/aç">Daralt</button>
+            <a class="btn btn-ghost" href="#top" title="Sayfa başına dön">↑</a>
+          </div>
         </div>
 
-        <table class="table table-select">
-          <thead>
-            <tr>
-              <th style="width:60px">Seç</th>
-              <th>Risk</th>
-              <th style="width:340px">RİSK FAKTÖRÜ</th>
-              <th style="width:110px">Risk Kodu</th>
-              <th style="width:120px">Vars. Olasılık (1–5)</th>
-              <th style="width:120px">Vars. Şiddet (1–5)</th>
-              <th style="width:160px">İşlem</th>
-            </tr>
-          </thead>
-          <tbody>
-          {% for s in risks %}
-            {% set row_idx = loop.index0 %}
-            {% set cb_id = 'sel-' ~ cat_idx ~ '-' ~ row_idx %}
+        <div class="table-wrap" data-collapsible>
+          <table class="table-select">
+            <thead>
+              <tr>
+                <th style="width:56px">Seç</th>
+                <th>Risk</th>
+                <th>RİSK FAKTÖRÜ</th>
+                <th class="w-code">Risk Kodu</th>
+                <th class="w-num">Vars. Olasılık</th>
+                <th class="w-num">Vars. Şiddet</th>
+                <th class="w-ops">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for s in risks %}
+              {% set row_idx = loop.index0 %}
+              {% set cb_id = 'sel-' ~ cat_idx ~ '-' ~ row_idx %}
 
-            <!-- Görünen satır -->
-            <tr>
-              <td>
-                <input
-                  id="{{ cb_id }}"
-                  type="checkbox"
-                  name="selected"
-                  value="{{ s.id }}"
-                  class="chk chk-{{ cat_idx }}"
-                  data-group="{{ cat_idx }}"
-                  aria-labelledby="lbl-{{ cb_id }}"
-                  form="select-form"
-                >
-              </td>
+              <!-- Görünen satır -->
+              <tr>
+                <td>
+                  <input
+                    id="{{ cb_id }}"
+                    type="checkbox"
+                    name="selected"
+                    value="{{ s.id }}"
+                    class="chk chk-{{ cat_idx }}"
+                    data-group="{{ cat_idx }}"
+                    aria-labelledby="lbl-{{ cb_id }}"
+                    form="select-form"
+                  >
+                </td>
 
-              <!-- RİSK sütunu: kodu küçük rozetle gösterelim -->
-              <td>
-                <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
-                  <span class="badge">{{ s.risk_code or '—' }}</span>
-                </label>
-              </td>
+                <!-- RİSK (kısa başlık + rozet) -->
+                <td>
+                  <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
+                    <span class="risk-badge">
+                      <span class="badge risk-code" title="Risk kodu kopyala" data-copy="{{ s.risk_code or '' }}">{{ s.risk_code or '—' }}</span>
+                      <span class="small text-muted">{{ s.category or 'Genel' }}</span>
+                    </span>
+                  </label>
+                </td>
 
-              <!-- RİSK FAKTÖRÜ sütunu: asıl uzun metin -->
-              <td class="small">
-                {{ s.text }}
-                {% if s.category %}
-                  <div class="text-muted" style="font-size:.85em">{{ s.category }}</div>
-                {% endif %}
-              </td>
+                <!-- RİSK FAKTÖRÜ (uzun metin) -->
+                <td class="small">
+                  {{ s.text }}
+                </td>
 
-              <!-- Ayrı Risk Kodu sütunu -->
-              <td><span class="badge">{{ s.risk_code or '—' }}</span></td>
+                <!-- Ayrı Risk Kodu sütunu -->
+                <td><span class="badge">{{ s.risk_code or '—' }}</span></td>
 
-              <td>{{ s.default_prob if s.default_prob is not none else '—' }}</td>
-              <td>{{ s.default_sev  if s.default_sev  is not none else '—' }}</td>
-              <td>
-                <div class="row-actions">
-                  {% if session.get('role') == 'admin' %}
-                    <button class="btn btn-edit" type="button" data-sid="{{ s.id }}">Düzenle</button>
-                    <form method="post"
-                          action="{{ url_for('admin_suggestion_delete', sid=s.id) }}"
-                          onsubmit="return confirm('Bu şablonu silmek istediğinize emin misiniz?');">
-                      <button class="btn btn-danger" type="submit">Sil</button>
+                <td>{{ s.default_prob if s.default_prob is not none else '—' }}</td>
+                <td>{{ s.default_sev  if s.default_sev  is not none else '—' }}</td>
+                <td>
+                  <div class="row-actions">
+                    {% if session.get('role') == 'admin' %}
+                      <button class="btn btn-edit" type="button" data-sid="{{ s.id }}">Düzenle</button>
+                      <form method="post"
+                            action="{{ url_for('admin_suggestion_delete', sid=s.id) }}"
+                            onsubmit="return confirm('Bu şablonu silmek istediğinize emin misiniz?');">
+                        <button class="btn btn-danger" type="submit">Sil</button>
+                      </form>
+                    {% else %}
+                      <span class="small" style="opacity:.7;">(düzenleme için admin)</span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+
+              {% if session.get('role') == 'admin' %}
+              <!-- Düzenleme satırı -->
+              <tr id="editrow-{{ s.id }}" class="edit-row" hidden>
+                <td colspan="7">
+                  <div class="inline-edit">
+                    <form method="post" action="{{ url_for('admin_suggestion_update', sid=s.id) }}" class="grid grid-2">
+                      <div style="grid-column:1/-1">
+                        <label>Risk Metni</label>
+                        <textarea class="input" name="text" rows="2" required>{{ s.text }}</textarea>
+                      </div>
+                      <div>
+                        <label>Kategori</label>
+                        <input class="input" name="category" value="{{ s.category or '' }}">
+                      </div>
+                      <div>
+                        <label>Risk Kodu</label>
+                        <input class="input" name="risk_code" value="{{ s.risk_code or '' }}">
+                      </div>
+                      <div>
+                        <label>Varsayılan Olasılık (1–5)</label>
+                        <input class="input" name="default_prob" type="number" min="1" max="5" value="{{ s.default_prob or '' }}">
+                      </div>
+                      <div>
+                        <label>Varsayılan Şiddet (1–5)</label>
+                        <input class="input" name="default_sev" type="number" min="1" max="5" value="{{ s.default_sev or '' }}">
+                      </div>
+                      <div style="grid-column:1/-1; display:flex; gap:.5rem; justify-content:flex-end">
+                        <button class="btn btn-primary" type="submit">Kaydet</button>
+                        <button class="btn btn-ghost btn-cancel-edit" type="button" data-sid="{{ s.id }}">İptal</button>
+                      </div>
                     </form>
-                  {% else %}
-                    <span class="small" style="opacity:.7;">(düzenleme için admin)</span>
-                  {% endif %}
-                </div>
-              </td>
-            </tr>
-
-            {% if session.get('role') == 'admin' %}
-            <!-- Düzenleme satırı -->
-            <tr id="editrow-{{ s.id }}" class="edit-row" hidden>
-              <td colspan="7">
-                <div class="inline-edit">
-                  <form method="post" action="{{ url_for('admin_suggestion_update', sid=s.id) }}" class="grid grid-2">
-                    <div style="grid-column:1/-1">
-                      <label>Risk Metni</label>
-                      <textarea class="input" name="text" rows="2" required>{{ s.text }}</textarea>
-                    </div>
-                    <div>
-                      <label>Kategori</label>
-                      <input class="input" name="category" value="{{ s.category or '' }}">
-                    </div>
-                    <div>
-                      <label>Risk Kodu</label>
-                      <input class="input" name="risk_code" value="{{ s.risk_code or '' }}">
-                    </div>
-                    <div>
-                      <label>Varsayılan Olasılık (1–5)</label>
-                      <input class="input" name="default_prob" type="number" min="1" max="5" value="{{ s.default_prob or '' }}">
-                    </div>
-                    <div>
-                      <label>Varsayılan Şiddet (1–5)</label>
-                      <input class="input" name="default_sev" type="number" min="1" max="5" value="{{ s.default_sev or '' }}">
-                    </div>
-                    <div style="grid-column:1/-1; display:flex; gap:.5rem; justify-content:flex-end">
-                      <button class="btn btn-primary" type="submit">Kaydet</button>
-                      <button class="btn btn-cancel-edit" type="button" data-sid="{{ s.id }}">İptal</button>
-                    </div>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% endif %}
-          {% endfor %}
-          </tbody>
-        </table>
+                  </div>
+                </td>
+              </tr>
+              {% endif %}
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </section>
     {% endfor %}
   </div>
@@ -263,7 +305,7 @@
     Toplam kayıt: {{ total }}{% if pages and pages > 1 %} • Sayfa {{ page }}/{{ pages }}{% endif %}
   </div>
 
-  <div class="pager">
+  <div class="pager noprint">
     <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
        href="{{ url_for('risk_identify', q=(q or None), cat=(cat or None), page=1) }}">« İlk</a>
     <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
@@ -274,73 +316,117 @@
        href="{{ url_for('risk_identify', q=(q or None), cat=(cat or None), page=pages) }}">Son »</a>
   </div>
 
-  <button type="submit" class="btn btn-success" style="margin-top:12px" form="select-form">
-    Seçilenleri Ekle
-  </button>
+  <div style="display:flex; justify-content:flex-end; margin-top:12px" class="noprint">
+    <button type="submit" class="btn btn-success" form="select-form">
+      Seçilenleri Ekle
+    </button>
+  </div>
 </div>
 
 <script>
+  // --- yardımcılar ---
+  const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+  const $  = (sel, ctx=document) => ctx.querySelector(sel);
+
   // sayaç
   function updateCount(groupIdx){
-    var boxes = document.querySelectorAll('.chk-' + groupIdx);
-    var sel = Array.prototype.slice.call(boxes).filter(function (b) { return b.checked; }).length;
-    var el = document.getElementById('count-' + groupIdx);
+    const boxes = $$('.chk-' + groupIdx);
+    const sel = boxes.filter(b => b.checked).length;
+    const el = $('#count-' + groupIdx);
     if (el) el.textContent = '(' + sel + ' seçili)';
   }
 
-  document.querySelectorAll('.toggle-all').forEach(function (tg) {
-    tg.addEventListener('change', function () {
-      var g = tg.getAttribute('data-group');
-      document.querySelectorAll('.chk-' + g).forEach(function (c) { c.checked = tg.checked; });
+  // toplu seç / kaldır
+  $$('.toggle-all').forEach(tg => {
+    tg.addEventListener('change', () => {
+      const g = tg.getAttribute('data-group');
+      $$('.chk-' + g).forEach(c => c.checked = tg.checked);
       updateCount(g);
     });
     updateCount(tg.getAttribute('data-group'));
   });
 
-  document.querySelectorAll('input[type="checkbox"][name="selected"]').forEach(function (c) {
+  // tek tek değiştikçe sayaç güncelle
+  $$('input[type="checkbox"][name="selected"]').forEach(c => {
     c.classList.add('chk');
-    c.addEventListener('change', function () {
-      var g = c.getAttribute('data-group');
+    c.addEventListener('change', () => {
+      const g = c.getAttribute('data-group');
       updateCount(g);
     });
   });
 
-  // edit aç/kapat
-  document.addEventListener('click', function (e) {
-    var editBtn = e.target.closest('.btn-edit');
-    if (editBtn) {
-      var sid = editBtn.getAttribute('data-sid');
-      var row = document.getElementById('editrow-' + sid);
+  // inline edit aç/kapat
+  document.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.btn-edit');
+    if (editBtn){
+      const sid = editBtn.getAttribute('data-sid');
+      const row = $('#editrow-' + sid);
       if (row) row.toggleAttribute('hidden');
       return;
     }
-    var cancelBtn = e.target.closest('.btn-cancel-edit');
-    if (cancelBtn) {
-      var sid2 = cancelBtn.getAttribute('data-sid');
-      var row2 = document.getElementById('editrow-' + sid2);
+    const cancelBtn = e.target.closest('.btn-cancel-edit');
+    if (cancelBtn){
+      const sid2 = cancelBtn.getAttribute('data-sid');
+      const row2 = $('#editrow-' + sid2);
       if (row2) row2.setAttribute('hidden','');
       return;
     }
   });
 
-  // seçili ID'leri JSON olarak gönder
+  // seçili ID'leri JSON olarak gönder (disable ile çift tıklamayı engelle)
   (function(){
-    var form = document.getElementById('select-form');
-    if (!form) return;
-    form.addEventListener('submit', function(ev){
-      var checked = Array.prototype.slice.call(
-        document.querySelectorAll('input[type="checkbox"][name="selected"]:checked')
-      );
-      var ids = checked.map(function(el){ return parseInt(el.value, 10); }).filter(function(v){ return !isNaN(v); });
+    const form = $('#select-form'); if (!form) return;
+    form.addEventListener('submit', function(){
+      const checked = $$('input[type="checkbox"][name="selected"]:checked');
+      const ids = checked.map(el => parseInt(el.value, 10)).filter(v => !isNaN(v));
+      const hidden = $('#selected_json'); if (hidden) hidden.value = JSON.stringify(ids);
+      $$('input[type="checkbox"][name="selected"]').forEach(el => el.disabled = true);
+    });
+  })();
 
-      var hidden = document.getElementById('selected_json');
-      if (hidden) hidden.value = JSON.stringify(ids);
+  // risk kodu rozetine tıklayınca kopyala
+  document.addEventListener('click', async (e) => {
+    const badge = e.target.closest('.risk-badge .badge');
+    if (!badge) return;
+    const code = badge.getAttribute('data-copy') || badge.textContent.trim();
+    if (!code || code === '—') return;
+    try {
+      await navigator.clipboard.writeText(code);
+      badge.classList.add('score-low');
+      setTimeout(() => badge.classList.remove('score-low'), 800);
+    } catch (_) {}
+  });
 
-      document.querySelectorAll('input[type="checkbox"][name="selected"]').forEach(function(el){
-        el.disabled = true;
-      });
+  // kategori panelini daralt/aç
+  $$('.btn-collapse').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sel = btn.getAttribute('data-target');
+      const box = document.querySelector(sel + ' .table-wrap');
+      if (!box) return;
+      const collapsed = box.style.display === 'none';
+      box.style.display = collapsed ? '' : 'none';
+      btn.textContent = collapsed ? 'Daralt' : 'Genişlet';
+    });
+  });
+
+  // Ctrl/⌘ + K → odak arama
+  document.addEventListener('keydown', (e) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
+    if ((isMac && e.metaKey && e.key.toLowerCase()==='k') || (!isMac && e.ctrlKey && e.key.toLowerCase()==='k')){
+      e.preventDefault();
+      const q = $('#q'); if (q){ q.focus(); q.select(); }
+    }
+  });
+
+  // aramada debounce (enter’a basmadan 500ms sonra gönder)
+  (function(){
+    const q = $('#q'); const form = $('#filter-form');
+    if(!q || !form) return;
+    let t=null;
+    q.addEventListener('input', ()=>{
+      if(t) clearTimeout(t);
+      t = setTimeout(()=> form.requestSubmit(), 500);
     });
   })();
 </script>
-
 {% endblock %}
