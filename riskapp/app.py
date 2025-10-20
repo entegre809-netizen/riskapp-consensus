@@ -2760,16 +2760,7 @@ def create_app():
             f"&body={quote(body)}"
         )
         return redirect(gmail_url)
-    @app.post("/admin/users/<int:uid>/resend-ref")
-    @role_required("admin")
-    def admin_resend_ref(uid):
-        acc = Account.query.get_or_404(uid)
-        if not acc.ref_code:
-            flash("Bu kullanıcıya henüz referans kodu atanmadı.", "warning")
-            return redirect(url_for("admin_users"))
-        # Gmail compose’a yönlendir
-        return redirect(url_for("admin_compose_ref", uid=uid))
-
+    
 
 
     # -------------------------------------------------
