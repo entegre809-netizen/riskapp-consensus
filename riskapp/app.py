@@ -124,7 +124,8 @@ def _strip_ai_artifacts(txt: str) -> str:
         out_lines.append(raw)
 
     out = "\n".join(out_lines).strip()
-    out = re.sub(r"\n{3,}", "\n\n", out)
+    out = _re.sub(r"\n{3,}", "\n\n", out)
+
     return out
 
 
@@ -1742,7 +1743,7 @@ def create_app():
     # -------------------------------------------------
     @app.route("/risks/new", methods=["GET", "POST"])
     def risk_new():
-        # Aktif kategorileri getir
+        # Aktif kategoriler
         categories = (
             RiskCategory.query
             .filter(RiskCategory.is_active.is_(True))
@@ -1750,17 +1751,113 @@ def create_app():
             .all()
         )
 
-        # Frontend'in kullanacağı API endpoint'i (varsa) — yoksa fallback
+        # Frontend için API endpoint
         try:
             api_suggestions_url = url_for("api_suggestions")
         except Exception:
             api_suggestions_url = "/api/suggestions"
 
-        # İstersen burada bootstrap için server-side öneri seti verebilirsin.
-        # Şimdilik boş dict veriyoruz; frontend gerekirse API'den çeker.
+        # (İstersek) başlangıçta boş
         suggestions_by_category = {}
 
         if request.method == "POST":
+            action = (request.form.get("action") or "").strip()  # << yeni
+
+            # Ortak alanlar
+            description  = request.form.get("description")  or None
+            risk_type    = request.form.get("risk_type")    or None
+            responsible  = request.form.get("responsible")  or None
+            mitigation   = request.form.get("mitigation")   or None
+            duration     = request.form.get("duration")     or None
+            start_month  = request.form.get("start_month")  or None
+            end_month    = request.form.get("end_month")    or None
+            owner = session.get("username")
+            pid   = _get_active_project_id()
+
+            # İlk değerlendirme (opsiyonel)
+            def _norm_1_5(x):
+                try:
+                    v = int(x)
+                    return min(max(v, 1), 5)
+                except Exception:
+                    return None
+            p_init = _norm_1_5(request.form.get("probability"))
+            s_init = _norm_1_5(request.form.get("severity"))
+
+            # === 1) ŞABLONDAN EKLE (risk_identify gibi) ===
+            if action == "add_from_templates":
+                # Büyük formlar için JSON ile seçili id’ler gelebilir
+                selected_ids = request.form.getlist("selected")
+                if not selected_ids:
+                    raw = request.form.get("selected_json", "[]")
+                    try:
+                        data = json.loads(raw)
+                        selected_ids = [int(x) for x in data if str(x).isdigit()]
+                    except Exception:
+                        selected_ids = []
+
+                if not selected_ids:
+                    flash("Lütfen en az bir şablon seçin.", "danger")
+                    return render_template(
+                        "risk_new.html",
+                        categories=categories,
+                        api_suggestions_url=api_suggestions_url,
+                        suggestions_by_category=suggestions_by_category,
+                        form=request.form
+                    )
+
+                created = 0
+                for sid in selected_ids:
+                    s = Suggestion.query.get(int(sid))
+                    if not s:
+                        continue
+
+                    # Şablonun metnini başlık + açıklama olarak kullan
+                    title = (s.text or "")[:150]
+                    cat_name = (s.category or "").strip() or None
+
+                    r = Risk(
+                        title=title,
+                        category=cat_name,
+                        description=description or s.text,   # formdaki açıklama boşsa s.text’i kullan
+                        owner=owner,
+                        risk_type=risk_type,
+                        responsible=responsible,
+                        mitigation=mitigation,
+                        duration=duration,
+                        start_month=start_month,
+                        end_month=end_month,
+                        project_id=pid,
+                    )
+                    db.session.add(r)
+                    db.session.flush()
+
+                    # Varsayılan P/Ş: form öncelikli, yoksa şablondan al
+                    pp = p_init if p_init is not None else (s.default_prob or None)
+                    ss = s_init if s_init is not None else (s.default_sev or None)
+                    if pp is not None and ss is not None:
+                        db.session.add(Evaluation(
+                            risk_id=r.id,
+                            evaluator=owner or "System",
+                            probability=int(pp),
+                            severity=int(ss),
+                            detection=None,
+                            comment="Şablondan ilk değerlendirme"
+                        ))
+
+                    db.session.add(Comment(
+                        risk_id=r.id,
+                        text=f"Şablondan oluşturuldu (Suggestion #{s.id}): {datetime.utcnow().isoformat(timespec='seconds')} UTC",
+                        is_system=True
+                    ))
+                    created += 1
+
+                db.session.commit()
+                flash(f"{created} risk şablonlardan oluşturuldu.", "success")
+                return redirect(url_for("dashboard"))
+
+            # === 2) TEK-KAYIT (mevcut davranış) ===
+            # (Eski akış: başlık zorunlu + çoklu kategori → her kategori için bir risk)
             title = (request.form.get("title") or "").strip()
             if not title:
                 flash("Başlık zorunludur.", "danger")
@@ -1772,7 +1869,6 @@ def create_app():
                     suggestions_by_category=suggestions_by_category,
                 )
 
-            # Çoklu kategori: <select multiple name="category_id">
             raw_ids = request.form.getlist("category_id")
             if not raw_ids:
                 flash("Lütfen en az bir kategori seçin.", "danger")
@@ -1784,7 +1880,7 @@ def create_app():
                     suggestions_by_category=suggestions_by_category,
                 )
 
-            # Seçilen id'lerden aktif kategori adlarını topla
+            # seçili kategori adları
             selected_cats = []
             for cid in raw_ids:
                 try:
@@ -1804,32 +1900,7 @@ def create_app():
                     suggestions_by_category=suggestions_by_category,
                 )
 
-            # Ortak alanlar
-            description  = request.form.get("description")  or None
-            risk_type    = request.form.get("risk_type")    or None
-            responsible  = request.form.get("responsible")  or None
-            mitigation   = request.form.get("mitigation")   or None
-            duration     = request.form.get("duration")     or None
-            start_month  = request.form.get("start_month")  or None  # "YYYY-MM" beklenir
-            end_month    = request.form.get("end_month")    or None  # "YYYY-MM" beklenir
-
-            owner = session.get("username")
-            pid   = _get_active_project_id()
-
-            # İlk değerlendirme (opsiyonel) — Detection kullanılmıyor
-            def _norm_1_5(x):
-                try:
-                    v = int(x)
-                    return min(max(v, 1), 5)
-                except Exception:
-                    return None
-
-            p_init = _norm_1_5(request.form.get("probability"))
-            s_init = _norm_1_5(request.form.get("severity"))
-
             created_risks = []
-
-            # Her kategori için ayrı risk oluştur
             for cat_name in selected_cats:
                 r = Risk(
                     title=title,
@@ -1845,9 +1916,8 @@ def create_app():
                     project_id=pid,
                 )
                 db.session.add(r)
-                db.session.flush()  # r.id için
+                db.session.flush()
 
-                # İlk değerlendirme varsa ekle (Detection = None)
                 if p_init is not None and s_init is not None:
                     db.session.add(Evaluation(
                         risk_id=r.id,
@@ -1858,7 +1928,6 @@ def create_app():
                         comment="İlk değerlendirme"
                     ))
 
-                # Sistem yorumu
                 db.session.add(Comment(
                     risk_id=r.id,
                     text=f"Risk oluşturuldu: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
@@ -1867,15 +1936,13 @@ def create_app():
 
                 created_risks.append(r)
 
-            # Tek commit
             db.session.commit()
 
-            # Yönlendirme & mesaj
             if len(created_risks) == 1:
                 flash("Risk oluşturuldu.", "success")
                 return redirect(url_for("risk_detail", risk_id=created_risks[0].id))
             else:
-                flash(f"{len(created_risks)} risk oluşturuldu (seçili kategoriler için ayrı kayıtlar).", "success")
+                flash(f"{len(created_risks)} risk oluşturuldu.", "success")
                 return redirect(url_for("risk_select"))
 
         # GET
@@ -1884,7 +1951,7 @@ def create_app():
             categories=categories,
             api_suggestions_url=api_suggestions_url,
             suggestions_by_category=suggestions_by_category,
-            form=None,  # ilk açılışta boş
+            form=None,
         )
 
     # -------------------------------------------------
@@ -3019,18 +3086,26 @@ BAĞLAM (benzer öneriler):
     # -------------------------------------------------
     @app.post("/risks/<int:risk_id>/ai_comment")
     def ai_comment_add(risk_id: int):
+        # Build rich AI comment once
         text = make_ai_risk_comment(risk_id)
         if not text:
             flash("AI önerisi üretilemedi.", "warning")
             return redirect(url_for("risk_detail", risk_id=risk_id))
 
-        # temizleyici (olası eko kalırsa)
+        # Final cleanup for any AI artifacts/echo
         text = _strip_ai_artifacts(text)
 
-        db.session.add(Comment(risk_id=risk_id, text=text, is_system=True))
+        # Store as a system comment
+        db.session.add(Comment(
+            risk_id=risk_id,
+            text=text,
+            is_system=True
+        ))
         db.session.commit()
-        flash("AI önerisi eklendi.", "success")
+
+        flash("🤖 AI risk yorumu eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=risk_id))
+
 
     # -------------------------------------------------
     #  KATEGORİ YÖNETİMİ
