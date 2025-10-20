@@ -1050,6 +1050,10 @@ def create_app():
     def api_suggestions():
         """
         ?cat_ids=1,3,7 -> { "1":[{text,...}], "3":[...], ... }
+
+        Notlar:
+        - İsim eşleşmesini case-insensitive ve boşluk/ayraç toleranslı yapar.
+        - Yalnızca is_active=True olan Suggestion’lar döner.
         """
         cat_ids_param = (request.args.get("cat_ids") or "").strip()
         if not cat_ids_param:
@@ -1061,26 +1065,58 @@ def create_app():
         cats = (RiskCategory.query
                 .filter(RiskCategory.is_active.is_(True), RiskCategory.id.in_(req_ids))
                 .all())
+        if not cats:
+            return jsonify({})
 
-        # normalize edilmiş ad -> id map
-        normname_to_id = {_normcat(c.name): str(c.id) for c in cats}
+        # --- Normalizasyon yardımcıları ---
+        import unicodedata as _ud
+        def _norm_name(s: str) -> str:
+            # Unicode NFC -> casefold -> iç boşlukları tek boşluğa indir
+            s = _ud.normalize("NFC", (s or "").strip())
+            s = s.casefold()
+            s = " ".join(s.split())
+            # " / " ve "/" varyasyonlarını aynılaştır
+            s = s.replace(" / ", "/").replace(" /", "/").replace("/ ", "/")
+            return s
 
-        # Tüm aktif önerileri al, normalize ad ile id’ye bağla
-        rows = (Suggestion.query
-                .filter(Suggestion.is_active.is_(True))
-                .all())
+        # id <-> name haritaları
+        id_to_name = {str(c.id): (c.name or "").strip() for c in cats}
+        id_to_norm = {cid: _norm_name(nm) for cid, nm in id_to_name.items()}
+        norm_to_id = {v: k for k, v in id_to_norm.items()}
 
-        out = {}
+        # Aranacak isim seti (lower/casefold)
+        from sqlalchemy import func
+        target_norms = list(id_to_norm.values())
+        # LOWER karşılaştırması için “orijinal” varyasyonları da ekleyelim
+        target_lowers = [t.lower() for t in target_norms]
+
+        # Veritabanından sadece ilgili kategorileri çek (case-insensitive)
+        # Not: LOWER(category) IN (:lower1, :lower2, ...)
+        q = (Suggestion.query
+            .filter(Suggestion.is_active.is_(True))
+            .filter(func.lower(Suggestion.category).in_(target_lowers))
+            .order_by(Suggestion.category.asc(), Suggestion.id.desc()))
+        rows = q.all()
+
+        out = {str(cid): [] for cid in id_to_name.keys()}
         for s in rows:
-            cid = normname_to_id.get(_normcat(s.category))
+            key = _norm_name(s.category)
+            cid = norm_to_id.get(key)
             if not cid:
-                continue
-            out.setdefault(cid, []).append({
-                "text": s.text,
-                "risk_code": getattr(s, "risk_code", None),
-                "default_prob": getattr(s, "default_prob", None),
-                "default_sev": getattr(s, "default_sev", None),
-            })
+                # Çok nadir: "SÖZLEŞME / ONAY SÜREÇLERİ" vs "sözleşme/onay süreçleri"
+                # yine de yakalayamadıysak bir “yakın eşleşme” deneriz:
+                for k_norm, k_id in norm_to_id.items():
+                    if key.replace(" ", "") == k_norm.replace(" ", ""):
+                        cid = k_id
+                        break
+            if cid:
+                out.setdefault(cid, []).append({
+                    "text": s.text,
+                    "risk_code": getattr(s, "risk_code", None),
+                    "default_prob": getattr(s, "default_prob", None),
+                    "default_sev": getattr(s, "default_sev", None),
+                })
+
         return jsonify(out)
 
 
