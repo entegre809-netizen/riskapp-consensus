@@ -1020,50 +1020,103 @@ def create_app():
     def _build_suggestions_by_category(category_rows):
         """
         RiskCategory satırlarından -> { "cat_id": [ {text, risk_code, default_prob, default_sev}, ... ] }
-        döner. Suggestion.category alanı kategori ADI tuttuğu için adı id’ye map’liyoruz.
+        döner. Kategori adı eşleşmesi Unicode-NFC + casefold ile normalize edilir; 
+        " / " varyasyonları ve fazla boşluklar tolere edilir. Aynı öğeler tekilleştirilir.
         """
-        id_to_name = {str(c.id): c.name for c in category_rows}
-        name_to_id = {c.name: str(c.id) for c in category_rows}
+        import unicodedata as _ud
 
+        def _norm(s: str) -> str:
+            s = _ud.normalize("NFC", (s or "").strip())
+            s = s.casefold()
+            s = " ".join(s.split())
+            # "SÖZLEŞME / ONAY" ~ "Sözleşme/Onay" gibi varyasyonları aynılaştır
+            s = s.replace(" / ", "/").replace(" /", "/").replace("/ ", "/")
+            return s
+
+        # id -> orijinal ad; norm_ad -> id
+        id_to_name = {str(c.id): (c.name or "").strip() for c in category_rows}
+        norm_to_id = {_norm(nm): cid for cid, nm in id_to_name.items()}
+
+        # tüm aktif önerileri çek (id desc: yeniler önce)
         try:
-            q = (Suggestion.query
-                .filter(Suggestion.is_active.is_(True))
-                .order_by(Suggestion.category.asc()))
-            sug_rows = q.all()
+            rows = (Suggestion.query
+                    .filter(Suggestion.is_active.is_(True))
+                    .order_by(Suggestion.category.asc(), Suggestion.id.desc())
+                    .all())
         except Exception:
-            sug_rows = []
+            rows = []
 
-        out = {}
-        for s in sug_rows:
-            cat_name = (s.category or "").strip()
-            cat_id = name_to_id.get(cat_name)
-            if not cat_id:
-                continue
-            out.setdefault(cat_id, []).append({
+        # her kategori için boş liste hazırla
+        out = {cid: [] for cid in id_to_name.keys()}
+
+        # tekilleştirme için görülen set
+        seen = set()
+
+        for s in rows:
+            key = _norm(s.category)
+            cid = norm_to_id.get(key)
+
+            # boşlukları tamamen kaldırarak bir kez daha dene (ek tolerans)
+            if not cid:
+                for k_norm, k_id in norm_to_id.items():
+                    if key.replace(" ", "") == k_norm.replace(" ", ""):
+                        cid = k_id
+                        break
+            if not cid:
+                continue  # bu önerinin kategorisi aktif listede yok
+
+            item = {
                 "text": s.text,
                 "risk_code": getattr(s, "risk_code", None),
                 "default_prob": getattr(s, "default_prob", None),
                 "default_sev": getattr(s, "default_sev", None),
-            })
+            }
+
+            # (cid, text, code, p, s) bazında tekilleştir
+            dedup = (cid, item["text"], item["risk_code"], item["default_prob"], item["default_sev"])
+            if dedup in seen:
+                continue
+            seen.add(dedup)
+
+            out[cid].append(item)
+
+        # okunabilirlik için kategori içi sıralama (kod -> metin)
+        for cid in out:
+            out[cid].sort(key=lambda x: ((x.get("risk_code") or ""), x["text"].casefold()))
+
         return out
+
     @app.get("/api/suggestions")
     def api_suggestions():
         """
-        ?cat_ids=1,3,7 -> { "1":[{text,...}], "3":[...], ... }
+        ?cat_ids=1,3,7[&limit=50] -> { "1":[{text,...}], "3":[...], ... }
 
         Notlar:
-        - İsim eşleşmesini case-insensitive ve boşluk/ayraç toleranslı yapar.
+        - İsim eşleşmesini Unicode-NFC + casefold ile yapar; " / " varyasyonlarını tolere eder.
         - Yalnızca is_active=True olan Suggestion’lar döner.
+        - Aynı öğeleri tekilleştirir; kategori içinde risk_code->text olarak sıralar.
+        - Opsiyonel 'limit' her kategori listesi için üst sınır uygular.
         """
         cat_ids_param = (request.args.get("cat_ids") or "").strip()
         if not cat_ids_param:
             return jsonify({})
 
-        req_ids = [s for s in cat_ids_param.split(",") if s.strip()]
+        # limit
+        try:
+            per_cat_limit = int(request.args.get("limit", 0))
+            if per_cat_limit < 0:
+                per_cat_limit = 0
+        except Exception:
+            per_cat_limit = 0
+
+        req_ids = [s.strip() for s in cat_ids_param.split(",") if s.strip()]
+        if not req_ids:
+            return jsonify({})
 
         # İstenen kategori satırlarını çek
         cats = (RiskCategory.query
-                .filter(RiskCategory.is_active.is_(True), RiskCategory.id.in_(req_ids))
+                .filter(RiskCategory.is_active.is_(True),
+                        RiskCategory.id.in_(req_ids))
                 .all())
         if not cats:
             return jsonify({})
@@ -1071,7 +1124,6 @@ def create_app():
         # --- Normalizasyon yardımcıları ---
         import unicodedata as _ud
         def _norm_name(s: str) -> str:
-            # Unicode NFC -> casefold -> iç boşlukları tek boşluğa indir
             s = _ud.normalize("NFC", (s or "").strip())
             s = s.casefold()
             s = " ".join(s.split())
@@ -1084,40 +1136,55 @@ def create_app():
         id_to_norm = {cid: _norm_name(nm) for cid, nm in id_to_name.items()}
         norm_to_id = {v: k for k, v in id_to_norm.items()}
 
-        # Aranacak isim seti (lower/casefold)
+        # Aranacak isim seti (lower/casefold) — DB tarafında case-insensitive filtre
         from sqlalchemy import func
-        target_norms = list(id_to_norm.values())
-        # LOWER karşılaştırması için “orijinal” varyasyonları da ekleyelim
-        target_lowers = [t.lower() for t in target_norms]
+        target_lowers = [t.lower() for t in id_to_norm.values()]
 
         # Veritabanından sadece ilgili kategorileri çek (case-insensitive)
-        # Not: LOWER(category) IN (:lower1, :lower2, ...)
-        q = (Suggestion.query
-            .filter(Suggestion.is_active.is_(True))
-            .filter(func.lower(Suggestion.category).in_(target_lowers))
-            .order_by(Suggestion.category.asc(), Suggestion.id.desc()))
-        rows = q.all()
+        rows = (Suggestion.query
+                .filter(Suggestion.is_active.is_(True))
+                .filter(func.lower(Suggestion.category).in_(target_lowers))
+                .order_by(Suggestion.category.asc(), Suggestion.id.desc())
+                .all())
 
         out = {str(cid): [] for cid in id_to_name.keys()}
+        seen = set()  # (cid, text, risk_code, default_prob, default_sev)
+
         for s in rows:
             key = _norm_name(s.category)
             cid = norm_to_id.get(key)
+
             if not cid:
-                # Çok nadir: "SÖZLEŞME / ONAY SÜREÇLERİ" vs "sözleşme/onay süreçleri"
-                # yine de yakalayamadıysak bir “yakın eşleşme” deneriz:
+                # "SÖZLEŞME / ONAY" ~ "sözleşme/onay" gibi nadir durumlar için ek tolerans
                 for k_norm, k_id in norm_to_id.items():
                     if key.replace(" ", "") == k_norm.replace(" ", ""):
                         cid = k_id
                         break
-            if cid:
-                out.setdefault(cid, []).append({
-                    "text": s.text,
-                    "risk_code": getattr(s, "risk_code", None),
-                    "default_prob": getattr(s, "default_prob", None),
-                    "default_sev": getattr(s, "default_sev", None),
-                })
+            if not cid:
+                continue
+
+            item = {
+                "text": s.text,
+                "risk_code": getattr(s, "risk_code", None),
+                "default_prob": getattr(s, "default_prob", None),
+                "default_sev": getattr(s, "default_sev", None),
+            }
+
+            sig = (cid, item["text"], item["risk_code"], item["default_prob"], item["default_sev"])
+            if sig in seen:
+                continue
+            seen.add(sig)
+
+            out[cid].append(item)
+
+        # Kategori içi sıralama ve limit
+        for cid, arr in out.items():
+            arr.sort(key=lambda x: ((x.get("risk_code") or ""), x["text"].casefold()))
+            if per_cat_limit:
+                out[cid] = arr[:per_cat_limit]
 
         return jsonify(out)
+
 
 
     # -------------------------------------------------
@@ -1756,9 +1823,8 @@ def create_app():
         except Exception:
             api_suggestions_url = "/api/suggestions"
 
-        # İstersen burada bootstrap için server-side öneri seti verebilirsin.
-        # Şimdilik boş dict veriyoruz; frontend gerekirse API'den çeker.
-        suggestions_by_category = {}
+        # ✅ BOOTSTRAP veriyi baştan hazırla (sağ panel ve datalist için)
+        suggestions_by_category = _build_suggestions_by_category(categories)
 
         if request.method == "POST":
             title = (request.form.get("title") or "").strip()
@@ -1810,8 +1876,34 @@ def create_app():
             responsible  = request.form.get("responsible")  or None
             mitigation   = request.form.get("mitigation")   or None
             duration     = request.form.get("duration")     or None
-            start_month  = request.form.get("start_month")  or None  # "YYYY-MM" beklenir
-            end_month    = request.form.get("end_month")    or None  # "YYYY-MM" beklenir
+
+            # 'YYYY-MM' güvence: 'YYYY-MM-DD' gelirse ilk 7 haneyi al
+            def _to_ym(v: str | None) -> str | None:
+                if not v:
+                    return None
+                v = v.strip()
+                return v[:7] if len(v) >= 7 else v
+
+            start_month  = _to_ym(request.form.get("start_month"))
+            end_month    = _to_ym(request.form.get("end_month"))
+
+            # Başlık şablonla birebir eşleşirse, varsayılan P/Ş'yi çıkar (kullanıcı girmediyse kullanacağız)
+            def _guess_ps_from_title(title_str: str, cat_names: list[str]):
+                if not title_str or not cat_names:
+                    return (None, None)
+                title_norm = (title_str or "").strip()
+                # categories -> id map
+                name_to_id = {c.name: str(c.id) for c in categories}
+                for cn in cat_names:
+                    cid = name_to_id.get(cn)
+                    if not cid:
+                        continue
+                    for item in (suggestions_by_category.get(cid) or []):
+                        if (item.get("text") or "").strip() == title_norm:
+                            return (item.get("default_prob"), item.get("default_sev"))
+                return (None, None)
+
+            p_from_title, s_from_title = _guess_ps_from_title(title, selected_cats)
 
             owner = session.get("username")
             pid   = _get_active_project_id()
@@ -1824,8 +1916,9 @@ def create_app():
                 except Exception:
                     return None
 
-            p_init = _norm_1_5(request.form.get("probability"))
-            s_init = _norm_1_5(request.form.get("severity"))
+            # form değeri yoksa şablon varsayılanını fallback olarak kullan
+            p_init = _norm_1_5(request.form.get("probability")) or _norm_1_5(p_from_title)
+            s_init = _norm_1_5(request.form.get("severity"))    or _norm_1_5(s_from_title)
 
             created_risks = []
 
@@ -1883,9 +1976,11 @@ def create_app():
             "risk_new.html",
             categories=categories,
             api_suggestions_url=api_suggestions_url,
-            suggestions_by_category=suggestions_by_category,
-            form=None,  # ilk açılışta boş
+            suggestions_by_category=suggestions_by_category,  # ✅ BOOTSTRAP gönder
+            form=None,  # ilk açılışta boş)
         )
+
+
 
     # -------------------------------------------------
     #  Risk Listesi / Arama
