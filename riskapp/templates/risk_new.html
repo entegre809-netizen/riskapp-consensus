@@ -31,10 +31,9 @@
     .code{font:600 .82rem var(--mono);padding:.1rem .5rem;border-radius:999px;border:1px solid var(--line);background:color-mix(in oklab,var(--bg) 92%,transparent)}
     .inline{display:flex;gap:8px;align-items:center}
 
-    /* Küçük buton */
     .btn.btn-sm{ padding:6px 10px; font-size:.88rem; border-radius:10px; }
 
-    /* Tekli select ok ikonu */
+    /* tekli select ok ikonu */
     select.input:not([multiple]),
     .form-select:not([multiple]) {
       appearance: none;
@@ -52,11 +51,11 @@
     }
   </style>
 
-  <!-- BOOTSTRAP JSON (linter-safe) -->
+  <!-- BOOTSTRAP JSON -->
   <script type="application/json" id="bootstrap_suggestions">
     {{ (suggestions_by_category or {}) | tojson }}
   </script>
-  <!-- Endpoint’ler (linter-safe) -->
+  <!-- Endpoint -->
   <meta id="endpoints" data-suggestions="{{ api_suggestions_url }}">
 
   <div class="two-col">
@@ -181,7 +180,7 @@
 
   <script>
   (function(){
-    // ===== LINTER-SAFE BOOTSTRAP/ENDPOINT OKUMA =====
+    // ===== BOOTSTRAP/ENDPOINT =====
     const bootstrapTag = document.getElementById('bootstrap_suggestions');
     let BOOTSTRAP = {};
     try { BOOTSTRAP = JSON.parse(bootstrapTag?.textContent || '{}'); } catch(e){ BOOTSTRAP = {}; }
