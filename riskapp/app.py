@@ -1636,22 +1636,47 @@ def create_app():
     # -------------------------------------------------
     @app.route("/risks/new", methods=["GET", "POST"])
     def risk_new():
-        categories = (RiskCategory.query
-                    .filter(RiskCategory.is_active == True)
-                    .order_by(RiskCategory.name.asc())
-                    .all())
+        # Aktif kategorileri getir
+        categories = (
+            RiskCategory.query
+            .filter(RiskCategory.is_active.is_(True))
+            .order_by(RiskCategory.name.asc())
+            .all()
+        )
+
+        # Frontend'in kullanacağı API endpoint'i (varsa) — yoksa fallback
+        try:
+            api_suggestions_url = url_for("api_suggestions")
+        except Exception:
+            api_suggestions_url = "/api/suggestions"
+
+        # İstersen burada bootstrap için server-side öneri seti verebilirsin.
+        # Şimdilik boş dict veriyoruz; frontend gerekirse API'den çeker.
+        suggestions_by_category = {}
 
         if request.method == "POST":
             title = (request.form.get("title") or "").strip()
             if not title:
                 flash("Başlık zorunludur.", "danger")
-                return render_template("risk_new.html", form=request.form, categories=categories)
+                return render_template(
+                    "risk_new.html",
+                    form=request.form,
+                    categories=categories,
+                    api_suggestions_url=api_suggestions_url,
+                    suggestions_by_category=suggestions_by_category,
+                )
 
             # Çoklu kategori: <select multiple name="category_id">
             raw_ids = request.form.getlist("category_id")
             if not raw_ids:
                 flash("Lütfen en az bir kategori seçin.", "danger")
-                return render_template("risk_new.html", form=request.form, categories=categories)
+                return render_template(
+                    "risk_new.html",
+                    form=request.form,
+                    categories=categories,
+                    api_suggestions_url=api_suggestions_url,
+                    suggestions_by_category=suggestions_by_category,
+                )
 
             # Seçilen id'lerden aktif kategori adlarını topla
             selected_cats = []
@@ -1665,7 +1690,13 @@ def create_app():
 
             if not selected_cats:
                 flash("Seçili kategoriler geçerli değil.", "danger")
-                return render_template("risk_new.html", form=request.form, categories=categories)
+                return render_template(
+                    "risk_new.html",
+                    form=request.form,
+                    categories=categories,
+                    api_suggestions_url=api_suggestions_url,
+                    suggestions_by_category=suggestions_by_category,
+                )
 
             # Ortak alanlar
             description  = request.form.get("description")  or None
@@ -1673,16 +1704,13 @@ def create_app():
             responsible  = request.form.get("responsible")  or None
             mitigation   = request.form.get("mitigation")   or None
             duration     = request.form.get("duration")     or None
-            start_month  = request.form.get("start_month")  or None
-            end_month    = request.form.get("end_month")    or None
+            start_month  = request.form.get("start_month")  or None  # "YYYY-MM" beklenir
+            end_month    = request.form.get("end_month")    or None  # "YYYY-MM" beklenir
 
             owner = session.get("username")
             pid   = _get_active_project_id()
 
-            # İlk değerlendirme (opsiyonel) — D KULLANILMIYOR
-            p_raw = request.form.get("probability")
-            s_raw = request.form.get("severity")
-
+            # İlk değerlendirme (opsiyonel) — Detection kullanılmıyor
             def _norm_1_5(x):
                 try:
                     v = int(x)
@@ -1690,16 +1718,16 @@ def create_app():
                 except Exception:
                     return None
 
-            p_init = _norm_1_5(p_raw)
-            s_init = _norm_1_5(s_raw)
+            p_init = _norm_1_5(request.form.get("probability"))
+            s_init = _norm_1_5(request.form.get("severity"))
 
             created_risks = []
 
-            # Her kategori için bir risk oluştur
+            # Her kategori için ayrı risk oluştur
             for cat_name in selected_cats:
                 r = Risk(
                     title=title,
-                    category=cat_name,         # her biri kendi kategorisiyle
+                    category=cat_name,
                     description=description,
                     owner=owner,
                     risk_type=risk_type,
@@ -1720,7 +1748,7 @@ def create_app():
                         evaluator=owner or "System",
                         probability=p_init,
                         severity=s_init,
-                        detection=None,  # D kullanılmıyor
+                        detection=None,
                         comment="İlk değerlendirme"
                     ))
 
@@ -1745,8 +1773,13 @@ def create_app():
                 return redirect(url_for("risk_select"))
 
         # GET
-        return render_template("risk_new.html", categories=categories)
-
+        return render_template(
+            "risk_new.html",
+            categories=categories,
+            api_suggestions_url=api_suggestions_url,
+            suggestions_by_category=suggestions_by_category,
+            form=None,  # ilk açılışta boş
+        )
 
     # -------------------------------------------------
     #  Risk Listesi / Arama
