@@ -1133,10 +1133,11 @@ def create_app():
                 flash("E-posta veya şifre hatalı.", "danger")
                 return render_template("login.html", email=email)
 
-            # İlk kurucu admin için istisna (tek hesap + admin + ref_code yok)
-            bootstrap_ok = (Account.query.count() == 1 and acc.role == "admin" and not acc.ref_code)
+            # Admin kullanıcılar ref kodu girmeden oturum açabilir.
+            is_admin = (acc.role or "uzman") == "admin"
 
-            if not bootstrap_ok:
+            if not is_admin:
+                # Uzman/diğer roller için ref kodu ve aktiflik kontrolleri devam
                 if (acc.status or "pending") != "active":
                     flash("Hesabınız henüz aktif değil. Admin onayı bekleniyor.", "warning")
                     return render_template("login.html", email=email)
@@ -1150,7 +1151,7 @@ def create_app():
                     flash("Referans kodu geçersiz.", "danger")
                     return render_template("login.html", email=email)
 
-            # Giriş
+            # Buraya geldiysen giriş başarıldı (admin/uzman fark etmez)
             session["account_id"] = acc.id
             session["username"] = acc.contact_name
             session["role"] = acc.role or "uzman"
@@ -1158,6 +1159,7 @@ def create_app():
             return redirect(url_for("dashboard"))
 
         return render_template("login.html")
+
 
     @app.route("/logout")
     def logout():
