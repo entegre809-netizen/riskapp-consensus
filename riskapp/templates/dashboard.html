@@ -40,6 +40,7 @@
     background:transparent;
   }
   .rm-colhead,.rm-rowhead{
+    position:relative;
     display:flex; align-items:center; justify-content:space-between;
     gap:8px; padding:10px 12px;
     border:1px dashed color-mix(in oklab, var(--line) 70%, transparent);
@@ -92,7 +93,7 @@
   }
 </style>
 
-{# ==== KPI’leri hesapla (backend’e dokunmadan) ==== #}
+{# ==== KPI’leri hesapla (frontend) ==== #}
 {% set ns = namespace(total=0, low=0, mid=0, high=0, sum=0.0, have=0) %}
 {% for r in risks or [] %}
   {% set sc = r.score() %}

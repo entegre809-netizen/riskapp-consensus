@@ -14,6 +14,7 @@ from io import StringIO
 import io, csv as _csv, os, re, json
 from werkzeug.utils import secure_filename
 from pathlib import Path
+from collections import defaultdict
 
 import os as _os, sys as _sys
 PKG_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
@@ -1136,7 +1137,7 @@ def create_app():
                 return fn(*args, **kwargs)
             return wrapper
         return decorator
-
+    
     @app.before_request
     def require_login():
         # Giriş gerektirmeyen endpoint'ler (endpoint adları)
@@ -1289,6 +1290,9 @@ def create_app():
     # -------------------------------------------------
     #  Dashboard
     # -------------------------------------------------
+    # -------------------------------------------------
+#  Dashboard
+# -------------------------------------------------
     @app.route("/dashboard")
     def dashboard():
         pid = _get_active_project_id()
@@ -1297,7 +1301,8 @@ def create_app():
             query = query.filter(Risk.project_id == pid)
 
         risks = query.order_by(Risk.updated_at.desc()).all()
-        # 5x5 matris (olasılık × şiddet) dağılımı
+
+        # --- 5x5 matris (olasılık × şiddet) ---
         matrix = [[0] * 5 for _ in range(5)]
         for r in risks:
             ap, asv = r.avg_prob(), r.avg_sev()
@@ -1305,7 +1310,49 @@ def create_app():
                 pi = min(max(int(round(ap)), 1), 5) - 1
                 si = min(max(int(round(asv)), 1), 5) - 1
                 matrix[si][pi] += 1
-        return render_template("dashboard.html", risks=risks, matrix=matrix)
+
+        # --- Kategori bazlı dağılım (EKLENDİ) ---
+        # Eşikler: 1–8 Düşük, 9–15 Orta, 16–20 Yüksek, ≥21 Çok Yüksek
+        def _score_bucket(sc):
+            if sc is None:
+                return None
+            try:
+                sc = float(sc)
+            except Exception:
+                return None
+            if sc >= 21: return "vhigh"   # Çok Yüksek
+            if sc >= 16: return "high"    # Yüksek
+            if sc >= 9:  return "mid"     # Orta
+            if sc >= 1:  return "low"     # Düşük
+            return None
+
+        by_cat = defaultdict(lambda: {"cat":"", "total":0, "low":0, "mid":0, "high":0, "vhigh":0})
+        for r in risks:
+            cat = (r.category or "Genel")
+            # r.score() varsa kullan; yoksa P×S ortalamasından türet
+            sc = None
+            if callable(getattr(r, "score", None)):
+                sc = r.score()
+            else:
+                p, s = r.avg_prob(), r.avg_sev()
+                if p and s:
+                    sc = float(p) * float(s)
+
+            b = _score_bucket(sc)
+            row = by_cat[cat]; row["cat"] = cat
+            if b:
+                row[b] += 1
+                row["total"] += 1
+
+        category_stats = sorted(by_cat.values(), key=lambda x: (-x["total"], x["cat"]))
+
+        return render_template(
+            "dashboard.html",
+            risks=risks,
+            matrix=matrix,
+            category_stats=category_stats,   # <-- ŞABLONA GÖNDER
+        )
+
     
     @app.get("/admin/refcodes")
     @role_required("admin")
