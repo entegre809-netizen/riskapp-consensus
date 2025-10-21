@@ -1,11 +1,140 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · Risk Yönetim{% endblock %}
 {% block content %}
+
+<style>
+  /* Dashboard'a özgü ufak dokunuşlar */
+  .kpis{ display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:14px; }
+  @media (max-width: 980px){ .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  .kpi{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 16px; border:1px solid #e8edf7; border-radius:12px;
+    background: var(--card); box-shadow: var(--elev-card); backdrop-filter: var(--glass-blur);
+  }
+  [data-theme="dark"] .kpi{ border:1px solid rgba(255,255,255,.09); }
+  .kpi .label{ font-weight:900; letter-spacing:.02em; color:var(--muted); font-size:.9rem }
+  .kpi .value{ font-weight:900; font-size:1.25rem }
+
+  .legend{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  .legend .badge{ font-weight:900 }
+
+  .empty{
+    border:1px dashed var(--line); border-radius:12px; padding:22px; text-align:center; color:var(--muted)
+  }
+
+  /* ==========================================================
+     RISK MATRIX — Başlıklı 5×5 ısı haritası (P×S)
+     Eşikler: 1–3 yeşil / 4–8 sarı / 9–12 turuncu / 15–25 kırmızı
+     ========================================================== */
+  .risk-matrix{
+    display:grid;
+    grid-template-columns: 160px repeat(5, 1fr);
+    grid-auto-rows: 74px;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .rm-corner{
+    display:grid; place-items:center;
+    color:var(--muted);
+    font-weight:900; text-transform:uppercase; letter-spacing:.08em;
+    background:transparent;
+  }
+  .rm-colhead,.rm-rowhead{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px; padding:10px 12px;
+    border:1px dashed color-mix(in oklab, var(--line) 70%, transparent);
+    border-radius:12px; background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+  }
+  .rm-colhead{ flex-direction:column; align-items:flex-start; }
+  .rm-coltitle,.rm-rowtitle{ font-weight:900; }
+  .rm-colnum,.rm-rownum{ font: 900 .9rem var(--mono, ui-monospace); opacity:.75; }
+
+  .rm-cell{
+    position:relative; display:grid; align-content:center; justify-items:center;
+    border-radius: 12px;
+    border: 2px solid rgba(0,0,0,.08);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.6);
+    cursor: default;
+    padding: 6px;
+    transition: transform .06s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  .rm-cell:focus-visible{ outline:none; box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 35%, transparent); }
+  .rm-cell:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+
+  .rm-score{ font: 900 1.1rem/1 var(--mono, ui-monospace); }
+  .rm-count{
+    position:absolute; right:8px; bottom:6px;
+    font-weight:800; font-size:.86rem; opacity:.9;
+    padding:.12rem .45rem; border-radius:999px;
+    border:1px solid rgba(0,0,0,.12);
+    background: rgba(255,255,255,.66);
+  }
+  [data-theme="dark"] .rm-count{ background: rgba(0,0,0,.25); border-color: rgba(255,255,255,.18); }
+
+  /* renkler */
+  .rm-cell.low  { background: #0f2f18; border-color:#1d5d3a; color:#bff5d3; }
+  .rm-cell.mid  { background: #3a2e05; border-color:#7a5c0b; color:#ffe6a6; }
+  .rm-cell.hi   { background: #4b2400; border-color:#a24e0a; color:#ffd7b5; }
+  .rm-cell.crit { background: #3b0b0b; border-color:#7f1d1d; color:#ffd0d0; }
+
+  html[data-theme="light"] .rm-cell.low  { background:#d1fae5; border-color:#9fe3c9; color:#0d3a2c; }
+  html[data-theme="light"] .rm-cell.mid  { background:#fde68a; border-color:#f3c24f; color:#5a3f00; }
+  html[data-theme="light"] .rm-cell.hi   { background:#fdba74; border-color:#f59e0b; color:#4a2500; }
+  html[data-theme="light"] .rm-cell.crit { background:#fecaca; border-color:#f87171; color:#5a1010; }
+
+  /* köşe etiketleri (isteğe bağlı yön ipucu) */
+  .risk-matrix .rm-corner::after{
+    content:"Olasılık →"; font-weight:900; color:var(--muted);
+  }
+  .risk-matrix .rm-rowhead:first-of-type::before{
+    content:"↑ Şiddet"; position:absolute; transform:rotate(-90deg) translate(-40%, -120%);
+    transform-origin:left top; color:var(--muted); font-weight:900;
+  }
+</style>
+
+{# ==== KPI’leri hesapla (backend’e dokunmadan) ==== #}
+{% set ns = namespace(total=0, low=0, mid=0, high=0, sum=0.0, have=0) %}
+{% for r in risks or [] %}
+  {% set sc = r.score() %}
+  {% if sc %}
+    {% set ns.sum  = ns.sum + sc %}
+    {% set ns.have = ns.have + 1 %}
+    {% if sc <= 8 %}{% set ns.low = ns.low + 1 %}
+    {% elif sc <= 15 %}{% set ns.mid = ns.mid + 1 %}
+    {% else %}{% set ns.high = ns.high + 1 %}{% endif %}
+  {% endif %}
+  {% set ns.total = ns.total + 1 %}
+{% endfor %}
+{% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="label">Toplam Risk</div>
+    <div class="value">{{ ns.total }}</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Yüksek Skor</div>
+    <div class="value"><span class="badge score-high">{{ ns.high }}</span></div>
+  </div>
+  <div class="kpi">
+    <div class="label">Orta / Düşük</div>
+    <div class="value">
+      <span class="badge score-mid">{{ ns.mid }}</span>
+      &nbsp;/&nbsp;
+      <span class="badge score-low">{{ ns.low }}</span>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="label">Ortalama Skor</div>
+    <div class="value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
+  </div>
+</div>
+
 <div class="grid grid-2">
   <!-- Sol: Genel Görünüm -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h3>Genel Görünüm</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0">Genel Görünüm</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a class="btn" href="{{ url_for('risk_select') }}">Riskler</a>
         {% if session.get('role') == 'admin' %}
@@ -15,83 +144,124 @@
       </div>
     </div>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Başlık</th>
-          <th>Kategori</th>
-          <th>Skor</th>
-          <th>Durum</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in risks[:8] %}
-        <tr>
-          <td><a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a></td>
-          <td>{{ r.category or "-" }}</td>
-          <td>
-            {% if r.score() %}
-              {% set sc = r.score() %}
-              <span class="badge {% if sc<10 %}score-low{% elif sc<16 %}score-mid{% else %}score-high{% endif %}">
-                {{ '%.2f'|format(sc) }}
-              </span>
-            {% else %}
-              <span class="badge">—</span>
-            {% endif %}
-          </td>
-          <td>{{ r.status }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" class="small">Henüz risk bulunmuyor. “+ Yeni Risk” ile ekleyin.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <div class="small">Son güncellenen 8 risk gösteriliyor. Tümü için “Riskler” sayfasına gidin.</div>
+    {% if risks and risks|length > 0 %}
+      <div class="table-wrap" style="overflow-x:auto;margin-top:8px">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th style="width:200px">Kategori</th>
+              <th style="width:120px; text-align:center">Skor</th>
+              <th style="width:160px">Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in risks[:8] %}
+            {% set sc = r.score() %}
+            <tr>
+              <td>
+                <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                {% if r.description %}
+                  <div class="small" style="margin-top:2px; max-width:72ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    {{ r.description }}
+                  </div>
+                {% endif %}
+              </td>
+              <td>{{ r.category or "-" }}</td>
+              <td style="text-align:center">
+                {% if sc %}
+                  <span class="badge {% if sc<=8 %}score-low{% elif sc<=15 %}score-mid{% else %}score-high{% endif %}"
+                        title="P×S = {{ '%.2f'|format(sc) if sc is number else sc }}">
+                    {{ '%.2f'|format(sc) if sc is number else sc }}
+                  </span>
+                {% else %}<span class="badge">—</span>{% endif %}
+              </td>
+              <td>{{ r.status or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="small" style="margin-top:6px">
+        Son güncellenen 8 risk gösteriliyor. Tümü için “Riskler” sayfasına gidin.
+      </div>
+    {% else %}
+      <div class="empty">
+        <h4 style="margin:0 0 .3rem">Henüz risk yok</h4>
+        <div class="small">Hızlı başlamak için bir şablon seçin veya yeni bir risk oluşturun.</div>
+        <div style="margin-top:.6rem; display:flex; gap:8px; justify-content:center">
+          <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+          <a class="btn" href="{{ url_for('risk_identify') }}">📋 Şablondan Seç</a>
+        </div>
+      </div>
+    {% endif %}
   </div>
 
-  <!-- Sağ: Risk Matrisi -->
+  <!-- Sağ: Risk Matrisi (başlıklı) -->
   <div class="card">
-    <h3>Risk Matrisi (Olasılık × Şiddet)</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0">Risk Matrisi</h3>
+      <div class="legend">
+        <span class="badge score-low">1–3 Düşük</span>
+        <span class="badge score-mid">4–8 Orta</span>
+        <span class="badge" style="background:rgba(253,186,116,.25);color:#4a2500;border-color:#f59e0b">9–12 Yüksek</span>
+        <span class="badge" style="background:rgba(239,68,68,.20);color:#7a1e1e;border-color:#ef4444">15–25 Kritik</span>
+      </div>
+    </div>
 
-    <div class="matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
-      {# Şiddet satırları 5'ten 1'e, olasılık sütunları 1'den 5'e #}
+    {% set prob_labels = ['Çok Düşük','Düşük','Olası','Yüksek','Çok Yüksek'] %}
+    {% set sev_labels  = ['Önemsiz','Küçük','Orta','Büyük','Felaket'] %}
+
+    <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
+      <div class="rm-corner"></div>
+      {% for p in range(1,6) %}
+        <div class="rm-colhead" role="columnheader">
+          <div class="rm-coltitle">{{ prob_labels[p-1] }}</div>
+          <div class="rm-colnum">{{ p }}</div>
+        </div>
+      {% endfor %}
+
       {% for s in range(5,0,-1) %}
+        <div class="rm-rowhead" role="rowheader">
+          <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
+          <div class="rm-rownum">{{ s }}</div>
+        </div>
         {% for p in range(1,6) %}
-          {% set count = matrix[5-s][p-1] %}
           {% set score = p * s %}
-          <div class="cell"
-               title="P={{p}}, S={{s}} · Skor {{score}} · {{count}} adet">
-            <div class="cell-score">{{ score }}</div>
-            <div class="cell-count small">{{ count }} adet</div>
-          </div>
+          {% set count = (matrix[5-s][p-1]) if matrix is defined else 0 %}
+          {% set lvl = 'low' if score<=3 else ('mid' if score<=8 else ('hi' if score<=12 else 'crit')) %}
+          <button class="rm-cell {{ lvl }}"
+                  type="button"
+                  title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{count}} adet"
+                  role="gridcell" aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{count}} adet">
+            <span class="rm-score">{{ score }}</span>
+            <span class="rm-count">{{ count }}</span>
+          </button>
         {% endfor %}
       {% endfor %}
     </div>
 
-    <div class="small" style="margin-top:6px;">
-      Üstte skor, altta o hücredeki risk adedi gösterilir.
-    </div>
-
-    <div class="small" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-      <span class="badge score-low">Düşük</span>
-      <span class="badge score-mid">Orta</span>
-      <span class="badge score-high">Yüksek</span>
+    <div class="small" style="margin-top:8px">
+      Hücrelerde büyük sayı <strong>skor (P×S)</strong>, sağ altta <strong>adet</strong> gösterilir.
     </div>
   </div>
 </div>
 
 <!-- Alt: Hızlı İşlemler -->
 <div class="card" style="margin-top:12px">
-  <h3>Hızlı İşlemler</h3>
-  <div style="display:flex;flex-wrap:wrap;gap:8px">
-    <a class="btn" href="{{ url_for('risk_identify') }}">📋 Risk Tanımla</a>
-    {% if session.get('role') == 'admin' %}
-      <a class="btn" href="{{ url_for('categories_index') }}">🗂️ Kategori Yönetimi</a>
-      <a class="btn" href="{{ url_for('import_suggestions') }}">⬆️ CSV İçe Aktar</a>
-    {% endif %}
-    <a class="btn" href="{{ url_for('risks_export_csv') }}">⬇️ CSV Dışa Aktar</a>
-    <a class="btn" href="{{ url_for('settings_account') }}">⚙️ Hesap Ayarları</a>
-    <a class="btn" href="{{ url_for('settings_project') }}">🏷️ Proje Bilgileri</a>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <h3 style="margin:0">Hızlı İşlemler</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <a class="btn" href="{{ url_for('risk_identify') }}">📋 Risk Tanımla</a>
+      {% if session.get('role') == 'admin' %}
+        <a class="btn" href="{{ url_for('categories_index') }}">🗂️ Kategori Yönetimi</a>
+        <a class="btn" href="{{ url_for('import_suggestions') }}">⬆️ CSV İçe Aktar</a>
+      {% endif %}
+      <a class="btn" href="{{ url_for('risks_export_csv') }}">⬇️ CSV Dışa Aktar</a>
+      <a class="btn" href="{{ url_for('settings_account') }}">⚙️ Hesap Ayarları</a>
+      <a class="btn" href="{{ url_for('settings_project') }}">🏷️ Proje Bilgileri</a>
+    </div>
   </div>
 </div>
+
 {% endblock %}
