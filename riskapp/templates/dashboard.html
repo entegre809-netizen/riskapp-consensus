@@ -108,6 +108,15 @@
     content:"↑ Şiddet"; position:absolute; transform:rotate(-90deg) translate(-40%, -120%);
     transform-origin:left top; color:var(--muted); font-weight:900;
   }
+
+  /* Donut grid */
+  .donut-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  @media (min-width:1100px){ .donut-grid{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  .donut-card{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}
+  .donut-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .donut-title{font-weight:900}
+  .donut-legend{display:flex;gap:6px;flex-wrap:wrap}
+  .donut-legend .chip{border:1px solid var(--line);border-radius:999px;padding:.12rem .5rem;font-weight:800}
 </style>
 
 {# ==== KPI’leri hesapla (frontend) ==== #}
@@ -263,6 +272,91 @@
       Hücrelerde büyük sayı <strong>skor (P×S)</strong>, sağ altta <strong>adet</strong> gösterilir.
     </div>
   </div>
+</div>
+
+<!-- Kategori Bazlı Donut Grafikleri -->
+<div class="card" style="margin-top:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <h3 style="margin:0">Kategori Bazlı Dağılım (Donut)</h3>
+    <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
+  </div>
+
+  {% if category_stats and category_stats|length > 0 %}
+    <div class="donut-grid">
+      {% for row in category_stats if row.cat != 'Toplam Riskler' %}
+        {% if loop.index <= 6 %}
+          <div class="donut-card">
+            <div class="donut-head">
+              <div class="donut-title">{{ loop.index }}- {{ row.cat }}</div>
+              <div class="small">{{ row.total }} adet</div>
+            </div>
+            <canvas id="cat-donut-{{ loop.index0 }}"
+                    data-low="{{ row.low }}"
+                    data-mid="{{ row.mid }}"
+                    data-high="{{ row.high }}"
+                    data-vhigh="{{ row.vhigh }}"></canvas>
+
+            <div class="donut-legend small" style="margin-top:6px">
+              <span class="chip">Düşük ({{ row.low }})</span>
+              <span class="chip">Orta ({{ row.mid }})</span>
+              <span class="chip">Yüksek ({{ row.high }})</span>
+              <span class="chip">Çok Yüksek ({{ row.vhigh }})</span>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      (function(){
+        const cards = document.querySelectorAll('canvas[id^="cat-donut-"]');
+
+        // Matrisle uyumlu tonlar (fallback'lerle)
+        const gcs = getComputedStyle(document.documentElement);
+        const COLORS = {
+          low:   gcs.getPropertyValue('--green-400')  || '#22c55e',
+          mid:   gcs.getPropertyValue('--amber-400')  || '#f59e0b',
+          high:  gcs.getPropertyValue('--orange-400') || '#fb923c',
+          vhigh: gcs.getPropertyValue('--red-400')    || '#ef4444',
+          border: 'rgba(0,0,0,.1)'
+        };
+
+        cards.forEach((cv)=>{
+          const d = cv.dataset;
+          const data = [ +d.low||0, +d.mid||0, +d.high||0, +d.vhigh||0 ];
+          new Chart(cv.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+              labels: ['Düşük','Orta','Yüksek','Çok Yüksek'],
+              datasets: [{
+                data,
+                backgroundColor: [COLORS.low, COLORS.mid, COLORS.high, COLORS.vhigh],
+                borderColor: COLORS.border,
+                borderWidth: 1,
+                hoverOffset: 6,
+                cutout: '60%'
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx)=> `${ctx.label}: ${ctx.parsed} adet`
+                  }
+                }
+              }
+            }
+          });
+        });
+      })();
+    </script>
+  {% else %}
+    <div class="empty">Kategori istatistiği için yeterli veri yok.</div>
+  {% endif %}
 </div>
 
 <!-- Alt: Hızlı İşlemler -->
