@@ -1770,13 +1770,13 @@ def create_app():
     #  Yeni Risk  (Kategori dropdown RiskCategory’den)
     # -------------------------------------------------
     
-
     @app.route("/risks/new", methods=["GET", "POST"])
     def risk_new():
         """
-        Yeni riskler sadece identify ekranında seçilen 'sepet' üzerinden oluşturulur.
-        Bu ekrandaki alanlar (başlık, açıklama, mitigation, sorumlu, süre, başlangıç/bitiş ayı)
-        toplu olarak tüm seçilen şablonlara uygulanır.
+        Yeni riskler identify ekranında seçilen 'sepet' üzerinden oluşturulur.
+        İki mod:
+        - merge=1  -> tüm şablonlardan TEK risk oluştur (rapor mantığı)
+        - merge=0  -> her şablondan ayrı risk (mevcut davranış)
         """
         picked_ids = session.get("picked_rows") or []
         picked_suggestions = []
@@ -1790,7 +1790,6 @@ def create_app():
 
         if request.method == "POST":
             action = (request.form.get("action") or "").strip()
-
             if action == "create_from_picked":
                 # 1) Sepet ID’leri
                 raw = (request.form.get("picked_ids") or "").strip()
@@ -1806,7 +1805,7 @@ def create_app():
                     flash("Şablon seçimi boş görünüyor.", "warning")
                     return render_template("risk_new.html", picked_suggestions=picked_suggestions)
 
-                # 2) ORTAK ALANLAR (tüm oluşturulacak kayıtlara uygulanır)
+                # 2) Ortak alanlar
                 title_common       = (request.form.get("title") or "").strip() or None
                 description_common = (request.form.get("description") or "").strip() or None
                 mitigation_common  = (request.form.get("mitigation") or "").strip() or None
@@ -1814,13 +1813,15 @@ def create_app():
                 responsible = (request.form.get("responsible") or "").strip() or None
                 duration    = (request.form.get("duration") or "").strip() or None
 
-                # YYYY-MM (hidden) alanları
+                # YYYY-MM (JS doldurur)
                 start_month = (request.form.get("start_month") or "").strip() or None
                 end_month   = (request.form.get("end_month")   or "").strip() or None
 
+                # Tek kayıtta birleştir?
+                merge_mode = (request.form.get("merge") == "1")
+
                 owner = session.get("username")
                 pid   = _get_active_project_id()
-                created = 0
 
                 def _toi(v):
                     try:
@@ -1828,11 +1829,93 @@ def create_app():
                     except Exception:
                         return None
 
+                # ==== A) TEK KAYIT (merge) ====
+                if merge_mode:
+                    sug_rows = (Suggestion.query
+                                .filter(Suggestion.id.in_(sel_ids))
+                                .order_by(Suggestion.category.asc(), Suggestion.id.desc())
+                                .all())
+                    if not sug_rows:
+                        flash("Şablonlar yüklenemedi.", "danger")
+                        return render_template("risk_new.html", picked_suggestions=picked_suggestions)
+
+                    # Kategori: ilk dolu kategori (yoksa Genel)
+                    cat = None
+                    for s in sug_rows:
+                        if (s.category or "").strip():
+                            cat = s.category.strip()
+                            break
+                    cat = cat or "Genel"
+
+                    # Açıklama: kullanıcı açıklaması + şablon listesi
+                    bullets = []
+                    for s in sug_rows:
+                        code = (s.risk_code or "").strip()
+                        bullets.append(f"- {s.text}" + (f"  ({code})" if code else ""))
+                    bullets_text = "\n".join(bullets)
+
+                    final_desc = (description_common or "").strip()
+                    if final_desc:
+                        final_desc += "\n\n**Birleştirilen Şablonlar:**\n" + bullets_text
+                    else:
+                        final_desc = "**Birleştirilen Şablonlar:**\n" + bullets_text
+
+                    # P/S: mevcutların ortalaması
+                    p_vals, s_vals = [], []
+                    for s in sug_rows:
+                        p0 = _toi(getattr(s, "default_prob", None))
+                        s0 = _toi(getattr(s, "default_sev", None))
+                        if p0: p_vals.append(p0)
+                        if s0: s_vals.append(s0)
+                    p_init = round(sum(p_vals)/len(p_vals)) if p_vals else None
+                    s_init = round(sum(s_vals)/len(s_vals)) if s_vals else None
+
+                    r = Risk(
+                        title=(title_common or (sug_rows[0].text or "")[:150]),
+                        category=cat,
+                        description=final_desc,
+                        mitigation=mitigation_common,
+                        responsible=responsible,
+                        duration=duration,
+                        start_month=start_month,
+                        end_month=end_month,
+                        owner=owner,
+                        project_id=pid,
+                    )
+                    db.session.add(r)
+                    db.session.flush()
+
+                    if p_init and s_init:
+                        db.session.add(Evaluation(
+                            risk_id=r.id,
+                            evaluator=owner or "System",
+                            probability=int(p_init),
+                            severity=int(s_init),
+                            detection=None,
+                            comment="Birleştirilmiş şablonların ortalaması"
+                        ))
+
+                    # 🔧 Buradaki f-string/kaçışlar düzeltildi
+                    db.session.add(Comment(
+                        risk_id=r.id,
+                        text=(
+                            "Toplu oluşturma (tek kayıt): "
+                            + ", ".join([f"#{s.id}" for s in sug_rows])
+                            + f" — {datetime.utcnow().isoformat(timespec='seconds')} UTC"
+                        ),
+                        is_system=True
+                    ))
+                    db.session.commit()
+                    session.pop("picked_rows", None)
+                    flash("Seçilen şablonlardan **tek bir risk** oluşturuldu.", "success")
+                    return redirect(url_for("risk_detail", risk_id=r.id))
+
+                # ==== B) AYRI AYRI ====
+                created = 0
                 for sid in sel_ids:
                     s = Suggestion.query.get(int(sid))
                     if not s:
                         continue
-
                     r = Risk(
                         title=(title_common or (s.text or "")[:150]),
                         category=(s.category or None),
@@ -1846,13 +1929,7 @@ def create_app():
                         project_id=pid,
                     )
                     db.session.add(r)
-                    db.session.flush()  # r.id
-
-                    db.session.add(Comment(
-                        risk_id=r.id,
-                        text=f"Tanımlı şablondan oluşturuldu (toplu): {datetime.utcnow().isoformat(timespec='seconds')} UTC",
-                        is_system=True
-                    ))
+                    db.session.flush()
 
                     p0 = _toi(getattr(s, "default_prob", None))
                     s0 = _toi(getattr(s, "default_sev", None))
@@ -1866,18 +1943,23 @@ def create_app():
                             comment="Şablon varsayılan değerlerinden"
                         ))
 
+                    db.session.add(Comment(
+                        risk_id=r.id,
+                        text=f"Tanımlı şablondan oluşturuldu: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
+                        is_system=True
+                    ))
                     created += 1
 
                 db.session.commit()
-                session.pop("picked_rows", None)  # sepeti temizle
+                session.pop("picked_rows", None)
                 flash(f"{created} risk oluşturuldu.", "success")
                 return redirect(url_for("dashboard"))
 
-            # bilinmeyen action → sayfayı yenile
-            return redirect(url_for("risk_new"))
-
         # GET
         return render_template("risk_new.html", picked_suggestions=picked_suggestions)
+
+
+
 
 
 

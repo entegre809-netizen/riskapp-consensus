@@ -5,11 +5,26 @@
   <h2>Yeni Risk</h2>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for c,m in messages %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
+    {% for c,m in messages %}
+      <div class="flash {{ c }}">{{ m }}</div>
+    {% endfor %}
   {% endwith %}
 
   <div style="display:flex; gap:.5rem; margin:.25rem 0 1rem">
     <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç (Kütüphane)</a>
+
+    {% if picked_suggestions and picked_suggestions|length > 0 %}
+      <form method="post" id="bulk-create-form">
+        <input type="hidden" name="action" value="create_from_picked">
+        <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
+        <!-- YYYY-MM gizli alanlar (JS doldurur) -->
+        <input type="hidden" name="start_month" id="start_month">
+        <input type="hidden" name="end_month" id="end_month">
+        <!-- Varsayılan ayrı ayrı oluştur (merge=0). Tek kayıtta istersen JS/checkbox ile 1 yaparız -->
+        <input type="hidden" name="merge" id="merge_top" value="0">
+        <button class="btn btn-primary" type="submit">Sepetten Risk Oluştur ({{ picked_suggestions|length }})</button>
+      </form>
+    {% endif %}
   </div>
 
   {% if picked_suggestions and picked_suggestions|length > 0 %}
@@ -24,58 +39,6 @@
         {% endfor %}
       </ul>
     </details>
-
-    <!-- TEK FORM: tüm ortak alanlar + gönder -->
-    <form method="post" id="risk-new-form" class="grid" style="grid-template-columns:1fr 1fr; gap:16px">
-      <input type="hidden" name="action" value="create_from_picked">
-      <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
-
-      <div style="grid-column:1/-1">
-        <label>Başlık <span class="small" style="opacity:.7">(boş bırakırsan şablon metni başlık olur)</span></label>
-        <input class="input" name="title" placeholder="Ortak başlık (opsiyonel)">
-      </div>
-
-      <div style="grid-column:1/-1">
-        <label>Açıklama <span class="small" style="opacity:.7">(boş bırakırsan şablon metni kullanılır)</span></label>
-        <textarea class="input" name="description" rows="4" placeholder="Ortak açıklama (opsiyonel)"></textarea>
-      </div>
-
-      <div style="grid-column:1/-1">
-        <label>Önlemler (Mitigation)</label>
-        <textarea class="input" name="mitigation" rows="4" placeholder="Ortak önlemler (opsiyonel)"></textarea>
-      </div>
-
-      <div>
-        <label>Sorumlu</label>
-        <input class="input" name="responsible" placeholder="Ad Soyad">
-      </div>
-
-      <div>
-        <label>Etki Süresi</label>
-        <input class="input" name="duration" placeholder="örn. 6 ay / proje boyunca">
-      </div>
-
-      <div>
-        <label>Başlangıç Tarihi</label>
-        <input class="input" type="date" id="start_date">
-      </div>
-
-      <div>
-        <label>Bitiş Tarihi</label>
-        <input class="input" type="date" id="end_date">
-      </div>
-
-      <!-- YYYY-MM değerleri burada toplanıyor -->
-      <input type="hidden" name="start_month" id="start_month">
-      <input type="hidden" name="end_month" id="end_month">
-
-      <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end; margin-top:.5rem">
-        <a class="btn" href="{{ url_for('risk_identify') }}">Şablon Seçimine Dön</a>
-        <button class="btn btn-primary" type="submit">
-          Sepetten Risk Oluştur ({{ picked_suggestions|length }})
-        </button>
-      </div>
-    </form>
   {% else %}
     <div class="panel" style="text-align:center;padding:32px;border:1px dashed var(--line)">
       <h3>Önce şablon seç</h3>
@@ -83,33 +46,109 @@
       <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">Şablon seç →</a>
     </div>
   {% endif %}
+
+  <!-- ORTAK ALANLAR -->
+  <form method="post" class="grid" id="common-form"
+        style="grid-template-columns:1fr 1fr; gap:16px; margin-top:10px">
+    <input type="hidden" name="action" value="create_from_picked">
+    <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
+    <input type="hidden" name="start_month" id="start_month_2">
+    <input type="hidden" name="end_month" id="end_month_2">
+    <input type="hidden" name="merge" id="merge_bottom" value="0">
+
+    <div style="grid-column:1/-1">
+      <label>Başlık (boşsa şablon metninin ilk 150 karakteri)</label>
+      <input class="input" name="title" placeholder="örn. Tedarik gecikmesi, hava koşulları…">
+    </div>
+
+    <div style="grid-column:1/-1">
+      <label>Açıklama (boşsa şablon metni kullanılır)</label>
+      <textarea class="input" name="description" rows="3" placeholder="Ortak açıklama (tüm kayıtlara)"></textarea>
+    </div>
+
+    <div style="grid-column:1/-1">
+      <label>Önlemler (Mitigation — tüm kayıtlara aynı metin)</label>
+      <textarea class="input" name="mitigation" rows="3" placeholder="Ortak aksiyon/önlemler"></textarea>
+    </div>
+
+    <div>
+      <label>Sorumlu</label>
+      <input class="input" name="responsible" placeholder="Ad Soyad">
+    </div>
+
+    <div>
+      <label>Etki Süresi</label>
+      <input class="input" name="duration" placeholder="örn. 6 ay / proje boyunca">
+    </div>
+
+    <div>
+      <label>Başlangıç Tarihi</label>
+      <input class="input" type="date" id="start_date">
+    </div>
+    <div>
+      <label>Bitiş Tarihi</label>
+      <input class="input" type="date" id="end_date">
+    </div>
+
+    <div style="grid-column:1/-1; display:flex; gap:12px; align-items:center; justify-content:space-between; margin-top:4px">
+      <label class="small" style="display:flex; gap:8px; align-items:center">
+        <input type="checkbox" id="merge_toggle">
+        Seçilen şablonları <strong>tek bir risk kaydında birleştir</strong> (merge)
+      </label>
+      <div style="display:flex; gap:8px">
+        <a class="btn" href="{{ url_for('dashboard') }}">Vazgeç</a>
+        <button class="btn btn-primary" type="submit">Oluştur</button>
+      </div>
+    </div>
+  </form>
+
+  <script>
+  (function(){
+    // Tarihler → YYYY-MM gizli alanlar
+    const startDate = document.getElementById('start_date');
+    const endDate   = document.getElementById('end_date');
+
+    const hiddenA1  = document.getElementById('start_month');
+    const hiddenB1  = document.getElementById('end_month');
+    const hiddenA2  = document.getElementById('start_month_2');
+    const hiddenB2  = document.getElementById('end_month_2');
+
+    // Merge toggle
+    const mergeToggle = document.getElementById('merge_toggle');
+    const mergeTop    = document.getElementById('merge_top');
+    const mergeBottom = document.getElementById('merge_bottom');
+
+    function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
+    function syncHidden(){
+      const ymS = toYM(startDate.value);
+      const ymE = toYM(endDate.value);
+      [hiddenA1, hiddenA2].forEach(el => { if(el) el.value = ymS || ""; });
+      [hiddenB1, hiddenB2].forEach(el => { if(el) el.value = ymE || ""; });
+      // merge
+      const v = (mergeToggle?.checked ? "1" : "0");
+      if (mergeTop)    mergeTop.value = v;
+      if (mergeBottom) mergeBottom.value = v;
+    }
+
+    startDate?.addEventListener('change', ()=>{
+      if(endDate.value && new Date(endDate.value) < new Date(startDate.value)){
+        endDate.value = startDate.value;
+      }
+      syncHidden();
+    });
+    endDate?.addEventListener('change', ()=>{
+      if(startDate.value && new Date(endDate.value) < new Date(startDate.value)){
+        startDate.value = endDate.value;
+      }
+      syncHidden();
+    });
+    mergeToggle?.addEventListener('change', syncHidden);
+
+    // page load + submit
+    syncHidden();
+    document.getElementById('bulk-create-form')?.addEventListener('submit', syncHidden);
+    document.getElementById('common-form')?.addEventListener('submit', syncHidden);
+  })();
+  </script>
 </div>
-
-<script>
-(function(){
-  const startDate = document.getElementById('start_date');
-  const endDate   = document.getElementById('end_date');
-  const startYM   = document.getElementById('start_month');
-  const endYM     = document.getElementById('end_month');
-
-  function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
-
-  startDate?.addEventListener('change', ()=>{
-    startYM.value = toYM(startDate.value);
-    if(endDate.value && new Date(endDate.value) < new Date(startDate.value)){
-      endDate.value = startDate.value; endYM.value = toYM(endDate.value);
-    }
-  });
-  endDate?.addEventListener('change', ()=>{
-    endYM.value = toYM(endDate.value);
-    if(startDate.value && new Date(endDate.value) < new Date(startDate.value)){
-      startDate.value = endDate.value; startYM.value = toYM(startDate.value);
-    }
-  });
-  document.getElementById('risk-new-form')?.addEventListener('submit', ()=>{
-    if(startDate.value && !startYM.value) startYM.value = toYM(startDate.value);
-    if(endDate.value   && !endYM.value)   endYM.value   = toYM(endDate.value);
-  });
-})();
-</script>
 {% endblock %}
