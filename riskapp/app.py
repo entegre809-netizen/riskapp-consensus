@@ -2021,6 +2021,10 @@ def create_app():
         pid = _get_active_project_id()
         q = request.args.get("q", "").strip()
 
+        # Matristen gelen hücre filtresi
+        p = request.args.get("p", type=int)
+        s = request.args.get("s", type=int)
+
         query = Risk.query
         if pid:
             query = query.filter(Risk.project_id == pid)
@@ -2032,6 +2036,18 @@ def create_app():
                 (Risk.category.ilike(like)) |
                 (Risk.description.ilike(like))
             )
+
+        # Hücreye tıklama filtresi: ortalama P/S yuvarlanınca hücreye denk düşenler
+        if p and s:
+            query = (
+                query.join(Evaluation, Evaluation.risk_id == Risk.id)
+                    .group_by(Risk.id)
+                    .having(func.avg(Evaluation.probability) >= p - 0.5)
+                    .having(func.avg(Evaluation.probability) <  p + 0.5)
+                    .having(func.avg(Evaluation.severity)   >= s - 0.5)
+                    .having(func.avg(Evaluation.severity)   <  s + 0.5)
+            )
+
         risks = query.order_by(Risk.updated_at.desc()).all()
         return render_template("risk_select.html", risks=risks, q=q)
 
