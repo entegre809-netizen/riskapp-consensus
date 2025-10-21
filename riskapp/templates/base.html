@@ -10,9 +10,12 @@
   <style>
     /* ================================
        2026 Modern UI — Çift Tema
+       - Odak (focus-visible) aksesuarları
+       - Koyu tema için native kontrol düzeltmeleri
+       - Daha hafif gölgeler, daha yumuşak geçişler
        ================================ */
 
-    /* ===== Tema: Koyu (varsayılan tokenlar) ===== */
+    /* ==== Tema Tokenları: Koyu (default) ==== */
     :root,
     [data-theme="dark"]{
       --bg: #0b1020;
@@ -39,8 +42,8 @@
 
       --ring: #6ea8ff;
 
-      --elev: 0 6px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
-      --elev-card: 0 8px 30px rgba(8,15,40,.45);
+      --elev: 0 4px 16px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.04);
+      --elev-card: 0 10px 28px rgba(8,15,40,.36);
       --glass-blur: saturate(140%) blur(6px);
 
       --radius: 16px;
@@ -49,9 +52,11 @@
 
       --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+      color-scheme: dark;
     }
 
-    /* ===== Tema: Açık ===== */
+    /* ==== Tema Tokenları: Açık ==== */
     [data-theme="light"]{
       --bg: #f8fbff;
       --bg-soft: #ffffff;
@@ -73,8 +78,8 @@
 
       --ring: #ffe08a;
 
-      --elev: 0 10px 28px rgba(15,23,42,.06), inset 0 0 0 1px rgba(15,23,42,.02);
-      --elev-card: 0 16px 36px rgba(15,23,42,.10);
+      --elev: 0 8px 18px rgba(15,23,42,.06), inset 0 0 0 1px rgba(15,23,42,.02);
+      --elev-card: 0 14px 28px rgba(15,23,42,.10);
       --glass-blur: saturate(118%) blur(5px);
 
       --radius: 16px;
@@ -83,20 +88,26 @@
 
       --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+      color-scheme: light;
     }
 
+    /* ===== Reset & Global ===== */
     *{ box-sizing:border-box }
     html,body{
       margin:0; padding:0; font-family:var(--font);
       color:var(--text);
       background:
-        radial-gradient(1200px 800px at 0% 0%, color-mix(in oklab, var(--brand-2) 55%, transparent) 0%, transparent 60%),
-        radial-gradient(1000px 600px at 100% 0%, color-mix(in oklab, var(--brand) 45%, transparent) 0%, transparent 60%),
-        linear-gradient(180deg, var(--bg) 0%, color-mix(in oklab, var(--bg) 90%, #ffffff 10%) 100%);
+        radial-gradient(1200px 800px at 0% 0%, color-mix(in oklab, var(--brand-2) 50%, transparent) 0%, transparent 60%),
+        radial-gradient(1000px 600px at 100% 0%, color-mix(in oklab, var(--brand) 40%, transparent) 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, color-mix(in oklab, var(--bg) 92%, #ffffff 8%) 100%);
       min-height:100%;
-      transition: background .25s ease, color .25s ease;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
+      transition: background .25s ease, color .25s ease;
+    }
+    @media (prefers-reduced-motion: reduce){
+      *{ animation:none !important; transition:none !important; }
     }
 
     h1,h2,h3{ line-height:1.2; margin:.2rem 0 .7rem; letter-spacing:.01em; }
@@ -108,18 +119,18 @@
     a:hover{ text-decoration:underline; }
     [data-theme="dark"] a{ color:#9fc0ff; }
 
-    /* ====== Layout ====== */
+    /* ===== Layout ===== */
     .layout{ display:flex; min-height:100vh; }
     .sidebar{
       width:280px; background:linear-gradient(180deg, var(--brand) 0%, var(--brand-2) 100%);
-      color:#1b2338; padding:18px 0; position:sticky; top:0; height:100vh;
+      color:#1b2338; padding:18px 0; position:sticky; top:0; height:100svh;
       box-shadow: var(--elev);
       border-right:1px solid #eef1f8;
       transition: background .25s ease, color .25s ease, box-shadow .25s ease, border-color .25s ease;
     }
     [data-theme="dark"] .sidebar{
       color:#dbe5ff;
-      border-right:1px solid rgba(255,255,255,.06);
+      border-right:1px solid rgba(255,255,255,.08);
     }
     .brand{
       font-size:1.12rem; font-weight:900; text-align:center; margin:0 0 .8rem; padding:0 1rem;
@@ -129,7 +140,7 @@
 
     .main{ flex:1; padding:26px min(4vw,36px) 38px; backdrop-filter: var(--glass-blur); }
 
-    /* ====== Menü ====== */
+    /* ===== Menü ===== */
     .menu-section{ margin:12px 0 16px; }
     .menu-section h4{
       margin:.3rem 0 .3rem 1rem; font-size:.8rem; text-transform:uppercase;
@@ -140,28 +151,28 @@
     .menu-section a{
       display:flex; align-items:center; gap:.55rem;
       padding:.66rem 1.15rem; text-decoration:none; color:#253052;
-      border-left:3px solid transparent; transition:.18s ease;
+      border-left:3px solid transparent; transition:background .18s ease, color .18s ease, border-color .18s ease;
       border-radius:0 var(--radius-sm) var(--radius-sm) 0;
-      position:relative; font-weight:700;
+      font-weight:700;
     }
     .menu-section a:hover{ background:rgba(0,0,0,.05); color:#0e172c; }
     .menu-section a.active{
-      background:linear-gradient(90deg, color-mix(in oklab, var(--primary) 32%, transparent), transparent);
+      background:linear-gradient(90deg, color-mix(in oklab, var(--primary) 28%, transparent), transparent);
       color:#0e172c; border-left-color: var(--primary);
-      box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 28%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 24%, transparent);
     }
     [data-theme="dark"] .menu-section a{ color:#cfe0ff; }
     [data-theme="dark"] .menu-section a:hover{ background:rgba(255,255,255,.06); color:#fff; }
     [data-theme="dark"] .menu-section a.active{
-      background:linear-gradient(90deg, rgba(110,168,255,.18), rgba(110,168,255,0));
+      background:linear-gradient(90deg, rgba(110,168,255,.16), rgba(110,168,255,0));
       color:#fff; border-left-color: var(--primary);
-      box-shadow: inset 0 0 0 1px rgba(110,168,255,.15);
+      box-shadow: inset 0 0 0 1px rgba(110,168,255,.14);
     }
-    .submenu{ margin-left:.25rem; border-left:2px dashed rgba(0,0,0,.08); }
-    [data-theme="dark"] .submenu{ border-left-color: rgba(255,255,255,.06); }
+    .submenu{ margin-left:.25rem; border-left:2px dashed rgba(0,0,0,.06); }
+    [data-theme="dark"] .submenu{ border-left-color: rgba(255,255,255,.08); }
     .submenu a{ padding-left:1.2rem; font-size:.98rem; }
 
-    /* ====== Kart / Grid / Tablo ====== */
+    /* ===== Kart / Grid / Tablo ===== */
     .card{
       background: var(--card);
       border:1px solid #e8edf7;
@@ -170,11 +181,11 @@
       box-shadow: var(--elev-card);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      animation: cardIn .35s ease both;
+      animation: cardIn .30s ease both;
       transition: background .25s ease, box-shadow .25s ease, border-color .25s ease;
     }
-    [data-theme="dark"] .card{ border:1px solid rgba(255,255,255,.08); }
-    @keyframes cardIn{ from{ transform: translateY(6px); opacity:.0 } to{ transform:none; opacity:1 } }
+    [data-theme="dark"] .card{ border:1px solid rgba(255,255,255,.09); }
+    @keyframes cardIn{ from{ transform: translateY(4px); opacity:.0 } to{ transform:none; opacity:1 } }
 
     .grid{ display:grid; gap:14px; }
     .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -186,8 +197,8 @@
 
     .table{ width:100%; border-collapse:separate; border-spacing:0; }
     .table th, .table td{
-      padding:.8rem .9rem; border-bottom:1px solid #e8edf7;
-      text-align:left; font-size:.96rem;
+      padding:.78rem .9rem; border-bottom:1px solid #e8edf7;
+      text-align:left; font-size:.96rem; vertical-align:top;
     }
     [data-theme="dark"] .table th, 
     [data-theme="dark"] .table td{
@@ -196,7 +207,7 @@
     .table thead th{
       font-size:.82rem; text-transform:uppercase; letter-spacing:.09em;
       color:var(--muted);
-      background: linear-gradient(180deg, #fff7db, #ffeeb9);
+      background: linear-gradient(180deg, #fffcf0, #fff6d9);
       position:sticky; top:0; z-index:1;
       border-bottom:1px solid #f3e4a9;
       font-weight:900;
@@ -206,12 +217,12 @@
       color:#d9e2ff;
       border-bottom-color: rgba(255,255,255,.12);
     }
-    .table tr:hover td{ background:#fffdf4; }
-    [data-theme="dark"] .table tr:hover td{ background:rgba(255,255,255,.05); }
+    .table tbody tr:hover td{ background:#fffcf0; }
+    [data-theme="dark"] .table tbody tr:hover td{ background:rgba(255,255,255,.05); }
 
-    /* ====== Form ====== */
+    /* ===== Form ===== */
     label{
-      display:block; font-size:.86rem; color:#2a3553; margin-bottom:.4rem; font-weight:850;
+      display:block; font-size:.86rem; color:#2a3553; margin-bottom:.45rem; font-weight:850;
     }
     [data-theme="dark"] label{ color:#dde6ff; }
 
@@ -227,40 +238,35 @@
     .input::placeholder{ color:#8691a9; opacity:.95; }
     .input:focus{
       border-color: color-mix(in oklab, var(--primary) 60%, #000 0%);
-      box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 45%, transparent), inset 0 0 0 1px rgba(0,0,0,.04);
+      box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 40%, transparent), inset 0 0 0 1px rgba(0,0,0,.04);
       background: #ffffff;
     }
 
-    /* --- Koyu form alanları --- */
+    /* Koyu form alanları ve sistem teması */
     [data-theme="dark"] .input, 
     [data-theme="dark"] select.input, 
     [data-theme="dark"] textarea.input{
       border:1px solid rgba(150,170,220,.35);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
       color:#f6f8ff;
       box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
       font-weight:600;
+      color-scheme: dark;
     }
     [data-theme="dark"] .input::placeholder{ color:#aebbff; opacity:.9; }
     [data-theme="dark"] .input:focus{
       border-color: rgba(110,168,255,.85);
       box-shadow: 0 0 0 4px rgba(110,168,255,.22), inset 0 0 0 1px rgba(110,168,255,.35);
-      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
       color:#ffffff;
     }
 
-    /* Koyu temada kontroller dark çizilsin */
-    [data-theme="dark"] input,
-    [data-theme="dark"] select,
-    [data-theme="dark"] textarea { color-scheme: dark; }
-
-    /* Select ok ikonu */
+    /* Select ok ikonu (tema uyumlu) */
     select.input,
     .form-select{
-      appearance: none;
-      -webkit-appearance: none;
+      appearance: none; -webkit-appearance: none;
       background-clip: padding-box;
-      padding-right: 2.2rem;
+      padding-right: 2.1rem;
       background-image:
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2310182d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
       background-repeat: no-repeat;
@@ -272,11 +278,11 @@
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23e8ecff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
     }
 
-    /* === KOYU TEMA: multiple/select listbox beyazlığını kapat === */
+    /* Koyu: multiple/select listbox beyazlığını kapat */
     [data-theme="dark"] select,
     [data-theme="dark"] select.input,
     [data-theme="dark"] .form-select{
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
       color: #e8ecff;
       border: 1px solid rgba(150,170,220,.35);
     }
@@ -286,19 +292,12 @@
       border: 1px solid rgba(150,170,220,.35);
       box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
     }
-    [data-theme="dark"] select option{
-      background:#0f172a; color:#e8ecff;
-    }
-    [data-theme="dark"] select[multiple] option:hover{
-      background: rgba(110,168,255,.18);
-    }
+    [data-theme="dark"] select option{ background:#0f172a; color:#e8ecff; }
+    [data-theme="dark"] select[multiple] option:hover{ background: rgba(110,168,255,.18); }
     [data-theme="dark"] select[multiple] option:checked{
-      background: rgba(110,168,255,.35) !important;
-      color:#0a1228;
+      background: rgba(110,168,255,.35) !important; color:#0a1228;
     }
-    [data-theme="dark"] select optgroup{
-      background:#0f172a; color:#aebdf7;
-    }
+    [data-theme="dark"] select optgroup{ background:#0f172a; color:#aebdf7; }
 
     /* Tarih ikonları */
     input[type="date"].input::-webkit-calendar-picker-indicator { opacity: .9; }
@@ -306,32 +305,45 @@
       filter: invert(1) brightness(1.1);
     }
 
-    /* ====== Butonlar ====== */
+    /* ===== Butonlar ===== */
     .btn{
-      display:inline-flex; align-items:center; gap:.5rem;
+      display:inline-flex; align-items:center; gap:.55rem;
       border:1px solid #e7ecf7; background: linear-gradient(180deg, #ffffff, #f4f7ff);
       color:#0f182d; padding:.66rem 1rem; border-radius:12px; cursor:pointer;
       transition: transform .08s ease, filter .15s ease, box-shadow .2s ease, background .25s ease, color .25s ease, border-color .25s ease;
-      box-shadow: 0 10px 18px rgba(13,19,33,.08), inset 0 0 0 1px rgba(255,255,255,.95);
-      font-weight:900;
-      text-decoration:none;
+      box-shadow: 0 8px 16px rgba(13,19,33,.08), inset 0 0 0 1px rgba(255,255,255,.95);
+      font-weight:900; text-decoration:none; line-height:1;
     }
-    .btn:hover{ filter:brightness(1.03); box-shadow: 0 14px 24px rgba(13,19,33,.12), inset 0 0 0 1px rgba(255,255,255,1); }
+    .btn:hover{ filter:brightness(1.03); box-shadow: 0 12px 22px rgba(13,19,33,.12), inset 0 0 0 1px rgba(255,255,255,1); }
     .btn:active{ transform: translateY(1px); }
+    .btn[disabled]{ opacity:.6; cursor:not-allowed; }
+
     .btn-primary{
       background: linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary) 78%, #000 22%));
       color:#0a1228; border-color: transparent; text-shadow: 0 1px 0 rgba(255,255,255,.35);
+      box-shadow: 0 8px 18px rgba(255,210,77,.22);
     }
-    .btn-primary:hover{ filter:brightness(1.02); box-shadow: 0 10px 24px rgba(255,210,77,.25); }
+    .btn-primary:hover{ filter:brightness(1.02); box-shadow: 0 12px 24px rgba(255,210,77,.28); }
     .btn-success{ background: linear-gradient(180deg, #3de097, #18c578); color:#06141d; border-color: transparent; font-weight:800; }
+
     [data-theme="dark"] .btn{
       border:1px solid rgba(255,255,255,.12); 
       background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
       color:#eaf0ff;
-      box-shadow: 0 6px 16px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+      box-shadow: 0 6px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
     }
 
-    /* ====== Rozetler / Flash ====== */
+    /* Odak Halkası (tüm etkileşimliler) */
+    :where(a, button, .btn, .input, textarea.input, select.input):focus-visible{
+      outline: none;
+      box-shadow:
+        0 0 0 4px color-mix(in oklab, var(--ring) 40%, transparent),
+        0 2px 16px color-mix(in oklab, var(--ring) 18%, transparent),
+        inset 0 0 0 1px color-mix(in oklab, var(--ring) 50%, transparent);
+      border-color: color-mix(in oklab, var(--ring) 65%, transparent);
+    }
+
+    /* ===== Rozetler / Flash ===== */
     .badge{
       display:inline-block; padding:.28rem .6rem; border-radius:999px; font-size:.86rem;
       border:1px solid #eaeef7; background: #fffdf5;
@@ -362,7 +374,7 @@
 
     .small{ font-size:.86rem; color:var(--muted); font-weight:600; }
 
-    /* ====== Yorumlar ====== */
+    /* ===== Yorumlar ===== */
     .comment{
       background: linear-gradient(180deg, #ffffff, #f8fbff);
       border:1px solid #e7ecf6; border-radius:12px; padding:.8rem .9rem;
@@ -381,7 +393,7 @@
       border-color: rgba(255,223,128,.35);
     }
 
-    /* ======== ÖZEL: Beyaz kalan paneli koyu temada kapat ======== */
+    /* ===== Koyu temada "beyaz panel" yamaları ===== */
     html[data-theme="dark"] .main [style*="background:#fff"],
     html[data-theme="dark"] .main [style*="background: #fff"],
     html[data-theme="dark"] .main [style*="background-color:#fff"],
@@ -406,7 +418,7 @@
       color: inherit !important;
     }
 
-    /* ====== Yazdırma ====== */
+    /* ===== Yazdırma ===== */
     @media print {
       .noprint { display:none !important; }
       body{ background:#fff; color:#111; }
@@ -416,10 +428,12 @@
       .table th, .table td{ border-color:#eee; }
     }
 
-    @media (prefers-reduced-motion: no-preference){
-      html, body, .card, .btn, .sidebar{
-        transition: background .25s ease, color .25s ease, box-shadow .25s ease, border-color .25s ease;
+    /* ===== Yüksek Kontrast ===== */
+    @media (prefers-contrast: more){
+      .btn, .input, select.input, textarea.input, .card, .menu-section a{
+        border-width: 2px;
       }
+      .menu-section a.active{ outline: 3px solid color-mix(in oklab, var(--ring) 40%, transparent); }
     }
   </style>
 </head>
@@ -557,7 +571,7 @@
 
 </div>
 
-<!-- Tema toggle + (opsiyonel) panel auto-mark -->
+<!-- Tema toggle + panel auto-mark -->
 <script>
 (function(){
   const KEY = 'riskapp.theme';
@@ -566,13 +580,15 @@
 
   function applyTheme(t){
     root.setAttribute('data-theme', t);
-    localStorage.setItem(KEY, t);
+    try{ localStorage.setItem(KEY, t); }catch(e){}
     if (btn()){
       btn().textContent = (t === 'light') ? '🌙 Koyu Tema' : '🌞 Açık Tema';
     }
   }
 
-  const saved = localStorage.getItem(KEY);
+  const saved = (()=>{
+    try{ return localStorage.getItem(KEY); }catch(e){ return null; }
+  })();
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const initial = saved || (prefersDark ? 'dark' : 'light');
   applyTheme(initial);
@@ -582,6 +598,7 @@
     applyTheme(current === 'light' ? 'dark' : 'light');
   };
 
+  // Değerlendirme / RPN panellerini koyu temada auto-mark (beyaz fix)
   function markAssessmentsPanel(){
     const candidates = document.querySelectorAll('.card, .panel, .section, .box, .content, .container');
     candidates.forEach(el => {
