@@ -43,9 +43,20 @@
     position:relative;
     display:flex; align-items:center; justify-content:space-between;
     gap:8px; padding:10px 12px;
-    border:1px dashed color-mix(in oklab, var(--line) 70%, transparent);
-    border-radius:12px; background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+
+    /* Fallback (VS Code şikayet etmez) */
+    border:1px dashed var(--line-weak, rgba(0,0,0,.12));
+    border-radius:12px;
+    background: var(--bg-soft, rgba(0,0,0,.03));
   }
+  /* Tarayıcı destekliyorsa color-mix'e yükselt */
+  @supports (color: color-mix(in oklab, black, white)) {
+    .rm-colhead,.rm-rowhead{
+      border:1px dashed color-mix(in oklab, var(--line) 70%, transparent);
+      background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    }
+  }
+
   .rm-colhead{ flex-direction:column; align-items:flex-start; }
   .rm-coltitle,.rm-rowtitle{ font-weight:900; }
   .rm-colnum,.rm-rownum{ font: 900 .9rem var(--mono, ui-monospace); opacity:.75; }
@@ -60,7 +71,12 @@
     transition: transform .06s ease, box-shadow .15s ease, filter .15s ease;
     text-decoration: none; color: inherit;
   }
-  .rm-cell:focus-visible{ outline:none; box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 35%, transparent); }
+  /* Fallback */
+  .rm-cell:focus-visible{ outline:none; box-shadow: 0 0 0 4px rgba(59,130,246,.35); }
+  /* color-mix destekliyse ring'i güzelleştir */
+  @supports (color: color-mix(in oklab, black, white)) {
+    .rm-cell:focus-visible{ box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 35%, transparent); }
+  }
   .rm-cell:hover{ transform: translateY(-1px); filter: brightness(1.02); }
 
   .rm-score{ font: 900 1.1rem/1 var(--mono, ui-monospace); }

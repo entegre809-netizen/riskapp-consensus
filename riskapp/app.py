@@ -1305,14 +1305,19 @@ def create_app():
         # --- 5x5 matris (olasılık × şiddet) ---
         matrix = [[0] * 5 for _ in range(5)]
         for r in risks:
-            ap, asv = r.avg_prob(), r.avg_sev()
+            try:
+                ap, asv = r.avg_prob(), r.avg_sev()
+            except Exception:
+                ap, asv = None, None
             if ap and asv:
-                pi = min(max(int(round(ap)), 1), 5) - 1
-                si = min(max(int(round(asv)), 1), 5) - 1
+                # 1..5 arasında yuvarla, indexe çevir
+                pi = max(1, min(5, int(round(float(ap))))) - 1
+                si = max(1, min(5, int(round(float(asv))))) - 1
                 matrix[si][pi] += 1
 
-        # --- Kategori bazlı dağılım (EKLENDİ) ---
-        # Eşikler: 1–8 Düşük, 9–15 Orta, 16–20 Yüksek, ≥21 Çok Yüksek
+        # --- Kategori bazlı dağılım ---
+        # Eşikler (dashboard ile uyumlu):
+        # Düşük: 1–3, Orta: 4–8, Yüksek: 9–12, Çok Yüksek: 15–25
         def _score_bucket(sc):
             if sc is None:
                 return None
@@ -1320,37 +1325,64 @@ def create_app():
                 sc = float(sc)
             except Exception:
                 return None
-            if sc >= 21: return "vhigh"   # Çok Yüksek
-            if sc >= 16: return "high"    # Yüksek
-            if sc >= 9:  return "mid"     # Orta
-            if sc >= 1:  return "low"     # Düşük
+            if sc >= 15:
+                return "vhigh"  # Çok Yüksek
+            if sc >= 9:
+                return "high"   # Yüksek
+            if sc >= 4:
+                return "mid"    # Orta
+            if sc >= 1:
+                return "low"    # Düşük
             return None
 
-        by_cat = defaultdict(lambda: {"cat":"", "total":0, "low":0, "mid":0, "high":0, "vhigh":0})
+        by_cat = defaultdict(lambda: {"cat": "", "total": 0, "low": 0, "mid": 0, "high": 0, "vhigh": 0})
+
         for r in risks:
-            cat = (r.category or "Genel")
-            # r.score() varsa kullan; yoksa P×S ortalamasından türet
+            cat = (getattr(r, "category", None) or "Genel")
+
+            # r.score() varsa ve sayısal ise onu kullan, yoksa P×S türet
             sc = None
-            if callable(getattr(r, "score", None)):
-                sc = r.score()
-            else:
-                p, s = r.avg_prob(), r.avg_sev()
-                if p and s:
-                    sc = float(p) * float(s)
+            s_method = getattr(r, "score", None)
+            if callable(s_method):
+                try:
+                    sc = s_method()
+                    sc = float(sc) if sc is not None else None
+                except Exception:
+                    sc = None
+            if sc is None:
+                try:
+                    p, s = r.avg_prob(), r.avg_sev()
+                    if p and s:
+                        sc = float(p) * float(s)
+                except Exception:
+                    sc = None
 
             b = _score_bucket(sc)
-            row = by_cat[cat]; row["cat"] = cat
+            row = by_cat[cat]
+            row["cat"] = cat
             if b:
                 row[b] += 1
                 row["total"] += 1
 
+        # Listeyi toplam sayıya göre azalan sırala, sonra ada göre
         category_stats = sorted(by_cat.values(), key=lambda x: (-x["total"], x["cat"]))
+
+        # (İsteğe bağlı) Toplam satırı ekle – şablonda en alta “Toplam Riskler”
+        if category_stats:
+            totals = {"cat": "Toplam Riskler", "total": 0, "low": 0, "mid": 0, "high": 0, "vhigh": 0}
+            for row in category_stats:
+                totals["total"] += row["total"]
+                totals["low"]   += row["low"]
+                totals["mid"]   += row["mid"]
+                totals["high"]  += row["high"]
+                totals["vhigh"] += row["vhigh"]
+            category_stats.append(totals)
 
         return render_template(
             "dashboard.html",
             risks=risks,
             matrix=matrix,
-            category_stats=category_stats,   # <-- ŞABLONA GÖNDER
+            category_stats=category_stats,  # şablonda kullanılıyor
         )
 
     
