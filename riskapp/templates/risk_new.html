@@ -9,14 +9,11 @@
   {% endwith %}
 
   <div style="display:flex; gap:.5rem; margin:.25rem 0 1rem">
-    <a class="btn" href="{{ url_for('risk_identify', next='identify') }}">← Şablon Seçimine Dön</a>
-    {% if picked_suggestions and picked_suggestions|length > 0 %}
-      <span class="chip">{{ picked_suggestions|length }} şablon seçili</span>
-    {% endif %}
+    <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç (Kütüphane)</a>
   </div>
 
   {% if picked_suggestions and picked_suggestions|length > 0 %}
-    <details class="card" style="margin:.5rem 0 1rem; border:1px dashed var(--line);" open>
+    <details class="card" style="margin:.5rem 0 1rem; border:1px dashed var(--line);">
       <summary class="small" style="cursor:pointer">Sepetteki şablonlar ({{ picked_suggestions|length }})</summary>
       <ul style="margin:.6rem 0 0 1rem">
         {% for s in picked_suggestions %}
@@ -28,10 +25,25 @@
       </ul>
     </details>
 
-    <!-- Ortak alanlar: tüm seçili şablonlardan üretilecek risklere uygulanır -->
-    <form method="post" id="bulk-create-form" class="grid" style="grid-template-columns:1fr 1fr; gap:16px">
+    <!-- TEK FORM: tüm ortak alanlar + gönder -->
+    <form method="post" id="risk-new-form" class="grid" style="grid-template-columns:1fr 1fr; gap:16px">
       <input type="hidden" name="action" value="create_from_picked">
       <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
+
+      <div style="grid-column:1/-1">
+        <label>Başlık <span class="small" style="opacity:.7">(boş bırakırsan şablon metni başlık olur)</span></label>
+        <input class="input" name="title" placeholder="Ortak başlık (opsiyonel)">
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label>Açıklama <span class="small" style="opacity:.7">(boş bırakırsan şablon metni kullanılır)</span></label>
+        <textarea class="input" name="description" rows="4" placeholder="Ortak açıklama (opsiyonel)"></textarea>
+      </div>
+
+      <div style="grid-column:1/-1">
+        <label>Önlemler (Mitigation)</label>
+        <textarea class="input" name="mitigation" rows="4" placeholder="Ortak önlemler (opsiyonel)"></textarea>
+      </div>
 
       <div>
         <label>Sorumlu</label>
@@ -53,43 +65,17 @@
         <input class="input" type="date" id="end_date">
       </div>
 
-      <!-- Backend'e YYYY-MM olarak giden alanlar -->
+      <!-- YYYY-MM değerleri burada toplanıyor -->
       <input type="hidden" name="start_month" id="start_month">
       <input type="hidden" name="end_month" id="end_month">
 
-      <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end">
-        <a class="btn btn-ghost" href="{{ url_for('risk_identify', next='identify') }}">İptal</a>
-        <button class="btn btn-primary" type="submit">Şablonlardan Risk Oluştur</button>
+      <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end; margin-top:.5rem">
+        <a class="btn" href="{{ url_for('risk_identify') }}">Şablon Seçimine Dön</a>
+        <button class="btn btn-primary" type="submit">
+          Sepetten Risk Oluştur ({{ picked_suggestions|length }})
+        </button>
       </div>
     </form>
-
-    <script>
-    (function(){
-      const startDate = document.getElementById('start_date');
-      const endDate   = document.getElementById('end_date');
-      const startYM   = document.getElementById('start_month');
-      const endYM     = document.getElementById('end_month');
-
-      function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
-
-      startDate?.addEventListener('change', ()=>{
-        startYM.value = toYM(startDate.value);
-        if(endDate.value && new Date(endDate.value) < new Date(startDate.value)){
-          endDate.value = startDate.value; endYM.value = toYM(endDate.value);
-        }
-      });
-      endDate?.addEventListener('change', ()=>{
-        endYM.value = toYM(endDate.value);
-        if(startDate.value && new Date(endDate.value) < new Date(startDate.value)){
-          startDate.value = endDate.value; startYM.value = toYM(startDate.value);
-        }
-      });
-      document.getElementById('bulk-create-form').addEventListener('submit', ()=>{
-        if(startDate.value && !startYM.value) startYM.value = toYM(startDate.value);
-        if(endDate.value   && !endYM.value)   endYM.value   = toYM(endDate.value);
-      });
-    })();
-    </script>
   {% else %}
     <div class="panel" style="text-align:center;padding:32px;border:1px dashed var(--line)">
       <h3>Önce şablon seç</h3>
@@ -98,4 +84,32 @@
     </div>
   {% endif %}
 </div>
+
+<script>
+(function(){
+  const startDate = document.getElementById('start_date');
+  const endDate   = document.getElementById('end_date');
+  const startYM   = document.getElementById('start_month');
+  const endYM     = document.getElementById('end_month');
+
+  function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
+
+  startDate?.addEventListener('change', ()=>{
+    startYM.value = toYM(startDate.value);
+    if(endDate.value && new Date(endDate.value) < new Date(startDate.value)){
+      endDate.value = startDate.value; endYM.value = toYM(endDate.value);
+    }
+  });
+  endDate?.addEventListener('change', ()=>{
+    endYM.value = toYM(endDate.value);
+    if(startDate.value && new Date(endDate.value) < new Date(startDate.value)){
+      startDate.value = endDate.value; startYM.value = toYM(startDate.value);
+    }
+  });
+  document.getElementById('risk-new-form')?.addEventListener('submit', ()=>{
+    if(startDate.value && !startYM.value) startYM.value = toYM(startDate.value);
+    if(endDate.value   && !endYM.value)   endYM.value   = toYM(endDate.value);
+  });
+})();
+</script>
 {% endblock %}

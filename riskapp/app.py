@@ -1775,7 +1775,8 @@ def create_app():
     def risk_new():
         """
         Yeni riskler sadece identify ekranında seçilen 'sepet' üzerinden oluşturulur.
-        Bu sayfada, oluşturma öncesi ortak alanlar (başlangıç/bitiş ayı, sorumlu, süre) verilir.
+        Bu ekrandaki alanlar (başlık, açıklama, mitigation, sorumlu, süre, başlangıç/bitiş ayı)
+        toplu olarak tüm seçilen şablonlara uygulanır.
         """
         picked_ids = session.get("picked_rows") or []
         picked_suggestions = []
@@ -1791,7 +1792,7 @@ def create_app():
             action = (request.form.get("action") or "").strip()
 
             if action == "create_from_picked":
-                # 1) Sepetteki id'ler
+                # 1) Sepet ID’leri
                 raw = (request.form.get("picked_ids") or "").strip()
                 if raw:
                     try:
@@ -1805,11 +1806,17 @@ def create_app():
                     flash("Şablon seçimi boş görünüyor.", "warning")
                     return render_template("risk_new.html", picked_suggestions=picked_suggestions)
 
-                # 2) Ortak alanlar (tüm oluşturulacak risklere uygulanır)
-                start_month = (request.form.get("start_month") or "").strip() or None  # "YYYY-MM"
-                end_month   = (request.form.get("end_month")   or "").strip() or None  # "YYYY-MM"
-                duration    = (request.form.get("duration")    or "").strip() or None
+                # 2) ORTAK ALANLAR (tüm oluşturulacak kayıtlara uygulanır)
+                title_common       = (request.form.get("title") or "").strip() or None
+                description_common = (request.form.get("description") or "").strip() or None
+                mitigation_common  = (request.form.get("mitigation") or "").strip() or None
+
                 responsible = (request.form.get("responsible") or "").strip() or None
+                duration    = (request.form.get("duration") or "").strip() or None
+
+                # YYYY-MM (hidden) alanları
+                start_month = (request.form.get("start_month") or "").strip() or None
+                end_month   = (request.form.get("end_month")   or "").strip() or None
 
                 owner = session.get("username")
                 pid   = _get_active_project_id()
@@ -1821,29 +1828,29 @@ def create_app():
                     except Exception:
                         return None
 
-                # 3) Kayıtları üret
                 for sid in sel_ids:
                     s = Suggestion.query.get(int(sid))
                     if not s:
                         continue
 
                     r = Risk(
-                        title=(s.text or "")[:150],
+                        title=(title_common or (s.text or "")[:150]),
                         category=(s.category or None),
-                        description=(s.text or None),
-                        owner=owner,
-                        project_id=pid,
+                        description=(description_common or (s.text or None)),
+                        mitigation=mitigation_common,
+                        responsible=responsible,
+                        duration=duration,
                         start_month=start_month,
                         end_month=end_month,
-                        duration=duration,
-                        responsible=responsible,
+                        owner=owner,
+                        project_id=pid,
                     )
                     db.session.add(r)
                     db.session.flush()  # r.id
 
                     db.session.add(Comment(
                         risk_id=r.id,
-                        text=f"Tanımlı şablondan oluşturuldu: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
+                        text=f"Tanımlı şablondan oluşturuldu (toplu): {datetime.utcnow().isoformat(timespec='seconds')} UTC",
                         is_system=True
                     ))
 
@@ -1858,10 +1865,11 @@ def create_app():
                             detection=None,
                             comment="Şablon varsayılan değerlerinden"
                         ))
+
                     created += 1
 
                 db.session.commit()
-                session.pop("picked_rows", None)
+                session.pop("picked_rows", None)  # sepeti temizle
                 flash(f"{created} risk oluşturuldu.", "success")
                 return redirect(url_for("dashboard"))
 
