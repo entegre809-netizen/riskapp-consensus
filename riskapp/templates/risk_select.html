@@ -1,24 +1,207 @@
 {% extends "base.html" %}
 {% block title %}Risk Seçimi · Risk Yönetim{% endblock %}
 {% block content %}
+
+<style>
+  .toolbar{
+    position: sticky; top: 8px; z-index: 2;
+    display:flex; flex-wrap:wrap; gap:.6rem; align-items:end;
+    padding:.75rem; margin:0 0 .8rem;
+    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    border-radius: var(--radius);
+    box-shadow: var(--elev-1);
+  }
+  .toolbar .group{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:end }
+  .toolbar .fill{ flex:1 }
+  .input, select.input{ height:40px; padding:.5rem .75rem }
+  .table{ width:100%; border-collapse:separate; border-spacing:0; border-radius:12px; overflow:hidden }
+  .table th,.table td{ padding:.6rem .7rem; border-bottom:1px solid color-mix(in oklab, var(--line) 85%, transparent) }
+  .table thead th{
+    text-transform:uppercase; font-size:.74rem; letter-spacing:.08em; font-weight:900; color:var(--muted);
+    background: linear-gradient(180deg, color-mix(in oklab, var(--bg-soft) 96%, transparent), transparent);
+    position:sticky; top:0; z-index:1;
+  }
+  .table tbody tr:nth-child(even) td{ background: color-mix(in oklab, var(--bg) 96%, transparent) }
+  .score-badge{
+    display:inline-flex; align-items:center; justify-content:center; min-width:2.2rem; padding:.2rem .45rem;
+    border-radius:999px; font-weight:800;
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    border:1px solid color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+  .muted{ color:var(--muted) }
+  .pager{ display:flex; gap:.5rem; justify-content:flex-end; flex-wrap:wrap; margin-top:.6rem }
+  .pager .btn[aria-disabled="true"]{ opacity:.5; pointer-events:none }
+  .empty{ border:1px dashed var(--line); border-radius:12px; padding:28px; text-align:center; color:var(--muted) }
+</style>
+
 <div class="card">
-  <h3>Riskler</h3>
-  <form class="searchbar" method="get">
-    <input class="input" name="q" value="{{ q }}" placeholder="Ara (başlık/kategori/açıklama)">
-    <button class="btn" type="submit">Ara</button>
+  <h2 style="margin:.2rem 0 .6rem">Riskler</h2>
+
+  <!-- Yapışkan filtre/aksiyon çubuğu -->
+  <form class="toolbar" method="get" action="{{ url_for('risks_index') if 'risks_index' in globals() else '' }}">
+    <div class="group" style="min-width:260px">
+      <div>
+        <label class="small" for="q">Ara</label>
+        <input id="q" class="input" name="q" value="{{ q or '' }}" placeholder="Başlık / kategori / açıklama">
+      </div>
+      <div>
+        <label class="small" for="cat">Kategori</label>
+        <select id="cat" class="input" name="cat">
+          <option value="">— Tümü —</option>
+          {% for cname in (cats or []) %}
+            <option value="{{ cname }}" {% if cname == (cat or '') %}selected{% endif %}>{{ cname }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="group">
+      <div>
+        <label class="small" for="score_min">Skor min</label>
+        <input id="score_min" class="input" type="number" name="score_min" min="1" max="25" value="{{ score_min or '' }}" placeholder="1">
+      </div>
+      <div>
+        <label class="small" for="score_max">Skor max</label>
+        <input id="score_max" class="input" type="number" name="score_max" min="1" max="25" value="{{ score_max or '' }}" placeholder="25">
+      </div>
+      <div>
+        <label class="small" for="dmin">Güncel ≥</label>
+        <input id="dmin" class="input" type="date" name="dmin" value="{{ dmin or '' }}">
+      </div>
+      <div>
+        <label class="small" for="dmax">Güncel ≤</label>
+        <input id="dmax" class="input" type="date" name="dmax" value="{{ dmax or '' }}">
+      </div>
+    </div>
+
+    <div class="group">
+      <div>
+        <label class="small" for="sort">Sırala</label>
+        <select id="sort" class="input" name="sort">
+          {% set s = sort or 'updated_desc' %}
+          <option value="updated_desc" {% if s=='updated_desc' %}selected{% endif %}>Güncel (Yeni→Eski)</option>
+          <option value="updated_asc"  {% if s=='updated_asc' %}selected{% endif %}>Güncel (Eski→Yeni)</option>
+          <option value="score_desc"   {% if s=='score_desc' %}selected{% endif %}>Skor (Yüksek→Düşük)</option>
+          <option value="score_asc"    {% if s=='score_asc' %}selected{% endif %}>Skor (Düşük→Yüksek)</option>
+          <option value="title_asc"    {% if s=='title_asc' %}selected{% endif %}>Başlık (A→Z)</option>
+          <option value="title_desc"   {% if s=='title_desc' %}selected{% endif %}>Başlık (Z→A)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fill"></div>
+
+    <div class="group">
+      <div>
+        <label class="small">&nbsp;</label>
+        <button class="btn" type="submit">Uygula</button>
+      </div>
+      {% if q or cat or score_min or score_max or dmin or dmax or sort %}
+      <div>
+        <label class="small">&nbsp;</label>
+        <a class="btn btn-ghost" href="{{ url_for('risks_index') if 'risks_index' in globals() else request.path }}">Sıfırla</a>
+      </div>
+      {% endif %}
+      <div>
+        <label class="small">&nbsp;</label>
+        <a class="btn btn-primary" href="{{ url_for('risk_new') }}">Yeni Risk</a>
+      </div>
+    </div>
   </form>
-  <table class="table" style="margin-top:10px">
-    <thead><tr><th>Başlık</th><th>Kategori</th><th>Skor</th><th>Güncel</th></tr></thead>
-    <tbody>
-      {% for r in risks %}
-      <tr>
-        <td><a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a></td>
-        <td>{{ r.category or "-" }}</td>
-        <td>{% if r.score() %}{{ r.score() }}{% else %}—{% endif %}</td>
-        <td>{{ r.updated_at.strftime("%Y-%m-%d %H:%M") }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for c,m in messages %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
+  {% endwith %}
+
+  {% if risks and risks|length > 0 %}
+    <div class="table-wrap" style="overflow-x:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Başlık</th>
+            <th style="width:200px">Kategori</th>
+            <th style="width:100px; text-align:center">Skor</th>
+            <th style="width:160px">Güncel</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in risks %}
+          <tr>
+            <td>
+              <a href="{{ url_for('risk_detail', risk_id=r.id) }}">
+                {{ r.title }}
+              </a>
+              {% if r.description %}
+                <div class="muted small" style="margin-top:2px; max-width:72ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                  {{ r.description }}
+                </div>
+              {% endif %}
+            </td>
+            <td>{{ r.category or "—" }}</td>
+            <td style="text-align:center">
+              {% set sc = (r.score() if r.score is defined else (r.score() if r.score() else None)) %}
+              {% if sc %}<span class="score-badge" title="P x S">{% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}</span>{% else %}—{% endif %}
+            </td>
+            <td>
+              {% if r.updated_at %}
+                {{ r.updated_at.strftime("%Y-%m-%d %H:%M") }}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Sayfalama -->
+    {% if pages and pages > 1 %}
+      <div class="pager">
+        <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
+           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=1) }}">« İlk</a>
+        <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
+           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page-1 if page>1 else 1)) }}">‹ Önceki</a>
+        <span class="muted" style="align-self:center">Sayfa {{ page }}/{{ pages }}{% if total is defined %} · Toplam {{ total }} kayıt{% endif %}</span>
+        <a class="btn" aria-disabled="{{ 'true' if page >= pages else 'false' }}"
+           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page+1 if page<pages else pages)) }}">Sonraki ›</a>
+        <a class="btn" aria-disabled="{{ 'true' if page >= pages else 'false' }}"
+           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=pages) }}">Son »</a>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="empty">
+      <h4 style="margin:0 0 .3rem">Kayıt bulunamadı</h4>
+      <div class="small">Filtreleri gevşetmeyi deneyin veya yeni bir risk oluşturun.</div>
+      <div style="margin-top:.6rem">
+        <a class="btn btn-primary" href="{{ url_for('risk_new') }}">Yeni Risk</a>
+        {% if (q or cat or score_min or score_max or dmin or dmax or sort) %}
+          <a class="btn btn-ghost" href="{{ url_for('risks_index') if 'risks_index' in globals() else request.path }}">Filtreleri temizle</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 </div>
+
+<script>
+  // Küçük UX: Enter ile ara, Ctrl/⌘+K ile odak
+  (function(){
+    const q = document.getElementById('q');
+    const isMac = navigator.platform.toUpperCase().includes('MAC');
+    document.addEventListener('keydown', (e) => {
+      if((isMac && e.metaKey && e.key.toLowerCase()==='k') || (!isMac && e.ctrlKey && e.key.toLowerCase()==='k')){
+        e.preventDefault(); if(q){ q.focus(); q.select(); }
+      }
+    });
+    if(q){
+      q.addEventListener('keydown', e => {
+        if(e.key==='Enter'){
+          // en yakın formu gönder
+          e.target.form?.requestSubmit();
+        }
+      });
+    }
+  })();
+</script>
+
 {% endblock %}
