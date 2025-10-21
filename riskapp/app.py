@@ -1781,12 +1781,11 @@ def create_app():
     @app.route("/risks/new", methods=["GET", "POST"])
     def risk_new():
         """
-        Yeni risk oluşturma ekranı.
-        - Şablon seçimi 'identify' üzerinden gelir (session["picked_rows"]).
-        - Klasik form artık kategori istemez; kategorisiz serbest risk açar.
+        Yeni risk oluşturma:
+        - Şablon seçimi identify ekranında yapılır (session["picked_rows"]).
+        - Bu ekranda kategori/öneri yok; istersen serbest risk açarsın.
         """
-        # --- 1) identify ekranından gelen sepet
-        picked_ids = session.get("picked_rows") or []   # [int, ...]
+        picked_ids = session.get("picked_rows") or []
         picked_suggestions = []
         if picked_ids:
             picked_suggestions = (
@@ -1796,13 +1795,11 @@ def create_app():
                 .all()
             )
 
-        # --- 2) POST işlemleri
         if request.method == "POST":
             action = (request.form.get("action") or "").strip()
 
-            # === A) Sepetten (picked) doğrudan üret ===
+            # A) Sepetten direkt üret
             if action == "create_from_picked":
-                # Öncelik: form alanı; yoksa session
                 raw = (request.form.get("picked_ids") or "").strip()
                 if raw:
                     try:
@@ -1813,104 +1810,80 @@ def create_app():
                     sel_ids = list(picked_ids)
 
                 if not sel_ids:
-                    flash("Şablon seçimi boş görünüyor.", "warning")
-                    return render_template(
-                        "risk_new.html",
-                        form=request.form,
-                        picked_suggestions=picked_suggestions,
-                    )
+                    flash("Şablon seçimi boş.", "warning")
+                    return render_template("risk_new.html", picked_suggestions=picked_suggestions)
 
                 owner = session.get("username")
-                pid   = _get_active_project_id()
+                pid = _get_active_project_id()
                 created = 0
 
                 def _toi(v):
                     try:
-                        vv = int(v)
-                        return max(1, min(5, vv))
+                        vv = int(v); return max(1, min(5, vv))
                     except Exception:
                         return None
 
                 for sid in sel_ids:
                     s = Suggestion.query.get(int(sid))
-                    if not s:
-                        continue
+                    if not s: continue
 
                     r = Risk(
                         title=(s.text or "")[:150],
-                        category=(s.category or None),   # şablondaki kategori varsa gelir
+                        category=(s.category or None),
                         description=(s.text or None),
                         owner=owner,
                         project_id=pid,
                     )
-                    db.session.add(r)
-                    db.session.flush()  # r.id
-
-                    # sistem notu
+                    db.session.add(r); db.session.flush()
                     db.session.add(Comment(
                         risk_id=r.id,
                         text=f"Tanımlı şablondan oluşturuldu: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
                         is_system=True
                     ))
-
-                    # varsayılan P/Ş ilk değerlendirme olarak düşsün (varsa)
                     p0 = _toi(getattr(s, "default_prob", None))
                     s0 = _toi(getattr(s, "default_sev", None))
                     if p0 and s0:
                         db.session.add(Evaluation(
-                            risk_id=r.id,
-                            evaluator=owner or "System",
-                            probability=p0,
-                            severity=s0,
-                            detection=None,
+                            risk_id=r.id, evaluator=owner or "System",
+                            probability=p0, severity=s0, detection=None,
                             comment="Şablon varsayılan değerlerinden"
                         ))
-
                     created += 1
 
                 db.session.commit()
-                # sepeti boşalt
                 session.pop("picked_rows", None)
-
                 flash(f"{created} risk oluşturuldu.", "success")
                 return redirect(url_for("dashboard"))
 
-            # === B) Klasik formdan tek risk ===
+            # B) Serbest tek risk
             title = (request.form.get("title") or "").strip()
             if not title:
-                flash("Başlık zorunludur.", "danger")
-                return render_template(
-                    "risk_new.html",
-                    form=request.form,
-                    picked_suggestions=picked_suggestions,
-                )
+                flash("Başlık zorunlu.", "danger")
+                return render_template("risk_new.html", picked_suggestions=picked_suggestions)
 
-            # Ortak alanlar (kategori artık yok)
-            description  = request.form.get("description")  or None
-            risk_type    = request.form.get("risk_type")    or None
-            responsible  = request.form.get("responsible")  or None
-            mitigation   = request.form.get("mitigation")   or None
-            duration     = request.form.get("duration")     or None
-            start_month  = request.form.get("start_month")  or None  # "YYYY-MM"
-            end_month    = request.form.get("end_month")    or None  # "YYYY-MM"
+            description = request.form.get("description") or None
+            risk_type   = request.form.get("risk_type") or None
+            responsible = request.form.get("responsible") or None
+            mitigation  = request.form.get("mitigation") or None
+            duration    = request.form.get("duration") or None
+            start_month = request.form.get("start_month") or None
+            end_month   = request.form.get("end_month") or None
 
             owner = session.get("username")
             pid   = _get_active_project_id()
 
-            def _norm_1_5(x):
+            def _n15(x):
                 try:
-                    v = int(x)
-                    return min(max(v, 1), 5)
+                    v = int(x); return min(max(v, 1), 5)
                 except Exception:
                     return None
 
-            p_init = _norm_1_5(request.form.get("probability"))
-            s_init = _norm_1_5(request.form.get("severity"))
+            p_init = _n15(request.form.get("probability"))
+            s_init = _n15(request.form.get("severity"))
 
-            # Tek kayıt (kategori=None)
             r = Risk(
                 title=title,
-                category=None,
+                category=None,  # serbest risk -> kategori yok
                 description=description,
                 owner=owner,
                 risk_type=risk_type,
@@ -1921,37 +1894,26 @@ def create_app():
                 end_month=end_month,
                 project_id=pid,
             )
-            db.session.add(r)
-            db.session.flush()  # r.id
+            db.session.add(r); db.session.flush()
 
-            # İlk değerlendirme
             if p_init is not None and s_init is not None:
                 db.session.add(Evaluation(
-                    risk_id=r.id,
-                    evaluator=owner or "System",
-                    probability=p_init,
-                    severity=s_init,
-                    detection=None,
+                    risk_id=r.id, evaluator=owner or "System",
+                    probability=p_init, severity=s_init, detection=None,
                     comment="İlk değerlendirme"
                 ))
-
             db.session.add(Comment(
                 risk_id=r.id,
                 text=f"Risk oluşturuldu: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
                 is_system=True
             ))
-
             db.session.commit()
-
             flash("Risk oluşturuldu.", "success")
             return redirect(url_for("risk_detail", risk_id=r.id))
 
-        # --- 3) GET render
-        return render_template(
-            "risk_new.html",
-            form=None,
-            picked_suggestions=picked_suggestions,  # sepet varsa üstte görünür
-        )
+        # GET
+        return render_template("risk_new.html", picked_suggestions=picked_suggestions)
+
 
 
     # -------------------------------------------------
