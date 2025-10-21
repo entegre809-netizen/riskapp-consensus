@@ -198,7 +198,7 @@
 
   <!-- Ana seçim formu -->
   <form method="post" id="select-form" action="{{ url_for('risk_identify') }}">
-    <!-- action artık butonlardan gelecek -->
+    <!-- action değeri butonlardan geliyor -->
     <input type="hidden" name="selected_json" id="selected_json">
   </form>
 
@@ -378,8 +378,8 @@
     <button type="submit" class="btn btn-success" form="select-form" name="action" value="add_selected">
       Seçilenleri Ekle
     </button>
-    <!-- yeni akış: risk_new’de oluştur -->
-    <button type="submit" class="btn btn-primary" form="select-form" name="action" value="go_new_form" title="Seçili şablonları risk_new ekranına taşı">
+    <!-- yeni akış: risk_new’de formda aç -->
+    <button type="submit" class="btn btn-primary" form="select-form" name="action" value="pick_for_new" title="Seçili şablonları yeni risk formuna taşı">
       Yeni Risk Formunda Aç
     </button>
   </div>
