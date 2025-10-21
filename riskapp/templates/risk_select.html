@@ -39,7 +39,7 @@
   <h2 style="margin:.2rem 0 .6rem">Riskler</h2>
 
   <!-- Yapışkan filtre/aksiyon çubuğu -->
-  <form class="toolbar" method="get" action="{{ url_for('risks_index') if 'risks_index' in globals() else '' }}">
+  <form class="toolbar" method="get" action="{{ request.path }}" id="filterForm">
     <div class="group" style="min-width:260px">
       <div>
         <label class="small" for="q">Ara</label>
@@ -100,7 +100,7 @@
       {% if q or cat or score_min or score_max or dmin or dmax or sort %}
       <div>
         <label class="small">&nbsp;</label>
-        <a class="btn btn-ghost" href="{{ url_for('risks_index') if 'risks_index' in globals() else request.path }}">Sıfırla</a>
+        <a class="btn btn-ghost" href="{{ url_for('risk_select') }}">Sıfırla</a>
       </div>
       {% endif %}
       <div>
@@ -140,7 +140,7 @@
             </td>
             <td>{{ r.category or "—" }}</td>
             <td style="text-align:center">
-              {% set sc = (r.score() if r.score is defined else (r.score() if r.score() else None)) %}
+              {% set sc = r.score() %}
               {% if sc %}<span class="score-badge" title="P x S">{% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}</span>{% else %}—{% endif %}
             </td>
             <td>
@@ -154,18 +154,17 @@
       </table>
     </div>
 
-    <!-- Sayfalama -->
     {% if pages and pages > 1 %}
       <div class="pager">
         <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
-           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=1) }}">« İlk</a>
+           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=1) }}">« İlk</a>
         <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
-           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page-1 if page>1 else 1)) }}">‹ Önceki</a>
+           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page-1 if page>1 else 1)) }}">‹ Önceki</a>
         <span class="muted" style="align-self:center">Sayfa {{ page }}/{{ pages }}{% if total is defined %} · Toplam {{ total }} kayıt{% endif %}</span>
         <a class="btn" aria-disabled="{{ 'true' if page >= pages else 'false' }}"
-           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page+1 if page<pages else pages)) }}">Sonraki ›</a>
+           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page+1 if page<pages else pages)) }}">Sonraki ›</a>
         <a class="btn" aria-disabled="{{ 'true' if page >= pages else 'false' }}"
-           href="{{ url_for('risks_index', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=pages) }}">Son »</a>
+           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=pages) }}">Son »</a>
       </div>
     {% endif %}
 
@@ -176,7 +175,7 @@
       <div style="margin-top:.6rem">
         <a class="btn btn-primary" href="{{ url_for('risk_new') }}">Yeni Risk</a>
         {% if (q or cat or score_min or score_max or dmin or dmax or sort) %}
-          <a class="btn btn-ghost" href="{{ url_for('risks_index') if 'risks_index' in globals() else request.path }}">Filtreleri temizle</a>
+          <a class="btn btn-ghost" href="{{ url_for('risk_select') }}">Filtreleri temizle</a>
         {% endif %}
       </div>
     </div>
@@ -196,7 +195,6 @@
     if(q){
       q.addEventListener('keydown', e => {
         if(e.key==='Enter'){
-          // en yakın formu gönder
           e.target.form?.requestSubmit();
         }
       });
