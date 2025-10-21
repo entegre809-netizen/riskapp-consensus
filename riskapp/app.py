@@ -1775,7 +1775,7 @@ def create_app():
     def risk_new():
         """
         Yeni riskler sadece identify ekranında seçilen 'sepet' üzerinden oluşturulur.
-        Bu sayfada, oluşturma öncesi ortak alanlar (başlangıç/bitiş ayı vb.) verilir.
+        Bu sayfada, oluşturma öncesi ortak alanlar (başlangıç/bitiş ayı, sorumlu, süre) verilir.
         """
         picked_ids = session.get("picked_rows") or []
         picked_suggestions = []
@@ -1791,7 +1791,7 @@ def create_app():
             action = (request.form.get("action") or "").strip()
 
             if action == "create_from_picked":
-                # seçilen id'ler
+                # 1) Sepetteki id'ler
                 raw = (request.form.get("picked_ids") or "").strip()
                 if raw:
                     try:
@@ -1805,7 +1805,7 @@ def create_app():
                     flash("Şablon seçimi boş görünüyor.", "warning")
                     return render_template("risk_new.html", picked_suggestions=picked_suggestions)
 
-                # ortak alanlar (tüm oluşturulacak risklere uygulanır)
+                # 2) Ortak alanlar (tüm oluşturulacak risklere uygulanır)
                 start_month = (request.form.get("start_month") or "").strip() or None  # "YYYY-MM"
                 end_month   = (request.form.get("end_month")   or "").strip() or None  # "YYYY-MM"
                 duration    = (request.form.get("duration")    or "").strip() or None
@@ -1821,6 +1821,7 @@ def create_app():
                     except Exception:
                         return None
 
+                # 3) Kayıtları üret
                 for sid in sel_ids:
                     s = Suggestion.query.get(int(sid))
                     if not s:
@@ -1869,6 +1870,7 @@ def create_app():
 
         # GET
         return render_template("risk_new.html", picked_suggestions=picked_suggestions)
+
 
 
 

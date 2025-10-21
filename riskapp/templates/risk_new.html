@@ -9,64 +9,92 @@
   {% endwith %}
 
   <div style="display:flex; gap:.5rem; margin:.25rem 0 1rem">
-    <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç (Kütüphane)</a>
+    <a class="btn" href="{{ url_for('risk_identify', next='identify') }}">← Şablon Seçimine Dön</a>
+    {% if picked_suggestions and picked_suggestions|length > 0 %}
+      <span class="chip">{{ picked_suggestions|length }} şablon seçili</span>
+    {% endif %}
   </div>
 
   {% if picked_suggestions and picked_suggestions|length > 0 %}
-    <div class="card" style="margin:.5rem 0 1rem; border:1px dashed var(--line);">
-      <h3 style="margin:0 0 .35rem">Sepetteki şablonlar</h3>
-      <details open>
-        <summary class="small" style="cursor:pointer">
-          Toplam {{ picked_suggestions|length }} adet
-        </summary>
-        <ul style="margin:.6rem 0 0 1rem">
-          {% for s in picked_suggestions %}
-            <li class="small" style="margin:.15rem 0">
-              <strong>{{ s.category or 'Genel' }}</strong> — {{ s.text }}
-              {% if s.risk_code %}<span class="badge" style="margin-left:.35rem">{{ s.risk_code }}</span>{% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      </details>
-    </div>
+    <details class="card" style="margin:.5rem 0 1rem; border:1px dashed var(--line);" open>
+      <summary class="small" style="cursor:pointer">Sepetteki şablonlar ({{ picked_suggestions|length }})</summary>
+      <ul style="margin:.6rem 0 0 1rem">
+        {% for s in picked_suggestions %}
+          <li class="small" style="margin:.15rem 0">
+            <strong>{{ s.category or 'Genel' }}</strong> — {{ s.text }}
+            {% if s.risk_code %}<span class="badge" style="margin-left:.35rem">{{ s.risk_code }}</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
 
-    <!-- Ortak alanlar + oluşturma -->
-    <form method="post" style="display:grid; grid-template-columns:1fr 1fr; gap:14px">
+    <!-- Ortak alanlar: tüm seçili şablonlardan üretilecek risklere uygulanır -->
+    <form method="post" id="bulk-create-form" class="grid" style="grid-template-columns:1fr 1fr; gap:16px">
       <input type="hidden" name="action" value="create_from_picked">
       <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
 
       <div>
-        <label>Sorumlu (opsiyonel)</label>
+        <label>Sorumlu</label>
         <input class="input" name="responsible" placeholder="Ad Soyad">
       </div>
 
       <div>
-        <label>Etki Süresi (opsiyonel)</label>
+        <label>Etki Süresi</label>
         <input class="input" name="duration" placeholder="örn. 6 ay / proje boyunca">
       </div>
 
-      <!-- YYYY-MM giriş için month input kullanıyoruz -->
       <div>
-        <label>Başlangıç (YYYY-MM)</label>
-        <input class="input" type="month" name="start_month">
-      </div>
-      <div>
-        <label>Bitiş (YYYY-MM)</label>
-        <input class="input" type="month" name="end_month">
+        <label>Başlangıç Tarihi</label>
+        <input class="input" type="date" id="start_date">
       </div>
 
-      <div style="grid-column:1/-1; display:flex; gap:.5rem; justify-content:flex-end; margin-top:.5rem">
-        <button class="btn btn-primary" type="submit">
-          Şablonlardan Risk Oluştur ({{ picked_suggestions|length }})
-        </button>
-        <a class="btn btn-ghost" href="{{ url_for('risk_identify') }}">Şablon seçimine dön</a>
+      <div>
+        <label>Bitiş Tarihi</label>
+        <input class="input" type="date" id="end_date">
+      </div>
+
+      <!-- Backend'e YYYY-MM olarak giden alanlar -->
+      <input type="hidden" name="start_month" id="start_month">
+      <input type="hidden" name="end_month" id="end_month">
+
+      <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end">
+        <a class="btn btn-ghost" href="{{ url_for('risk_identify', next='identify') }}">İptal</a>
+        <button class="btn btn-primary" type="submit">Şablonlardan Risk Oluştur</button>
       </div>
     </form>
+
+    <script>
+    (function(){
+      const startDate = document.getElementById('start_date');
+      const endDate   = document.getElementById('end_date');
+      const startYM   = document.getElementById('start_month');
+      const endYM     = document.getElementById('end_month');
+
+      function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
+
+      startDate?.addEventListener('change', ()=>{
+        startYM.value = toYM(startDate.value);
+        if(endDate.value && new Date(endDate.value) < new Date(startDate.value)){
+          endDate.value = startDate.value; endYM.value = toYM(endDate.value);
+        }
+      });
+      endDate?.addEventListener('change', ()=>{
+        endYM.value = toYM(endDate.value);
+        if(startDate.value && new Date(endDate.value) < new Date(startDate.value)){
+          startDate.value = endDate.value; startYM.value = toYM(startDate.value);
+        }
+      });
+      document.getElementById('bulk-create-form').addEventListener('submit', ()=>{
+        if(startDate.value && !startYM.value) startYM.value = toYM(startDate.value);
+        if(endDate.value   && !endYM.value)   endYM.value   = toYM(endDate.value);
+      });
+    })();
+    </script>
   {% else %}
-    <div class="panel" style="text-align:center; padding:32px; border:1px dashed var(--line)">
+    <div class="panel" style="text-align:center;padding:32px;border:1px dashed var(--line)">
       <h3>Önce şablon seç</h3>
       <p class="small">Yeni riskleri sadece “Tanımlı Risklerden Seç” ekranından oluşturuyoruz.</p>
-      <a class="btn btn-primary" href="{{ url_for('risk_identify') }}">Şablon seç →</a>
+      <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">Şablon seç →</a>
     </div>
   {% endif %}
 </div>
