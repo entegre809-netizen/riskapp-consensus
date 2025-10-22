@@ -13,6 +13,10 @@
   {% set cur_y = (request.args.get('year')  or current_year  or 2025)|int %}
   {% set month_names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'] %}
 
+  {# ---------- GÜVENLİ YEDEKLER ---------- #}
+  {% set rows_safe   = rows   or [] %}
+  {% set months_safe = months or month_names %}
+
   {# ---------- FİLTRELER ---------- #}
   <form method="get" class="noprint"
         style="margin-bottom:12px; display:grid; gap:8px; grid-template-columns: repeat(6, minmax(0,1fr)); align-items:end">
@@ -170,13 +174,13 @@
       <thead>
         <tr>
           <th style="width:340px">Risk</th>
-          {% for m in months %}
+          {% for m in months_safe %}
             <th class="month">{{ m }}</th>
           {% endfor %}
         </tr>
       </thead>
       <tbody>
-        {% for row in rows %}
+        {% for row in rows_safe %}
           {% set r = row.risk %}
           <tr>
             <td>
@@ -201,8 +205,8 @@
                 </div>
               </div>
             </td>
-            {% for m in months %}
-              {% set active = (m in row.active) %}
+            {% for m in months_safe %}
+              {% set active = (m in (row.active or [])) %}
               <td>
                 {% if active %}
                   <div class="tl-bar gx-{{ row.grade }}" title="{{ r.title }} · {{ m }}" data-open-reminder data-risk-title="{{ r.title }}"></div>
@@ -211,7 +215,7 @@
             {% endfor %}
           </tr>
         {% else %}
-          <tr><td colspan="{{ 1 + months|length }}">Kayıtlı risk yok.</td></tr>
+          <tr><td colspan="{{ 1 + months_safe|length }}">Kayıtlı risk yok.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -219,7 +223,7 @@
   {% endif %}
 
   {% if view == 'calendar' %}
-    {% set can_calendar = rows|selectattr('startYM')|list or rows|selectattr('endYM')|list %}
+    {% set can_calendar = (rows_safe|selectattr('startYM')|list) or (rows_safe|selectattr('endYM')|list) %}
     {% if not can_calendar %}
       <div class="flash info" style="margin-top:8px">
         Takvim için her riskte <strong>başlangıç</strong> ve/veya <strong>bitiş</strong> ayı olmalı
@@ -241,7 +245,7 @@
 
       <script type="application/json" id="risks-json">
       [
-        {% for row in rows %}
+        {% for row in rows_safe %}
           {% set r = row.risk %}
           {
             "id": {{ r.id|int }},
