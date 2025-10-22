@@ -105,12 +105,15 @@
     transform-origin:left top; color:var(--muted); font-weight:900;
   }
 
-  /* 2 Çubuk Grafik ızgarası */
-  .bar-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
-  @media (max-width: 980px){ .bar-grid{ grid-template-columns: 1fr; } }
-  .bar-card{ border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--card); }
-  .bar-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-  .bar-title{ font-weight:900; }
+  /* Donut ızgara ve legend */
+  .donut-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+  @media (max-width:980px){ .donut-grid{ grid-template-columns:1fr; } }
+  .donut-card{ border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--card); }
+  .donut-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .donut-title{ font-weight:900; }
+  .legend-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
+  .legend-chip{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px; padding:2px 8px; font-weight:700; }
+  .chip-dot{ width:10px; height:10px; border-radius:999px; display:inline-block }
 </style>
 
 {# ==== KPI’leri hesapla (frontend) ==== #}
@@ -268,91 +271,103 @@
   </div>
 </div>
 
-<!-- 2 Çubuk Grafik: 1) Kategori Adetleri  2) Risk Seviyeleri -->
+<!-- 2 Donut: 1) Kategori Dağılımı  2) Risk Seviyeleri -->
 <div class="card" style="margin-top:12px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-    <h3 style="margin:0">Kategori & Risk Dağılımı (Çubuk)</h3>
+    <h3 style="margin:0">Kategori & Risk Dağılımı (Donut)</h3>
     <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
   </div>
 
   {% if category_stats and category_stats|length > 0 %}
-    <!-- category_stats'ı JS'ye ham olarak verelim -->
     <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
 
-    <div class="bar-grid">
-      <div class="bar-card">
-        <div class="bar-head">
-          <div class="bar-title">1- Kategori Bazında Risk Adedi</div>
+    <div class="donut-grid">
+      <div class="donut-card">
+        <div class="donut-head">
+          <div class="donut-title">1- Kategori Bazında Dağılım</div>
+          <div class="small" id="catTotal"></div>
         </div>
-        <canvas id="bar-categories"></canvas>
+        <canvas id="donut-categories" height="220"></canvas>
+        <div class="legend-row" id="legend-cats"></div>
       </div>
 
-      <div class="bar-card">
-        <div class="bar-head">
-          <div class="bar-title">2- Risk Seviyeleri Toplam Dağılımı</div>
+      <div class="donut-card">
+        <div class="donut-head">
+          <div class="donut-title">2- Risk Seviyeleri (Toplam)</div>
         </div>
-        <canvas id="bar-levels"></canvas>
+        <canvas id="donut-levels" height="220"></canvas>
+        <div class="legend-row" id="legend-levels"></div>
       </div>
     </div>
 
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       (function(){
-        const gcs = getComputedStyle(document.documentElement);
-        const COLORS = {
-          low:   gcs.getPropertyValue('--green-500')  || '#22c55e',
-          mid:   gcs.getPropertyValue('--amber-500')  || '#f59e0b',
-          high:  gcs.getPropertyValue('--orange-500') || '#fb923c',
-          vhigh: gcs.getPropertyValue('--red-500')    || '#ef4444',
-          axis:  gcs.getPropertyValue('--muted')      || '#6b7280'
-        };
-
         const raw = document.getElementById('categoryStats');
         const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
-
-        // "Toplam Riskler" satırı varsa at
         const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
 
-        // 1) Kategori isimleri & adetler
+        // Renk paleti (kategori donut için)
+        const PALETTE = [
+          '#60a5fa','#34d399','#f59e0b','#ef4444','#a78bfa',
+          '#f472b6','#22d3ee','#84cc16','#fb7185','#f97316'
+        ];
+        // Seviye renkleri
+        const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
+
+        // --- 1) Kategori Donut ---
         const catLabels = rows.map(r => r.cat);
-        const catCounts = rows.map(r => r.total);
+        const catCounts = rows.map(r => Number(r.total)||0);
+        const catColors = catLabels.map((_,i)=> PALETTE[i % PALETTE.length]);
 
-        // 2) Seviyelerin toplamı
-        const sum = (k)=> rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
-        const levelData = [sum('low'), sum('mid'), sum('high'), sum('vhigh')];
-        const levelLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
-        const levelColors = [COLORS.low, COLORS.mid, COLORS.high, COLORS.vhigh];
-
-        // Ortak bar seçenekleri
-        const baseBarOpts = {
-          responsive: true,
-          plugins: { legend: { display:false }, tooltip:{ enabled:true } },
-          scales: {
-            x: { ticks:{ color: COLORS.axis }, grid:{ display:false } },
-            y: { beginAtZero:true, ticks:{ color: COLORS.axis, precision:0 } }
+        new Chart(document.getElementById('donut-categories').getContext('2d'), {
+          type: 'doughnut',
+          data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors, borderWidth: 0 }]},
+          options: {
+            cutout: '65%',
+            plugins: {
+              legend: { display:false },
+              tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+            }
           }
-        };
-
-        // 1) Kategori barı
-        new Chart(document.getElementById('bar-categories').getContext('2d'), {
-          type: 'bar',
-          data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: '#60a5fa' }]},
-          options: Object.assign({}, baseBarOpts, {
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=> `${c.parsed.y} adet` } } }
-          })
         });
 
-        // 2) Seviyeler barı
-        new Chart(document.getElementById('bar-levels').getContext('2d'), {
-          type: 'bar',
-          data: {
-            labels: levelLabels,
-            datasets: [{ data: levelData, backgroundColor: levelColors }]
-          },
-          options: Object.assign({}, baseBarOpts, {
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=> `${c.label}: ${c.parsed.y} adet` } } }
-          })
+        const totalCat = catCounts.reduce((a,b)=>a+b,0);
+        document.getElementById('catTotal').textContent = `${totalCat} adet`;
+        const legendCats = document.getElementById('legend-cats');
+        catLabels.forEach((lbl, i) => {
+          const n = catCounts[i]||0;
+          const el = document.createElement('span');
+          el.className = 'legend-chip';
+          el.innerHTML = `<span class="chip-dot" style="background:${catColors[i]}"></span>${lbl} (${n})`;
+          legendCats.appendChild(el);
+        });
+
+        // --- 2) Seviye Donut ---
+        const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
+        const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
+        const lvlKeys   = ['low','mid','high','vhigh'];
+        const lvlData   = lvlKeys.map(k => sum(k));
+        const lvlColors = lvlKeys.map(k => LEVEL_COLORS[k]);
+
+        new Chart(document.getElementById('donut-levels').getContext('2d'), {
+          type: 'doughnut',
+          data: { labels: lvlLabels, datasets: [{ data: lvlData, backgroundColor: lvlColors, borderWidth: 0 }]},
+          options: {
+            cutout: '65%',
+            plugins: {
+              legend: { display:false },
+              tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+            }
+          }
+        });
+
+        const legendLvls = document.getElementById('legend-levels');
+        lvlLabels.forEach((lbl, i) => {
+          const el = document.createElement('span');
+          el.className = 'legend-chip';
+          el.innerHTML = `<span class="chip-dot" style="background:${lvlColors[i]}"></span>${lbl} (${lvlData[i]})`;
+          legendLvls.appendChild(el);
         });
       })();
     </script>
