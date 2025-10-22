@@ -44,12 +44,11 @@
     display:flex; align-items:center; justify-content:space-between;
     gap:8px; padding:10px 12px;
 
-    /* Fallback (VS Code şikayet etmez) */
+    /* Fallback */
     border:1px dashed var(--line-weak, rgba(0,0,0,.12));
     border-radius:12px;
     background: var(--bg-soft, rgba(0,0,0,.03));
   }
-  /* Tarayıcı destekliyorsa color-mix'e yükselt */
   @supports (color: color-mix(in oklab, black, white)) {
     .rm-colhead,.rm-rowhead{
       border:1px dashed color-mix(in oklab, var(--line) 70%, transparent);
@@ -71,9 +70,7 @@
     transition: transform .06s ease, box-shadow .15s ease, filter .15s ease;
     text-decoration: none; color: inherit;
   }
-  /* Fallback */
   .rm-cell:focus-visible{ outline:none; box-shadow: 0 0 0 4px rgba(59,130,246,.35); }
-  /* color-mix destekliyse ring'i güzelleştir */
   @supports (color: color-mix(in oklab, black, white)) {
     .rm-cell:focus-visible{ box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 35%, transparent); }
   }
@@ -100,7 +97,6 @@
   html[data-theme="light"] .rm-cell.hi   { background:#fdba74; border-color:#f59e0b; color:#4a2500; }
   html[data-theme="light"] .rm-cell.crit { background:#fecaca; border-color:#f87171; color:#5a1010; }
 
-  /* köşe etiketleri (isteğe bağlı yön ipucu) */
   .risk-matrix .rm-corner::after{
     content:"Olasılık →"; font-weight:900; color:var(--muted);
   }
@@ -109,14 +105,12 @@
     transform-origin:left top; color:var(--muted); font-weight:900;
   }
 
-  /* Donut grid */
-  .donut-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  @media (min-width:1100px){ .donut-grid{grid-template-columns:repeat(3,minmax(0,1fr));} }
-  .donut-card{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}
-  .donut-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-  .donut-title{font-weight:900}
-  .donut-legend{display:flex;gap:6px;flex-wrap:wrap}
-  .donut-legend .chip{border:1px solid var(--line);border-radius:999px;padding:.12rem .5rem;font-weight:800}
+  /* 2 Çubuk Grafik ızgarası */
+  .bar-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
+  @media (max-width: 980px){ .bar-grid{ grid-template-columns: 1fr; } }
+  .bar-card{ border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--card); }
+  .bar-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .bar-title{ font-weight:900; }
 </style>
 
 {# ==== KPI’leri hesapla (frontend) ==== #}
@@ -274,88 +268,96 @@
   </div>
 </div>
 
-<!-- Kategori Bazlı Donut Grafikleri -->
+<!-- 2 Çubuk Grafik: 1) Kategori Adetleri  2) Risk Seviyeleri -->
 <div class="card" style="margin-top:12px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-    <h3 style="margin:0">Kategori Bazlı Dağılım (Donut)</h3>
+    <h3 style="margin:0">Kategori & Risk Dağılımı (Çubuk)</h3>
     <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
   </div>
 
   {% if category_stats and category_stats|length > 0 %}
-    <div class="donut-grid">
-      {% for row in category_stats if row.cat != 'Toplam Riskler' %}
-        {% if loop.index <= 6 %}
-          <div class="donut-card">
-            <div class="donut-head">
-              <div class="donut-title">{{ loop.index }}- {{ row.cat }}</div>
-              <div class="small">{{ row.total }} adet</div>
-            </div>
-            <canvas id="cat-donut-{{ loop.index0 }}"
-                    data-low="{{ row.low }}"
-                    data-mid="{{ row.mid }}"
-                    data-high="{{ row.high }}"
-                    data-vhigh="{{ row.vhigh }}"></canvas>
+    <!-- category_stats'ı JS'ye ham olarak verelim -->
+    <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
 
-            <div class="donut-legend small" style="margin-top:6px">
-              <span class="chip">Düşük ({{ row.low }})</span>
-              <span class="chip">Orta ({{ row.mid }})</span>
-              <span class="chip">Yüksek ({{ row.high }})</span>
-              <span class="chip">Çok Yüksek ({{ row.vhigh }})</span>
-            </div>
-          </div>
-        {% endif %}
-      {% endfor %}
+    <div class="bar-grid">
+      <div class="bar-card">
+        <div class="bar-head">
+          <div class="bar-title">1- Kategori Bazında Risk Adedi</div>
+        </div>
+        <canvas id="bar-categories"></canvas>
+      </div>
+
+      <div class="bar-card">
+        <div class="bar-head">
+          <div class="bar-title">2- Risk Seviyeleri Toplam Dağılımı</div>
+        </div>
+        <canvas id="bar-levels"></canvas>
+      </div>
     </div>
 
-    <!-- Chart.js CDN -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       (function(){
-        const cards = document.querySelectorAll('canvas[id^="cat-donut-"]');
-
-        // Matrisle uyumlu tonlar (fallback'lerle)
         const gcs = getComputedStyle(document.documentElement);
         const COLORS = {
-          low:   gcs.getPropertyValue('--green-400')  || '#22c55e',
-          mid:   gcs.getPropertyValue('--amber-400')  || '#f59e0b',
-          high:  gcs.getPropertyValue('--orange-400') || '#fb923c',
-          vhigh: gcs.getPropertyValue('--red-400')    || '#ef4444',
-          border: 'rgba(0,0,0,.1)'
+          low:   gcs.getPropertyValue('--green-500')  || '#22c55e',
+          mid:   gcs.getPropertyValue('--amber-500')  || '#f59e0b',
+          high:  gcs.getPropertyValue('--orange-500') || '#fb923c',
+          vhigh: gcs.getPropertyValue('--red-500')    || '#ef4444',
+          axis:  gcs.getPropertyValue('--muted')      || '#6b7280'
         };
 
-        cards.forEach((cv)=>{
-          const d = cv.dataset;
-          const data = [ +d.low||0, +d.mid||0, +d.high||0, +d.vhigh||0 ];
-          new Chart(cv.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-              labels: ['Düşük','Orta','Yüksek','Çok Yüksek'],
-              datasets: [{
-                data,
-                backgroundColor: [COLORS.low, COLORS.mid, COLORS.high, COLORS.vhigh],
-                borderColor: COLORS.border,
-                borderWidth: 1,
-                hoverOffset: 6,
-                cutout: '60%'
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx)=> `${ctx.label}: ${ctx.parsed} adet`
-                  }
-                }
-              }
-            }
-          });
+        const raw = document.getElementById('categoryStats');
+        const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
+
+        // "Toplam Riskler" satırı varsa at
+        const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
+
+        // 1) Kategori isimleri & adetler
+        const catLabels = rows.map(r => r.cat);
+        const catCounts = rows.map(r => r.total);
+
+        // 2) Seviyelerin toplamı
+        const sum = (k)=> rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
+        const levelData = [sum('low'), sum('mid'), sum('high'), sum('vhigh')];
+        const levelLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
+        const levelColors = [COLORS.low, COLORS.mid, COLORS.high, COLORS.vhigh];
+
+        // Ortak bar seçenekleri
+        const baseBarOpts = {
+          responsive: true,
+          plugins: { legend: { display:false }, tooltip:{ enabled:true } },
+          scales: {
+            x: { ticks:{ color: COLORS.axis }, grid:{ display:false } },
+            y: { beginAtZero:true, ticks:{ color: COLORS.axis, precision:0 } }
+          }
+        };
+
+        // 1) Kategori barı
+        new Chart(document.getElementById('bar-categories').getContext('2d'), {
+          type: 'bar',
+          data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: '#60a5fa' }]},
+          options: Object.assign({}, baseBarOpts, {
+            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=> `${c.parsed.y} adet` } } }
+          })
+        });
+
+        // 2) Seviyeler barı
+        new Chart(document.getElementById('bar-levels').getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: levelLabels,
+            datasets: [{ data: levelData, backgroundColor: levelColors }]
+          },
+          options: Object.assign({}, baseBarOpts, {
+            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=> `${c.label}: ${c.parsed.y} adet` } } }
+          })
         });
       })();
     </script>
   {% else %}
-    <div class="empty">Kategori istatistiği için yeterli veri yok.</div>
+    <div class="empty">Grafik oluşturmak için yeterli veri yok.</div>
   {% endif %}
 </div>
 
