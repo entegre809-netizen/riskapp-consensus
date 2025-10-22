@@ -1,4 +1,5 @@
 # riskapp/ai_local/engine.py
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 import os
 import json
@@ -121,6 +122,44 @@ DEFAULT_PAPER_FACTS: List[Dict[str, Any]] = [
 ]
 
 
+# ============================
+#  Sentence Bank Loader (opsiyonel)
+# ============================
+def _load_sentence_bank(data_dir: str = DATA_DIR) -> List[Dict[str, Any]]:
+    """
+    ai_data/sentences.json beklenen şema:
+      {
+        "category_aliases": { "...": ["..."] , ... },
+        "phrases": { "anahtar": ["cümle1","cümle2", ...], ... }
+      }
+    'phrases' altındaki her cümleyi 'paper_rule' etiketiyle ekleriz (source: SB:<anahtar>).
+    Böylece yeni anahtar/cümle eklendiğinde yeniden build ile aramaya girer.
+    """
+    path = os.path.join(data_dir, "sentences.json")
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f) or {}
+    except Exception:
+        return []
+
+    out: List[Dict[str, Any]] = []
+    next_id = 910000
+    phrases = data.get("phrases") or {}
+    for key, items in phrases.items():
+        for s in items or []:
+            out.append({
+                "id": next_id,
+                "label": "paper_rule",      # arama sırasında paper_rule ile birlikte gelir
+                "source": f"SB:{key}",
+                "text": str(s),
+                "tags": [str(key)]
+            })
+            next_id += 1
+    return out
+
+
 # -------------------------------
 #  Embedding & İndeks Bileşenleri
 # -------------------------------
@@ -224,6 +263,7 @@ class LocalEncoder:
 
     def encode(self, texts: List[str]) -> np.ndarray:
         if self.st_model is not None:
+            # not: batch_size ayarlanabilir (örn. 512) — burada varsayılan kalsın
             vecs = self.st_model.encode(texts, convert_to_numpy=True, normalize_embeddings=False)  # type: ignore[call-arg]
             return vecs.astype("float32")
         if not self.tfidf_fit:
@@ -280,19 +320,29 @@ class AILocal:
         """
         Dışarıdan makale özet/kural kartları eklemek için.
         facts: [{id:int, text:str, label:'paper_rule', ...}]
+        Not: Bu sadece meta'yı günceller; aramada görünmesi için build sırasında
+        rows'a ekle veya yeniden build et.
         """
         for f in facts:
             fid = int(f["id"])
             self.meta[fid] = {k: v for k, v in f.items() if k != "id"}
 
-    def build_from_tables(self, rows: List[Dict[str, Any]], include_paper_facts: bool = True):
+    def build_from_tables(self, rows: List[Dict[str, Any]],
+                          include_paper_facts: bool = True,
+                          include_sentence_bank: bool = True):
         """
         rows: [{id, text, label, ...}]  -> indeks + meta kurar.
         include_paper_facts=True ise DEFAULT_PAPER_FACTS’i de ekler.
+        include_sentence_bank=True ise ai_data/sentences.json’daki cümleleri ekler.
         """
+        rows = list(rows or [])
         if include_paper_facts:
             for f in DEFAULT_PAPER_FACTS:
                 rows.append(f.copy())
+
+        if include_sentence_bank:
+            for f in _load_sentence_bank(DATA_DIR):
+                rows.append(f)
 
         if not rows:
             raise ValueError("İndeks oluşturmak için satır yok.")
@@ -330,30 +380,64 @@ class AILocal:
             })
         return out
 
-    def answer(self, prompt: str, k: int = 5) -> str:
+    def answer(self, prompt: str, k: int = 5, style: str = "full") -> str:
+        """
+        style:
+          - "full": bölümlü detaylı çıktı
+          - "mini": sade 3-5 madde (eko/ayraç yok)
+        """
         hits = self.search(prompt, k=k)
         if not hits:
             return ""
-        # Çıkışı bölümlendir: risk/suggestion/paper_rule
+
+        # Basit label gruplama
         parts = {"risk": [], "suggestion": [], "paper_rule": [], "other": []}
         for h in hits:
             lbl = h.get("label") or "other"
             parts.get(lbl, parts["other"]).append(h)
 
+        if style == "mini":
+            # yalnızca en anlamlı 3-5 madde, tekrarları azaltmak için kısa çeşitlendirme
+            bag: List[str] = []
+            seen: set = set()
+            for grp in ("suggestion", "risk", "paper_rule", "other"):
+                for a in parts[grp]:
+                    t = (a["text"] or "").strip()
+                    tnorm = t.lower()
+                    if not t or tnorm in seen:
+                        continue
+                    seen.add(tnorm)
+                    bag.append(f"- {t}")
+                    if len(bag) >= 5:
+                        break
+                if len(bag) >= 5:
+                    break
+            return "\n".join(bag).strip()
+
+        # full: bölümlü çıktı
         def join_section(title: str, arr: List[Dict[str, Any]]) -> str:
-            if not arr: return ""
-            body = "\n".join([f"- {a['text']}" for a in arr])
+            if not arr:
+                return ""
+            # küçük tekrar azaltma
+            acc, seen = [], set()
+            for a in arr:
+                t = (a["text"] or "").strip()
+                if not t:
+                    continue
+                key = t.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                acc.append(f"- {t}")
+            if not acc:
+                return ""
+            body = "\n".join(acc)
             return f"### {title}\n{body}\n"
 
         sections = []
         sections.append(join_section("Benzer Risk Kayıtları", parts["risk"]))
         sections.append(join_section("İlgili Öneriler", parts["suggestion"]))
         sections.append(join_section("Makalelerden Kurallar", parts["paper_rule"]))
-        body = "\n".join(s for s in sections if s)
+        body = "\n".join([s for s in sections if s])
 
-        return (
-            f"{body}\n"
-            f"---\n"
-            f"Soru: {prompt}\n"
-            f"(Not: Bu çıktı, benzer kayıtlar + makale kuralları birleştirilerek oluşturulmuş bağlamsal yanıttır.)"
-        )
+        return body.strip() if body else ""
