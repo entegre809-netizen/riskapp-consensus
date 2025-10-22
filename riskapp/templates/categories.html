@@ -6,56 +6,188 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/static/style.css" />
   <style>
-    .table-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px}
-    .actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end}
-    details > summary { cursor: pointer; }
-    .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+    /* ==========================================================
+       Kategori Yönetimi · 2026 Modern UI
+       - Aydınlık/Karanlık temayla uyumlu
+       - Yumuşak gölgeler, net kontrast, klavye erişilebilirliği
+       - Sticky tablo başlığı, responsive ızgaralar
+       ========================================================== */
+
+    /* Sistem tercihine saygı (destek için ipucu) */
+    @media (prefers-color-scheme: dark){ :root{ color-scheme: dark } }
+    @media (prefers-color-scheme: light){ :root{ color-scheme: light } }
+
+    /* -------- Yardımcılar -------- */
+    .container{ max-width: 1120px; margin: 18px auto; padding: 0 14px; }
+    .card{
+      background: var(--card, #fff);
+      border: 1px solid var(--line, #e6ebf4);
+      border-radius: 16px;
+      padding: clamp(14px, 2vw, 18px);
+      box-shadow: var(--elev-card, 0 12px 28px rgba(15,23,42,.10));
+      backdrop-filter: var(--glass-blur, saturate(120%) blur(5px));
+    }
+    .subtle{
+      background: color-mix(in oklab, var(--card, #fff) 88%, transparent);
+    }
+
+    .toolbar{
+      display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:.75rem
+    }
+    .toolbar h2{ margin:0; font-weight:900 }
+    .small{ font-size:.9rem; color: var(--text-dim, #556384) }
+
+    .grid{ display:grid; gap:14px }
+    .grid-2{ grid-template-columns: 360px 1fr }
+    @media (max-width: 980px){ .grid-2{ grid-template-columns: 1fr } }
+
+    /* -------- Arama Çubuğu -------- */
+    .searchbar{
+      display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; padding:.4rem;
+      border-radius:12px; background: color-mix(in oklab, var(--card, #fff) 92%, transparent);
+      border:1px solid color-mix(in oklab, var(--line, #e6ebf4) 80%, transparent);
+    }
+    .searchbar .input{ min-width: 260px; flex: 1 1 260px }
+
+    /* -------- Tablo -------- */
+    .table-wrap{ overflow:auto; border-radius:12px; border:1px solid var(--line, #e6ebf4) }
+    .table{ width:100%; border-collapse:separate; border-spacing:0; min-width: 880px; background: transparent }
+    .table th, .table td{
+      padding:.78rem .9rem; border-bottom:1px solid color-mix(in oklab, var(--line, #e6ebf4) 88%, transparent);
+      text-align:left; vertical-align:top; font-size:.98rem;
+    }
+    .table thead th{
+      font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; font-weight:900;
+      color: var(--text-dim, #556384);
+      position: sticky; top: 0; z-index: 1;
+      background: color-mix(in oklab, var(--card, #fff) 96%, transparent);
+      border-bottom:1px solid color-mix(in oklab, var(--line, #e6ebf4) 90%, transparent);
+      backdrop-filter: blur(4px);
+    }
+    .table tbody tr:hover td{
+      background: color-mix(in oklab, var(--primary, #ffd24d) 7%, transparent);
+    }
+
+    /* -------- Buton/rozet ayarlarına küçük dokunuş -------- */
+    .btn{ font-weight:900; }
+    .btn-primary{ box-shadow: 0 10px 20px rgba(255,210,77,.20); }
+    .btn-danger{ background: linear-gradient(180deg, #ff6b6b, #e05656); color:#101828; border-color: transparent }
+
+    .badge{ font-weight:900 }
+    .badge.code{ background:#f5f9ff; color:#10243e; border-color:#d8e6ff }
+    [data-theme="dark"] .badge.code{ background:rgba(255,255,255,.08); color:#eaf0ff; border-color:rgba(255,255,255,.14) }
+
+    /* -------- Renk rozetinde min kenar -------- */
+    .swatch{
+      display:inline-flex; align-items:center; gap:8px; padding:.18rem .55rem; border-radius:999px;
+      border:1px solid color-mix(in oklab, var(--line, #e6ebf4) 80%, transparent);
+      background: color-mix(in oklab, var(--card, #fff) 92%, transparent);
+      font-weight:800; font-size:.9rem;
+    }
+    .swatch-dot{ width:14px; height:14px; border-radius:999px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12) }
+
+    /* -------- İç detay kartı (edit) -------- */
+    details > summary{
+      cursor:pointer; list-style:none; display:inline-flex; align-items:center;
+      padding:.55rem .8rem; border:1px solid color-mix(in oklab, var(--line, #e6ebf4) 80%, transparent);
+      border-radius:12px; background: linear-gradient(180deg, #fff, #f7faff); font-weight:900;
+    }
+    [data-theme="dark"] details > summary{
+      border-color: rgba(255,255,255,.14); background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06)); color:#eaf0ff;
+    }
+    details[open] > summary{ margin-bottom:.5rem }
+
+    .inner-card{
+      border:1px dashed color-mix(in oklab, var(--line, #e6ebf4) 75%, transparent);
+      border-radius:12px; padding:12px; background: color-mix(in oklab, var(--card, #fff) 96%, transparent);
+    }
+
+    .actions{ display:flex; gap:.5rem; flex-wrap:wrap; justify-content:flex-end }
+
+    /* -------- Bildirim/Flash -------- */
+    #flash{
+      display:none; margin:.6rem 0; padding:.8rem 1rem; border-radius:12px; font-weight:800;
+      border:1px solid #dbe6ff; background: linear-gradient(180deg, #f5f9ff, #eef4ff); color:#17223a;
+      transition: opacity .2s ease, transform .2s ease; will-change: opacity, transform;
+    }
+    #flash.show{ display:block; opacity:1; transform: translateY(0) }
+    #flash.hide{ opacity:0; transform: translateY(-4px) }
+    .flash.success{ background:linear-gradient(180deg, #eafff4, #d8ffee); color:#073a2a; border-color:#baffdf }
+    .flash.danger{  background:linear-gradient(180deg, #ffefef, #ffe3e3); color:#5a1c1c; border-color:#ffc9c9 }
+
+    /* -------- Yükleniyor Örtüsü -------- */
+    .loading{
+      position:fixed; inset:0; display:none; place-items:center; z-index:50;
+      background: color-mix(in oklab, var(--bg, #fff) 40%, transparent);
+      backdrop-filter: blur(2px);
+    }
+    .loading.show{ display:grid }
+    .spinner{
+      width:44px; height:44px; border-radius:999px;
+      border:4px solid color-mix(in oklab, var(--line, #e6ebf4) 70%, transparent);
+      border-top-color: var(--primary, #ffd24d);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg) } }
+
+    /* -------- “Yeni Kategori” bölümü daha hafif dursun -------- */
+    .card-lite{
+      background: color-mix(in oklab, var(--card, #fff) 90%, transparent);
+      border-style: dashed;
+    }
   </style>
 </head>
 <body>
+  <div class="loading" id="loading"><div class="spinner" role="status" aria-label="Yükleniyor"></div></div>
+
   <div class="container">
     <div class="card">
       <div class="toolbar">
         <div>
-          <h2 style="margin:0">Kategori Yönetimi</h2>
-          <p class="small" style="margin:.25rem 0 0">Ekle, düzenle, sil; pasif kategoriler listelerde gizlenir.</p>
+          <h2>Kategori Yönetimi</h2>
+          <p class="small" style="margin:.25rem 0 0">Ekle, düzenle, sil; <strong>pasif</strong> kategoriler listelerde gizlenir.</p>
         </div>
         <!-- next=identify ise gösterilecek geri dön butonu -->
         <a id="backToIdentify" href="/identify" class="btn" style="display:none">← Risk Tanımlama’ya dön</a>
       </div>
 
       <!-- bildirim alanı -->
-      <div id="flash" class="flash info" style="display:none"></div>
+      <div id="flash" class="flash info" role="status" aria-live="polite"></div>
 
       <!-- arama -->
-      <form id="searchForm" class="searchbar" style="margin:.5rem 0 1rem">
-        <input class="input" id="q" name="q" placeholder="Ara: ad, kod, açıklama…">
-        <button class="btn" type="submit">Ara</button>
-        <button class="btn" type="button" id="clearSearch">Temizle</button>
+      <form id="searchForm" class="searchbar" autocomplete="off">
+        <input class="input" id="q" name="q" placeholder="Ara: ad, kod, açıklama…" inputmode="search" />
+        <div style="display:flex; gap:.5rem">
+          <button class="btn" type="submit">Ara</button>
+          <button class="btn" type="button" id="clearSearch" title="Aramayı temizle">Temizle</button>
+        </div>
       </form>
 
       <div class="grid grid-2">
         <!-- yeni kategori -->
-        <div class="card" style="background:transparent;border-style:dashed">
+        <div class="card inner card-lite">
           <h3 style="margin:0 0 .5rem">Yeni Kategori</h3>
-          <form id="createForm">
+          <form id="createForm" autocomplete="off">
             <div>
-              <label>Ad</label>
-              <input class="input" name="name" required placeholder="Örn: DİZAYN TASARIM RİSKLERİ">
+              <label>Ad *</label>
+              <input class="input" name="name" required placeholder="Örn: DİZAYN TASARIM RİSKLERİ" maxlength="80">
             </div>
             <div class="grid grid-2" style="margin-top:.5rem">
               <div>
                 <label>Kod</label>
-                <input class="input" name="code" placeholder="Örn: DTR">
+                <input class="input" name="code" placeholder="Örn: DTR" maxlength="16">
               </div>
               <div>
                 <label>Renk</label>
-                <input class="input" type="color" name="color" value="#0ea371">
+                <div style="display:flex; gap:.5rem; align-items:center">
+                  <input class="input" type="color" name="color" value="#0ea371" style="width:64px; padding:0">
+                  <input class="input" type="text" id="colorHex" value="#0ea371" maxlength="9" title="Hex renk kodu (#RRGGBB)">
+                </div>
               </div>
             </div>
             <div style="margin-top:.5rem">
               <label>Açıklama</label>
-              <textarea class="input" name="description" rows="2" placeholder="İsteğe bağlı"></textarea>
+              <textarea class="input" name="description" rows="2" placeholder="İsteğe bağlı" maxlength="240"></textarea>
             </div>
             <div style="margin-top:.6rem;display:flex;justify-content:flex-end;gap:.5rem">
               <button class="btn btn-primary" type="submit">Ekle</button>
@@ -65,17 +197,17 @@
 
         <!-- liste -->
         <div>
-          <div class="table-scroll">
-            <table class="table" style="min-width:820px">
+          <div class="table-wrap">
+            <table class="table">
               <thead>
                 <tr>
-                  <th style="width:48px">#</th>
+                  <th style="width:56px">#</th>
                   <th>Ad</th>
                   <th style="width:120px">Kod</th>
-                  <th style="width:110px">Renk</th>
+                  <th style="width:160px">Renk</th>
                   <th>Açıklama</th>
-                  <th style="width:110px">Durum</th>
-                  <th style="width:220px">İşlem</th>
+                  <th style="width:120px">Durum</th>
+                  <th style="width:240px">İşlem</th>
                 </tr>
               </thead>
               <tbody id="tbodyCats"></tbody>
@@ -87,20 +219,25 @@
   </div>
 
 <script>
-/* ===============================
+/* ==========================================================
    Global state + yardımcılar
-   =============================== */
+   ========================================================== */
 let CATS = [];
 
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
 const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
 const flashEl = $("#flash");
+const loadingEl = $("#loading");
 
-function flash(msg, type="info") {
+function showLoading(on=true){ loadingEl.classList.toggle('show', !!on); }
+function flash(msg, type="info", dur=2200) {
   flashEl.className = `flash ${type}`;
   flashEl.textContent = msg;
-  flashEl.style.display = "block";
-  setTimeout(()=>{ flashEl.style.display="none"; }, 2200);
+  flashEl.classList.remove('hide'); // reset
+  flashEl.classList.add('show');
+  if(dur){
+    setTimeout(()=>{ flashEl.classList.add('hide'); setTimeout(()=>{ flashEl.classList.remove('show'); }, 220); }, dur);
+  }
 }
 function normalize(s){ return (s||"").toString().trim(); }
 function matchQuery(cat, q) {
@@ -108,61 +245,76 @@ function matchQuery(cat, q) {
   const hay = (cat.name + " " + (cat.code||"") + " " + (cat.description||"")).toLowerCase();
   return hay.includes(q.toLowerCase());
 }
-function makeColorBadge(color) {
-  const span = document.createElement("span");
-  span.className = "badge";
-  if (color) {
-    span.style.backgroundColor = String(color).trim();
-    span.style.borderColor = "transparent";
-    span.textContent = color;
-  } else {
-    span.textContent = "—";
-  }
-  return span;
-}
 function getParam(name){
   const url = new URL(window.location.href);
   return url.searchParams.get(name);
 }
 const shouldGoIdentify = ()=> (getParam("next")||"").toLowerCase()==="identify";
 
-/* ===============================
-   API helpers
-   =============================== */
-async function loadCategories(q=""){
-  const url = q ? `/api/categories?q=${encodeURIComponent(q)}` : "/api/categories";
-  const res = await fetch(url);
-  if(!res.ok) throw new Error("Liste alınamadı");
-  CATS = await res.json();
-}
-async function createCategory(fd){
-  const res = await fetch("/api/categories", { method:"POST", body: fd });
-  const j = await res.json().catch(()=>null);
-  if(!res.ok){
-    throw new Error((j && j.error) || "Kaydedilemedi");
-  }
-  return j; // { ok: true, id: ... }
-}
-async function updateCategory(id, fd){
-  const res = await fetch(`/api/categories/${id}`, { method:"PATCH", body: fd });
-  const j = await res.json().catch(()=>null);
-  if(!res.ok){
-    throw new Error((j && j.error) || "Güncellenemedi");
-  }
-  return j;
-}
-async function deleteCategory(id){
-  const res = await fetch(`/api/categories/${id}`, { method:"DELETE" });
-  const j = await res.json().catch(()=>null);
-  if(!res.ok){
-    throw new Error((j && j.error) || "Silinemedi");
-  }
-  return j;
+function makeColorBadge(color) {
+  const wrap = document.createElement("span");
+  wrap.className = "swatch";
+  const dot = document.createElement("span");
+  dot.className = "swatch-dot";
+  dot.style.background = color || "#ddd";
+  const label = document.createElement("span");
+  label.textContent = color || "—";
+  wrap.appendChild(dot);
+  wrap.appendChild(label);
+  return wrap;
 }
 
-/* ===============================
+/* ==========================================================
+   API helpers
+   ========================================================== */
+async function loadCategories(q=""){
+  showLoading(true);
+  try{
+    const url = q ? `/api/categories?q=${encodeURIComponent(q)}` : "/api/categories";
+    const res = await fetch(url, { headers: { "Accept": "application/json" }});
+    if(!res.ok) throw new Error("Liste alınamadı");
+    CATS = await res.json();
+  } finally {
+    showLoading(false);
+  }
+}
+async function createCategory(fd){
+  showLoading(true);
+  try{
+    const res = await fetch("/api/categories", { method:"POST", body: fd });
+    const j = await res.json().catch(()=>null);
+    if(!res.ok){ throw new Error((j && j.error) || "Kaydedilemedi"); }
+    return j;
+  } finally {
+    showLoading(false);
+  }
+}
+async function updateCategory(id, fd){
+  showLoading(true);
+  try{
+    const res = await fetch(`/api/categories/${id}`, { method:"PATCH", body: fd });
+    const j = await res.json().catch(()=>null);
+    if(!res.ok){ throw new Error((j && j.error) || "Güncellenemedi"); }
+    return j;
+  } finally {
+    showLoading(false);
+  }
+}
+async function deleteCategory(id){
+  showLoading(true);
+  try{
+    const res = await fetch(`/api/categories/${id}`, { method:"DELETE" });
+    const j = await res.json().catch(()=>null);
+    if(!res.ok){ throw new Error((j && j.error) || "Silinemedi"); }
+    return j;
+  } finally {
+    showLoading(false);
+  }
+}
+
+/* ==========================================================
    RENDER
-   =============================== */
+   ========================================================== */
 function renderTable() {
   const q = normalize($("#q").value);
   const tbody = $("#tbodyCats");
@@ -172,7 +324,7 @@ function renderTable() {
     .slice()
     .sort((a,b)=>{
       if (a.is_active !== b.is_active) return (a.is_active ? -1 : 1); // aktifler önce
-      return a.name.localeCompare(b.name, "tr");
+      return a.name.localeCompare(b.name || "", "tr");
     })
     .filter(c => matchQuery(c, q));
 
@@ -180,7 +332,9 @@ function renderTable() {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 7;
-    td.textContent = "Kategori yok.";
+    td.className = "small";
+    td.style.textAlign = "center";
+    td.textContent = "Kategori bulunamadı.";
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
@@ -191,19 +345,20 @@ function renderTable() {
 
     // id
     const tdId = document.createElement("td");
+    tdId.style.fontWeight = "800";
     tdId.textContent = String(c.id);
     tr.appendChild(tdId);
 
     // ad
     const tdName = document.createElement("td");
-    tdName.style.fontWeight = "800";
+    tdName.style.fontWeight = "900";
     tdName.textContent = c.name || "";
     tr.appendChild(tdName);
 
     // kod
     const tdCode = document.createElement("td");
     const badgeCode = document.createElement("span");
-    badgeCode.className = "badge";
+    badgeCode.className = "badge code";
     badgeCode.textContent = c.code || "—";
     tdCode.appendChild(badgeCode);
     tr.appendChild(tdCode);
@@ -231,13 +386,11 @@ function renderTable() {
     const tdActions = document.createElement("td");
     const details = document.createElement("details");
     const summary = document.createElement("summary");
-    summary.className = "btn";
     summary.textContent = "Düzenle";
     details.appendChild(summary);
 
-    const innerCard = document.createElement("div");
-    innerCard.className = "card";
-    innerCard.style.marginTop = ".5rem";
+    const inner = document.createElement("div");
+    inner.className = "inner-card";
 
     // edit form
     const form = document.createElement("form");
@@ -247,14 +400,14 @@ function renderTable() {
     const g1 = document.createElement("div");
     g1.style.gridColumn = "1 / -1";
     const labName = document.createElement("label");
-    labName.textContent = "Ad";
+    labName.textContent = "Ad *";
     const inpName = document.createElement("input");
     inpName.className = "input";
     inpName.name = "name";
     inpName.required = true;
     inpName.value = c.name || "";
-    g1.appendChild(labName);
-    g1.appendChild(inpName);
+    inpName.maxLength = 80;
+    g1.appendChild(labName); g1.appendChild(inpName);
 
     const g2 = document.createElement("div");
     const labCode = document.createElement("label");
@@ -263,19 +416,29 @@ function renderTable() {
     inpCode.className = "input";
     inpCode.name = "code";
     inpCode.value = c.code || "";
-    g2.appendChild(labCode);
-    g2.appendChild(inpCode);
+    inpCode.maxLength = 16;
+    g2.appendChild(labCode); g2.appendChild(inpCode);
 
     const g3 = document.createElement("div");
     const labColor = document.createElement("label");
     labColor.textContent = "Renk";
+    const rowColor = document.createElement("div");
+    rowColor.style.display = "flex"; rowColor.style.gap = ".5rem"; rowColor.style.alignItems = "center";
     const inpColor = document.createElement("input");
     inpColor.className = "input";
     inpColor.type = "color";
     inpColor.name = "color";
     inpColor.value = c.color || "#0ea371";
-    g3.appendChild(labColor);
-    g3.appendChild(inpColor);
+    inpColor.style.width = "64px"; inpColor.style.padding = "0";
+    const inpHex = document.createElement("input");
+    inpHex.className = "input";
+    inpHex.type = "text"; inpHex.value = c.color || "#0ea371"; inpHex.maxLength = 9;
+    rowColor.appendChild(inpColor); rowColor.appendChild(inpHex);
+    g3.appendChild(labColor); g3.appendChild(rowColor);
+
+    // hex <-> color senkronu
+    inpColor.addEventListener("input", ()=>{ inpHex.value = inpColor.value; });
+    inpHex.addEventListener("input", ()=>{ if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(inpHex.value)) inpColor.value = inpHex.value; });
 
     const g4 = document.createElement("div");
     g4.style.gridColumn = "1 / -1";
@@ -285,67 +448,52 @@ function renderTable() {
     txtDesc.className = "input";
     txtDesc.name = "description";
     txtDesc.rows = 2;
+    txtDesc.maxLength = 240;
     txtDesc.value = c.description || "";
-    g4.appendChild(labDesc);
-    g4.appendChild(txtDesc);
+    g4.appendChild(labDesc); g4.appendChild(txtDesc);
 
     const g5 = document.createElement("div");
-    g5.style.display = "flex";
-    g5.style.alignItems = "center";
-    g5.style.gap = ".4rem";
+    g5.style.display = "flex"; g5.style.alignItems = "center"; g5.style.gap = ".4rem";
     const chk = document.createElement("input");
-    chk.type = "checkbox";
-    chk.id = "ia_" + c.id;
-    chk.name = "is_active";
-    chk.checked = !!c.is_active;
+    chk.type = "checkbox"; chk.id = "ia_" + c.id; chk.name = "is_active"; chk.checked = !!c.is_active;
     const lbl = document.createElement("label");
-    lbl.htmlFor = chk.id;
-    lbl.style.margin = "0";
-    lbl.textContent = "Aktif";
-    g5.appendChild(chk);
-    g5.appendChild(lbl);
+    lbl.htmlFor = chk.id; lbl.style.margin = "0"; lbl.textContent = "Aktif";
+    g5.appendChild(chk); g5.appendChild(lbl);
 
     const g6 = document.createElement("div");
-    g6.style.gridColumn = "1 / -1";
-    g6.className = "actions";
+    g6.style.gridColumn = "1 / -1"; g6.className = "actions";
     const btnSave = document.createElement("button");
-    btnSave.className = "btn btn-primary";
-    btnSave.type = "submit";
-    btnSave.textContent = "Kaydet";
+    btnSave.className = "btn btn-primary"; btnSave.type = "submit"; btnSave.textContent = "Kaydet";
     g6.appendChild(btnSave);
 
-    form.appendChild(g1);
-    form.appendChild(g2);
-    form.appendChild(g3);
-    form.appendChild(g4);
-    form.appendChild(g5);
-    form.appendChild(g6);
+    form.appendChild(g1); form.appendChild(g2); form.appendChild(g3);
+    form.appendChild(g4); form.appendChild(g5); form.appendChild(g6);
 
     // delete form
     const delForm = document.createElement("form");
-    delForm.className = "js-delete actions";
-    delForm.dataset.id = String(c.id);
+    delForm.className = "js-delete actions"; delForm.dataset.id = String(c.id);
     delForm.style.marginTop = ".5rem";
     const btnDel = document.createElement("button");
-    btnDel.className = "btn btn-danger";
-    btnDel.type = "submit";
-    btnDel.textContent = "Sil";
+    btnDel.className = "btn btn-danger"; btnDel.type = "submit"; btnDel.textContent = "Sil";
     delForm.appendChild(btnDel);
 
-    innerCard.appendChild(form);
-    innerCard.appendChild(delForm);
-    details.appendChild(innerCard);
+    inner.appendChild(form);
+    inner.appendChild(delForm);
+    details.appendChild(inner);
 
     tdActions.appendChild(details);
     tr.appendChild(tdActions);
-
     tbody.appendChild(tr);
   }
 }
 
-/* ===============================
+/* ==========================================================
    OLAYLAR
-   =============================== */
+   ========================================================== */
+function debounce(fn, t=250){
+  let h; return (...args)=>{ clearTimeout(h); h=setTimeout(()=>fn(...args), t); }
+}
+
 // Arama
 $("#searchForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -354,6 +502,12 @@ $("#searchForm").addEventListener("submit", async (e)=>{
     renderTable();
   }catch(err){ flash(err.message || "Kategoriler alınamadı","danger"); }
 });
+$("#q").addEventListener("input", debounce(async ()=>{
+  try{
+    await loadCategories(normalize($("#q").value));
+    renderTable();
+  }catch(err){ /* sessiz */ }
+}, 300));
 $("#clearSearch").addEventListener("click", async ()=>{
   $("#q").value = "";
   try{
@@ -366,10 +520,17 @@ $("#clearSearch").addEventListener("click", async ()=>{
 $("#createForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const fd = new FormData(e.target);
-  if(!normalize(fd.get("name"))){ flash("Kategori adı zorunlu.","danger"); return; }
+  const name = normalize(fd.get("name"));
+  let color = normalize(fd.get("color")) || "#0ea371";
+  const hexInput = $("#colorHex");
+  if (hexInput && normalize(hexInput.value)) color = hexInput.value;
+  fd.set("color", color);
+
+  if(!name){ flash("Kategori adı zorunlu.","danger"); return; }
   try{
     await createCategory(fd);
     e.target.reset();
+    $("#colorHex").value = "#0ea371";
     if (shouldGoIdentify()){
       flash("Kategori eklendi, yönlendiriliyor…","success");
       window.location.href = "/identify";
@@ -388,9 +549,16 @@ document.addEventListener("submit", async (e)=>{
     e.preventDefault();
     const id = Number(editForm.dataset.id);
     const fd = new FormData(editForm);
+
     if(!normalize(fd.get("name"))){ flash("Ad zorunlu.","danger"); return; }
     // checkbox işaretli değilse formda hiç gelmez; backend false anlasın diye boş değer geçelim
     if(!fd.get("is_active")) fd.set("is_active", "");
+
+    // color hex senkronunu güvene al
+    const hex = editForm.querySelector('input[type="text"]');
+    const col = editForm.querySelector('input[type="color"]');
+    if (hex && col && normalize(hex.value)) fd.set("color", hex.value);
+
     try{
       await updateCategory(id, fd);
       if (shouldGoIdentify()){
@@ -424,23 +592,20 @@ document.addEventListener("submit", async (e)=>{
   }
 });
 
-// İlk yükleme
+/* ==========================================================
+   İlk yükleme
+   ========================================================== */
 (async function init(){
-  // URL parametrelerinden q ve next
   const url = new URL(window.location.href);
   const qParam = url.searchParams.get("q") || "";
   const nextParam = (url.searchParams.get("next") || "").toLowerCase();
 
-  // arama kutusunu doldur
   $("#q").value = qParam;
 
   // geri dön butonu görünürlüğü
-  if (nextParam === "identify") {
-    $("#backToIdentify").style.display = "inline-flex";
-  }
+  if (nextParam === "identify") { $("#backToIdentify").style.display = "inline-flex"; }
 
   try{
-    // q parametresine göre ilk liste
     await loadCategories(qParam);
     renderTable();
   }catch(err){
