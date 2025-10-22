@@ -2375,12 +2375,12 @@ def create_app():
             # Zorunlu alan kontrolü
             if not all([name, email, password, workplace_name, workplace_address]):
                 flash("Lütfen zorunlu alanları doldurun.", "danger")
-                return render_template("setup_step1.html", form=request.form)
+                return render_template("setup_step1.html", form=request.form, hide_nav=True)
 
             # E-posta tekillik kontrolü
             if Account.query.filter_by(email=email).first():
                 flash("Bu e-posta adresi zaten kayıtlı, lütfen giriş yapın.", "danger")
-                return render_template("setup_step1.html", form=request.form)
+                return render_template("setup_step1.html", form=request.form, hide_nav=True)
 
             # İlk kullanıcı admin + active (bootstrap), diğerleri uzman + pending
             first_user = (Account.query.count() == 0)
@@ -2435,8 +2435,7 @@ def create_app():
                 return redirect(url_for("login"))
 
         # GET
-        return render_template("setup_step1.html")
-
+        return render_template("setup_step1.html", hide_nav=True)
 
     # -------------------------------------------------
     #  AYARLAR — Hesap ve Proje

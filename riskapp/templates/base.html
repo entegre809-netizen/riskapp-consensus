@@ -387,19 +387,21 @@
     }
 
     /* ===========================
-       AUTH SAYFALARI (login/register)
+       AUTH/HIDE_NAV (login/register veya menüsüz sayfa)
        =========================== */
     .layout.auth{ grid-template-columns:1fr !important; }
     .auth .sidebar{ display:none !important; }
     .auth #sidebarToggle{ display:none !important; } /* Üst bardaki ☰ de gizlensin */
   </style>
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{{ 'auth' if hide_nav }}{% endblock %}">
 
 <div class="shell">
   <!-- ÜST BAR -->
   <header class="topbar noprint">
-    <button class="btn-icon" id="sidebarToggle" aria-label="Menüyü Aç/Kapat">☰</button>
+    {% if not hide_nav %}
+      <button class="btn-icon" id="sidebarToggle" aria-label="Menüyü Aç/Kapat">☰</button>
+    {% endif %}
     <div class="brand">⚠️ Risk Yönetimi</div>
     <div class="spacer"></div>
 
@@ -412,9 +414,10 @@
     </button>
   </header>
 
-  <div class="layout {% block layout_class %}{% endblock %}">
+  <div class="layout {% block layout_class %}{{ 'auth' if hide_nav }}{% endblock %}">
     <!-- SOL MENÜ -->
     {% block sidebar %}
+    {% if not hide_nav %}
     <aside class="sidebar" id="sidebar">
       <!-- Proje Seçici (varsa) -->
       {% if session.get('account_id') %}
@@ -477,6 +480,7 @@
         </nav>
       </div>
     </aside>
+    {% endif %}
     {% endblock %}
 
     <!-- ANA İÇERİK -->
@@ -503,15 +507,16 @@
 (function(){
   const KEY = 'riskapp.theme';
   const root = document.documentElement;
-  const btnTheme = () => document.getElementById('themeToggle');
+  const getBtnTheme = () => document.getElementById('themeToggle');
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
 
   function applyTheme(t){
     root.setAttribute('data-theme', t);
     try{ localStorage.setItem(KEY, t); }catch(e){}
-    if (btnTheme()){
-      btnTheme().textContent = (t === 'light') ? '🌙 Koyu Tema' : '🌞 Açık Tema';
+    const btn = getBtnTheme();
+    if (btn){
+      btn.textContent = (t === 'light') ? '🌙 Koyu Tema' : '🌞 Açık Tema';
     }
   }
 
@@ -525,18 +530,18 @@
     applyTheme(current === 'light' ? 'dark' : 'light');
   };
 
-  // Mobil sidebar toggle
-  if (sidebarToggle){
+  // Mobil sidebar toggle (hide_nav=False iken)
+  if (sidebarToggle && sidebar){
     sidebarToggle.addEventListener('click', () => {
       sidebar.classList.toggle('open');
     });
+    // Sidebar dışına tıklayınca kapat (mobil)
+    document.addEventListener('click', (e)=>{
+      if (!sidebar.classList.contains('open')) return;
+      const within = sidebar.contains(e.target) || sidebarToggle.contains(e.target);
+      if (!within) sidebar.classList.remove('open');
+    });
   }
-  // Sidebar dışına tıklayınca kapat (mobil)
-  document.addEventListener('click', (e)=>{
-    if (!sidebar || !sidebar.classList.contains('open')) return;
-    const within = sidebar.contains(e.target) || (sidebarToggle && sidebarToggle.contains(e.target));
-    if (!within) sidebar.classList.remove('open');
-  });
 
   // Değerlendirme / RPN panellerini koyu temada auto-mark (beyaz fix)
   function markAssessmentsPanel(){
