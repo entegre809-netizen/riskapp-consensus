@@ -1,170 +1,287 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="light">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Giriş</title>
+
+  <!-- Ana tasarım dosyan -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
   <style>
-    /* Hafif dokunuşlar: mevcut temayı bozmadan */
-    .card { padding: 1.25rem; }
-    .field { display:flex; flex-direction:column; gap:.4rem; margin-bottom:.8rem; }
-    .input-group { display:flex; gap:.5rem; align-items:stretch; }
-    .input-group .input { flex:1; }
-    .muted { opacity:.8; font-size:.9em; }
-    .tiny { font-size:.85em; }
-    .error { color: var(--danger, #b00020); }
-    .is-invalid { border-color: var(--danger, #b00020) !important; box-shadow: 0 0 0 .12rem rgba(176,0,32,.15); }
-    .btn-ghost { background: transparent; border:1px solid var(--border, #ddd); }
-    .actions { margin-top:12px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:center; }
+    /* ——— Login’e özel hafif stil: mevcut tema tokenlarını kullanır ——— */
+    :root{ --login-max: 440px }
+
+    body{
+      min-height: 100dvh;
+      display:grid;
+      place-items:center;
+      padding: 24px 16px;
+    }
+
+    .login-wrap{
+      width:100%;
+      max-width: var(--login-max);
+    }
+
+    .card{
+      padding: clamp(16px, 3.2vw, 24px);
+      border-radius: var(--radius, 14px);
+      background: var(--card, #fff);
+      border: 1px solid var(--line, #e6ebf4);
+      box-shadow: var(--elev-card, 0 12px 28px rgba(15,23,42,.08));
+      backdrop-filter: var(--glass-blur, none);
+    }
+
+    .card h1{
+      margin:.25rem 0 .85rem;
+      font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+      font-weight: 900;
+      letter-spacing: .01em;
+    }
+
+    .desc{
+      margin:-.35rem 0 1rem;
+      color: var(--muted, #556384);
+      font-size: .95rem;
+    }
+
+    .field{ display:flex; flex-direction:column; gap:.45rem; margin-bottom:.9rem }
+    .input-group{ display:flex; gap:.5rem; align-items:stretch }
+    .input-group .input{ flex:1 }
+
+    .muted{ opacity:.9; color: var(--muted, #6b7280) }
+    .tiny{ font-size:.85rem }
+    .error{ color: var(--danger, #b00020) }
+
+    .is-invalid{
+      border-color: var(--danger, #b00020) !important;
+      box-shadow: 0 0 0 .12rem color-mix(in oklab, var(--danger, #b00020) 20%, transparent);
+    }
+
+    .btn-ghost{
+      background: transparent;
+      border:1px solid color-mix(in oklab, currentColor 20%, transparent);
+      color: inherit;
+      padding: .66rem .8rem;
+      border-radius:12px;
+      line-height:1;
+    }
+
+    .actions{
+      margin-top:12px;
+      display:flex; flex-wrap:wrap; gap:8px;
+      align-items:center; justify-content:space-between;
+    }
+
+    /* Yardım/hata metni hizası */
+    .help-row{
+      display:flex; gap:8px; align-items:flex-start; justify-content:space-between;
+    }
+
+    /* Küçük marka / telif */
+    .foot{
+      margin-top: .9rem;
+      text-align:center;
+      color: var(--muted, #6b7692);
+      font-size: .85rem;
+    }
   </style>
 </head>
 <body>
-  <div class="container" style="max-width:420px">
-    <div class="card" role="form" aria-labelledby="loginTitle">
-      <h2 id="loginTitle">Giriş</h2>
+  <main class="login-wrap">
+    <section class="card" role="form" aria-labelledby="loginTitle">
+      <h1 id="loginTitle">Giriş</h1>
+      <p class="desc">Hesabınıza erişmek için e-posta ve şifrenizi girin.</p>
 
       {# Flash mesajları #}
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for cat, msg in messages %}
-            <div class="flash {{cat}}" role="alert">{{ msg }}</div>
+            <div class="flash {{cat}}" role="alert" aria-live="polite">{{ msg }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}
 
       <form id="loginForm" method="post" novalidate>
-        {# Flask-WTF kullanıyorsan CSRF'i enjekte et #}
         {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
 
+        <!-- E-posta -->
         <div class="field">
           <label for="email">E-posta</label>
-          <input class="input" id="email" type="email" name="email"
-                 placeholder="ornek@firma.com"
-                 value="{{ (email or '')|trim|e }}"
-                 required inputmode="email" autocomplete="email" maxlength="120"
-                 aria-invalid="false" aria-describedby="emailHelp">
-          <small id="emailHelp" class="muted tiny">Kurumsal e-postanızı girin (boşluk/emoji kabul edilmez).</small>
+          <input
+            class="input"
+            id="email"
+            type="email"
+            name="email"
+            placeholder="ornek@firma.com"
+            value="{{ (email or '')|trim|e }}"
+            required
+            inputmode="email"
+            autocomplete="email"
+            maxlength="120"
+            aria-describedby="emailHelp emailErr"
+            aria-invalid="false"
+          >
+          <div class="help-row">
+            <small id="emailHelp" class="muted tiny">Kurumsal e-postanızı girin (boşluk/emoji kabul edilmez).</small>
+            <small id="emailErr" class="tiny error" hidden>E-posta formatı hatalı.</small>
+          </div>
         </div>
 
+        <!-- Şifre -->
         <div class="field">
           <label for="password">Şifre</label>
           <div class="input-group">
-            <input class="input" id="password" type="password" name="password"
-                   placeholder="••••••••" required minlength="8" maxlength="128"
-                   autocomplete="current-password"
-                   pattern="^(?=.*[A-Za-z])(?=.*\d).{8,128}$"
-                   title="En az bir harf ve bir rakam içermelidir."
-                   aria-invalid="false" aria-describedby="pwdHelp">
-            <button class="btn btn-ghost" type="button" id="togglePwd" aria-controls="password" aria-pressed="false">Göster</button>
+            <input
+              class="input"
+              id="password"
+              type="password"
+              name="password"
+              placeholder="••••••••"
+              required
+              minlength="8"
+              maxlength="128"
+              autocomplete="current-password"
+              pattern="^(?=.*[A-Za-z])(?=.*\d).{8,128}$"
+              title="En az bir harf ve bir rakam içermelidir."
+              aria-describedby="pwdHelp pwdErr"
+              aria-invalid="false"
+            >
+            <button class="btn btn-ghost" type="button" id="togglePwd" aria-controls="password" aria-pressed="false" aria-label="Şifreyi göster/gizle">Göster</button>
           </div>
-          <small id="pwdHelp" class="muted tiny">En az 8 karakter, harf + rakam önerilir.</small>
+          <div class="help-row">
+            <small id="pwdHelp" class="muted tiny">En az 8 karakter, harf + rakam önerilir.</small>
+            <small id="pwdErr" class="tiny error" hidden>Şifre kurala uymuyor.</small>
+          </div>
         </div>
 
-        <!-- YENİ: Referans Kodu -->
+        <!-- Referans Kodu (opsiyonel) -->
         <div class="field">
-          <label for="ref_code">Referans Kodu</label>
-          <input class="input" id="ref_code" type="text" name="ref_code"
-                 placeholder="PRJ-2025-123456"
-                 value="{{ (ref_code or '')|trim|e }}"
-                 inputmode="text" maxlength="32" autocomplete="one-time-code"
-                 aria-invalid="false" aria-describedby="refHelp">
+          <label for="ref_code">Referans Kodu <span class="muted tiny">(opsiyonel)</span></label>
+          <input
+            class="input"
+            id="ref_code"
+            type="text"
+            name="ref_code"
+            placeholder="PRJ-2025-123456"
+            value="{{ (ref_code or '')|trim|e }}"
+            inputmode="text"
+            maxlength="32"
+            autocomplete="one-time-code"
+            aria-describedby="refHelp"
+          >
           <small id="refHelp" class="muted tiny">Admin’in atadığı kod. İlk/tek admin için gerekmez.</small>
         </div>
 
-        <div class="field" style="margin-top:.2rem; margin-bottom:.2rem;">
-          <label style="display:flex; align-items:center; gap:.5rem;" for="remember">
+        <!-- Remember me -->
+        <div class="field" style="margin:.2rem 0;">
+          <label for="remember" style="display:flex; align-items:center; gap:.55rem;">
             <input id="remember" name="remember" type="checkbox" {% if remember %}checked{% endif %}>
             <span>Beni hatırla</span>
           </label>
         </div>
 
+        <!-- CTA’lar -->
         <div class="actions">
-          <a class="btn" href="{{ url_for('setup_step1') }}">Hesabın yok mu? Kayıt ol</a>
-          <a class="btn" href="{{ url_for('forgot_password') }}">Şifremi unuttum</a>
-          <button class="btn btn-primary" id="submitBtn" type="submit" style="margin-left:auto">Giriş yap</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="btn" href="{{ url_for('setup_step1') }}">Kayıt ol</a>
+            <a class="btn" href="{{ url_for('forgot_password') }}">Şifremi unuttum</a>
+          </div>
+          <button class="btn btn-primary" id="submitBtn" type="submit">Giriş yap</button>
         </div>
       </form>
 
-      <p class="tiny muted" style="margin-top:.75rem">Girişte sorun mu yaşıyorsun? <a href="mailto:support@ornek.com">support@ornek.com</a></p>
-    </div>
-  </div>
+      <p class="foot">Girişte sorun mu var? <a href="mailto:support@ornek.com">support@ornek.com</a></p>
+    </section>
+  </main>
 
   <script>
-    (function () {
-      const form = document.getElementById('loginForm');
-      const btn = document.getElementById('submitBtn');
-      const email = document.getElementById('email');
-      const pwd = document.getElementById('password');
-      const ref = document.getElementById('ref_code');
-      const togglePwd = document.getElementById('togglePwd');
+  (function () {
+    const form = document.getElementById('loginForm');
+    const btn = document.getElementById('submitBtn');
+    const email = document.getElementById('email');
+    const pwd = document.getElementById('password');
+    const ref = document.getElementById('ref_code');
+    const togglePwd = document.getElementById('togglePwd');
 
-      // Trim + geçersiz karakter temizleme (email için boşluk/emoji yok)
-      function stripEmojis(s){ return s.replace(/\p{Extended_Pictographic}/gu, ''); }
-      function cleanEmail(v){ return stripEmojis(v).replace(/\s+/g,''); }
-      function cleanPassword(v){ return stripEmojis(v); }
+    const emailErr = document.getElementById('emailErr');
+    const pwdErr = document.getElementById('pwdErr');
 
-      email.addEventListener('input', () => {
-        const before = email.value;
-        const after = cleanEmail(before);
-        if (after !== before) {
-          const pos = email.selectionStart;
-          email.value = after;
-          if (typeof pos === 'number') email.setSelectionRange(pos - (before.length - after.length), pos - (before.length - after.length));
-        }
-        email.classList.toggle('is-invalid', !email.checkValidity());
+    // Metin temizleme — emoji/boşluk sil
+    const stripEmojis = (s) => s.replace(/\p{Extended_Pictographic}/gu, '');
+    const cleanEmail = (v) => stripEmojis(v).replace(/\s+/g,'');
+    const cleanPassword = (v) => stripEmojis(v);
+
+    // caret pozisyonunu koruyarak alanı güncelle
+    function replaceKeepingCaret(input, next){
+      const before = input.value;
+      if (before === next) return;
+      const delta = before.length - next.length;
+      const pos = input.selectionStart;
+      input.value = next;
+      if (typeof pos === 'number') input.setSelectionRange(pos - delta, pos - delta);
+    }
+
+    // E-posta doğrulama
+    email.addEventListener('input', () => {
+      replaceKeepingCaret(email, cleanEmail(email.value));
+      const valid = email.checkValidity();
+      email.classList.toggle('is-invalid', !valid);
+      email.setAttribute('aria-invalid', String(!valid));
+      emailErr.hidden = valid;
+    });
+
+    // Şifre doğrulama
+    pwd.addEventListener('input', () => {
+      replaceKeepingCaret(pwd, cleanPassword(pwd.value));
+      const valid = pwd.checkValidity();
+      pwd.classList.toggle('is-invalid', !valid);
+      pwd.setAttribute('aria-invalid', String(!valid));
+      pwdErr.hidden = valid;
+    });
+
+    // Ref code: otomatik UPPERCASE + boşlukları kaldır
+    if (ref){
+      ref.addEventListener('input', () => {
+        const next = ref.value.toUpperCase().replace(/\s+/g,'');
+        replaceKeepingCaret(ref, next);
       });
+    }
 
-      pwd.addEventListener('input', () => {
-        const before = pwd.value;
-        const after = cleanPassword(before);
-        if (after !== before) {
-          const pos = pwd.selectionStart;
-          pwd.value = after;
-          if (typeof pos === 'number') pwd.setSelectionRange(pos - (before.length - after.length), pos - (before.length - after.length));
-        }
-        pwd.classList.toggle('is-invalid', !pwd.checkValidity());
+    // Şifre göster/gizle
+    if (togglePwd){
+      togglePwd.addEventListener('click', () => {
+        const isText = pwd.type === 'text';
+        pwd.type = isText ? 'password' : 'text';
+        togglePwd.textContent = isText ? 'Göster' : 'Gizle';
+        togglePwd.setAttribute('aria-pressed', String(!isText));
+        pwd.focus();
       });
+    }
 
-      // YENİ: ref_code otomatik UPPERCASE + boşluk sil
-      if (ref) {
-        ref.addEventListener('input', () => {
-          const before = ref.value;
-          const after = before.toUpperCase().replace(/\s+/g,'');
-          if (after !== before) {
-            const pos = ref.selectionStart;
-            ref.value = after;
-            if (typeof pos === 'number') ref.setSelectionRange(pos - (before.length - after.length), pos - (before.length - after.length));
-          }
+    // Submit — çift tık kilidi + alan bazlı hata odaklama
+    form.addEventListener('submit', (e) => {
+      const allValid = form.checkValidity();
+      if (!allValid){
+        e.preventDefault();
+        [email, pwd].forEach(el => {
+          const valid = el.checkValidity();
+          el.classList.toggle('is-invalid', !valid);
+          el.setAttribute('aria-invalid', String(!valid));
+          (el.id === 'email' ? emailErr : pwdErr).hidden = valid;
         });
+        const firstInvalid = form.querySelector('.is-invalid');
+        (firstInvalid || email).focus();
+        return;
       }
+      btn.disabled = true;
+      btn.textContent = 'Gönderiliyor...';
+    });
 
-      // Şifre göster/gizle
-      if (togglePwd) {
-        togglePwd.addEventListener('click', () => {
-          const isText = pwd.type === 'text';
-          pwd.type = isText ? 'password' : 'text';
-          togglePwd.textContent = isText ? 'Göster' : 'Gizle';
-          togglePwd.setAttribute('aria-pressed', String(!isText));
-          pwd.focus();
-        });
-      }
-
-      // Enter ile submit çalışsın; çift tık engeli + basit doğrulama
-      form.addEventListener('submit', (e) => {
-        if (!form.checkValidity()) {
-          e.preventDefault();
-          [email, pwd].forEach(el => el.classList.toggle('is-invalid', !el.checkValidity()));
-          (form.querySelector('.is-invalid') || email).focus();
-          return;
-        }
-        btn.disabled = true;
-        btn.textContent = 'Gönderiliyor...';
-      });
-
-      // İlk odak email alanında
-      if (!email.value) email.focus();
-    })();
+    // İlk odak: e-posta; doluysa şifre
+    if (!email.value) email.focus(); else pwd.focus();
+  })();
   </script>
 </body>
 </html>
