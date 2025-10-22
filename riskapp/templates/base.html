@@ -106,9 +106,7 @@
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
-    /* ==========
-       Reset/Global
-       ========== */
+    /* ========== Reset/Global ========== */
     *{ box-sizing:border-box }
     html,body{
       margin:0; padding:0;
@@ -136,9 +134,7 @@
 
     img{ max-width:100%; height:auto; border-radius: 10px }
 
-    /* ==========
-       Yerleşim
-       ========== */
+    /* ========== Yerleşim ========== */
     .shell{
       display:grid;
       grid-template-rows: auto 1fr;
@@ -389,9 +385,16 @@
       .btn, .input, select.input, textarea.input, .panel, .menu a{ border-width:2px }
       .menu a.active{ outline: 3px solid color-mix(in oklab, var(--ring) 40%, transparent) }
     }
+
+    /* ===========================
+       AUTH SAYFALARI (login/register)
+       =========================== */
+    .layout.auth{ grid-template-columns:1fr !important; }
+    .auth .sidebar{ display:none !important; }
+    .auth #sidebarToggle{ display:none !important; } /* Üst bardaki ☰ de gizlensin */
   </style>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
 <div class="shell">
   <!-- ÜST BAR -->
@@ -409,8 +412,9 @@
     </button>
   </header>
 
-  <div class="layout">
+  <div class="layout {% block layout_class %}{% endblock %}">
     <!-- SOL MENÜ -->
+    {% block sidebar %}
     <aside class="sidebar" id="sidebar">
       <!-- Proje Seçici (varsa) -->
       {% if session.get('account_id') %}
@@ -473,6 +477,7 @@
         </nav>
       </div>
     </aside>
+    {% endblock %}
 
     <!-- ANA İÇERİK -->
     <main class="main">
@@ -528,7 +533,7 @@
   }
   // Sidebar dışına tıklayınca kapat (mobil)
   document.addEventListener('click', (e)=>{
-    if (!sidebar.classList.contains('open')) return;
+    if (!sidebar || !sidebar.classList.contains('open')) return;
     const within = sidebar.contains(e.target) || (sidebarToggle && sidebarToggle.contains(e.target));
     if (!within) sidebar.classList.remove('open');
   });
