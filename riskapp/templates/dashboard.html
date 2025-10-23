@@ -157,6 +157,89 @@
   /* ----- Hızlı işlemler ----- */
   .quick-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap }
   .quick-actions .btns{ display:flex; flex-wrap:wrap; gap:8px }
+
+
+  /* =========================================================
+     Dashboard Compact Overrides (taşma azaltıcı)
+     - Küçük ekran/laptoplarda daha sıkı gözüksün
+     - Standart kuralları override eder
+     ========================================================= */
+
+  /* 1) Taban tipografi ve aralık: ekran boyuna göre akışkan */
+  :root{
+    --base-font: clamp(13.5px, 1.05vw, 15px);
+    font-size: var(--base-font);
+  }
+
+  /* 2) KPI’ler: daha sıkı grid + daha az padding */
+  .kpis{ gap:10px; margin-bottom:10px; }
+  .kpi{
+    padding:10px 12px;
+    border-radius:12px;
+  }
+  .kpi .label{ font-size:.85rem; }
+  .kpi .value{ font-size:1.14rem; }
+
+  /* breakpoint’leri biraz daha erken daralt */
+  @media (max-width: 1280px){ .kpis{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+  @media (max-width: 960px){  .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 520px){  .kpis{ grid-template-columns: 1fr; } }
+
+  /* 3) Kartlar: daha az padding + radius */
+  .card{
+    padding:12px;
+    border-radius:12px;
+  }
+
+  /* 4) Genel grid boşlukları kıs */
+  .grid{ gap:10px }
+  .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+  @media (max-width: 960px){ .grid-2{ grid-template-columns: 1fr } }
+
+  /* 5) Risk Matrisi: sol başlık sütunu ve hücre yüksekliği küçültülür */
+  .risk-matrix{
+    grid-template-columns: clamp(110px, 16vw, 140px) repeat(5, 1fr);
+    grid-auto-rows: clamp(56px, 9vw, 68px);
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .rm-colhead,.rm-rowhead{
+    padding:8px 10px;
+    border-radius:10px;
+  }
+  .rm-cell{
+    padding:4px;
+    border-width:1.5px;
+    border-radius:10px;
+  }
+  .rm-score{ font: 900 1rem/1 var(--mono); }
+  .rm-count{ right:6px; bottom:5px; font-size:.78rem; }
+
+  /* 6) Donut grafik: yükseklik azaltılır; dar ekranda daha da küçülür */
+  .donut-card{ padding:10px; border-radius:12px; }
+  #donut-categories, #donut-levels{ height:180px !important; }
+  @media (max-width: 640px){
+    #donut-categories, #donut-levels{ height:150px !important; }
+  }
+  .legend-row{ gap:6px; margin-top:6px; }
+  .legend-chip{ padding:1px 7px; font-weight:800; }
+
+  /* 7) Tablo: min genişliği düşür, hücre paddinglerini azalt */
+  .table-wrap{ border-radius:12px; }
+  .table{ min-width: 640px; }
+  .table th, .table td{ padding:.6rem .72rem; }
+  .table thead th{ font-size:.76rem; }
+
+  /* 8) “empty” kutuları daha derli toplu göster */
+  .empty{ padding:18px; border-radius:12px; }
+
+  /* 9) Hızlı işlemler satırı daha sıkı */
+  .quick-actions{ gap:8px }
+  .quick-actions .btns{ gap:6px }
+
+  /* 10) İsteğe bağlı: ana içerik gövdesini sınırlamak taşmayı azaltır.
+         base.html'de bir container varsa hedefleyebilirsin. Örn:
+         .container{ max-width:1160px; margin-inline:auto; padding-inline:10px; } */
 </style>
 
 {# ==== KPI hesap (frontend): risks + r.score() üzerinden ==== #}

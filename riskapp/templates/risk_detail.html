@@ -3,479 +3,380 @@
 {% block content %}
 
 <style>
-  /* ========= AÇIK TEMA ========= */
-  [data-theme="light"] .is-hidden { display:none; }
-  [data-theme="light"] .comment { border:1px solid #e5e7eb; border-radius:8px; padding:10px; background:#fff; }
-  [data-theme="light"] .comment.system { background:#f8fafc; border-color:#dbeafe; }
-  [data-theme="light"] .comment .meta { color:#64748b; font-size:.875rem; display:flex; justify-content:space-between; gap:8px; }
-  [data-theme="light"] .comment pre { white-space:pre-wrap; margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  /* ===== Genel düzen ===== */
+  .page { display:grid; gap:12px; }
+  .cols { display:grid; grid-template-columns: 1.2fr .8fr; gap:12px; }
+  @media (max-width: 1060px){ .cols{ grid-template-columns: 1fr; } }
 
-  [data-theme="light"] .ai-controls { display:flex; gap:8px; flex-wrap:wrap; }
-  [data-theme="light"] .badge { display:inline-block; padding:.15rem .4rem; background:#eef2ff; color:#3730a3; border-radius:999px; font-size:.75rem; }
-  [data-theme="light"] .small { font-size:.875rem; color:#6b7280; }
-
-  [data-theme="light"] .table { width:100%; border-collapse:collapse; }
-  [data-theme="light"] .table th,
-  [data-theme="light"] .table td { border:1px solid #e5e7eb; padding:.4rem .5rem; text-align:left; }
-
-  [data-theme="light"] .grid { display:grid; gap:10px; }
-  [data-theme="light"] .grid-2 { grid-template-columns: 1fr 1fr; }
-  [data-theme="light"] .grid-3 { grid-template-columns: repeat(3, 1fr); }
-
-  [data-theme="light"] .card { border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fff; }
-  [data-theme="light"] .input { width:100%; padding:.5rem .6rem; border:1px solid #e5e7eb; border-radius:8px; background:#fff; color:#0a1328; }
-  [data-theme="light"] .btn { border:1px solid #cbd5e1; background:#f8fafc; padding:.45rem .7rem; border-radius:8px; cursor:pointer; color:#0f182d; }
-  [data-theme="light"] .btn:hover { background:#f1f5f9; }
-  [data-theme="light"] .btn-primary { background:#2563eb; border-color:#1d4ed8; color:#fff; }
-  [data-theme="light"] .btn-success { background:#059669; border-color:#059669; color:#fff; }
-  [data-theme="light"] .flash.info { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:.5rem .6rem; border-radius:8px; }
-
-  /* ========= KOYU TEMA ========= */
-  [data-theme="dark"] .is-hidden { display:none; }
-
-  [data-theme="dark"] .card{
-    background: var(--card);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:12px;
-    padding:12px;
-    color: var(--text);
-    box-shadow: var(--elev-card);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
+  .sticky-top{
+    position: sticky; top: 8px; z-index: 5;
+    background: var(--bg, transparent);
+    padding: 8px 0 0;
   }
 
-  [data-theme="dark"] .comment{
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:8px;
-    padding:10px;
-    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+  .pill{ display:inline-flex; align-items:center; gap:6px; padding:.25rem .55rem;
+         border-radius:999px; font-size:.8rem; border:1px solid var(--line,#e5e7eb); }
+  .chip{ display:inline-flex; align-items:center; gap:6px; padding:.2rem .5rem; border-radius:8px;
+         border:1px solid var(--line,#e5e7eb); font-size:.78rem; opacity:.9 }
+
+  /* tablo */
+  .table { width:100%; border-collapse: collapse; }
+  .table th, .table td { padding:.45rem .55rem; border:1px solid var(--line,#e5e7eb); text-align:left; }
+  .table th { position: sticky; top: 0; background: var(--card, #fff); z-index: 1; }
+
+  /* buton grupları */
+  .btnbar{ display:flex; gap:8px; flex-wrap: wrap; align-items:center; }
+  .btn-tab{ padding:.35rem .6rem; border:1px solid var(--line,#e5e7eb); border-radius:8px; cursor:pointer; }
+  .btn-tab[aria-pressed="true"]{ outline: 2px solid color-mix(in oklab, var(--primary,#6ea8ff) 80%, black 20%); }
+
+  /* küçük yardımcılar */
+  .muted{ opacity:.8; font-size:.88rem }
+  .row{ display:flex; gap:8px; align-items:center }
+  .grow{ flex:1 }
+  .nowrap{ white-space:nowrap }
+  .right{ display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap }
+  .danger{ background:#ef4444; border-color:transparent; color:#fff }
+
+  /* light/dark ayrımları mevcut tokenlarla otomatik */
+  [data-theme="dark"] .pill, [data-theme="dark"] .chip{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
     color: var(--text);
   }
-  [data-theme="dark"] .comment.system{
-    background: linear-gradient(180deg, rgba(255,223,128,.12), rgba(255,223,128,.08));
-    border-color: rgba(255,223,128,.35);
-  }
-  [data-theme="dark"] .comment .meta{
-    color: var(--muted);
-    font-size:.875rem;
-    display:flex;
-    justify-content:space-between;
-    gap:8px;
-  }
-  [data-theme="dark"] .comment pre{
-    white-space:pre-wrap;
-    margin:0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    color: inherit;
-  }
-
-  [data-theme="dark"] .ai-controls { display:flex; gap:8px; flex-wrap:wrap; }
-  [data-theme="dark"] .badge{
-    display:inline-block;
-    padding:.15rem .4rem;
-    border-radius:999px;
-    font-size:.75rem;
-    background: rgba(110,168,255,.18);
-    color:#eaf0ff;
-    border:1px solid rgba(110,168,255,.28);
-  }
-  [data-theme="dark"] .small{ font-size:.875rem; color: var(--muted); }
-
-  [data-theme="dark"] .table{ width:100%; border-collapse:collapse; }
-  [data-theme="dark"] .table th,
-  [data-theme="dark"] .table td{
-    border:1px solid rgba(255,255,255,.08);
-    padding:.4rem .5rem;
-    text-align:left;
-    color: var(--text);
-  }
-
-  [data-theme="dark"] .grid{ display:grid; gap:10px; }
-  [data-theme="dark"] .grid-2{ grid-template-columns: 1fr 1fr; }
-  [data-theme="dark"] .grid-3{ grid-template-columns: repeat(3, 1fr); }
-
-  [data-theme="dark"] .input{
-    width:100%;
-    padding:.5rem .6rem;
-    border-radius:8px;
-    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-    border:1px solid rgba(150,170,220,.35);
-    color:#f6f8ff;
-    outline:none;
-  }
-  [data-theme="dark"] .input:focus{
-    border-color: rgba(110,168,255,.85);
-    box-shadow: 0 0 0 4px rgba(110,168,255,.22);
-    background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
-    color:#ffffff;
-  }
-  [data-theme="dark"] input,
-  [data-theme="dark"] select,
-  [data-theme="dark"] textarea{ color-scheme: dark; }
-
-  [data-theme="dark"] .btn{
-    border:1px solid rgba(255,255,255,.12);
-    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-    color:#eaf0ff;
-    padding:.45rem .7rem;
-    border-radius:8px;
-    cursor:pointer;
-  }
-  [data-theme="dark"] .btn:hover{ filter: brightness(1.03); }
-  [data-theme="dark"] .btn-primary{
-    background: color-mix(in oklab, var(--primary) 82%, #000 18%);
-    border-color: transparent;
-    color:#0a1228;
-    text-shadow: 0 1px 0 rgba(255,255,255,.25);
-  }
-  [data-theme="dark"] .btn-success{
-    background:#16a34a;
-    border-color:#16a34a;
-    color:#06141d;
-  }
-
-  [data-theme="dark"] .flash.info{
-    background: linear-gradient(180deg, rgba(110,168,255,.12), rgba(110,168,255,.08));
-    border:1px solid rgba(110,168,255,.35);
-    color:#eaf0ff;
-    padding:.5rem .6rem;
-    border-radius:8px;
-  }
-
-  /* Mobil grid */
-  @media (max-width: 980px) {
-    [data-theme="light"] .grid-2, [data-theme="light"] .grid-3,
-    [data-theme="dark"]  .grid-2, [data-theme="dark"]  .grid-3 { grid-template-columns: 1fr; }
-  }
-
-  @media print { .noprint { display:none !important; } }
 </style>
 
-<div class="grid grid-2">
-  <!-- SOL: RİSK KARTI -->
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap">
-      <h2 style="margin:0">{{ r.title }}</h2>
+<div class="page">
 
-      <!-- 🤖 AI butonları -->
-      <div class="ai-controls noprint">
-        <form method="post" action="{{ url_for('ai_suggest', risk_id=r.id) }}" class="noprint" style="display:inline">
-          <button class="btn btn-success" type="submit" title="Riske göre benzer önerilerden aksiyon planı üretir">
-            🤖 Öneri Üret
-          </button>
-        </form>
+  <!-- Üst özet + yapışkan aksiyonlar -->
+  <div class="card sticky-top">
+    <div class="row" style="justify-content:space-between; align-items:flex-start;">
+      <div class="grow">
+        <div class="row" style="gap:10px; flex-wrap:wrap">
+          <h2 style="margin:0">{{ r.title }}</h2>
+          {% if r.category %}
+            <span class="pill" title="Kategori"><strong>📂</strong> {{ r.category }}</span>
+          {% endif %}
+          {% if r.risk_type %}
+            <span class="pill" title="Risk Tipi"><strong>🏷️</strong> {{ r.risk_type }}</span>
+          {% endif %}
+          {% set avg_rpn = r.avg_rpn() %}
+          {% set grade = r.grade() %}
+          {% if avg_rpn is not none %}
+            <span class="pill" title="RPN"><strong>RPN</strong> {{ '%.2f'|format(avg_rpn) }} · {{ grade }}</span>
+          {% endif %}
+        </div>
+        <div class="muted" style="margin-top:4px">
+          Ortalama P={{ '%.1f'|format(r.avg_prob() or 0) }},
+          S={{ '%.1f'|format(r.avg_sev() or 0) }}
+        </div>
+      </div>
 
-        <form method="post" action="{{ url_for('ai_comment_add', risk_id=r.id) }}" class="noprint" style="display:inline">
-          <button class="btn btn-primary" type="submit" title="Sayısal özet + RACI + KPI + kapanış kriteri">
-            ✨ Zengin AI Yorum
-          </button>
+      <div class="btnbar noprint">
+        <form method="post" action="{{ url_for('ai_suggest', risk_id=r.id) }}">
+          <button class="btn btn-success" type="submit" title="Benzer önerilerden aksiyon planı">🤖 Öneri Üret</button>
         </form>
+        <form method="post" action="{{ url_for('ai_comment_add', risk_id=r.id) }}">
+          <button class="btn btn-primary" type="submit" title="Sayısal özet + RACI + KPI">✨ Zengin AI Yorum</button>
+        </form>
+        <a class="btn" href="{{ url_for('index') }}">← Listeye Dön</a>
       </div>
     </div>
 
     {% if consensus %}
-      <div class="flash info" style="margin:10px 0 8px">
+      <div class="flash info" style="margin-top:10px">
         🔔 Konsensüs: P={{ consensus.p }}, Ş={{ consensus.s }} ({{ consensus.count }} oy, eşik {{ threshold }})
+        <button class="btn btn-tab" type="button"
+                data-p="{{ consensus.p|int }}" data-s="{{ consensus.s|int }}"
+                onclick="applyConsensus(this.dataset.p, this.dataset.s)">Konsensüsü Forma Uygula</button>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="cols">
+    <!-- SOL: Form -->
+    <div class="card">
+      <form id="riskForm" method="post" class="grid grid-2">
+        <div>
+          <label>Başlık</label>
+          <input class="input" name="title" value="{{ r.title }}" required>
+        </div>
+
+        {% set _needs_custom = r.category and (r.category not in categories) %}
+        <div>
+          <label>Kategori</label>
+          <select class="input" name="category" id="detail-category-select" required>
+            <option value="" {% if not r.category %}selected{% endif %}>— Seçin —</option>
+            {% for c in categories %}
+              <option value="{{ c }}" {% if r.category==c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+            <option value="__custom__" {% if _needs_custom %}selected{% endif %}>Diğer (manuel)</option>
+          </select>
+          <div id="detail-category-custom" class="{% if not _needs_custom %}is-hidden{% endif %}" style="margin-top:6px;">
+            <input class="input" name="category_custom" placeholder="Kategori adı yazın"
+                   value="{{ r.category if _needs_custom else '' }}">
+            <div class="muted">Yalnızca “Diğer (manuel)” seçeneğinde kullanılır.</div>
+          </div>
+        </div>
+
+        <div>
+          <label>Durum</label>
+          <select class="input" name="status">
+            {% for s in ['Open','Assessed','Mitigating','Closed'] %}
+              <option value="{{ s }}" {% if r.status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label>Risk Tipi</label>
+          <select class="input" name="risk_type">
+            <option value="" {% if not r.risk_type %}selected{% endif %}>—</option>
+            <option value="product"    {% if r.risk_type=='product' %}selected{% endif %}>Ürün</option>
+            <option value="project"    {% if r.risk_type=='project' %}selected{% endif %}>Proje</option>
+            <option value="process"    {% if r.risk_type=='process' %}selected{% endif %}>Süreç/Operasyon</option>
+            <option value="schedule"   {% if r.risk_type=='schedule' %}selected{% endif %}>Zaman/Program</option>
+            <option value="cost"       {% if r.risk_type=='cost' %}selected{% endif %}>Maliyet/Finans</option>
+            <option value="quality"    {% if r.risk_type=='quality' %}selected{% endif %}>Kalite</option>
+            <option value="safety"     {% if r.risk_type=='safety' %}selected{% endif %}>İSG/Güvenlik</option>
+            <option value="supplier"   {% if r.risk_type=='supplier' %}selected{% endif %}>Tedarikçi/Altyüklenici</option>
+            <option value="legal"      {% if r.risk_type=='legal' %}selected{% endif %}>Hukuk/Sözleşme</option>
+            <option value="compliance" {% if r.risk_type=='compliance' %}selected{% endif %}>Uyum/Regülasyon</option>
+            <option value="environment"{% if r.risk_type=='environment' %}selected{% endif %}>Çevresel</option>
+            <option value="security"   {% if r.risk_type=='security' %}selected{% endif %}>Bilgi Güvenliği</option>
+            <option value="stakeholder"{% if r.risk_type=='stakeholder' %}selected{% endif %}>Paydaş/İletişim</option>
+            <option value="technology" {% if r.risk_type=='technology' %}selected{% endif %}>Teknoloji/Altyapı</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Sorumlu</label>
+          <input class="input" name="responsible" value="{{ r.responsible or '' }}">
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label>Açıklama</label>
+          <textarea class="input" name="description" rows="3" placeholder="Riskin bağlamını yazın">{{ r.description or '' }}</textarea>
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label>Önlemler (Mitigation)</label>
+          <textarea class="input" name="mitigation" rows="3" placeholder="Önerilen aksiyonlar">{{ r.mitigation or '' }}</textarea>
+        </div>
+
+        <!-- Tarihler -->
+        <div>
+          <label>Başlangıç Tarihi</label>
+          <input class="input" type="date" id="start_date" value="{{ (r.start_month ~ '-01') if r.start_month else '' }}">
+          <input type="hidden" name="start_month" id="start_month" value="{{ r.start_month or '' }}">
+        </div>
+
+        <div>
+          <label>Bitiş Tarihi</label>
+          <input class="input" type="date" id="end_date" value="{{ (r.end_month ~ '-28') if r.end_month else '' }}">
+          <input type="hidden" name="end_month" id="end_month" value="{{ r.end_month or '' }}">
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label>Etki Süresi</label>
+          <input class="input" name="duration" value="{{ r.duration or '' }}" placeholder="örn. 6 ay / proje boyunca">
+        </div>
+
+        <div class="right" style="grid-column:1/-1">
+          <button class="btn btn-primary" id="saveBtn" title="Ctrl+S">Kaydet</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- SAĞ: Değerlendirmeler -->
+    <div class="card">
+      <h3 style="margin-top:0">Değerlendirmeler</h3>
+
+      <!-- Özet kutuları -->
+      <div class="grid grid-2" style="margin-bottom:10px">
+        <div class="chip"><strong>Ortalama P/S</strong> ·
+          P={{ '%.1f'|format(r.avg_prob() or 0) }}, S={{ '%.1f'|format(r.avg_sev() or 0) }}
+        </div>
+        <div class="chip">
+          <strong>RPN</strong>:
+          {% if avg_rpn is not none %}
+            {{ '%.2f'|format(avg_rpn) }} · {{ grade }}
+          {% else %} — {% endif %}
+        </div>
       </div>
 
-      <div class="card" style="border-style:dashed; margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <!-- Sistem önerisi -->
+      {% if ps_reco and (ps_reco.p or ps_reco.s) %}
+        <div class="card" style="margin-bottom:10px">
+          <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
+            <div>
+              <h4 style="margin:.25rem 0">Sistemin Önerdiği P/S</h4>
+              <div class="muted">Aynı kategorideki geçmiş değerlendirmelerin <em>modu</em>.</div>
+              <div style="margin-top:6px" class="btnbar">
+                <span class="pill">P: {{ ps_reco.p or '—' }}</span>
+                <span class="pill">S: {{ ps_reco.s or '—' }}</span>
+              </div>
+            </div>
+            <form method="post" action="{{ url_for('add_eval', risk_id=r.id) }}" class="right" style="min-width:260px">
+              <input type="hidden" name="probability" value="{{ ps_reco.p or '' }}">
+              <input type="hidden" name="severity"    value="{{ ps_reco.s or '' }}">
+              <input class="input grow" type="text" name="comment" placeholder="Yorum (opsiyonel)">
+              <button class="btn btn-success" type="submit">Bu P/S ile değerlendir</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Değerlendirme formu (canlı RPN) -->
+      <form id="evalForm" method="post" action="{{ url_for('add_eval', risk_id=r.id) }}" class="grid">
+        <div class="grid grid-2">
           <div>
-            <strong>Hızlı Doldur</strong>
-            <div class="small">Konsensüs değerlerini (P={{ consensus.p }}, Ş={{ consensus.s }}) forma uygula.</div>
+            <label>Olasılık (P)</label>
+            <select class="input" name="probability" id="probSel">
+              {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+            </select>
+            <div class="btnbar" style="margin-top:6px">
+              {% for i in range(1,6) %}
+                <button class="btn btn-tab" type="button" data-setp="{{i}}">{{ i }}</button>
+              {% endfor %}
+            </div>
           </div>
-          <button
-            class="btn"
-            type="button"
-            data-p="{{ consensus.p|int }}"
-            data-s="{{ consensus.s|int }}"
-            onclick="applyConsensus(this.dataset.p, this.dataset.s)">
-            Uygula
-          </button>
-        </div>
-      </div>
-    {% endif %}
-
-    <form method="post" class="grid grid-2">
-      <div>
-        <label>Başlık</label>
-        <input class="input" name="title" value="{{ r.title }}">
-      </div>
-
-      {% set _needs_custom = r.category and (r.category not in categories) %}
-      <div>
-        <label>Kategori</label>
-        <select class="input" name="category" id="detail-category-select" required>
-          <option value="" {% if not r.category %}selected{% endif %}>— Seçin —</option>
-          {% for c in categories %}
-            <option value="{{ c }}" {% if r.category==c %}selected{% endif %}>{{ c }}</option>
-          {% endfor %}
-          <option value="__custom__" {% if _needs_custom %}selected{% endif %}>Diğer (manuel)</option>
-        </select>
-
-        <div id="detail-category-custom" class="{% if not _needs_custom %}is-hidden{% endif %}" style="margin-top:6px;">
-          <input class="input" name="category_custom" placeholder="Kategori adı yazın"
-                 value="{{ r.category if _needs_custom else '' }}">
-          <div class="small" style="color:#8aa0b2">Sadece “Diğer (manuel)” seçeneğinde kullanılır.</div>
+          <div>
+            <label>Şiddet (S)</label>
+            <select class="input" name="severity" id="sevSel">
+              {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+            </select>
+            <div class="btnbar" style="margin-top:6px">
+              {% for i in range(1,6) %}
+                <button class="btn btn-tab" type="button" data-sets="{{i}}">{{ i }}</button>
+              {% endfor %}
+            </div>
+          </div>
         </div>
 
-        <div class="small" style="margin-top:.25rem">
-          Kategori listesi <em>Risk Kategorileri</em> ekranından gelir.
+        <div class="row">
+          <input class="input grow" name="evaluator" placeholder="Değerlendiren (opsiyonel)">
+          <span class="pill nowrap" id="liveRpn">RPN: 1×1 = 1</span>
         </div>
-      </div>
+        <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
+        <div class="right"><button class="btn btn-success">Değerlendirmeyi Ekle</button></div>
+      </form>
 
-      <div>
-        <label>Durum</label>
-        <select class="input" name="status">
-          {% for s in ['Open','Assessed','Mitigating','Closed'] %}
-            <option value="{{ s }}" {% if r.status==s %}selected{% endif %}>{{ s }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div>
-        <label>Risk Tipi</label>
-        <select class="input" name="risk_type">
-          <option value="" {% if not r.risk_type %}selected{% endif %}>—</option>
-          <option value="product"    {% if r.risk_type=='product' %}selected{% endif %}>Ürün</option>
-          <option value="project"    {% if r.risk_type=='project' %}selected{% endif %}>Proje</option>
-          <option value="process"    {% if r.risk_type=='process' %}selected{% endif %}>Süreç/Operasyon</option>
-          <option value="schedule"   {% if r.risk_type=='schedule' %}selected{% endif %}>Zaman/Program</option>
-          <option value="cost"       {% if r.risk_type=='cost' %}selected{% endif %}>Maliyet/Finans</option>
-          <option value="quality"    {% if r.risk_type=='quality' %}selected{% endif %}>Kalite</option>
-          <option value="safety"     {% if r.risk_type=='safety' %}selected{% endif %}>İSG/Güvenlik</option>
-          <option value="supplier"   {% if r.risk_type=='supplier' %}selected{% endif %}>Tedarikçi/Altyüklenici</option>
-          <option value="legal"      {% if r.risk_type=='legal' %}selected{% endif %}>Hukuk/Sözleşme</option>
-          <option value="compliance" {% if r.risk_type=='compliance' %}selected{% endif %}>Uyum/Regülasyon</option>
-          <option value="environment"{% if r.risk_type=='environment' %}selected{% endif %}>Çevresel</option>
-          <option value="security"   {% if r.risk_type=='security' %}selected{% endif %}>Bilgi Güvenliği</option>
-          <option value="stakeholder"{% if r.risk_type=='stakeholder' %}selected{% endif %}>Paydaş/İletişim</option>
-          <option value="technology" {% if r.risk_type=='technology' %}selected{% endif %}>Teknoloji/Altyapı</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Sorumlu</label>
-        <input class="input" name="responsible" value="{{ r.responsible or '' }}">
-      </div>
-
-      <div style="grid-column:1/-1">
-        <label>Açıklama</label>
-        <textarea class="input" name="description" rows="3">{{ r.description or '' }}</textarea>
-      </div>
-
-      <div style="grid-column:1/-1">
-        <label>Önlemler (Mitigation)</label>
-        <textarea class="input" name="mitigation" rows="3">{{ r.mitigation or '' }}</textarea>
-      </div>
-
-      <!-- GÖRÜNÜR DATE + GİZLİ YYYY-MM -->
-      <div>
-        <label>Başlangıç Tarihi</label>
-        <input class="input" type="date" id="start_date" value="{{ (r.start_month ~ '-01') if r.start_month else '' }}">
-        <input type="hidden" name="start_month" id="start_month" value="{{ r.start_month or '' }}">
-      </div>
-
-      <div>
-        <label>Bitiş Tarihi</label>
-        <input class="input" type="date" id="end_date" value="{{ (r.end_month ~ '-28') if r.end_month else '' }}">
-        <input type="hidden" name="end_month" id="end_month" value="{{ r.end_month or '' }}">
-      </div>
-
-      <div style="grid-column:1/-1">
-        <label>Etki Süresi</label>
-        <input class="input" name="duration" value="{{ r.duration or '' }}" placeholder="örn. 6 ay / proje boyunca">
-      </div>
-
-      <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end">
-        <button class="btn btn-primary">Kaydet</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- SAĞ: DEĞERLENDİRMELER -->
-  <div class="card">
-    <h3>Değerlendirmeler</h3>
-
-    <!-- RPN Özeti -->
-    <div class="grid grid-2" style="margin-bottom:10px">
-      <div>
-        <div class="small">Ortalama P / S</div>
-        <strong>
-          P={{ '%.1f'|format(r.avg_prob() or 0) }},
-          S={{ '%.1f'|format(r.avg_sev() or 0) }}
-        </strong>
-      </div>
-      <div>
-        <div class="small">RPN (P×S)</div>
-        {% set avg_rpn = r.avg_rpn() %}
-        {% set grade = r.grade() %}
-        {% if avg_rpn is not none %}
-          <span class="badge">{{ '%.2f'|format(avg_rpn) }} · {{ grade }}</span>
-        {% else %}—{% endif %}
-      </div>
-    </div>
-
-    <!-- Sistemin Önerdiği P/S -->
-    {% if ps_reco and (ps_reco.p or ps_reco.s) %}
-      <div class="card" style="margin-bottom:10px">
-        <h4 style="margin:.25rem 0">Sistemin Önerdiği P/S</h4>
-        <p class="small" style="margin-top:.25rem">Aynı kategorideki geçmiş değerlendirmelerin moduna göre hesaplanır.</p>
-
-        <div style="display:flex; gap:10px; align-items:center; margin:.25rem 0 .5rem">
-          <span class="badge">P: {{ ps_reco.p or '—' }}</span>
-          <span class="badge">S: {{ ps_reco.s or '—' }}</span>
-        </div>
-
-        <form method="post" action="{{ url_for('add_eval', risk_id=r.id) }}" style="display:flex; gap:.5rem; flex-wrap:wrap">
-          <input type="hidden" name="probability" value="{{ ps_reco.p or '' }}">
-          <input type="hidden" name="severity"    value="{{ ps_reco.s or '' }}">
-          <input class="input" style="flex:1; min-width:200px" type="text" name="comment" placeholder="Yorum (opsiyonel)">
-          <button class="btn btn-success" type="submit">Bu P/S ile değerlendir</button>
-        </form>
-      </div>
-    {% endif %}
-
-    <!-- Değerlendirme Formu -->
-    <form id="evalForm" method="post" action="{{ url_for('add_eval', risk_id=r.id) }}" class="grid">
-      <div class="grid grid-2">
-        <div>
-          <label>Olasılık (P)</label>
-          <select class="input" name="probability">
-            {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
-          </select>
-        </div>
-        <div>
-          <label>Şiddet (S)</label>
-          <select class="input" name="severity">
-            {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
-          </select>
-        </div>
-      </div>
-
-      <input class="input" name="evaluator" placeholder="Değerlendiren (opsiyonel)">
-      <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
-      <button class="btn btn-success">Değerlendirmeyi Ekle</button>
-    </form>
-
-    <!-- Değerlendirme Tablosu -->
-    <table class="table" style="margin-top:10px">
-      <thead>
-        <tr>
-          <th>Tarih</th>
-          <th>Değerlendiren</th>
-          <th>P</th>
-          <th>Ş</th>
-          <th>RPN</th>
-          <th>Yorum</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for e in r.evaluations|sort(attribute='id', reverse=True) %}
+      <!-- Kayıtlar -->
+      <table class="table" style="margin-top:10px">
+        <thead>
           <tr>
-            <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '-' }}</td>
-            <td>{{ e.evaluator or '-' }}</td>
-            <td>{{ e.probability }}</td>
-            <td>{{ e.severity }}</td>
-            <td>{{ (e.probability * e.severity) if (e.probability and e.severity) else '—' }}</td>
-            <td>{{ e.comment or '-' }}</td>
+            <th>Tarih</th>
+            <th>Değerlendiren</th>
+            <th>P</th>
+            <th>Ş</th>
+            <th>RPN</th>
+            <th>Yorum</th>
           </tr>
-        {% else %}
-          <tr><td colspan="6">Henüz değerlendirme yok.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- ALT: YORUMLAR -->
-  <div class="card" style="grid-column:1/-1">
-    <h3>Yorumlar</h3>
-
-    <div class="grid">
-      {% for c in r.comments|sort(attribute='id', reverse=True) %}
-        <div class="comment {% if c.is_system %}system{% endif %}">
-          <div class="meta">
-            <strong>{% if c.is_system %}Sistem{% else %}Kullanıcı{% endif %}</strong>
-            <span>
-              {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '' }} ·
-              {{ c.created_at.strftime('%H:%M') if c.created_at else '' }}
-            </span>
-          </div>
-
-          {% set _txt = c.text or '' %}
-          {% set _is_long = _txt|length > 900 %}
-          {% if _is_long %}
-            <details>
-              <summary class="small" style="cursor:pointer; user-select:none">Yorumu aç/kapat</summary>
-              <pre style="margin-top:.35rem">{{ _txt }}</pre>
-            </details>
+        </thead>
+        <tbody>
+          {% for e in r.evaluations|sort(attribute='id', reverse=True) %}
+            <tr>
+              <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '-' }}</td>
+              <td>{{ e.evaluator or '-' }}</td>
+              <td>{{ e.probability }}</td>
+              <td>{{ e.severity }}</td>
+              <td>{{ (e.probability * e.severity) if (e.probability and e.severity) else '—' }}</td>
+              <td>{{ e.comment or '-' }}</td>
+            </tr>
           {% else %}
-            <pre>{{ _txt }}</pre>
-          {% endif %}
-        </div>
-      {% else %}
-        <div class="small">Yorum yok.</div>
-      {% endfor %}
+            <tr><td colspan="6">Henüz değerlendirme yok.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
-    {% if session.get('role') == 'admin' %}
-      <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}" style="margin-top:12px">
-        <label>Yeni Yorum</label>
-        <textarea class="input" name="text" rows="2" placeholder="Güncelleme veya not girin"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:8px">
-          <button class="btn">Yorum Ekle</button>
-        </div>
-      </form>
+    <!-- ALT: Yorumlar -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin-top:0">Yorumlar</h3>
+        <div class="muted">{{ (r.comments|length) or 0 }} yorum</div>
+      </div>
 
-      <form
-        method="post"
-        action="{{ url_for('risk_delete', risk_id=r.id) }}"
-        onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
-        style="margin-top:12px; display:flex; justify-content:flex-end">
-        <button class="btn" style="background:#ef4444; color:#fff; border-color:transparent">
-          ❌ Risk Sil
-        </button>
-      </form>
-    {% endif %}
+      <div class="grid">
+        {% for c in r.comments|sort(attribute='id', reverse=True) %}
+          <div class="comment {% if c.is_system %}system{% endif %}">
+            <div class="row" style="justify-content:space-between" class="meta">
+              <strong>{% if c.is_system %}Sistem{% else %}Kullanıcı{% endif %}</strong>
+              <span class="muted">
+                {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '' }} ·
+                {{ c.created_at.strftime('%H:%M') if c.created_at else '' }}
+              </span>
+            </div>
+
+            {% set _txt = c.text or '' %}
+            {% set _is_long = _txt|length > 900 %}
+            {% if _is_long %}
+              <details style="margin-top:.35rem">
+                <summary class="muted" style="cursor:pointer">Yorumu aç/kapat</summary>
+                <pre style="margin-top:.35rem">{{ _txt }}</pre>
+              </details>
+            {% else %}
+              <pre style="margin-top:.35rem">{{ _txt }}</pre>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="muted">Yorum yok.</div>
+        {% endfor %}
+      </div>
+
+      {% if session.get('role') == 'admin' %}
+        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}" style="margin-top:12px">
+          <label>Yeni Yorum</label>
+          <textarea class="input" name="text" rows="2" placeholder="Güncelleme veya not girin"></textarea>
+          <div class="right" style="margin-top:8px">
+            <button class="btn">Yorum Ekle</button>
+          </div>
+        </form>
+
+        <form method="post"
+              action="{{ url_for('risk_delete', risk_id=r.id) }}"
+              onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
+              style="margin-top:12px" class="right">
+          <button class="btn danger">❌ Risk Sil</button>
+        </form>
+      {% endif %}
+    </div>
   </div>
 </div>
-
-{% if suggestions and suggestions|length %}
-  <div class="card" style="margin-top:12px">
-    <h3>Öneriler ({{ r.category }})</h3>
-    <ul style="padding-left:1rem; margin:0">
-      {% for s in suggestions %}
-        <li style="margin:.35rem 0">
-          {{ s.text }}
-          {% if s.default_prob or s.default_sev %}
-            <span class="badge small" title="Varsayılan Olasılık/Şiddet">
-              P/S: {{ s.default_prob or '—' }}/{{ s.default_sev or '—' }}
-            </span>
-          {% endif %}
-          {% if s.risk_code %}
-            <span class="badge small" title="Risk Kodu">{{ s.risk_code }}</span>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
-{% endif %}
 
 <script>
   // Konsensüs P/S'yi forma bas
   function applyConsensus(p, s) {
     try {
-      const form = document.getElementById('evalForm');
-      if (!form) return;
-      const pSel = form.querySelector('select[name="probability"]');
-      const sSel = form.querySelector('select[name="severity"]');
+      const pSel = document.getElementById('probSel');
+      const sSel = document.getElementById('sevSel');
       if (pSel) pSel.value = String(p);
       if (sSel) sSel.value = String(s);
-      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } catch (e) {
-      console.error(e);
-    }
+      updateLiveRpn();
+      document.getElementById('evalForm')?.scrollIntoView({ behavior:'smooth', block:'center' });
+    } catch(e){ console.error(e); }
   }
+
+  // Hızlı butonlar P/S
+  document.querySelectorAll('[data-setp]').forEach(b=>{
+    b.addEventListener('click',()=>{ const v=b.dataset.setp; const s=document.getElementById('probSel'); if(s){ s.value=v; updateLiveRpn(); } });
+  });
+  document.querySelectorAll('[data-sets]').forEach(b=>{
+    b.addEventListener('click',()=>{ const v=b.dataset.sets; const s=document.getElementById('sevSel'); if(s){ s.value=v; updateLiveRpn(); } });
+  });
+
+  // Canlı RPN
+  function updateLiveRpn(){
+    const p = parseInt(document.getElementById('probSel')?.value||'1',10);
+    const s = parseInt(document.getElementById('sevSel')?.value||'1',10);
+    const el = document.getElementById('liveRpn');
+    if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
+  }
+  ['probSel','sevSel'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', updateLiveRpn);
+  });
+  updateLiveRpn();
 
   // Kategori "Diğer (manuel)" göster/gizle
   (function(){
@@ -490,45 +391,42 @@
         if (inp) inp.value = '';
       }
     }
-    if(sel){
-      sel.addEventListener('change', toggleCustom);
-      toggleCustom();
-    }
+    if(sel){ sel.addEventListener('change', toggleCustom); toggleCustom(); }
   })();
 
-  // Görünür date -> gizli YYYY-MM senkronu
+  // Görünür date -> gizli YYYY-MM senkronu + basit doğrulama
   (function(){
     const startDate = document.getElementById('start_date');
     const endDate   = document.getElementById('end_date');
     const startYM   = document.getElementById('start_month');
     const endYM     = document.getElementById('end_month');
-
     const toYM = (v) => (v && v.length >= 7) ? v.slice(0,7) : "";
 
-    // İlk yükleme
     if (startDate && startDate.value) startYM.value = toYM(startDate.value);
     if (endDate   && endDate.value)   endYM.value   = toYM(endDate.value);
 
-    // Değişiklikler
-    if (startDate) {
-      startDate.addEventListener('change', () => {
-        startYM.value = toYM(startDate.value);
-        if (endDate && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
-          endDate.value = startDate.value;
-          endYM.value = toYM(endDate.value);
-        }
-      });
-    }
-    if (endDate) {
-      endDate.addEventListener('change', () => {
-        endYM.value = toYM(endDate.value);
-        if (startDate && startDate.value && new Date(endDate.value) < new Date(startDate.value)) {
-          startDate.value = endDate.value;
-          startYM.value = toYM(startDate.value);
-        }
-      });
-    }
+    if (startDate) startDate.addEventListener('change', () => {
+      startYM.value = toYM(startDate.value);
+      if (endDate && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
+        endDate.value = startDate.value; endYM.value = toYM(endDate.value);
+      }
+    });
+
+    if (endDate) endDate.addEventListener('change', () => {
+      endYM.value = toYM(endDate.value);
+      if (startDate && startDate.value && new Date(endDate.value) < new Date(startDate.value)) {
+        startDate.value = endDate.value; startYM.value = toYM(startDate.value);
+      }
+    });
   })();
+
+  // Kısayol: Ctrl/Cmd+S -> form kaydet
+  document.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
+      e.preventDefault();
+      document.getElementById('saveBtn')?.click();
+    }
+  });
 </script>
 
 {% endblock %}
