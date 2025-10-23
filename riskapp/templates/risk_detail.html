@@ -53,9 +53,13 @@
       <div class="grow">
         <div class="row" style="gap:10px; flex-wrap:wrap">
           <h2 style="margin:0">{{ r.title }}</h2>
-          {% if r.category %}
-            <span class="pill" title="Kategori"><strong>📂</strong> {{ r.category }}</span>
-          {% endif %}
+
+          {# Çoklu kategori pill'leri #}
+          {% set __cats = r.categories_list if r.categories_list is not none else ( [r.category] if r.category else [] ) %}
+          {% for c in __cats %}
+            <span class="pill" title="Kategori"><strong>📂</strong> {{ c }}</span>
+          {% endfor %}
+
           {% if r.risk_type %}
             <span class="pill" title="Risk Tipi"><strong>🏷️</strong> {{ r.risk_type }}</span>
           {% endif %}
@@ -101,20 +105,18 @@
           <input class="input" name="title" value="{{ r.title }}" required>
         </div>
 
-        {% set _needs_custom = r.category and (r.category not in categories) %}
+        <!-- Kategoriler (ÇOKLU) -->
         <div>
-          <label>Kategori</label>
-          <select class="input" name="category" id="detail-category-select" required>
-            <option value="" {% if not r.category %}selected{% endif %}>— Seçin —</option>
+          <label>Kategoriler</label>
+          <select class="input" name="categories" id="detail-category-select" multiple size="8" required>
             {% for c in categories %}
-              <option value="{{ c }}" {% if r.category==c %}selected{% endif %}>{{ c }}</option>
+              <option value="{{ c }}" {% if __cats and (c in __cats) %}selected{% endif %}>{{ c }}</option>
             {% endfor %}
-            <option value="__custom__" {% if _needs_custom %}selected{% endif %}>Diğer (manuel)</option>
+            <option value="__custom__">+ Özel kategori ekle (aşağıya yaz)</option>
           </select>
-          <div id="detail-category-custom" class="{% if not _needs_custom %}is-hidden{% endif %}" style="margin-top:6px;">
-            <input class="input" name="category_custom" placeholder="Kategori adı yazın"
-                   value="{{ r.category if _needs_custom else '' }}">
-            <div class="muted">Yalnızca “Diğer (manuel)” seçeneğinde kullanılır.</div>
+          <div style="margin-top:6px">
+            <input class="input" name="category_custom" placeholder="Virgülle birden çok özel kategori (örn: Finans, Denetim)">
+            <div class="muted">Çoklu seçim için Ctrl/⌘ tuşunu kullan. Özel kategorileri virgülle ayır.</div>
           </div>
         </div>
 
@@ -377,22 +379,6 @@
     if(el) el.addEventListener('change', updateLiveRpn);
   });
   updateLiveRpn();
-
-  // Kategori "Diğer (manuel)" göster/gizle
-  (function(){
-    const sel  = document.getElementById('detail-category-select');
-    const wrap = document.getElementById('detail-category-custom');
-    function toggleCustom(){
-      if(!sel || !wrap) return;
-      if(sel.value === '__custom__'){ wrap.classList.remove('is-hidden'); }
-      else{
-        wrap.classList.add('is-hidden');
-        const inp = wrap.querySelector('input[name="category_custom"]');
-        if (inp) inp.value = '';
-      }
-    }
-    if(sel){ sel.addEventListener('change', toggleCustom); toggleCustom(); }
-  })();
 
   // Görünür date -> gizli YYYY-MM senkronu + basit doğrulama
   (function(){

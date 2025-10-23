@@ -43,6 +43,23 @@ class RiskCategory(db.Model):
 
 
 # --------------------------------
+# Çoklu kategori eşleme tablosu
+# --------------------------------
+class RiskCategoryRef(db.Model):
+    """
+    Bir risk ile bir veya daha fazla kategori arasındaki ilişki.
+    Geriye uyumluluk için Risk.category string alanı da tutulur.
+    """
+    __tablename__ = "risk_category_ref"
+
+    risk_id = db.Column(db.Integer, db.ForeignKey("risks.id"), primary_key=True)
+    name    = db.Column(db.String(120), primary_key=True, index=True)
+
+    def __repr__(self) -> str:
+        return f"<RiskCategoryRef risk_id={self.risk_id} name={self.name!r}>"
+
+
+# --------------------------------
 # Risk
 # --------------------------------
 class Risk(db.Model):
@@ -50,7 +67,7 @@ class Risk(db.Model):
 
     id          = db.Column(db.Integer, primary_key=True)
     title       = db.Column(db.String(200), nullable=False, index=True)
-    category    = db.Column(db.String(100), nullable=True, index=True)  # not: string olarak kalıyor
+    category    = db.Column(db.String(100), nullable=True, index=True)  # not: string olarak kalıyor (geri uyumluluk)
     description = db.Column(db.Text, nullable=True)
     owner       = db.Column(db.String(120), nullable=True)
     status      = db.Column(db.String(50), default="Open", index=True)
@@ -78,6 +95,29 @@ class Risk(db.Model):
     comments = db.relationship(
         "Comment", backref="risk", cascade="all, delete-orphan", lazy=True
     )
+
+    # Çoklu kategori ilişkisi
+    categories_m = db.relationship(
+        "RiskCategoryRef",
+        cascade="all, delete-orphan",
+        lazy="joined",
+        backref="risk"
+    )
+
+    # ---------- Yardımcılar: Çoklu kategori ----------
+    @property
+    def categories_list(self):
+        """Riskin tüm kategorilerini liste olarak döner."""
+        return [rc.name for rc in (self.categories_m or [])]
+
+    def set_categories(self, names):
+        """
+        Çoklu kategori set et. Boşlukları temizler, yinelenenleri atar.
+        İlk kategori geriye uyumluluk için self.category'ye de yazılır.
+        """
+        uniq = sorted({(n or "").strip() for n in names if n and n.strip()})
+        self.categories_m = [RiskCategoryRef(name=n) for n in uniq]
+        self.category = uniq[0] if uniq else None  # geri uyumluluk
 
     # ---------- 2D METRİKLER (P×S) ----------
     def avg_prob(self):

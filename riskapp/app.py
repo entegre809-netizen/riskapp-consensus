@@ -32,7 +32,10 @@ load_dotenv()  # proje kökündeki .env dosyasını okur
 
 from flask import Blueprint
 # --- Proje içi paket-absolute importlar ---
-from riskapp.models import db, Risk, Evaluation, Comment, Suggestion, Account, ProjectInfo, RiskCategory
+from riskapp.models import (
+     db, Risk, Evaluation, Comment, Suggestion, 
+     Account, ProjectInfo, RiskCategory, RiskCategoryRef 
+ )
 from riskapp.seeder import seed_if_empty
 from riskapp.ai_utils import ai_complete, ai_json, best_match
 
@@ -2103,29 +2106,41 @@ def create_app():
     def risk_detail(risk_id):
         r = Risk.query.get_or_404(risk_id)
 
-        cats = [x.name for x in RiskCategory.query
-                .filter(RiskCategory.is_active == True)
-                .order_by(RiskCategory.name.asc()).all()]
+        # Formda göstermek için aktif kategori adları (liste)
+        cats = [
+            x.name for x in RiskCategory.query
+            .filter(RiskCategory.is_active.is_(True))
+            .order_by(RiskCategory.name.asc())
+            .all()
+        ]
 
         if request.method == "POST":
-            cat = request.form.get("category")
-            if cat == "__custom__":
-                cat = (request.form.get("category_custom") or "").strip() or None
-            elif not cat:
-                cat = None
-
+            # ----- Diğer alanlar -----
             r.title        = request.form.get("title", r.title)
-            r.category     = cat
             r.description  = request.form.get("description", r.description)
             r.status       = request.form.get("status", r.status)
-            r.risk_type    = request.form.get("risk_type", r.risk_type)
-            r.responsible  = request.form.get("responsible", r.responsible)
-            r.mitigation   = request.form.get("mitigation", r.mitigation)
-            r.duration     = request.form.get("duration", r.duration)
-            r.start_month  = request.form.get("start_month", r.start_month)
-            r.end_month    = request.form.get("end_month", r.end_month)
+            r.risk_type    = (request.form.get("risk_type") or None)
+            r.responsible  = (request.form.get("responsible") or None)
+            r.mitigation   = (request.form.get("mitigation") or None)
+            r.duration     = (request.form.get("duration") or None)
+            r.start_month  = (request.form.get("start_month") or None)  # YYYY-MM (hidden)
+            r.end_month    = (request.form.get("end_month") or None)    # YYYY-MM (hidden)
+
+            # ===== KATEGORİLER (ÇOKLU) =====
+            # <select multiple name="categories"> ... </select>
+            selected = request.form.getlist("categories")  # birden fazla gelebilir
+            # Özel kategori alanı: "A, B, C" gibi virgüllü
+            custom_raw = request.form.get("category_custom", "")
+            custom = [x.strip() for x in custom_raw.split(",") if x.strip()]
+
+            # Listede "__custom__" sentineli seçilmişse onu at; custom listesini ekle
+            cats_final = [c for c in selected if c != "__custom__"] + custom
+
+            # Risk objesine set et (ilkini geri uyumluluk için r.category'ye de yazar)
+            r.set_categories(cats_final)
 
             db.session.commit()
+            # Sistem notu
             db.session.add(Comment(
                 risk_id=r.id,
                 text=f"Risk düzenlendi: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
@@ -2135,8 +2150,14 @@ def create_app():
             flash("Değişiklikler kaydedildi.", "success")
             return redirect(url_for("risk_detail", risk_id=r.id))
 
-        sugg = Suggestion.query.filter(Suggestion.category == (r.category or "")).all()
+        # ----- GET: Öneriler (Suggestion) seçili kategorilere göre -----
+        cats_sel = r.categories_list or ([r.category] if r.category else [])
+        if cats_sel:
+            sugg = Suggestion.query.filter(Suggestion.category.in_(cats_sel)).all()
+        else:
+            sugg = []
 
+        # ----- Konsensüs (mevcut mantığın aynısı) -----
         threshold = int(current_app.config.get("CONSENSUS_THRESHOLD", 30))
         pair_counts = {}
         for e in r.evaluations:
@@ -2148,16 +2169,24 @@ def create_app():
             if cnt >= threshold:
                 consensus = {"p": p, "s": s, "count": cnt}
 
+        # ----- Sistemin önerdiği P/S (çoklu kategoriye göre) -----
         ps_reco = None
-        if r.category:
-            rows = db.session.execute(text("""
-                SELECT e.probability, e.severity
-                FROM evaluations e
-                JOIN risks rr ON rr.id = e.risk_id
-                WHERE rr.category = :cat
-            """), {"cat": r.category}).fetchall()
-            probs = [row[0] for row in rows if row[0]]
-            sevs  = [row[1] for row in rows if row[1]]
+        if cats_sel:
+            # Hem yeni çoklu tabloyu hem de geriye uyumluluk için risks.category'yi dikkate al
+            rows = (
+                db.session.query(Evaluation.probability, Evaluation.severity)
+                .join(Risk, Risk.id == Evaluation.risk_id)
+                .outerjoin(RiskCategoryRef, RiskCategoryRef.risk_id == Risk.id)
+                .filter(
+                    or_(
+                        RiskCategoryRef.name.in_(cats_sel),
+                        Risk.category.in_(cats_sel)
+                    )
+                )
+                .all()
+            )
+            probs = [p for (p, s) in rows if p is not None]
+            sevs  = [s for (p, s) in rows if s is not None]
             if probs or sevs:
                 p_mode = Counter(probs).most_common(1)
                 s_mode = Counter(sevs).most_common(1)
@@ -2173,7 +2202,7 @@ def create_app():
             consensus=consensus,
             threshold=threshold,
             ps_reco=ps_reco,
-            categories=cats,
+            categories=cats,  # formda listelemek için
         )
 
     # -------------------------------------------------
