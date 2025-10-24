@@ -3389,15 +3389,13 @@ BAĞLAM (benzer öneriler):
         """
         Kategori Yönetimi
         - GET: Arama (q) ile listele, aktifler üstte
-        - POST: İsim zorunlu; varsa günceller/aktive eder, yoksa oluşturur
-        - ?next=identify ise ekleme sonrası risk tanımlamaya geri döner
+        - POST: İsim zorunlu; aynı isim varsa (case-insensitive) güncelleyip aktive eder, yoksa oluşturur
+        - ?next=identify ise ekleme sonrası risk tanımlamaya döner
         """
-        from sqlalchemy import func as _func
-
         q = (request.args.get("q") or "").strip()
-        go_back_identify = (request.args.get("next") or "").strip().lower() == "identify"
+        go_back_identify = _should_go_identify()
 
-        # --- Liste / arama
+        # --- Liste / arama ---
         query = RiskCategory.query
         if q:
             like = f"%{q}%"
@@ -3411,7 +3409,7 @@ BAĞLAM (benzer öneriler):
                                 RiskCategory.name.asc())
                     .all())
 
-        # --- Hızlı ekle/güncelle
+        # --- Ekle / güncelle ---
         if request.method == "POST":
             name = (request.form.get("name") or "").strip()
             if not name:
@@ -3424,11 +3422,11 @@ BAĞLAM (benzer öneriler):
 
             # İsim tekilliğini case-insensitive kontrol et
             existing = (RiskCategory.query
-                        .filter(_func.lower(RiskCategory.name) == _func.lower(name))
+                        .filter(func.lower(RiskCategory.name) == func.lower(name))
                         .first())
 
             if existing:
-                # Varsa güncelle + aktive et
+                # Varsa alanları güncelle + aktive et
                 if code is not None:        existing.code = code
                 if color is not None:       existing.color = color
                 if description is not None: existing.description = description
@@ -3438,17 +3436,18 @@ BAĞLAM (benzer öneriler):
             else:
                 # Yoksa oluştur
                 cat = RiskCategory(
-                    name=name, code=code, color=color,
-                    description=description, is_active=True
+                    name=name,
+                    code=code,
+                    color=color,
+                    description=description,
+                    is_active=True,
                 )
                 db.session.add(cat)
                 db.session.commit()
                 flash("Kategori eklendi.", "success")
 
-            # Risk Tanımlama’ya geri dön istenmişse
             if go_back_identify:
                 return redirect(url_for("risk_identify"))
-
             return redirect(url_for("categories_index"))
 
         # GET
@@ -3519,6 +3518,7 @@ BAĞLAM (benzer öneriler):
         cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
         db.session.add(cat); db.session.commit()
         return jsonify({"ok": True, "id": cat.id})
+
 
     @app.patch("/api/categories/<int:cid>")
     def api_categories_update(cid):
