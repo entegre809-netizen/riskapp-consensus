@@ -154,92 +154,64 @@
   }
   .table tbody tr:hover td{ background: color-mix(in oklab, var(--primary) 6%, transparent) }
 
-  /* ----- Hızlı işlemler ----- */
   .quick-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap }
   .quick-actions .btns{ display:flex; flex-wrap:wrap; gap:8px }
 
 
   /* =========================================================
-     Dashboard Compact Overrides (taşma azaltıcı)
-     - Küçük ekran/laptoplarda daha sıkı gözüksün
-     - Standart kuralları override eder
+     Layout Stabilization Kit — cihazlar arası kaymaları azaltır
      ========================================================= */
 
-  /* 1) Taban tipografi ve aralık: ekran boyuna göre akışkan */
+  /* 0) Tutarlı ölçüm */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* 1) Tutarlı font ailesi + metrikler */
   :root{
-    --base-font: clamp(13.5px, 1.05vw, 15px);
-    font-size: var(--base-font);
+    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+    --base-font-px: 14.5px;
   }
+  html, body{ font-family: var(--font-sans); line-height: 1.25; }
 
-  /* 2) KPI’ler: daha sıkı grid + daha az padding */
-  .kpis{ gap:10px; margin-bottom:10px; }
-  .kpi{
-    padding:10px 12px;
-    border-radius:12px;
-  }
-  .kpi .label{ font-size:.85rem; }
-  .kpi .value{ font-size:1.14rem; }
+  /* 2) Taban yazı boyutunu rem ile yönet (vw/clamp yok) */
+  html { font-size: var(--base-font-px); }
+  @media (max-width: 1280px){ html{ font-size: 14px; } }
+  @media (max-width: 980px){  html{ font-size: 13.5px; } }
+  @media (max-width: 540px){  html{ font-size: 13px; } }
 
-  /* breakpoint’leri biraz daha erken daralt */
-  @media (max-width: 1280px){ .kpis{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-  @media (max-width: 960px){  .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  @media (max-width: 520px){  .kpis{ grid-template-columns: 1fr; } }
-
-  /* 3) Kartlar: daha az padding + radius */
-  .card{
-    padding:12px;
-    border-radius:12px;
-  }
-
-  /* 4) Genel grid boşlukları kıs */
-  .grid{ gap:10px }
-  .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)); }
-  @media (max-width: 960px){ .grid-2{ grid-template-columns: 1fr } }
-
-  /* 5) Risk Matrisi: sol başlık sütunu ve hücre yüksekliği küçültülür */
+  /* 3) Risk Matrisi: ölçüleri değişkenle kilitle, sarmayı engelle */
   .risk-matrix{
-    grid-template-columns: clamp(110px, 16vw, 140px) repeat(5, 1fr);
-    grid-auto-rows: clamp(56px, 9vw, 68px);
-    gap: 6px;
-    margin-top: 8px;
+    --label-w: 140px;
+    --cell-size: 64px;
+    grid-template-columns: var(--label-w) repeat(5, var(--cell-size));
+    grid-auto-rows: var(--cell-size);
+    gap: 8px;
+    margin-top: 10px;
   }
-  .rm-colhead,.rm-rowhead{
-    padding:8px 10px;
-    border-radius:10px;
+  @media (max-width: 980px){
+    .risk-matrix{ --label-w: 120px; --cell-size: 58px; }
   }
-  .rm-cell{
-    padding:4px;
-    border-width:1.5px;
-    border-radius:10px;
-  }
-  .rm-score{ font: 900 1rem/1 var(--mono); }
-  .rm-count{ right:6px; bottom:5px; font-size:.78rem; }
-
-  /* 6) Donut grafik: yükseklik azaltılır; dar ekranda daha da küçülür */
-  .donut-card{ padding:10px; border-radius:12px; }
-  #donut-categories, #donut-levels{ height:180px !important; }
   @media (max-width: 640px){
-    #donut-categories, #donut-levels{ height:150px !important; }
+    .risk-matrix{ --label-w: 110px; --cell-size: 52px; }
   }
-  .legend-row{ gap:6px; margin-top:6px; }
-  .legend-chip{ padding:1px 7px; font-weight:800; }
+  .rm-colhead, .rm-rowhead{ white-space: nowrap; min-width: 0; padding:8px 10px; border-radius:10px; }
+  .rm-coltitle, .rm-rowtitle{ overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .rm-colnum, .rm-rownum{ flex-shrink: 0; }
+  .rm-cell{ padding:4px; border-width:1.5px; border-radius:10px; }
+  .rm-score{ font: 900 1rem/1 var(--mono); }
+  .rm-count{ right:6px; bottom:5px; font-size:.78rem; white-space: nowrap; }
 
-  /* 7) Tablo: min genişliği düşür, hücre paddinglerini azalt */
-  .table-wrap{ border-radius:12px; }
-  .table{ min-width: 640px; }
-  .table th, .table td{ padding:.6rem .72rem; }
-  .table thead th{ font-size:.76rem; }
+  /* 4) Kart/KPI’larda daha güvenli min ölçüler */
+  .kpi{ min-height: 48px; }
+  .card{ min-width: 0; }
 
-  /* 8) “empty” kutuları daha derli toplu göster */
-  .empty{ padding:18px; border-radius:12px; }
+  /* 5) Tablo başlıkları ve scrollbar istikrarı */
+  .table thead th{ white-space: nowrap; }
+  .table-wrap{ scrollbar-gutter: stable both-edges; }
 
-  /* 9) Hızlı işlemler satırı daha sıkı */
-  .quick-actions{ gap:8px }
-  .quick-actions .btns{ gap:6px }
-
-  /* 10) İsteğe bağlı: ana içerik gövdesini sınırlamak taşmayı azaltır.
-         base.html'de bir container varsa hedefleyebilirsin. Örn:
-         .container{ max-width:1160px; margin-inline:auto; padding-inline:10px; } */
+  /* 6) color-mix desteklenmiyorsa sınır rengi fallback */
+  @supports not (color: color-mix(in oklab, white 50%, black)) {
+    .kpi, .card, .legend-chip, .table th, .table td { border-color: var(--line); }
+  }
 </style>
 
 {# ==== KPI hesap (frontend): risks + r.score() üzerinden ==== #}
