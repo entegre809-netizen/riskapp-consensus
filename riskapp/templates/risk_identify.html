@@ -145,7 +145,7 @@
   .table-select tbody tr:hover td{ background-clip: padding-box; }
 </style>
 
-<div class="card">
+<div class="card" id="top">
   <h2 style="margin:0 0 .35rem; letter-spacing:.01em">Tanımlı Risklerden Seç</h2>
 
   <!-- Sticky Üst araç çubuğu -->
@@ -374,12 +374,18 @@
   <!-- Sticky Action Bar: seçim olunca görünür -->
   <div class="actionbar noprint" id="actionbar">
     <span class="chip" id="selCounter">0 seçili</span>
-    <!-- mevcut davranış -->
-    
-     
+
+    <!-- seçilenlerden DOĞRUDAN risk oluştur -->
+    <button type="submit" class="btn btn-success"
+            form="select-form" name="action" value="add_selected"
+            title="Seçili şablonlardan doğrudan risk oluştur">
+      Seçilenlerden Risk Oluştur
     </button>
+
     <!-- yeni akış: risk_new’de formda aç -->
-    <button type="submit" class="btn btn-primary" form="select-form" name="action" value="pick_for_new" title="Seçili şablonları yeni risk formuna taşı">
+    <button type="submit" class="btn btn-primary"
+            form="select-form" name="action" value="pick_for_new"
+            title="Seçili şablonları yeni risk formuna taşı">
       Yeni Risk Formunda Aç
     </button>
   </div>

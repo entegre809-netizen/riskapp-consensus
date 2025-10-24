@@ -3207,6 +3207,65 @@ def create_app():
         return redirect(gmail_url)
     
 
+    @app.route("/categories", methods=["GET", "POST"])
+    def categories_index():
+        # Kategorileri listele + hızlı ekleme (placeholder)
+        if request.method == "POST":
+            name = (request.form.get("name") or "").strip()
+            if name:
+                # varsa aktif et, yoksa oluştur
+                from sqlalchemy import func as _func
+                rc = (RiskCategory.query
+                    .filter(_func.lower(RiskCategory.name) == _func.lower(name))
+                    .first())
+                if rc:
+                    rc.is_active = True
+                else:
+                    db.session.add(RiskCategory(name=name, is_active=True))
+                db.session.commit()
+                flash("Kategori kaydedildi.", "success")
+            return redirect(url_for("categories_index") + ("?next=identify" if (request.args.get("next") or "") == "identify" else ""))
+
+        rows = (RiskCategory.query
+                .order_by(RiskCategory.is_active.desc(), RiskCategory.name.asc())
+                .all())
+        # Basit HTML (istersen sonra ayrı template’e alırız)
+        html = [
+            "<h2>Kategori Yönetimi</h2>",
+            '<form method="post" style="margin:10px 0">',
+            '<input class="input" name="name" placeholder="Yeni kategori adı" required> ',
+            '<button class="btn" type="submit">Ekle</button>',
+            "</form>",
+            "<table class='table'><tr><th>Ad</th><th>Durum</th></tr>",
+        ]
+        for r in rows:
+            html.append(f"<tr><td>{r.name}</td><td>{'Aktif' if (r.is_active or False) else 'Pasif'}</td></tr>")
+        html.append("</table>")
+        # identify'e geri dönmek istersen link
+        if (request.args.get("next") or "") == "identify":
+            html.append(f"<p><a class='btn' href='{url_for('risk_identify')}'>Risk Tanımlama sayfasına dön</a></p>")
+        return "".join(html)
+    @app.route("/categories")
+    def categories_index():
+        # Aktif RiskCategory’leri ve Suggestion sayımlarını göster
+        cats = (RiskCategory.query
+                .filter(RiskCategory.is_active.is_(True))
+                .order_by(RiskCategory.name.asc())
+                .all())
+        counts = dict(db.session.query(Suggestion.category, func.count(Suggestion.id))
+                    .group_by(Suggestion.category).all())
+
+        html = ["<h3>Kategoriler</h3><ul>"]
+        for c in cats:
+            name = c.name or "Genel / Kategorisiz"
+            cnt = counts.get(c.name, 0)
+            html.append(f"<li>{name} <small>({cnt})</small></li>")
+        html.append("</ul>")
+
+        # identify sayfasına dön kısayolu
+        if (request.args.get('next') or '').lower() == 'identify':
+            html.append('<p><a href="%s">← Tanımlama ekranına dön</a></p>' % url_for('risk_identify'))
+        return "".join(html)
 
     # -------------------------------------------------
     #  Proje değiştir
