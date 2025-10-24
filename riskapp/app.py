@@ -3207,65 +3207,7 @@ def create_app():
         return redirect(gmail_url)
     
 
-    @app.route("/categories", methods=["GET", "POST"])
-    def categories_index():
-        # Kategorileri listele + hızlı ekleme (placeholder)
-        if request.method == "POST":
-            name = (request.form.get("name") or "").strip()
-            if name:
-                # varsa aktif et, yoksa oluştur
-                from sqlalchemy import func as _func
-                rc = (RiskCategory.query
-                    .filter(_func.lower(RiskCategory.name) == _func.lower(name))
-                    .first())
-                if rc:
-                    rc.is_active = True
-                else:
-                    db.session.add(RiskCategory(name=name, is_active=True))
-                db.session.commit()
-                flash("Kategori kaydedildi.", "success")
-            return redirect(url_for("categories_index") + ("?next=identify" if (request.args.get("next") or "") == "identify" else ""))
-
-        rows = (RiskCategory.query
-                .order_by(RiskCategory.is_active.desc(), RiskCategory.name.asc())
-                .all())
-        # Basit HTML (istersen sonra ayrı template’e alırız)
-        html = [
-            "<h2>Kategori Yönetimi</h2>",
-            '<form method="post" style="margin:10px 0">',
-            '<input class="input" name="name" placeholder="Yeni kategori adı" required> ',
-            '<button class="btn" type="submit">Ekle</button>',
-            "</form>",
-            "<table class='table'><tr><th>Ad</th><th>Durum</th></tr>",
-        ]
-        for r in rows:
-            html.append(f"<tr><td>{r.name}</td><td>{'Aktif' if (r.is_active or False) else 'Pasif'}</td></tr>")
-        html.append("</table>")
-        # identify'e geri dönmek istersen link
-        if (request.args.get("next") or "") == "identify":
-            html.append(f"<p><a class='btn' href='{url_for('risk_identify')}'>Risk Tanımlama sayfasına dön</a></p>")
-        return "".join(html)
-    @app.route("/categories")
-    def categories_index():
-        # Aktif RiskCategory’leri ve Suggestion sayımlarını göster
-        cats = (RiskCategory.query
-                .filter(RiskCategory.is_active.is_(True))
-                .order_by(RiskCategory.name.asc())
-                .all())
-        counts = dict(db.session.query(Suggestion.category, func.count(Suggestion.id))
-                    .group_by(Suggestion.category).all())
-
-        html = ["<h3>Kategoriler</h3><ul>"]
-        for c in cats:
-            name = c.name or "Genel / Kategorisiz"
-            cnt = counts.get(c.name, 0)
-            html.append(f"<li>{name} <small>({cnt})</small></li>")
-        html.append("</ul>")
-
-        # identify sayfasına dön kısayolu
-        if (request.args.get('next') or '').lower() == 'identify':
-            html.append('<p><a href="%s">← Tanımlama ekranına dön</a></p>' % url_for('risk_identify'))
-        return "".join(html)
+    
 
     # -------------------------------------------------
     #  Proje değiştir
@@ -3444,42 +3386,74 @@ BAĞLAM (benzer öneriler):
     # -------------------------------------------------
     @app.route("/categories", methods=["GET", "POST"])
     def categories_index():
+        """
+        Kategori Yönetimi
+        - GET: Arama (q) ile listele, aktifler üstte
+        - POST: İsim zorunlu; varsa günceller/aktive eder, yoksa oluşturur
+        - ?next=identify ise ekleme sonrası risk tanımlamaya geri döner
+        """
+        from sqlalchemy import func as _func
+
         q = (request.args.get("q") or "").strip()
+        go_back_identify = (request.args.get("next") or "").strip().lower() == "identify"
+
+        # --- Liste / arama
         query = RiskCategory.query
         if q:
             like = f"%{q}%"
             query = query.filter(or_(
                 RiskCategory.name.ilike(like),
                 RiskCategory.code.ilike(like),
-                RiskCategory.description.ilike(like)
+                RiskCategory.description.ilike(like),
             ))
-        categories = query.order_by(RiskCategory.is_active.desc(), RiskCategory.name.asc()).all()
+        categories = (query
+                    .order_by(RiskCategory.is_active.desc(),
+                                RiskCategory.name.asc())
+                    .all())
 
+        # --- Hızlı ekle/güncelle
         if request.method == "POST":
             name = (request.form.get("name") or "").strip()
             if not name:
                 flash("Kategori adı zorunludur.", "danger")
                 return redirect(url_for("categories_index", next=request.args.get("next")))
 
-            code = (request.form.get("code") or "").strip() or None
-            color = (request.form.get("color") or "").strip() or None
+            code        = (request.form.get("code") or "").strip() or None
+            color       = (request.form.get("color") or "").strip() or None
             description = (request.form.get("description") or "").strip() or None
 
-            if RiskCategory.query.filter_by(name=name).first():
-                flash("Bu isimde kategori zaten var.", "danger")
-                return redirect(url_for("categories_index", next=request.args.get("next")))
+            # İsim tekilliğini case-insensitive kontrol et
+            existing = (RiskCategory.query
+                        .filter(_func.lower(RiskCategory.name) == _func.lower(name))
+                        .first())
 
-            cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
-            db.session.add(cat)
-            db.session.commit()
-            flash("Kategori eklendi.", "success")
+            if existing:
+                # Varsa güncelle + aktive et
+                if code is not None:        existing.code = code
+                if color is not None:       existing.color = color
+                if description is not None: existing.description = description
+                existing.is_active = True
+                db.session.commit()
+                flash("Kategori güncellendi.", "success")
+            else:
+                # Yoksa oluştur
+                cat = RiskCategory(
+                    name=name, code=code, color=color,
+                    description=description, is_active=True
+                )
+                db.session.add(cat)
+                db.session.commit()
+                flash("Kategori eklendi.", "success")
 
-            if _should_go_identify():
+            # Risk Tanımlama’ya geri dön istenmişse
+            if go_back_identify:
                 return redirect(url_for("risk_identify"))
 
             return redirect(url_for("categories_index"))
 
+        # GET
         return render_template("categories.html", categories=categories, q=q)
+
 
     @app.route("/categories/<int:cid>/edit", methods=["POST"])
     def categories_edit(cid):
