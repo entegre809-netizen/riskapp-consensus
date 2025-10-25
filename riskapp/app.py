@@ -2990,120 +2990,31 @@ def create_app():
         resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
         resp.headers["Content-Disposition"] = "attachment; filename=risks_export.csv"
         return resp
-   
+    # -------------------------------------------------
     #  ADMIN — Kullanıcı Yönetimi
     # -------------------------------------------------
     @app.route("/admin/users", methods=["GET", "POST"])
     @role_required("admin")
     def admin_users():
         if request.method == "POST":
-            uid = (request.form.get("user_id") or "").strip()
-            action = (request.form.get("action") or "").strip()
-
-            if not uid.isdigit():
-                flash("Geçersiz kullanıcı.", "danger")
+            uid = int(request.form.get("user_id"))
+            new_role = request.form.get("new_role")
+            if new_role not in {"admin", "uzman"}:
+                flash("Geçersiz rol.", "danger")
                 return redirect(url_for("admin_users"))
-
-            acc = Account.query.get_or_404(int(uid))
-
-            # Kendi hesabını tehlikeye atmaktan kaçın (örn. kendini 'disabled' yapmak)
-            me_id = session.get("account_id")
-            is_self = (acc.id == me_id)
-
-            try:
-                if action == "set_role":
-                    new_role = (request.form.get("new_role") or "").strip()
-                    if new_role not in ("admin", "uzman"):
-                        flash("Geçersiz rol.", "danger")
-                        return redirect(url_for("admin_users"))
-                    acc.role = new_role
-                    db.session.commit()
-                    flash(f"Kullanıcı rolü güncellendi: {acc.contact_name} → {new_role}", "success")
-                    return redirect(url_for("admin_users"))
-
-                elif action == "set_status":
-                    new_status = (request.form.get("new_status") or "").strip()
-                    if new_status not in ("pending", "active", "disabled"):
-                        flash("Geçersiz durum.", "danger")
-                        return redirect(url_for("admin_users"))
-                    if is_self and new_status != "active":
-                        flash("Kendi hesabınızı bu duruma alamazsınız.", "warning")
-                        return redirect(url_for("admin_users"))
-                    acc.status = new_status
-                    db.session.commit()
-                    flash(f"Kullanıcı durumu güncellendi: {acc.contact_name} → {new_status}", "success")
-                    return redirect(url_for("admin_users"))
-
-                elif action == "assign_ref":
-                    # Formdan kod geldiyse onu kullan; boşsa otomatik üret
-                    ref_code = (request.form.get("ref_code") or "").strip().upper()
-                    if not ref_code:
-                        ref_code = _gen_ref_code(prefix="PRJ")
-                    acc.ref_code = ref_code
-
-                    db.session.commit()
-
-                    # İsteğe bağlı e-posta bildirimi
-                    if (request.form.get("notify_email") == "1") and acc.email:
-                        ok, err = send_email(
-                            to_email=acc.email,
-                            subject="Referans Kodunuz",
-                            body=(
-                                f"Merhaba {acc.contact_name},\n\n"
-                                f"Giriş için referans kodunuz: {ref_code}\n\n"
-                                "Giriş şartları: e-posta + şifre + referans kodu.\n"
-                            )
-                        )
-                        if not ok:
-                            flash(f"Ref. kod atandı fakat e-posta gönderilemedi: {err}", "warning")
-                        else:
-                            flash("Ref. kod atandı ve e-posta gönderildi.", "success")
-                    else:
-                        flash("Referans kodu atandı.", "success")
-                    return redirect(url_for("admin_users"))
-
-                elif action == "clear_ref":
-                    acc.ref_code = None
-                    db.session.commit()
-                    flash("Referans kodu temizlendi.", "success")
-                    return redirect(url_for("admin_users"))
-
-                elif action == "delete_user":
-                    if is_self:
-                        flash("Kendi hesabınızı silemezsiniz.", "warning")
-                        return redirect(url_for("admin_users"))
-                    # Yumuşak yaklaşım: tamamen silmek yerine 'disabled'
-                    acc.status = "disabled"
-                    db.session.commit()
-                    flash("Kullanıcı devre dışı bırakıldı.", "success")
-                    return redirect(url_for("admin_users"))
-
-                else:
-                    flash("Geçersiz işlem.", "danger")
-                    return redirect(url_for("admin_users"))
-
-            except Exception as e:
-                db.session.rollback()
-                flash(f"İşlem sırasında hata: {e}", "danger")
+            acc = Account.query.get(uid)
+            if not acc:
+                flash("Kullanıcı bulunamadı.", "danger")
                 return redirect(url_for("admin_users"))
+            acc.role = new_role
+            db.session.commit()
+            flash(f"Kullanıcının rolü {new_role} olarak güncellendi.", "success")
+            if uid == session.get("account_id"):
+                session["role"] = new_role
+            return redirect(url_for("admin_users"))
 
-        # GET — listele
-        users = (
-            Account.query
-            .order_by(func.lower(Account.role).asc(), func.lower(Account.status).asc(), Account.id.desc())
-            .all()
-        )
-        # Basit istatistikler (opsiyonel)
-        totals = {
-            "all": len(users),
-            "active": sum(1 for u in users if (u.status or "") == "active"),
-            "pending": sum(1 for u in users if (u.status or "") == "pending"),
-            "disabled": sum(1 for u in users if (u.status or "") == "disabled"),
-            "admins": sum(1 for u in users if (u.role or "") == "admin"),
-        }
-        return render_template("admin_users.html", users=users, totals=totals)
-
-
+        users = Account.query.order_by(Account.created_at.desc()).all()
+        return render_template("admin_users.html", users=users)
     
 
     @app.post("/admin/risks/<int:rid>/set-ref")
@@ -3132,9 +3043,6 @@ def create_app():
         db.session.commit()
         flash("Ref No güncellendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
-       
-       
-    
     @app.post("/admin/users/<int:uid>/assign-ref")
     @role_required("admin")
     def admin_assign_ref(uid):
@@ -3207,7 +3115,6 @@ def create_app():
         return redirect(gmail_url)
     
 
-    
 
     # -------------------------------------------------
     #  Proje değiştir
@@ -3312,160 +3219,70 @@ BAĞLAM (benzer öneriler):
     # -------------------------------------------------
     #  **YENİ** AI — Zengin yorum üret ve ekle (P/S + RAG + KPI/Aksiyon + Departman/RACI)
     # -------------------------------------------------
-    # -- AI: Basit otomatik yorum (system comment)
-    @app.post("/risks/<int:risk_id>/ai-comment")
-    def ai_comment_basic(risk_id: int):
+    @app.post("/risks/<int:risk_id>/ai_comment")
+    def ai_comment_add(risk_id: int):
+        # Build rich AI comment once
         text = make_ai_risk_comment(risk_id)
         if not text:
             flash("AI önerisi üretilemedi.", "warning")
             return redirect(url_for("risk_detail", risk_id=risk_id))
+
+        # Final cleanup for any AI artifacts/echo
         text = _strip_ai_artifacts(text)
-        db.session.add(Comment(risk_id=risk_id, text=text, is_system=True))
+
+        # Store as a system comment
+        db.session.add(Comment(
+            risk_id=risk_id,
+            text=text,
+            is_system=True
+        ))
         db.session.commit()
+
         flash("🤖 AI risk yorumu eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=risk_id))
 
-
-    # -- AI: Risk detayında kısa öneri (yorum olarak ekler)
-    @app.route("/risks/<int:risk_id>/ai-suggest", methods=["POST"], endpoint="ai_suggest")
-    def ai_suggest_post(risk_id):
-        r = Risk.query.get_or_404(risk_id)
-
-        try:
-            txt = make_ai_risk_comment(risk_id)
-            txt = _strip_ai_artifacts(txt)
-        except Exception as e:
-            return jsonify({"ok": False, "msg": f"AI hata: {e}"}), 500
-
-        if not txt:
-            return jsonify({"ok": False, "msg": "Üretilecek içerik bulunamadı."}), 400
-
-        # Önceki AI çıktılarını mitigation’dan ayıkla (loop kır)
-        r.mitigation = _strip_ai_in_mitigation(r.mitigation)
-        db.session.add(Comment(risk_id=r.id, text=txt, is_system=False))
-        db.session.commit()
-
-        return jsonify({"ok": True, "msg": "AI önerisi yorumlara eklendi."})
-
-
-    # -- AI: Zengin yorum (özet + RACI + KPI) (yorum olarak ekler)
-    @app.post("/risks/<int:risk_id>/ai-comment-add")
-    def ai_comment_add(risk_id):
-        r = Risk.query.get_or_404(risk_id)
-        rpn = (r.avg_prob() or 0) * (r.avg_sev() or 0)
-        txt = f"""## ✨ Zengin AI Yorum — {r.title}
-    **Kategori(ler):** {", ".join(r.categories_list or ([r.category] if r.category else [])) or "—"}
-    **Durum:** {r.status or "—"}
-    **P/S ort.:** {r.avg_prob() or 0:.1f}/{r.avg_sev() or 0:.1f} · **RPN~:** {rpn:.1f}
-
-    ### RACI (taslak)
-    - **R (Sorumlu):** {r.responsible or "Atanacak"}
-    - **A (Hesap veren):** Proje Müdürü
-    - **C (Danışılan):** Kalite, Sözleşme, Şantiye Şefi
-    - **I (Bilgilendirilen):** İşveren Tem., İSG, Çevre
-
-    ### KPI (örnek)
-    - Gecikme gün sayısı ≤ 0
-    - Yeniden iş oranı ≤ %1
-    - Uygunsuzluk/100 adam.gün ≤ 0.2
-
-    ### Önerilen Sonraki Adımlar
-    1) Kritik risk için tampon süre ekle
-    2) İlgili taşeronla performans toplantısı
-    3) Haftalık P/S trend takibi ve rapor
-    """
-        db.session.add(Comment(risk_id=r.id, text=_strip_ai_artifacts(txt), is_system=True))
-        db.session.commit()
-        flash("✨ Zengin AI yorumu eklendi.", "success")
-        return redirect(url_for("risk_detail", risk_id=r.id))
-
-
-    # -- AI: Mitigation taslağı (AJAX ile textarea’yı doldurur)
-    @app.post("/risks/<int:risk_id>/ai-mitigation-draft")
-    def ai_mitigation_draft(risk_id):
-        r = Risk.query.get_or_404(risk_id)
-        draft = f"""**Hedef:** {r.title}
-    1) Kök neden analizi (5N1K/FMEA)
-    2) Ölçülebilir aksiyon planı (sorumlu + tarih)
-    3) İzleme: haftalık KPI gözden geçirme
-    4) Risk transferi/azaltma/kaçınma seçenek analizi
-    5) Kapanış kriterleri ve doğrulama"""
-        return jsonify({"mitigation": _strip_ai_artifacts(draft)})
 
     # -------------------------------------------------
     #  KATEGORİ YÖNETİMİ
     # -------------------------------------------------
     @app.route("/categories", methods=["GET", "POST"])
     def categories_index():
-        """
-        Kategori Yönetimi
-        - GET: Arama (q) ile listele, aktifler üstte
-        - POST: İsim zorunlu; aynı isim varsa (case-insensitive) güncelleyip aktive eder, yoksa oluşturur
-        - ?next=identify ise ekleme sonrası risk tanımlamaya döner
-        """
         q = (request.args.get("q") or "").strip()
-        go_back_identify = _should_go_identify()
-
-        # --- Liste / arama ---
         query = RiskCategory.query
         if q:
             like = f"%{q}%"
             query = query.filter(or_(
                 RiskCategory.name.ilike(like),
                 RiskCategory.code.ilike(like),
-                RiskCategory.description.ilike(like),
+                RiskCategory.description.ilike(like)
             ))
-        categories = (query
-                    .order_by(RiskCategory.is_active.desc(),
-                                RiskCategory.name.asc())
-                    .all())
+        categories = query.order_by(RiskCategory.is_active.desc(), RiskCategory.name.asc()).all()
 
-        # --- Ekle / güncelle ---
         if request.method == "POST":
             name = (request.form.get("name") or "").strip()
             if not name:
                 flash("Kategori adı zorunludur.", "danger")
                 return redirect(url_for("categories_index", next=request.args.get("next")))
 
-            code        = (request.form.get("code") or "").strip() or None
-            color       = (request.form.get("color") or "").strip() or None
+            code = (request.form.get("code") or "").strip() or None
+            color = (request.form.get("color") or "").strip() or None
             description = (request.form.get("description") or "").strip() or None
 
-            # İsim tekilliğini case-insensitive kontrol et
-            existing = (RiskCategory.query
-                        .filter(func.lower(RiskCategory.name) == func.lower(name))
-                        .first())
+            if RiskCategory.query.filter_by(name=name).first():
+                flash("Bu isimde kategori zaten var.", "danger")
+                return redirect(url_for("categories_index", next=request.args.get("next")))
 
-            if existing:
-                # Varsa alanları güncelle + aktive et
-                if code is not None:        existing.code = code
-                if color is not None:       existing.color = color
-                if description is not None: existing.description = description
-                existing.is_active = True
-                db.session.commit()
-                flash("Kategori güncellendi.", "success")
-            else:
-                # Yoksa oluştur
-                cat = RiskCategory(
-                    name=name,
-                    code=code,
-                    color=color,
-                    description=description,
-                    is_active=True,
-                )
-                db.session.add(cat)
-                db.session.commit()
-                flash("Kategori eklendi.", "success")
+            cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
+            db.session.add(cat)
+            db.session.commit()
+            flash("Kategori eklendi.", "success")
 
-            if go_back_identify:
+            if _should_go_identify():
                 return redirect(url_for("risk_identify"))
+
             return redirect(url_for("categories_index"))
 
-        # GET
         return render_template("categories.html", categories=categories, q=q)
-    # ÇAKIŞAN TÜM TANIMLARI KALDIRIN / YORUMA ALIN ve SADECE BUNU BIRAKIN
-    
-
 
     @app.route("/categories/<int:cid>/edit", methods=["POST"])
     def categories_edit(cid):
@@ -3531,7 +3348,6 @@ BAĞLAM (benzer öneriler):
         cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
         db.session.add(cat); db.session.commit()
         return jsonify({"ok": True, "id": cat.id})
-
 
     @app.patch("/api/categories/<int:cid>")
     def api_categories_update(cid):
