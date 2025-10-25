@@ -3327,14 +3327,25 @@ BAĞLAM (benzer öneriler):
 
 
     # -- AI: Risk detayında kısa öneri (yorum olarak ekler)
-    @app.post("/risks/<int:risk_id>/ai-suggest")
-    def ai_suggest(risk_id):
+    @app.route("/risks/<int:risk_id>/ai-suggest", methods=["POST"], endpoint="ai_suggest")
+    def ai_suggest_post(risk_id):
         r = Risk.query.get_or_404(risk_id)
-        txt = _strip_ai_artifacts(make_ai_risk_comment(r.id))
-        db.session.add(Comment(risk_id=r.id, text=txt, is_system=True))  # <-- True
+
+        try:
+            txt = make_ai_risk_comment(risk_id)
+            txt = _strip_ai_artifacts(txt)
+        except Exception as e:
+            return jsonify({"ok": False, "msg": f"AI hata: {e}"}), 500
+
+        if not txt:
+            return jsonify({"ok": False, "msg": "Üretilecek içerik bulunamadı."}), 400
+
+        # Önceki AI çıktılarını mitigation’dan ayıkla (loop kır)
+        r.mitigation = _strip_ai_in_mitigation(r.mitigation)
+        db.session.add(Comment(risk_id=r.id, text=txt, is_system=False))
         db.session.commit()
-        flash("🤖 AI önerisi yorumlara eklendi.", "success")
-        return redirect(url_for("risk_detail", risk_id=r.id))
+
+        return jsonify({"ok": True, "msg": "AI önerisi yorumlara eklendi."})
 
 
     # -- AI: Zengin yorum (özet + RACI + KPI) (yorum olarak ekler)
@@ -3453,25 +3464,7 @@ BAĞLAM (benzer öneriler):
         # GET
         return render_template("categories.html", categories=categories, q=q)
     # ÇAKIŞAN TÜM TANIMLARI KALDIRIN / YORUMA ALIN ve SADECE BUNU BIRAKIN
-    @app.route("/risks/<int:risk_id>/ai-suggest", methods=["POST"], endpoint="ai_suggest")
-    def ai_suggest_post(risk_id):
-        r = Risk.query.get_or_404(risk_id)
-
-        try:
-            txt = make_ai_risk_comment(risk_id)
-            txt = _strip_ai_artifacts(txt)
-        except Exception as e:
-            return jsonify({"ok": False, "msg": f"AI hata: {e}"}), 500
-
-        if not txt:
-            return jsonify({"ok": False, "msg": "Üretilecek içerik bulunamadı."}), 400
-
-        # Önceki AI çıktılarını mitigation’dan ayıkla (loop kır)
-        r.mitigation = _strip_ai_in_mitigation(r.mitigation)
-        db.session.add(Comment(risk_id=r.id, text=txt, is_system=False))
-        db.session.commit()
-
-        return jsonify({"ok": True, "msg": "AI önerisi yorumlara eklendi."})
+    
 
 
     @app.route("/categories/<int:cid>/edit", methods=["POST"])
