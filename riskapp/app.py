@@ -16,6 +16,7 @@ import io, csv as _csv, os, re, json
 from werkzeug.utils import secure_filename
 from pathlib import Path
 from collections import defaultdict
+from flask import current_app
 
 import os as _os, sys as _sys
 PKG_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
@@ -3905,6 +3906,11 @@ BAĞLAM (benzer öneriler):
             status=500,
             mimetype="text/plain; charset=utf-8",
         )
+    @app.context_processor
+    def _endpoint_utils():
+        def has_endpoint(name: str) -> bool:
+            return name in current_app.view_functions
+        return dict(has_endpoint=has_endpoint)
     
     
     
