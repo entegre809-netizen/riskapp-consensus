@@ -82,6 +82,8 @@
         <form method="post" action="{{ url_for('ai_comment_add', risk_id=r.id) }}">
           <button class="btn btn-primary" type="submit" title="Sayısal özet + RACI + KPI">✨ Zengin AI Yorum</button>
         </form>
+        <!-- Yeni: Mitigations butonu -->
+        <a class="btn" href="{{ url_for('mitigations_list_create', risk_id=r.id) }}" title="Risk için mitigasyonları görüntüle/ekle">🧩 Mitigations</a>
         <a class="btn" href="{{ url_for('index') }}">← Listeye Dön</a>
       </div>
     </div>

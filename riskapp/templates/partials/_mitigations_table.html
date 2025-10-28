@@ -1,0 +1,30 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th>Başlık</th>
+      <th>Sorumlu</th>
+      <th>Durum</th>
+      <th>Bitiş</th>
+      <th>Maliyet</th>
+      <th>Etkinlik</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in r.mitigations %}
+      <tr>
+        <td>{{ m.title }}</td>
+        <td>{{ m.owner or '—' }}</td>
+        <td>{{ m.status }}</td>
+        <td>{{ m.due_date or '—' }}</td>
+        <td>{{ m.cost if m.cost is not none else '—' }}</td>
+        <td>{{ m.effectiveness if m.effectiveness is not none else '—' }}</td>
+        <td style="text-align:right">
+          <a class="btn" href="{{ url_for('mitigation_edit', mid=m.id) }}">Düzenle</a>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">Kayıt yok.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

@@ -3141,6 +3141,9 @@ def create_app():
     # -------------------------------------------------
     #  AI — RAG tabanlı aksiyon/mitigation önerisi (TEMİZLENMİŞ)
     # -------------------------------------------------
+        # -------------------------------------------------
+    #  AI — RAG tabanlı aksiyon/mitigation önerisi (TEMİZLENMİŞ)
+    # -------------------------------------------------
     @app.route("/ai/suggest/<int:risk_id>", methods=["POST"])
     def ai_suggest(risk_id):
         r = Risk.query.get_or_404(risk_id)
@@ -3159,7 +3162,8 @@ def create_app():
         ) or "- (bağlam bulunamadı)"
 
         # 2) P/S tahmini (sayısal bağlam)
-        ps = PSEstimator(alpha=5.0); ps.fit(db.session)
+        ps = PSEstimator(alpha=5.0)
+        ps.fit(db.session)
         hint = ps.suggest(r.category or None)
         numeric_line = (
             f"Tahmini Olasılık **P={hint['p']}**, Şiddet **S={hint['s']}** "
@@ -3169,7 +3173,7 @@ def create_app():
         if hint.get("applied_rules"):
             numeric_line += "\n" + "Uygulanan makale kuralları: " + ", ".join(hint["applied_rules"])
 
-        # 3) Prompt (daha sade, eko azaltılmış)
+        # 3) Prompt (sade, eko azaltılmış)
         prompt = f"""
 Aşağıda bir proje riskinin özeti var. Risk yönetimi uzmanı gibi davran.
 Sadece aşağıdaki 5 başlıkla, kısa ve tekrar etmeyen bir çıktı üret:
@@ -3200,21 +3204,49 @@ BAĞLAM (benzer öneriler):
         else:
             final_text = raw_ai
 
-        # 4) Yorumu kaydet
+        # 4) Yorumu kaydet (tam metin yorumlarda)
         db.session.add(Comment(
             risk_id=r.id,
             text=f"🤖 AI Önerisi:\n{final_text}",
             is_system=True
         ))
 
-        # 5) Mitigation'a sade bir ek yap (kısır döngüye girmesin diye tam metni gömmüyoruz)
+        # 5) Mitigation'a YALNIZCA kısa özet satırı ekle (feedback loop yok)
+        #    - Mevcut kullanıcı metnini koru (clean_mit)
+        #    - İlk 1-2 aksiyonu kısa özet satırı olarak göm
+        short_hint = None
         if ai_text and not ai_text.startswith("(AI çalıştırılamadı"):
-            if not r.mitigation:
-                r.mitigation = "AI önerisine göre aksiyon listesi oluşturuldu."
+            # basit çıkarım: "2) Önerilen Aksiyonlar" kısmındaki ilk 1-2 madde
+            lines = [ln.strip() for ln in ai_text.splitlines()]
+            action_lines = []
+            in_actions = False
+            for ln in lines:
+                if ln.lower().startswith("2)") or "önerilen aksiyonlar" in ln.lower():
+                    in_actions = True
+                    continue
+                if in_actions:
+                    if ln and (ln[0].isdigit() and ln[1:2] in {".",")"} or ln.startswith("-")):
+                        action_lines.append(ln.lstrip("- ").lstrip("0123456789.). ").strip())
+                        if len(action_lines) >= 2:
+                            break
+                    # başka başlığa geçildiyse dur
+                    if ln.startswith("3)") or "izleme göstergeleri" in ln.lower():
+                        break
+            if action_lines:
+                short_hint = " • ".join(action_lines)
+
+        # Mitigation güncelle (kullanıcı yazdığı metni koru + kısa özet ekle)
+        if short_hint:
+            new_mit = (clean_mit or "").strip()
+            if new_mit:
+                new_mit += "\n\n---\n"
+            new_mit += f"AI Öneri Özeti: {short_hint}"
+            r.mitigation = new_mit
 
         db.session.commit()
-        flash("AI önerisi eklendi.", "success")
+        flash("AI önerisi üretildi ve kaydedildi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
+
     
     # -------------------------------------------------
     #  **YENİ** AI — Zengin yorum üret ve ekle (P/S + RAG + KPI/Aksiyon + Departman/RACI)
@@ -3705,7 +3737,69 @@ BAĞLAM (benzer öneriler):
         r.start_month = sm
         r.end_month   = em
         db.session.commit()
-        return jsonify({"ok": True, "start_month": r.start_month, "end_month": r.end_month})      
+        return jsonify({"ok": True, "start_month": r.start_month, "end_month": r.end_month})   
+       
+    @app.route("/risks/<int:risk_id>/mitigations", methods=["GET", "POST"])
+    def mitigations_list_create(risk_id):
+        r = Risk.query.get_or_404(risk_id)
+
+        if request.method == "POST":
+            title = (request.form.get("title") or "").strip()
+            if not title:
+                flash("Başlık (title) zorunlu.", "error")
+                return redirect(url_for("mitigations_list_create", risk_id=risk_id))
+
+            m = Mitigation(
+                risk_id=r.id,
+                title=title,
+                owner=(request.form.get("owner") or None),
+                status=(request.form.get("status") or "planned"),
+                due_date=_parse_date(request.form.get("due_date")),
+                cost=_to_float(request.form.get("cost")),
+                effectiveness=_to_int(request.form.get("effectiveness")),
+                notes=(request.form.get("notes") or None),
+            )
+            db.session.add(m)
+            db.session.commit()
+            flash("Mitigation eklendi.", "success")
+            return redirect(url_for("mitigations_list_create", risk_id=risk_id))
+
+        return render_template("mitigations_list.html", r=r)
+
+    # --- CRUD: Düzenleme ---
+    @app.route("/mitigations/<int:mid>/edit", methods=["GET", "POST"])
+    def mitigation_edit(mid):
+        m = Mitigation.query.get_or_404(mid)
+        r = m.risk
+
+        if request.method == "POST":
+            title = (request.form.get("title") or "").strip()
+            if not title:
+                flash("Başlık (title) zorunlu.", "error")
+                return redirect(url_for("mitigation_edit", mid=mid))
+
+            m.title = title
+            m.owner = (request.form.get("owner") or None)
+            m.status = (request.form.get("status") or "planned")
+            m.due_date = _parse_date(request.form.get("due_date"))
+            m.cost = _to_float(request.form.get("cost"))
+            m.effectiveness = _to_int(request.form.get("effectiveness"))
+            m.notes = (request.form.get("notes") or None)
+            db.session.commit()
+            flash("Mitigation güncellendi.", "success")
+            return redirect(url_for("mitigations_list_create", risk_id=r.id))
+
+        return render_template("mitigation_edit.html", r=r, m=m)
+
+    # --- CRUD: Silme ---
+    @app.route("/mitigations/<int:mid>/delete", methods=["POST"])
+    def mitigation_delete(mid):
+        m = Mitigation.query.get_or_404(mid)
+        rid = m.risk_id
+        db.session.delete(m)
+        db.session.commit()
+        flash("Mitigation silindi.", "success")
+        return redirect(url_for("mitigations_list_create", risk_id=rid))
 
     # -------------------------------------------------
     #  PDF Rapor (WeasyPrint -> pdfkit fallback)

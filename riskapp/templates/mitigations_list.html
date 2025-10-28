@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Mitigations · {{ r.title }}{% endblock %}
+{% block content %}
+<h2 style="margin:0 0 .5rem">Mitigations — {{ r.title }}</h2>
+<p class="muted" style="margin:.25rem 0 1rem">Bu risk için mevcut önlemler ve yeni önlem ekleme.</p>
+
+<div class="grid" style="display:grid; grid-template-columns: 1.1fr .9fr; gap:14px; align-items:start;">
+  <div class="card">
+    <h3 style="margin:.25rem 0 .75rem">Kayıtlar</h3>
+    {% include "partials/_mitigations_table.html" %}
+  </div>
+
+  <div class="card">
+    <h3 style="margin:.25rem 0 .75rem">Yeni Mitigation Ekle</h3>
+    <form method="post">
+      <label>Başlık *</label>
+      <input type="text" name="title" required placeholder="Örn. Acil durum prosedürü güncelle" />
+
+      <div class="row" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+        <div>
+          <label>Sorumlu</label>
+          <input type="text" name="owner" placeholder="Kişi/Ekip" />
+        </div>
+        <div>
+          <label>Durum</label>
+          <select name="status">
+            <option value="planned">Planned</option>
+            <option value="in_progress">In progress</option>
+            <option value="done">Done</option>
+            <option value="not_applicable">N/A</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;">
+        <div>
+          <label>Bitiş Tarihi</label>
+          <input type="date" name="due_date" />
+        </div>
+        <div>
+          <label>Maliyet</label>
+          <input type="number" step="0.01" name="cost" placeholder="₺" />
+        </div>
+        <div>
+          <label>Etkinlik (1–5)</label>
+          <input type="number" min="1" max="5" name="effectiveness" />
+        </div>
+      </div>
+
+      <label style="margin-top:8px">Notlar</label>
+      <textarea name="notes" rows="4" placeholder="Kısa açıklama"></textarea>
+
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn primary" type="submit">Ekle</button>
+        <a href="{{ url_for('risk_detail', risk_id=r.id) }}" class="btn">Riske Dön</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

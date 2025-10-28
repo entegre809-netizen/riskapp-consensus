@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Mitigation Düzenle · {{ r.title }}{% endblock %}
+{% block content %}
+<h2 style="margin:0 0 .5rem">Mitigation Düzenle — {{ r.title }}</h2>
+<form method="post" class="card">
+  <label>Başlık *</label>
+  <input type="text" name="title" value="{{ m.title }}" required />
+
+  <div class="row" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+    <div>
+      <label>Sorumlu</label>
+      <input type="text" name="owner" value="{{ m.owner or '' }}" />
+    </div>
+    <div>
+      <label>Durum</label>
+      <select name="status" value="{{ m.status }}">
+        {% for s in ['planned','in_progress','done','not_applicable'] %}
+          <option value="{{s}}" {% if m.status==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;">
+    <div>
+      <label>Bitiş Tarihi</label>
+      <input type="date" name="due_date" value="{{ m.due_date }}" />
+    </div>
+    <div>
+      <label>Maliyet</label>
+      <input type="number" step="0.01" name="cost" value="{{ m.cost }}" />
+    </div>
+    <div>
+      <label>Etkinlik (1–5)</label>
+      <input type="number" min="1" max="5" name="effectiveness" value="{{ m.effectiveness }}" />
+    </div>
+  </div>
+
+  <label style="margin-top:8px">Notlar</label>
+  <textarea name="notes" rows="4">{{ m.notes or '' }}</textarea>
+
+  <div style="display:flex; gap:8px; margin-top:10px;">
+    <button class="btn primary" type="submit">Kaydet</button>
+    <form action="{{ url_for('mitigation_delete', mid=m.id) }}" method="post" onsubmit="return confirm('Silinsin mi?')">
+      <button class="btn danger" type="submit">Sil</button>
+    </form>
+    <a href="{{ url_for('mitigations_list_create', risk_id=r.id) }}" class="btn">Geri</a>
+  </div>
+</form>
+{% endblock %}

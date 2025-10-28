@@ -104,6 +104,15 @@ class Risk(db.Model):
         backref="risk"
     )
 
+    # Mitigation ilişkisi (YENİ)
+    mitigations = db.relationship(
+        "Mitigation",
+        backref="risk",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="Mitigation.id.desc()"
+    )
+
     # ---------- Yardımcılar: Çoklu kategori ----------
     @property
     def categories_list(self):
@@ -194,6 +203,36 @@ class Risk(db.Model):
 
     def __repr__(self):
         return f"<Risk id={self.id} title={self.title!r} status={self.status}>"
+
+
+# --------------------------------
+# Mitigation (YENİ)
+# --------------------------------
+class Mitigation(db.Model):
+    """
+    Bir Risk için tanımlanan somut önlemler/aksiyonlar.
+    """
+    __tablename__ = "mitigation"
+
+    id = db.Column(db.Integer, primary_key=True)
+    risk_id = db.Column(db.Integer, db.ForeignKey("risks.id"), nullable=False, index=True)
+
+    title = db.Column(db.String(200), nullable=False)
+    owner = db.Column(db.String(120), nullable=True)           # sorumlu kişi/ekip
+    status = db.Column(db.String(32), nullable=False, default="planned")
+    # planned | in_progress | done | not_applicable
+
+    due_date = db.Column(db.Date, nullable=True)
+    cost = db.Column(db.Float, nullable=True)                  # tahmini maliyet
+    effectiveness = db.Column(db.Integer, nullable=True)       # 1–5 (etkinlik puanı)
+
+    notes = db.Column(db.Text, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<Mitigation id={self.id} risk_id={self.risk_id} title={self.title!r}>"
 
 
 # --------------------------------
