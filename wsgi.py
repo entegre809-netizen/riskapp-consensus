@@ -1,3 +1,3 @@
-# wsgi.py  (REPO KÖKÜNDE)
-from riskapp.app import create_app  # factory varsa
+# wsgi.py  (REPO KÖKÜ)
+from riskapp.app import create_app  # factory kullanıyorsan
 app = create_app()
