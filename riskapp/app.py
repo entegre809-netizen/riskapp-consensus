@@ -102,6 +102,27 @@ import unicodedata as _ud
 def _normcat(s: str) -> str:
     # boşlukları kırp + Unicode'u NFC'ye getir + casefold ile küçük harf
     return _ud.normalize("NFC", (s or "").strip()).casefold()
+
+def _parse_date(s: str):
+    try:
+        s = (s or "").strip()
+        if not s:
+            return None
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+def _to_float(s: str):
+    try:
+        return float(s) if s not in (None, "") else None
+    except Exception:
+        return None
+
+def _to_int(s: str):
+    try:
+        return int(s) if s not in (None, "") else None
+    except Exception:
+        return None
 # -------------------------------------------------
 # AI çıktı temizleyiciler (tekrar/eko önleme)
 # -------------------------------------------------
@@ -3754,26 +3775,7 @@ BAĞLAM (benzer öneriler):
         r.end_month   = em
         db.session.commit()
         return jsonify({"ok": True, "start_month": r.start_month, "end_month": r.end_month})   
-def _parse_date(s: str):
-    try:
-        s = (s or "").strip()
-        if not s:
-            return None
-        return datetime.strptime(s, "%Y-%m-%d").date()
-    except Exception:
-        return None
 
-def _to_float(s: str):
-    try:
-        return float(s) if s not in (None, "") else None
-    except Exception:
-        return None
-
-def _to_int(s: str):
-    try:
-        return int(s) if s not in (None, "") else None
-    except Exception:
-        return None
 
     @app.route("/risks/<int:risk_id>/mitigations", methods=["GET", "POST"])
     def mitigations_list_create(risk_id):
