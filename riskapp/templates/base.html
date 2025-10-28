@@ -282,7 +282,7 @@
       background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2310182d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
     }
     [data-theme="dark"] select.input{
-      background-image:url("data:image/svg+xml;utf8;<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23e8ecff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23e8ecff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
     }
 
     /* Butonlar */
@@ -455,6 +455,31 @@
 
           {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">Risk ve Kategori Aktarma (CSV,Excel)</a>
+          {% endif %}
+
+          {# ----- Mitigations / Önlemler: var olan endpoint adını otomatik bul ----- #}
+          {% set _has_ep_helper = (has_endpoint is defined) %}
+          {% set _mit_ep = (
+            'mitigations' if (
+              (_has_ep_helper and has_endpoint('mitigations')) or
+              (not _has_ep_helper and ('mitigations' in current_app.view_functions))
+            )
+            else (
+              'mitigations_list' if (
+                (_has_ep_helper and has_endpoint('mitigations_list')) or
+                (not _has_ep_helper and ('mitigations_list' in current_app.view_functions))
+              )
+              else (
+                'mitigation_list' if (
+                  (_has_ep_helper and has_endpoint('mitigation_list')) or
+                  (not _has_ep_helper and ('mitigation_list' in current_app.view_functions))
+                )
+                else None
+              )
+            )
+          ) %}
+          {% if _mit_ep %}
+            <a href="{{ url_for(_mit_ep) }}" class="{{ 'active' if request.endpoint==_mit_ep }}">Önlemler (Mitigations)</a>
           {% endif %}
 
           <a href="{{ url_for('responsibles') }}" class="{{ 'active' if request.endpoint=='responsibles' }}">Sorumlu Özeti</a>
