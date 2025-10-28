@@ -1,8 +1,5 @@
-# wsgi.py
-from riskapp.app import create_app
-
-app = create_app()  # gunicorn buradaki 'app'i arıyor
-
+# wsgi.py  (repo kökünde)
+from riskapp.app import app  # app = Flask(__name__) olan yer
+# opsiyonel: yerel çalıştırma
 if __name__ == "__main__":
-    # Lokal çalışma için (Render bunu kullanmaz)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run()
