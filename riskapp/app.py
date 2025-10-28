@@ -30,7 +30,7 @@ from urllib.parse import urlparse, quote
 from dotenv import load_dotenv
 load_dotenv()  # proje kökündeki .env dosyasını okur
 
-from datetime import datetime
+
 from riskapp.models import db, Risk, Mitigation   
 
 from sqlalchemy.exc import IntegrityError
