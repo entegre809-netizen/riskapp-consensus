@@ -28,7 +28,9 @@ from urllib.parse import urlparse, quote
 
 from dotenv import load_dotenv
 load_dotenv()  # proje kökündeki .env dosyasını okur
-
+# riskapp/app.py
+from datetime import datetime
+from riskapp.models import db, Risk, Mitigation   
 
 from flask import Blueprint
 # --- Proje içi paket-absolute importlar ---
@@ -3738,7 +3740,27 @@ BAĞLAM (benzer öneriler):
         r.end_month   = em
         db.session.commit()
         return jsonify({"ok": True, "start_month": r.start_month, "end_month": r.end_month})   
-       
+def _parse_date(s: str):
+    try:
+        s = (s or "").strip()
+        if not s:
+            return None
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+def _to_float(s: str):
+    try:
+        return float(s) if s not in (None, "") else None
+    except Exception:
+        return None
+
+def _to_int(s: str):
+    try:
+        return int(s) if s not in (None, "") else None
+    except Exception:
+        return None
+
     @app.route("/risks/<int:risk_id>/mitigations", methods=["GET", "POST"])
     def mitigations_list_create(risk_id):
         r = Risk.query.get_or_404(risk_id)
