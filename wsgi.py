@@ -1,3 +1,7 @@
-# wsgi.py  (REPO KÖKÜ)
-from riskapp.app import create_app  # factory kullanıyorsan
+# wsgi.py
+from riskapp.app import create_app
+
 app = create_app()
+
+if __name__ == "__main__":
+    app.run()
