@@ -3103,52 +3103,7 @@ def create_app():
         db.session.commit()
         flash("Ref No güncellendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
-    @app.post("/admin/users/<int:uid>/assign-ref")
-    @role_required("admin")
-    def admin_assign_ref(uid):
-        acc = Account.query.get_or_404(uid)
-        # formdan kod gelirse kullan, yoksa üret
-        code = (request.form.get("ref_code") or "").strip().upper() or _gen_ref_code(prefix="PRJ")
-        # tekillik
-        clash = Account.query.filter(Account.ref_code == code, Account.id != acc.id).first()
-        if clash:
-            flash("Bu referans kodu başka bir kullanıcıda mevcut.", "danger")
-            return redirect(url_for("admin_users"))
-
-        acc.ref_code = code
-        acc.status = "active"
-        db.session.commit()
-
-        send_email(
-            to_email=acc.email,
-            subject="Referans Kodunuz",
-            body=(
-                f"Merhaba {acc.contact_name},\n\n"
-                f"Giriş için referans kodunuz: {code}\n"
-                "Lütfen girişte e-posta + şifre + referans kodu kullanın.\n"
-            )
-        )
-        flash("Kullanıcı aktifleştirildi ve referans kodu atandı.", "success")
-        return redirect(url_for("admin_users"))
-
-    @app.post("/admin/users/<int:uid>/resend-ref")
-    @role_required("admin")
-    def admin_resend_ref(uid):
-        acc = Account.query.get_or_404(uid)
-        if not acc.ref_code:
-            flash("Bu kullanıcıya henüz referans kodu atanmadı.", "warning")
-            return redirect(url_for("admin_users"))
-        send_email(
-            to_email=acc.email,
-            subject="Referans Kodunuz (Yeniden Gönderim)",
-            body=(
-                f"Merhaba {acc.contact_name},\n\n"
-                f"Referans Kodunuz: {acc.ref_code}\n"
-                "Girişte e-posta + şifre + referans kodu gereklidir.\n"
-            )
-        )
-        flash("Referans kodu e-posta ile tekrar gönderildi.", "success")
-        return redirect(url_for("admin_users"))
+    
     
     @app.get("/admin/users/<int:uid>/compose-ref")
     @role_required("admin")
