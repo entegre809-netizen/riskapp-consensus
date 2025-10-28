@@ -28,9 +28,12 @@ from urllib.parse import urlparse, quote
 
 from dotenv import load_dotenv
 load_dotenv()  # proje kökündeki .env dosyasını okur
-# riskapp/app.py
+
 from datetime import datetime
 from riskapp.models import db, Risk, Mitigation   
+
+from sqlalchemy.exc import IntegrityError
+import re
 
 from flask import Blueprint
 # --- Proje içi paket-absolute importlar ---
@@ -2995,28 +2998,83 @@ def create_app():
     # -------------------------------------------------
     #  ADMIN — Kullanıcı Yönetimi
     # -------------------------------------------------
-    @app.route("/admin/users", methods=["GET", "POST"])
+    @app.post("/admin/users/<int:uid>/assign-ref")
     @role_required("admin")
-    def admin_users():
-        if request.method == "POST":
-            uid = int(request.form.get("user_id"))
-            new_role = request.form.get("new_role")
-            if new_role not in {"admin", "uzman"}:
-                flash("Geçersiz rol.", "danger")
-                return redirect(url_for("admin_users"))
-            acc = Account.query.get(uid)
-            if not acc:
-                flash("Kullanıcı bulunamadı.", "danger")
-                return redirect(url_for("admin_users"))
-            acc.role = new_role
-            db.session.commit()
-            flash(f"Kullanıcının rolü {new_role} olarak güncellendi.", "success")
-            if uid == session.get("account_id"):
-                session["role"] = new_role
+    def admin_assign_ref(uid):
+        acc = Account.query.get_or_404(uid)
+
+        # 1) Girdi: form ya da JSON
+        raw = (request.form.get("ref_code") or
+            (request.get_json(silent=True) or {}).get("ref_code") or
+            "").strip().upper()
+
+        # 2) Format doğrulaması (isteğe göre kuralı gevşetebilirsiniz)
+        # Örn: PRJ-XXXXXX (A-Z, 0-9)
+        PATTERN = r"^PRJ-[A-Z0-9]{6}$"
+        if raw and not re.fullmatch(PATTERN, raw):
+            flash("Geçersiz referans kodu formatı (örn. PRJ-ABC123).", "danger")
             return redirect(url_for("admin_users"))
 
-        users = Account.query.order_by(Account.created_at.desc()).all()
-        return render_template("admin_users.html", users=users)
+        # 3) Kod üretimi (verilmediyse); çakışma durumunda birkaç kez dene
+        code = raw
+        MAX_TRIES = 8
+        tries = 0
+        while not code:
+            tries += 1
+            candidate = _gen_ref_code(prefix="PRJ")  # tercihen PRJ-XXXXXX üretmeli
+            exists = Account.query.filter(
+                Account.ref_code == candidate
+            ).first()
+            if not exists:
+                code = candidate
+                break
+            if tries >= MAX_TRIES:
+                flash("Referans kodu üretilemedi, lütfen tekrar deneyin.", "danger")
+                return redirect(url_for("admin_users"))
+
+        # 4) Başka bir kullanıcıda var mı? (idempotent atama)
+        clash = Account.query.filter(
+            Account.ref_code == code,
+            Account.id != acc.id
+        ).first()
+        if clash:
+            flash("Bu referans kodu başka bir kullanıcıda mevcut.", "danger")
+            return redirect(url_for("admin_users"))
+
+        # 5) Atama ve etkinleştirme (DB tekillik hatasına karşı güvenli)
+        acc.ref_code = code
+        acc.status = "active"
+
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            # Modelde benzersiz indeks/constraint varsa buraya düşer — iyi!
+            flash("Referans kodu çakıştı. Lütfen tekrar deneyin.", "danger")
+            return redirect(url_for("admin_users"))
+
+        # 6) E-postayı commit SONRASI gönder (yanlışlıkla 'hayalet' mail atmayalım)
+        email_sent = True
+        try:
+            send_email(
+                to_email=acc.email,
+                subject="Referans Kodunuz",
+                body=(
+                    f"Merhaba {acc.contact_name},\n\n"
+                    f"Giriş için referans kodunuz: {code}\n"
+                    "Lütfen girişte e-posta + şifre + referans kodu kullanın.\n"
+                )
+            )
+        except Exception as e:
+            current_app.logger.exception("Referans kodu maili gönderilemedi: %s", e)
+            email_sent = False
+
+        if email_sent:
+            flash("Kullanıcı aktifleştirildi ve referans kodu atandı (e-posta gönderildi).", "success")
+        else:
+            flash("Kullanıcı aktifleştirildi ve referans kodu atandı; ancak e-posta gönderilemedi.", "warning")
+
+        return redirect(url_for("admin_users"))
     
 
     @app.post("/admin/risks/<int:rid>/set-ref")
