@@ -44,30 +44,11 @@ from riskapp.models import (
      Account, ProjectInfo, RiskCategory, RiskCategoryRef 
  )
 from riskapp.seeder import seed_if_empty
-# -*- coding: utf-8 -*-
-from __future__ import annotations
+from riskapp.ai_utils import ai_complete, ai_json, best_match
 
-from flask import request, jsonify
-
-# Eğer bu dosya riskapp/ içinde ise:
-from . import app
-
-# AI modüllerin (senin gönderdiğin dosyalar)
-from .ai_local.ps_estimator import PSEstimator
-from .ai_local.engine import AILocal
-from .ai_local.trainer import build_index
-from .ai_local import models  # gerekirse; ama şimdilik direk Risk lazım
-from .models import Risk
-
-
-# Eğer make_ai_risk_comment ayrı bir dosyadaysa:
-#   from .ai_local.commenter import make_ai_risk_comment
-# Senin gönderdiğin ilk blokta tanımlı olduğu için şimdilik şöyle varsayıyorum:
-from .ai_local.commenter import make_ai_risk_comment  # <- dosya adını senin yapına göre ayarla
-
-
-
-
+# === AI P/S & RAG için ek importlar ===
+from riskapp.ai_local.ps_estimator import PSEstimator
+from riskapp.ai_local.engine import AILocal
 
 # --- Çok formatlı içe aktarma için opsiyonel bağımlılık ---
 try:
@@ -195,7 +176,6 @@ def _strip_ai_in_mitigation(mit: str | None) -> str | None:
         keep.append(raw)
     clean = "\n".join(keep).strip()
     return clean or None
-
 
 
 def _guess_wkhtmltopdf_path() -> str | None:
@@ -843,7 +823,113 @@ def _kpis_default(cat_lower: str):
 
     return common
 
+def make_ai_risk_comment(risk_id: int) -> str:
+    r = Risk.query.get(risk_id)
+    if not r:
+        return "⚠️ Risk bulunamadı."
 
+    # 1) P/S (DB + Excel priors + makale heuristikleri) — HATALARA DAYANIKLI
+    hint = None
+    try:
+        ps = PSEstimator(alpha=5.0)
+        ps.fit(db.session)
+        hint = ps.suggest(r.category or None)
+    except Exception as e:
+        current_app.logger.exception("PSEstimator hata verdi: %s", e)
+        hint = None
+
+    # 2) Benzer kayıtlar / makale kuralları (bağlam) — lokal AI yoksa sessizce devam et
+    rules = []
+    try:
+        ai = AILocal.load_or_create()
+        query = f"{r.category or ''} {r.title or ''} {r.description or ''}"
+        hits = ai.search(query, k=5)
+        rules = [h for h in hits if h.get("label") == "paper_rule"]
+    except Exception as e:
+        current_app.logger.exception("AILocal.search hata verdi: %s", e)
+        rules = []
+
+    # 3) Aksiyonlar / KPI’lar (departman + RACI dahil)
+    cat_lower = (r.category or "").lower()
+    actions = _propose_actions(r)
+    kpis = _kpis_default(cat_lower)
+    close_criteria = "Arka arkaya 8 hafta KPI’lar hedefte + 2 ay uygunsuzluk (NCR) sıfır"
+
+    # 4) Metni derle
+    lines = []
+    lines.append(f"🤖 **AI Önerisi — {r.title or 'Risk'}**")
+    lines.append(f"**Kategori:** {r.category or '—'}")
+    lines.append(f"**Açıklama:** {r.description or '—'}\n")
+
+    # --- Sayısal özet ---
+    lines.append("### 1) Sayısal Özet")
+    if hint:
+        try:
+            n_cat = hint.get("n_cat") or (0, 0)
+            n_all = hint.get("n_all") or (0, 0)
+            lines.append(
+                f"- Tahmini Olasılık **P={hint.get('p', '-')}**, "
+                f"Şiddet **S={hint.get('s', '-')}** "
+                f"(kaynak: {hint.get('source', '-')} "
+                f"örnek: P {n_cat[0]}/{n_all[0]}, "
+                f"S {n_cat[1]}/{n_all[1]})"
+            )
+            if hint.get("applied_rules"):
+                lines.append(
+                    "- Uygulanan makale kuralları: "
+                    + ", ".join(hint.get("applied_rules", []))
+                )
+        except Exception as e:
+            current_app.logger.exception("hint formatı bozuk: %s", e)
+            lines.append("- P/S tahmini üretilemedi (format hatası).")
+    else:
+        lines.append("- P/S tahmini üretilemedi (yeterli veri yok ya da model hatası).")
+
+    # --- Departman & RACI ---
+    lines.append("\n### 2) Departman & RACI")
+    if actions:
+        ex = actions[0]
+        C0 = ", ".join(ex["C"]) if isinstance(ex["C"], list) else ex["C"]
+        I0 = ", ".join(ex["I"]) if isinstance(ex["I"], list) else ex["I"]
+        lines.append(f"- **Departman:** {ex['dept']}")
+        lines.append(f"- **R:** {ex['R']}  | **A:** {ex['A']}  | **C:** {C0}  | **I:** {I0}")
+    else:
+        lines.append("- Bu kategori için hazır RACI bulunamadı, manuel belirlenmeli.")
+
+    # --- Aksiyon Planı ---
+    lines.append("\n### 3) Ne Yapılacak? (Aksiyon Planı)")
+    if actions:
+        for i, a in enumerate(actions, 1):
+            C = ", ".join(a["C"]) if isinstance(a["C"], list) else a["C"]
+            I = ", ".join(a["I"]) if isinstance(a["I"], list) else a["I"]
+            lines.append(
+                f"{i}. **{a['action']}** — **Termin:** {a['due']}  \n"
+                f"   R:{a['R']} · A:{a['A']} · C:{C} · I:{I}"
+            )
+    else:
+        lines.append("- Otomatik aksiyon üretilmedi, proje ekibi ile aksiyon seti netleştirilmeli.")
+
+    # --- KPI'lar ---
+    lines.append("\n### 4) İzleme Göstergeleri (KPI)")
+    if kpis:
+        for k in kpis:
+            lines.append(f"- {k}")
+    else:
+        lines.append("- Bu kategori için hazır KPI önerisi bulunamadı.")
+
+    # --- Kapanış kriteri ---
+    lines.append("\n### 5) Kapanış Kriteri")
+    lines.append(f"- {close_criteria}")
+
+    # --- Makale bağlamı ---
+    if rules:
+        lines.append("\n### 6) Makale Bağlamı")
+        for rr in rules:
+            lines.append(f"- {rr.get('text', '')}")
+
+    return "\n".join(lines)
+
+    
 
 def send_email(to_email: str, subject: str, body: str):
     """
@@ -3126,12 +3212,138 @@ def create_app():
             flash("Bu projeye erişiminiz yok.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
     
-       # --- AI Nasıl Çalışır (animasyonlu anlatım) ---
+           # --- AI Nasıl Çalışır (animasyonlu anlatım) ---
     @app.route("/ai/how-it-works")
     def ai_how_it_works():
         return render_template("ai_how_it_works.html")
 
-   
+    # -------------------------------------------------
+    #  AI — RAG tabanlı aksiyon/mitigation önerisi (TEMİZLENMİŞ)
+    # -------------------------------------------------
+    @app.route("/ai/suggest/<int:risk_id>", methods=["POST"])
+    def ai_suggest(risk_id):
+        r = Risk.query.get_or_404(risk_id)
+
+        # 0) Mitigation'daki eski AI metnini ayıkla (feedback loop fix)
+        clean_mit = _strip_ai_in_mitigation(r.mitigation)
+        base_mit = (clean_mit or (r.mitigation or "")).strip()
+
+        # 1) Bağlam: aynı kategorideki öneriler
+        ctx_suggestions = (
+            Suggestion.query
+            .filter(Suggestion.category == (r.category or ""))
+            .order_by(Suggestion.id.desc())
+            .limit(50)
+            .all()
+        )
+        ctx_text = "\n".join(
+            f"- {s.text} (P:{s.default_prob or '-'}, S:{s.default_sev or '-'})"
+            for s in ctx_suggestions
+        ) or "- (bağlam bulunamadı)"
+
+        # 2) P/S tahmini (sayısal bağlam) — hata verirse app çökmemesi için try/except
+        hint = None
+        rpn_ai = None
+        numeric_line = ""
+        try:
+            ps = PSEstimator(alpha=5.0)
+            ps.fit(db.session)
+            hint = ps.suggest(r.category or None)
+        except Exception as e:
+            current_app.logger.exception("PSEstimator hata verdi: %s", e)
+            hint = None
+
+        if hint and hint.get("p") and hint.get("s"):
+            try:
+                rpn_ai = int(hint["p"]) * int(hint["s"])
+                numeric_line = (
+                    f"Tahmini Olasılık **P={hint['p']}**, "
+                    f"Şiddet **S={hint['s']}**, "
+                    f"Tahmini RPN ≈ **{rpn_ai}**."
+                )
+            except Exception:
+                numeric_line = (
+                    f"Tahmini Olasılık **P={hint.get('p', '-')}**, "
+                    f"Şiddet **S={hint.get('s', '-')}**."
+                )
+        else:
+            numeric_line = "Tahmini P/S değeri üretilemedi (yetersiz veri ya da model hatası)."
+
+        # 3) Prompt'ı hazırla
+        title = r.title or "(başlık yok)"
+        desc  = r.description or "(açıklama yok)"
+        cat   = r.category or "(kategori yok)"
+
+        mit_block = base_mit if base_mit else "- (tanımlı mevcut önlem yok)"
+
+        prompt = f"""
+Sen bir inşaat/altyapı projeleri için çalışan uzman bir risk yönetimi danışmanısın.
+
+Aşağıdaki risk için, uygulanabilir ve sahada yapılabilir nitelikte 3–7 arası aksiyon/mitigation maddesi üret:
+
+- Kısa, net, madde madde yaz.
+- Her madde tek bir aksiyonu anlatsın.
+- Gereksiz uzun girişler, tekrarlar ve “bu sadece bir öneridir” gibi ifadeler kullanma.
+- Aynı şeyi farklı cümlelerle tekrar etme.
+- ISO 31000, FMEA ve inşaat sahası pratikleriyle uyumlu olsun.
+
+RİSK BİLGİSİ
+------------
+- Başlık: {title}
+- Kategori: {cat}
+- Açıklama: {desc}
+
+MEVCUT ÖNLEMLER
+----------------
+{mit_block}
+
+SAYISAL ÖZET
+------------
+{numeric_line}
+
+BENZER ŞABLONLARDAN NOTLAR
+--------------------------
+{ctx_text}
+
+Lütfen sadece doğrudan kullanılabilir aksiyon/mitigation maddelerini üret.
+"BENZER ÖNERİLER" gibi başlıklar ekleme, giriş/sonuç paragrafı yazma.
+"""
+
+        # 4) OpenAI / local LLM çağrısı
+        try:
+            raw = ai_complete(prompt)
+        except Exception as e:
+            current_app.logger.exception("AI önerisi alınırken hata: %s", e)
+            flash("AI önerisi alınırken bir hata oluştu.", "danger")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        cleaned = _strip_ai_artifacts(raw or "").strip()
+        if not cleaned:
+            flash("AI anlamlı bir çıktı üretemedi.", "warning")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        # 5) Mitigation alanına ekle (mevcut metni bozmadan altına AI bloğu koy)
+        ts = datetime.utcnow().isoformat(timespec="seconds")
+        header = f"---\n🤖 AI Önerisi ({ts} UTC):\n"
+
+        if base_mit:
+            new_mit = f"{base_mit}\n\n{header}{cleaned}"
+        else:
+            new_mit = f"{header}{cleaned}"
+
+        r.mitigation = new_mit
+
+        # 6) Sistem yorumu düş
+        db.session.add(Comment(
+            risk_id=r.id,
+            text=f"AI mitigation önerisi oluşturuldu: {ts} UTC",
+            is_system=True,
+        ))
+        db.session.commit()
+
+        flash("AI önerisi mitigation alanına eklendi.", "success")
+        return redirect(url_for("risk_detail", risk_id=r.id))
+
 
 
 
@@ -3740,153 +3952,7 @@ def create_app():
         text = make_ai_risk_comment(risk_id)
         # Çok basic: plain text döndürelim
         return f"<pre>{text}</pre>"
-    
-# ------------------------------------
-# 1) Risk için kısa AI yorumu (make_ai_risk_comment)
-# ------------------------------------
-@app.route("/ai/comment/<int:risk_id>", methods=["POST"])
-def api_ai_comment(risk_id: int):
-    """
-    Kullanım (frontend):
-      POST /ai/comment/123
-      Body (opsiyonel JSON): { "style": "oz" | "net" | "kurumsal" }
 
-    Dönen JSON:
-      {
-        "ok": true,
-        "risk_id": 123,
-        "style": "oz",
-        "comment": "...markdown metin..."
-      }
-    """
-    data = request.get_json(silent=True) or {}
-    style = (data.get("style") or "oz").lower()
-
-    try:
-        text = make_ai_risk_comment(risk_id, style=style)
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-    return jsonify({
-        "ok": True,
-        "risk_id": risk_id,
-        "style": style,
-        "comment": text,
-    })
-
-
-# ------------------------------------
-# 2) Embedding indeksinde arama (debug/admin)
-# ------------------------------------
-@app.route("/ai/search", methods=["GET"])
-def api_ai_search():
-    """
-    Basit arama endpoint'i (debug / admin için).
-    Örnek:
-      GET /ai/search?q=beton+gecikmesi&k=5
-    """
-    q = request.args.get("q", "").strip()
-    if not q:
-        return jsonify({"ok": False, "error": "q parametresi gerekli"}), 400
-
-    try:
-        k = int(request.args.get("k", "5"))
-    except ValueError:
-        k = 5
-
-    try:
-        ai = AILocal.load_or_create()
-        hits = ai.search(q, k=k)
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-    return jsonify({
-        "ok": True,
-        "q": q,
-        "k": k,
-        "hits": hits,
-    })
-
-
-# ------------------------------------
-# 3) AILocal.answer ile bağlamlı cevap
-# ------------------------------------
-@app.route("/ai/answer", methods=["POST"])
-def api_ai_answer():
-    """
-    AILocal.answer() ile bağlamlı çıktı üretir.
-    Kullanım:
-      POST /ai/answer
-      Body:
-        {
-          "prompt": "Bu risk için benzer mitigasyonlar neler?",
-          "k": 5,            # opsiyonel
-          "style": "full"    # 'full' | 'mini'
-        }
-    """
-    data = request.get_json(silent=True) or {}
-    prompt = (data.get("prompt") or "").strip()
-    if not prompt:
-        return jsonify({"ok": False, "error": "prompt boş olamaz"}), 400
-
-    k = int(data.get("k") or 5)
-    style = (data.get("style") or "full").lower()
-
-    try:
-        ai = AILocal.load_or_create()
-        text = ai.answer(prompt, k=k, style=style)
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-    return jsonify({
-        "ok": True,
-        "prompt": prompt,
-        "k": k,
-        "style": style,
-        "text": text,
-    })
-
-
-# ------------------------------------
-# 4) İndeksi yeniden build eden endpoint (admin)
-# ------------------------------------
-@app.route("/ai/build-index", methods=["POST"])
-def api_ai_build_index():
-    """
-    Embedding indeksini yeniden kurar.
-    Bunu genelde admin panelinden veya management komutundan çağırırsın.
-
-    Body (opsiyonel JSON):
-      {
-        "kind": "suggestions" | "risks" | "both",
-        "include_paper_facts": true/false,
-        "min_len": 5
-      }
-    """
-    data = request.get_json(silent=True) or {}
-    kind = data.get("kind") or "suggestions"
-    include_paper_facts = bool(data.get("include_paper_facts", False))
-    try:
-        min_len = int(data.get("min_len", 5))
-    except ValueError:
-        min_len = 5
-
-    try:
-        n = build_index(
-            kind=kind,
-            include_paper_facts=include_paper_facts,
-            min_len=min_len,
-        )
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-    return jsonify({
-        "ok": True,
-        "kind": kind,
-        "include_paper_facts": include_paper_facts,
-        "min_len": min_len,
-        "count": n,
-    })
     
     return app
 

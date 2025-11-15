@@ -154,15 +154,18 @@
 
       {# --- sağ taraftaki aksiyon butonları --- #}
       <div class="btnbar noprint">
-        <form method="post" action="{{ url_for('ai_suggest', risk_id=r.id) }}">
+        {# AI mitigation önerisi: form + AJAX (id ile) #}
+        <form method="post"
+              action="{{ url_for('ai_suggest', risk_id=r.id) }}"
+              id="aiSuggestForm">
           <button class="btn btn-success" type="submit"
+                  id="btn-ai-suggest"
                   title="Benzer önerilerden aksiyon planı">
             🤖 Öneri Üret
           </button>
         </form>
 
         <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
-
           <button class="btn btn-primary" type="submit"
                   title="Sayısal özet + RACI + KPI">
             ✨ Zengin AI Yorum
@@ -267,7 +270,10 @@
 
         <div style="grid-column:1/-1">
           <label>Önlemler (Mitigation)</label>
-          <textarea class="input" name="mitigation" rows="3"
+          <textarea class="input"
+                    id="mitigation-textarea"
+                    name="mitigation"
+                    rows="3"
                     placeholder="Önerilen aksiyonlar">{{ r.mitigation or '' }}</textarea>
         </div>
 
@@ -555,6 +561,49 @@
       e.preventDefault();
       document.getElementById('saveBtn')?.click();
     }
+  });
+
+  // ========= AI SUGGEST: AJAX entegrasyonu =========
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('aiSuggestForm');
+    const btn  = document.getElementById('btn-ai-suggest');
+    const area = document.getElementById('mitigation-textarea');
+
+    if (!form || !btn || !area) return;
+
+    form.addEventListener('submit', function (ev) {
+      // JS çalışıyorsa normal form submit'i engelle
+      ev.preventDefault();
+
+      const oldText = btn.innerText;
+      btn.disabled = true;
+      btn.innerText = '🤖 Çalışıyor...';
+
+      fetch("{{ url_for('ai_suggest', risk_id=r.id) }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({})
+      })
+      .then(resp => resp.json())
+      .then(data => {
+        if (data && data.ok) {
+          area.value = data.mitigation || "";
+        } else {
+          alert(data && data.error ? data.error : "AI önerisi üretilemedi.");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("AI çağrısında hata oluştu.");
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerText = oldText;
+      });
+    });
   });
 </script>
 
