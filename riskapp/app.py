@@ -828,10 +828,15 @@ def make_ai_risk_comment(risk_id: int) -> str:
     if not r:
         return "⚠️ Risk bulunamadı."
 
-    # 1) P/S (DB + Excel priors + makale heuristikleri)
-    ps = PSEstimator(alpha=5.0)
-    ps.fit(db.session)
-    hint = ps.suggest(r.category or None)
+    # 1) P/S (DB + Excel priors + makale heuristikleri) — HATALARA DAYANIKLI
+    hint = None
+    try:
+        ps = PSEstimator(alpha=5.0)
+        ps.fit(db.session)
+        hint = ps.suggest(r.category or None)
+    except Exception as e:
+        current_app.logger.exception("PSEstimator hata verdi: %s", e)
+        hint = None
 
     # 2) Benzer kayıtlar / makale kuralları (bağlam) — lokal AI yoksa sessizce devam et
     rules = []
@@ -840,7 +845,8 @@ def make_ai_risk_comment(risk_id: int) -> str:
         query = f"{r.category or ''} {r.title or ''} {r.description or ''}"
         hits = ai.search(query, k=5)
         rules = [h for h in hits if h.get("label") == "paper_rule"]
-    except Exception:
+    except Exception as e:
+        current_app.logger.exception("AILocal.search hata verdi: %s", e)
         rules = []
 
     # 3) Aksiyonlar / KPI’lar (departman + RACI dahil)
@@ -855,42 +861,74 @@ def make_ai_risk_comment(risk_id: int) -> str:
     lines.append(f"**Kategori:** {r.category or '—'}")
     lines.append(f"**Açıklama:** {r.description or '—'}\n")
 
+    # --- Sayısal özet ---
     lines.append("### 1) Sayısal Özet")
-    lines.append(
-        f"- Tahmini Olasılık **P={hint['p']}**, Şiddet **S={hint['s']}** "
-        f"(kaynak: {hint['source']}, örnek: P {hint['n_cat'][0]}/{hint['n_all'][0]}, "
-        f"S {hint['n_cat'][1]}/{hint['n_all'][1]})"
-    )
-    if hint.get("applied_rules"):
-        lines.append("- Uygulanan makale kuralları: " + ", ".join(hint["applied_rules"]))
+    if hint:
+        try:
+            n_cat = hint.get("n_cat") or (0, 0)
+            n_all = hint.get("n_all") or (0, 0)
+            lines.append(
+                f"- Tahmini Olasılık **P={hint.get('p', '-')}**, "
+                f"Şiddet **S={hint.get('s', '-')}** "
+                f"(kaynak: {hint.get('source', '-')} "
+                f"örnek: P {n_cat[0]}/{n_all[0]}, "
+                f"S {n_cat[1]}/{n_all[1]})"
+            )
+            if hint.get("applied_rules"):
+                lines.append(
+                    "- Uygulanan makale kuralları: "
+                    + ", ".join(hint.get("applied_rules", []))
+                )
+        except Exception as e:
+            current_app.logger.exception("hint formatı bozuk: %s", e)
+            lines.append("- P/S tahmini üretilemedi (format hatası).")
+    else:
+        lines.append("- P/S tahmini üretilemedi (yeterli veri yok ya da model hatası).")
 
+    # --- Departman & RACI ---
     lines.append("\n### 2) Departman & RACI")
     if actions:
         ex = actions[0]
-        lines.append(f"- **Departman:** {ex['dept']}")
         C0 = ", ".join(ex["C"]) if isinstance(ex["C"], list) else ex["C"]
         I0 = ", ".join(ex["I"]) if isinstance(ex["I"], list) else ex["I"]
+        lines.append(f"- **Departman:** {ex['dept']}")
         lines.append(f"- **R:** {ex['R']}  | **A:** {ex['A']}  | **C:** {C0}  | **I:** {I0}")
+    else:
+        lines.append("- Bu kategori için hazır RACI bulunamadı, manuel belirlenmeli.")
 
+    # --- Aksiyon Planı ---
     lines.append("\n### 3) Ne Yapılacak? (Aksiyon Planı)")
-    for i, a in enumerate(actions, 1):
-        C = ", ".join(a["C"]) if isinstance(a["C"], list) else a["C"]
-        I = ", ".join(a["I"]) if isinstance(a["I"], list) else a["I"]
-        lines.append(f"{i}. **{a['action']}** — **Termin:** {a['due']}  \n   R:{a['R']} · A:{a['A']} · C:{C} · I:{I}")
+    if actions:
+        for i, a in enumerate(actions, 1):
+            C = ", ".join(a["C"]) if isinstance(a["C"], list) else a["C"]
+            I = ", ".join(a["I"]) if isinstance(a["I"], list) else a["I"]
+            lines.append(
+                f"{i}. **{a['action']}** — **Termin:** {a['due']}  \n"
+                f"   R:{a['R']} · A:{a['A']} · C:{C} · I:{I}"
+            )
+    else:
+        lines.append("- Otomatik aksiyon üretilmedi, proje ekibi ile aksiyon seti netleştirilmeli.")
 
+    # --- KPI'lar ---
     lines.append("\n### 4) İzleme Göstergeleri (KPI)")
-    for k in kpis:
-        lines.append(f"- {k}")
+    if kpis:
+        for k in kpis:
+            lines.append(f"- {k}")
+    else:
+        lines.append("- Bu kategori için hazır KPI önerisi bulunamadı.")
 
+    # --- Kapanış kriteri ---
     lines.append("\n### 5) Kapanış Kriteri")
     lines.append(f"- {close_criteria}")
 
+    # --- Makale bağlamı ---
     if rules:
         lines.append("\n### 6) Makale Bağlamı")
         for rr in rules:
             lines.append(f"- {rr.get('text', '')}")
 
     return "\n".join(lines)
+
 
 def send_email(to_email: str, subject: str, body: str):
     """
@@ -1191,6 +1229,8 @@ def create_app():
         # --- Web sayfaları için klasik redirect ---
         if "username" not in session and (ep not in allowed):
             return redirect(url_for("login"))
+        
+    
 
 
     # -------------------------------------------------
@@ -3896,7 +3936,12 @@ Lütfen:
             return name in current_app.view_functions
         return dict(has_endpoint=has_endpoint)
     
-    
+    @app.route("/debug/ai_comment/<int:risk_id>")
+    def debug_ai_comment(risk_id):
+        text = make_ai_risk_comment(risk_id)
+        # Çok basic: plain text döndürelim
+        return f"<pre>{text}</pre>"
+
     
     return app
 
