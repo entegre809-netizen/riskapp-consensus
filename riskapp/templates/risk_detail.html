@@ -304,7 +304,7 @@
       <div class="grid">
         {% for c in r.comments|sort(attribute='id', reverse=True) %}
           <div class="comment {% if c.is_system %}system{% endif %}">
-            <div class="row" style="justify-content:space-between" class="meta">
+            <div class="row meta" style="justify-content:space-between">
               <strong>{% if c.is_system %}Sistem{% else %}Kullanıcı{% endif %}</strong>
               <span class="muted">
                 {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '' }} ·

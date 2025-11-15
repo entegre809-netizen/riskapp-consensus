@@ -3171,7 +3171,7 @@ def create_app():
             flash("Bu projeye erişiminiz yok.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
     
-    # --- AI Nasıl Çalışır (animasyonlu anlatım) ---
+       # --- AI Nasıl Çalışır (animasyonlu anlatım) ---
     @app.route("/ai/how-it-works")
     def ai_how_it_works():
         return render_template("ai_how_it_works.html")
@@ -3179,7 +3179,7 @@ def create_app():
     # -------------------------------------------------
     #  AI — RAG tabanlı aksiyon/mitigation önerisi (TEMİZLENMİŞ)
     # -------------------------------------------------
-        # -------------------------------------------------
+       # -------------------------------------------------
     #  AI — RAG tabanlı aksiyon/mitigation önerisi (TEMİZLENMİŞ)
     # -------------------------------------------------
     @app.route("/ai/suggest/<int:risk_id>", methods=["POST"])
@@ -3188,12 +3188,16 @@ def create_app():
 
         # 0) Mitigation'daki eski AI metnini ayıkla (feedback loop fix)
         clean_mit = _strip_ai_in_mitigation(r.mitigation)
+        base_mit = (clean_mit or (r.mitigation or "")).strip()
 
-        # 1) Bağlam: benzer öneriler
-        ctx_suggestions = (Suggestion.query
+        # 1) Bağlam: aynı kategorideki öneriler
+        ctx_suggestions = (
+            Suggestion.query
             .filter(Suggestion.category == (r.category or ""))
-            .order_by(Suggestion.id.desc()).limit(50).all())
-
+            .order_by(Suggestion.id.desc())
+            .limit(50)
+            .all()
+        )
         ctx_text = "\n".join(
             f"- {s.text} (P:{s.default_prob or '-'}, S:{s.default_sev or '-'})"
             for s in ctx_suggestions
@@ -3203,113 +3207,93 @@ def create_app():
         ps = PSEstimator(alpha=5.0)
         ps.fit(db.session)
         hint = ps.suggest(r.category or None)
+
+        # Tahmini RPN = P × S
+        rpn_ai = hint["p"] * hint["s"]
+
         numeric_line = (
-            f"Tahmini Olasılık **P={hint['p']}**, Şiddet **S={hint['s']}** "
-            f"(kaynak: {hint['source']}, örnek: P {hint['n_cat'][0]}/{hint['n_all'][0]}, "
+            f"Tahmini Olasılık **P={hint['p']}**, "
+            f"Şiddet **S={hint['s']}**, "
+            f"RPN ≈ **{rpn_ai}** "
+            f"(kaynak: {hint['source']}, örnek: "
+            f"P {hint['n_cat'][0]}/{hint['n_all'][0]}, "
             f"S {hint['n_cat'][1]}/{hint['n_all'][1]})"
         )
         if hint.get("applied_rules"):
             numeric_line += "\n" + "Uygulanan makale kuralları: " + ", ".join(hint["applied_rules"])
 
-        # 3) Prompt (sade, eko azaltılmış)
+        # 3) Prompt (sade ve tek seferlik yapı)
         prompt = f"""
-Aşağıda bir proje riskinin özeti var. Risk yönetimi uzmanı gibi davran.
+Aşağıda bir proje riskinin özeti var. Bir inşaat / altyapı projesinde çalışan
+deneyimli bir risk yönetimi uzmanı gibi davran.
+
 Sadece aşağıdaki 5 başlıkla, kısa ve tekrar etmeyen bir çıktı üret:
+
 1) Kısa Özet
 2) Önerilen Aksiyonlar (madde madde)
 3) İzleme Göstergeleri (KPI)
 4) Sorumluluk ve Termin
 5) Riskin Kabul Kriteri (kapanış ölçütü)
 
+Başlıklar dışına çıkma, başka başlık ekleme.
+Her başlık altında 2–6 maddelik net, uygulanabilir cümleler kullan.
+
 RİSK BAŞLIK: {r.title}
 KATEGORİ: {r.category or '-'}
-AÇIKLAMA: {r.description or '-'}
 
-MEVCUT ÖNLEMLER (özet): {clean_mit or '-'}
+AÇIKLAMA:
+{r.description or '-'}
 
-BAĞLAM (benzer öneriler):
+MEVCUT ÖNLEMLER (boş olabilir):
+{base_mit or '-'}
+
+SAYISAL ÖZET:
+{numeric_line}
+
+BENZER KAYITLARDAN DERLENEN BAĞLAM:
 {ctx_text}
-""".strip()
+
+Lütfen:
+- Genel teorik bilgi anlatma, proje sahasında uygulanabilir somut aksiyonlara odaklan.
+- Gereksiz tekrar yapma.
+- Madde işaretlerini Markdown formatında ver ( - veya 1., 2. şeklinde).
+        """.strip()
 
         try:
-            raw_ai = ai_complete(prompt).strip()
+            # riskapp.ai_utils içindeki yardımcıyı kullanıyoruz
+            raw = ai_complete(prompt)
         except Exception as e:
-            raw_ai = f"(AI çalıştırılamadı: {e})"
+            current_app.logger.exception("AI suggest error: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
 
-        ai_text = _strip_ai_artifacts(raw_ai).strip()
-        if ai_text and not ai_text.startswith("(AI çalıştırılamadı"):
-            final_text = f"**Sayısal Özet**\n{numeric_line}\n\n{ai_text}"
-        else:
-            final_text = raw_ai
+        # Model ekolarını ve gereksiz satırları temizle
+        cleaned = _strip_ai_artifacts(raw)
 
-        # 4) Yorumu kaydet (tam metin yorumlarda)
-        db.session.add(Comment(
-            risk_id=r.id,
-            text=f"🤖 AI Önerisi:\n{final_text}",
-            is_system=True
-        ))
+        # 4) Mitigation alanına kaydet (eski metin + yeni AI önerisi)
+        from datetime import datetime as _dt
 
-        # 5) Mitigation'a YALNIZCA kısa özet satırı ekle (feedback loop yok)
-        #    - Mevcut kullanıcı metnini koru (clean_mit)
-        #    - İlk 1-2 aksiyonu kısa özet satırı olarak göm
-        short_hint = None
-        if ai_text and not ai_text.startswith("(AI çalıştırılamadı"):
-            # basit çıkarım: "2) Önerilen Aksiyonlar" kısmındaki ilk 1-2 madde
-            lines = [ln.strip() for ln in ai_text.splitlines()]
-            action_lines = []
-            in_actions = False
-            for ln in lines:
-                if ln.lower().startswith("2)") or "önerilen aksiyonlar" in ln.lower():
-                    in_actions = True
-                    continue
-                if in_actions:
-                    if ln and (ln[0].isdigit() and ln[1:2] in {".",")"} or ln.startswith("-")):
-                        action_lines.append(ln.lstrip("- ").lstrip("0123456789.). ").strip())
-                        if len(action_lines) >= 2:
-                            break
-                    # başka başlığa geçildiyse dur
-                    if ln.startswith("3)") or "izleme göstergeleri" in ln.lower():
-                        break
-            if action_lines:
-                short_hint = " • ".join(action_lines)
+        lines = []
+        if base_mit:
+            lines.append(base_mit)
+            lines.append("")  # boş satır
 
-        # Mitigation güncelle (kullanıcı yazdığı metni koru + kısa özet ekle)
-        if short_hint:
-            new_mit = (clean_mit or "").strip()
-            if new_mit:
-                new_mit += "\n\n---\n"
-            new_mit += f"AI Öneri Özeti: {short_hint}"
-            r.mitigation = new_mit
+        lines.append(cleaned)
+        lines.append("")
+        lines.append(
+            f"🤖 AI Önerisi ile oluşturuldu "
+            f"({_dt.utcnow().strftime('%Y-%m-%d %H:%M')} UTC)"
+        )
 
-        db.session.commit()
-        flash("AI önerisi üretildi ve kaydedildi.", "success")
-        return redirect(url_for("risk_detail", risk_id=r.id))
-
-    
-    # -------------------------------------------------
-    #  **YENİ** AI — Zengin yorum üret ve ekle (P/S + RAG + KPI/Aksiyon + Departman/RACI)
-    # -------------------------------------------------
-    @app.post("/risks/<int:risk_id>/ai_comment")
-    def ai_comment_add(risk_id: int):
-        # Build rich AI comment once
-        text = make_ai_risk_comment(risk_id)
-        if not text:
-            flash("AI önerisi üretilemedi.", "warning")
-            return redirect(url_for("risk_detail", risk_id=risk_id))
-
-        # Final cleanup for any AI artifacts/echo
-        text = _strip_ai_artifacts(text)
-
-        # Store as a system comment
-        db.session.add(Comment(
-            risk_id=risk_id,
-            text=text,
-            is_system=True
-        ))
+        r.mitigation = "\n".join(lines).strip()
         db.session.commit()
 
-        flash("🤖 AI risk yorumu eklendi.", "success")
-        return redirect(url_for("risk_detail", risk_id=risk_id))
+        # Front-end için sade JSON cevap
+        return jsonify({
+            "ok": True,
+            "text": cleaned,
+            "numeric": numeric_line,
+        })
+
 
 
     # -------------------------------------------------
