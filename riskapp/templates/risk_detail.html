@@ -161,7 +161,8 @@
           </button>
         </form>
 
-        <form method="post" action="{{ url_for('ai_comment_add', risk_id=r.id) }}">
+        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
+
           <button class="btn btn-primary" type="submit"
                   title="Sayısal özet + RACI + KPI">
             ✨ Zengin AI Yorum
