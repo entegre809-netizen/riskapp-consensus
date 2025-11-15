@@ -14,31 +14,54 @@
     padding: 8px 0 0;
   }
 
-  .pill{ display:inline-flex; align-items:center; gap:6px; padding:.25rem .55rem;
-         border-radius:999px; font-size:.8rem; border:1px solid var(--line,#e5e7eb); }
-  .chip{ display:inline-flex; align-items:center; gap:6px; padding:.2rem .5rem; border-radius:8px;
-         border:1px solid var(--line,#e5e7eb); font-size:.78rem; opacity:.9 }
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:.25rem .55rem;
+    border-radius:999px; font-size:.8rem;
+    border:1px solid var(--line,#e5e7eb);
+  }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:.2rem .5rem; border-radius:8px;
+    border:1px solid var(--line,#e5e7eb);
+    font-size:.78rem; opacity:.9;
+  }
 
   /* tablo */
   .table { width:100%; border-collapse: collapse; }
-  .table th, .table td { padding:.45rem .55rem; border:1px solid var(--line,#e5e7eb); text-align:left; }
-  .table th { position: sticky; top: 0; background: var(--card, #fff); z-index: 1; }
+  .table th, .table td {
+    padding:.45rem .55rem;
+    border:1px solid var(--line,#e5e7eb);
+    text-align:left;
+  }
+  .table th {
+    position: sticky; top: 0;
+    background: var(--card, #fff); z-index: 1;
+  }
 
   /* buton grupları */
   .btnbar{ display:flex; gap:8px; flex-wrap: wrap; align-items:center; }
-  .btn-tab{ padding:.35rem .6rem; border:1px solid var(--line,#e5e7eb); border-radius:8px; cursor:pointer; }
-  .btn-tab[aria-pressed="true"]{ outline: 2px solid color-mix(in oklab, var(--primary,#6ea8ff) 80%, black 20%); }
+  .btn-tab{
+    padding:.35rem .6rem;
+    border:1px solid var(--line,#e5e7eb);
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .btn-tab[aria-pressed="true"]{
+    outline: 2px solid color-mix(in oklab, var(--primary,#6ea8ff) 80%, black 20%);
+  }
 
-  /* küçük yardımcılar */
-  .muted{ opacity:.8; font-size:.88rem }
-  .row{ display:flex; gap:8px; align-items:center }
-  .grow{ flex:1 }
-  .nowrap{ white-space:nowrap }
-  .right{ display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap }
-  .danger{ background:#ef4444; border-color:transparent; color:#fff }
+  /* yardımcılar */
+  .muted{ opacity:.8; font-size:.88rem; }
+  .row{ display:flex; gap:8px; align-items:center; }
+  .grow{ flex:1; }
+  .nowrap{ white-space:nowrap; }
+  .right{ display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+  .danger{ background:#ef4444; border-color:transparent; color:#fff; }
 
-  /* light/dark ayrımları mevcut tokenlarla otomatik */
-  [data-theme="dark"] .pill, [data-theme="dark"] .chip{
+  /* dark tema */
+  [data-theme="dark"] .pill,
+  [data-theme="dark"] .chip{
     border-color: rgba(255,255,255,.14);
     background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
     color: var(--text);
@@ -47,15 +70,23 @@
 
 <div class="page">
 
-  <!-- Üst özet + yapışkan aksiyonlar -->
+  {# ========= ÜST ÖZET + AKSİYONLAR ========= #}
   <div class="card sticky-top">
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
       <div class="grow">
+
+        {# --- başlık + pill'ler --- #}
         <div class="row" style="gap:10px; flex-wrap:wrap">
           <h2 style="margin:0">{{ r.title }}</h2>
 
-          {# Çoklu kategori pill'leri #}
-          {% set __cats = r.categories_list if r.categories_list is not none else ( [r.category] if r.category else [] ) %}
+          {# Çoklu kategori; yoksa tekil category'yi kullan #}
+          {% set __cats = [] %}
+          {% if r.categories_list %}
+            {% set __cats = r.categories_list %}
+          {% elif r.category %}
+            {% set __cats = [r.category] %}
+          {% endif %}
+
           {% for c in __cats %}
             <span class="pill" title="Kategori"><strong>📂</strong> {{ c }}</span>
           {% endfor %}
@@ -63,62 +94,132 @@
           {% if r.risk_type %}
             <span class="pill" title="Risk Tipi"><strong>🏷️</strong> {{ r.risk_type }}</span>
           {% endif %}
-          {% set avg_rpn = r.avg_rpn() %}
-          {% set grade = r.grade() %}
+
+          {# avg_rpn ve grade hem property hem method olsa da patlamasın #}
+          {% if r.avg_rpn is defined %}
+            {% if r.avg_rpn is callable %}
+              {% set avg_rpn = r.avg_rpn() %}
+            {% else %}
+              {% set avg_rpn = r.avg_rpn %}
+            {% endif %}
+          {% else %}
+            {% set avg_rpn = None %}
+          {% endif %}
+
+          {% if r.grade is defined %}
+            {% if r.grade is callable %}
+              {% set grade = r.grade() %}
+            {% else %}
+              {% set grade = r.grade %}
+            {% endif %}
+          {% else %}
+            {% set grade = '' %}
+          {% endif %}
+
           {% if avg_rpn is not none %}
-            <span class="pill" title="RPN"><strong>RPN</strong> {{ '%.2f'|format(avg_rpn) }} · {{ grade }}</span>
+            <span class="pill" title="RPN">
+              <strong>RPN</strong> {{ '%.2f'|format(avg_rpn) }} · {{ grade }}
+            </span>
           {% endif %}
         </div>
+
+        {# Ortalama P/S hesapla (method mu property mi farketmesin) #}
+        {% if r.avg_prob is defined %}
+          {% if r.avg_prob is callable %}
+            {% set avg_prob = r.avg_prob() %}
+          {% else %}
+            {% set avg_prob = r.avg_prob %}
+          {% endif %}
+        {% else %}
+          {% set avg_prob = 0 %}
+        {% endif %}
+        {% if avg_prob is none %}{% set avg_prob = 0 %}{% endif %}
+
+        {% if r.avg_sev is defined %}
+          {% if r.avg_sev is callable %}
+            {% set avg_sev = r.avg_sev() %}
+          {% else %}
+            {% set avg_sev = r.avg_sev %}
+          {% endif %}
+        {% else %}
+          {% set avg_sev = 0 %}
+        {% endif %}
+        {% if avg_sev is none %}{% set avg_sev = 0 %}{% endif %}
+
         <div class="muted" style="margin-top:4px">
-          Ortalama P={{ '%.1f'|format(r.avg_prob() or 0) }},
-          S={{ '%.1f'|format(r.avg_sev() or 0) }}
+          Ortalama P={{ '%.1f'|format(avg_prob) }},
+          S={{ '%.1f'|format(avg_sev) }}
         </div>
       </div>
 
+      {# --- sağ taraftaki aksiyon butonları --- #}
       <div class="btnbar noprint">
         <form method="post" action="{{ url_for('ai_suggest', risk_id=r.id) }}">
-          <button class="btn btn-success" type="submit" title="Benzer önerilerden aksiyon planı">🤖 Öneri Üret</button>
+          <button class="btn btn-success" type="submit"
+                  title="Benzer önerilerden aksiyon planı">
+            🤖 Öneri Üret
+          </button>
         </form>
+
         <form method="post" action="{{ url_for('ai_comment_add', risk_id=r.id) }}">
-          <button class="btn btn-primary" type="submit" title="Sayısal özet + RACI + KPI">✨ Zengin AI Yorum</button>
+          <button class="btn btn-primary" type="submit"
+                  title="Sayısal özet + RACI + KPI">
+            ✨ Zengin AI Yorum
+          </button>
         </form>
-        <!-- Yeni: Mitigations butonu -->
-        <a class="btn" href="{{ url_for('mitigations_list_create', risk_id=r.id) }}" title="Risk için mitigasyonları görüntüle/ekle">🧩 Mitigations</a>
+
+        <a class="btn" href="{{ url_for('mitigations_list_create', risk_id=r.id) }}"
+           title="Risk için mitigasyonları görüntüle/ekle">
+          🧩 Mitigations
+        </a>
+
         <a class="btn" href="{{ url_for('index') }}">← Listeye Dön</a>
       </div>
     </div>
 
+    {# Konsensüs bilgisi #}
     {% if consensus %}
       <div class="flash info" style="margin-top:10px">
-        🔔 Konsensüs: P={{ consensus.p }}, Ş={{ consensus.s }} ({{ consensus.count }} oy, eşik {{ threshold }})
+        🔔 Konsensüs: P={{ consensus.p }}, Ş={{ consensus.s }}
+        ({{ consensus.count }} oy, eşik {{ threshold }})
         <button class="btn btn-tab" type="button"
-                data-p="{{ consensus.p|int }}" data-s="{{ consensus.s|int }}"
-                onclick="applyConsensus(this.dataset.p, this.dataset.s)">Konsensüsü Forma Uygula</button>
+                data-p="{{ consensus.p|int }}"
+                data-s="{{ consensus.s|int }}"
+                onclick="applyConsensus(this.dataset.p, this.dataset.s)">
+          Konsensüsü Forma Uygula
+        </button>
       </div>
     {% endif %}
   </div>
 
   <div class="cols">
-    <!-- SOL: Form -->
+    {# ========= SOL: RİSK FORMU ========= #}
     <div class="card">
       <form id="riskForm" method="post" class="grid grid-2">
+
         <div>
           <label>Başlık</label>
           <input class="input" name="title" value="{{ r.title }}" required>
         </div>
 
-        <!-- Kategoriler (ÇOKLU) -->
+        {# Çoklu kategori seçimi #}
         <div>
           <label>Kategoriler</label>
           <select class="input" name="categories" id="detail-category-select" multiple size="8" required>
             {% for c in categories %}
-              <option value="{{ c }}" {% if __cats and (c in __cats) %}selected{% endif %}>{{ c }}</option>
+              <option value="{{ c }}"
+                      {% if __cats and (c in __cats) %}selected{% endif %}>
+                {{ c }}
+              </option>
             {% endfor %}
             <option value="__custom__">+ Özel kategori ekle (aşağıya yaz)</option>
           </select>
           <div style="margin-top:6px">
-            <input class="input" name="category_custom" placeholder="Virgülle birden çok özel kategori (örn: Finans, Denetim)">
-            <div class="muted">Çoklu seçim için Ctrl/⌘ tuşunu kullan. Özel kategorileri virgülle ayır.</div>
+            <input class="input" name="category_custom"
+                   placeholder="Virgülle birden çok özel kategori (örn: Finans, Denetim)">
+            <div class="muted">
+              Çoklu seçim için Ctrl/⌘ tuşunu kullan. Özel kategorileri virgülle ayır.
+            </div>
           </div>
         </div>
 
@@ -126,7 +227,7 @@
           <label>Durum</label>
           <select class="input" name="status">
             {% for s in ['Open','Assessed','Mitigating','Closed'] %}
-              <option value="{{ s }}" {% if r.status==s %}selected{% endif %}>{{ s }}</option>
+              <option value="{{ s }}" {% if r.status == s %}selected{% endif %}>{{ s }}</option>
             {% endfor %}
           </select>
         </div>
@@ -159,30 +260,38 @@
 
         <div style="grid-column:1/-1">
           <label>Açıklama</label>
-          <textarea class="input" name="description" rows="3" placeholder="Riskin bağlamını yazın">{{ r.description or '' }}</textarea>
+          <textarea class="input" name="description" rows="3"
+                    placeholder="Riskin bağlamını yazın">{{ r.description or '' }}</textarea>
         </div>
 
         <div style="grid-column:1/-1">
           <label>Önlemler (Mitigation)</label>
-          <textarea class="input" name="mitigation" rows="3" placeholder="Önerilen aksiyonlar">{{ r.mitigation or '' }}</textarea>
+          <textarea class="input" name="mitigation" rows="3"
+                    placeholder="Önerilen aksiyonlar">{{ r.mitigation or '' }}</textarea>
         </div>
 
-        <!-- Tarihler -->
+        {# Tarihler #}
         <div>
           <label>Başlangıç Tarihi</label>
-          <input class="input" type="date" id="start_date" value="{{ (r.start_month ~ '-01') if r.start_month else '' }}">
-          <input type="hidden" name="start_month" id="start_month" value="{{ r.start_month or '' }}">
+          <input class="input" type="date" id="start_date"
+                 value="{{ (r.start_month ~ '-01') if r.start_month else '' }}">
+          <input type="hidden" name="start_month" id="start_month"
+                 value="{{ r.start_month or '' }}">
         </div>
 
         <div>
           <label>Bitiş Tarihi</label>
-          <input class="input" type="date" id="end_date" value="{{ (r.end_month ~ '-28') if r.end_month else '' }}">
-          <input type="hidden" name="end_month" id="end_month" value="{{ r.end_month or '' }}">
+          <input class="input" type="date" id="end_date"
+                 value="{{ (r.end_month ~ '-28') if r.end_month else '' }}">
+          <input type="hidden" name="end_month" id="end_month"
+                 value="{{ r.end_month or '' }}">
         </div>
 
         <div style="grid-column:1/-1">
           <label>Etki Süresi</label>
-          <input class="input" name="duration" value="{{ r.duration or '' }}" placeholder="örn. 6 ay / proje boyunca">
+          <input class="input" name="duration"
+                 value="{{ r.duration or '' }}"
+                 placeholder="örn. 6 ay / proje boyunca">
         </div>
 
         <div class="right" style="grid-column:1/-1">
@@ -191,52 +300,64 @@
       </form>
     </div>
 
-    <!-- SAĞ: Değerlendirmeler -->
+    {# ========= SAĞ: DEĞERLENDİRMELER ========= #}
     <div class="card">
       <h3 style="margin-top:0">Değerlendirmeler</h3>
 
-      <!-- Özet kutuları -->
       <div class="grid grid-2" style="margin-bottom:10px">
-        <div class="chip"><strong>Ortalama P/S</strong> ·
-          P={{ '%.1f'|format(r.avg_prob() or 0) }}, S={{ '%.1f'|format(r.avg_sev() or 0) }}
+        <div class="chip">
+          <strong>Ortalama P/S</strong> ·
+          P={{ '%.1f'|format(avg_prob) }},
+          S={{ '%.1f'|format(avg_sev) }}
         </div>
         <div class="chip">
           <strong>RPN</strong>:
           {% if avg_rpn is not none %}
             {{ '%.2f'|format(avg_rpn) }} · {{ grade }}
-          {% else %} — {% endif %}
+          {% else %}
+            —
+          {% endif %}
         </div>
       </div>
 
-      <!-- Sistem önerisi -->
+      {# Sistem önerisi (ps_reco yoksa sessizce geç) #}
       {% if ps_reco and (ps_reco.p or ps_reco.s) %}
         <div class="card" style="margin-bottom:10px">
           <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
             <div>
               <h4 style="margin:.25rem 0">Sistemin Önerdiği P/S</h4>
-              <div class="muted">Aynı kategorideki geçmiş değerlendirmelerin <em>modu</em>.</div>
+              <div class="muted">
+                Aynı kategorideki geçmiş değerlendirmelerin <em>modu</em>.
+              </div>
               <div style="margin-top:6px" class="btnbar">
                 <span class="pill">P: {{ ps_reco.p or '—' }}</span>
                 <span class="pill">S: {{ ps_reco.s or '—' }}</span>
               </div>
             </div>
-            <form method="post" action="{{ url_for('add_eval', risk_id=r.id) }}" class="right" style="min-width:260px">
+            <form method="post" action="{{ url_for('add_eval', risk_id=r.id) }}"
+                  class="right" style="min-width:260px">
               <input type="hidden" name="probability" value="{{ ps_reco.p or '' }}">
               <input type="hidden" name="severity"    value="{{ ps_reco.s or '' }}">
-              <input class="input grow" type="text" name="comment" placeholder="Yorum (opsiyonel)">
-              <button class="btn btn-success" type="submit">Bu P/S ile değerlendir</button>
+              <input class="input grow" type="text" name="comment"
+                     placeholder="Yorum (opsiyonel)">
+              <button class="btn btn-success" type="submit">
+                Bu P/S ile değerlendir
+              </button>
             </form>
           </div>
         </div>
       {% endif %}
 
-      <!-- Değerlendirme formu (canlı RPN) -->
-      <form id="evalForm" method="post" action="{{ url_for('add_eval', risk_id=r.id) }}" class="grid">
+      {# Değerlendirme formu (canlı RPN) #}
+      <form id="evalForm" method="post"
+            action="{{ url_for('add_eval', risk_id=r.id) }}" class="grid">
         <div class="grid grid-2">
           <div>
             <label>Olasılık (P)</label>
             <select class="input" name="probability" id="probSel">
-              {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+              {% for i in range(1,6) %}
+                <option value="{{ i }}">{{ i }}</option>
+              {% endfor %}
             </select>
             <div class="btnbar" style="margin-top:6px">
               {% for i in range(1,6) %}
@@ -247,7 +368,9 @@
           <div>
             <label>Şiddet (S)</label>
             <select class="input" name="severity" id="sevSel">
-              {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+              {% for i in range(1,6) %}
+                <option value="{{ i }}">{{ i }}</option>
+              {% endfor %}
             </select>
             <div class="btnbar" style="margin-top:6px">
               {% for i in range(1,6) %}
@@ -258,14 +381,17 @@
         </div>
 
         <div class="row">
-          <input class="input grow" name="evaluator" placeholder="Değerlendiren (opsiyonel)">
+          <input class="input grow" name="evaluator"
+                 placeholder="Değerlendiren (opsiyonel)">
           <span class="pill nowrap" id="liveRpn">RPN: 1×1 = 1</span>
         </div>
         <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
-        <div class="right"><button class="btn btn-success">Değerlendirmeyi Ekle</button></div>
+        <div class="right">
+          <button class="btn btn-success">Değerlendirmeyi Ekle</button>
+        </div>
       </form>
 
-      <!-- Kayıtlar -->
+      {# Kayıtlar #}
       <table class="table" style="margin-top:10px">
         <thead>
           <tr>
@@ -284,7 +410,11 @@
               <td>{{ e.evaluator or '-' }}</td>
               <td>{{ e.probability }}</td>
               <td>{{ e.severity }}</td>
-              <td>{{ (e.probability * e.severity) if (e.probability and e.severity) else '—' }}</td>
+              <td>
+                {% if e.probability and e.severity %}
+                  {{ e.probability * e.severity }}
+                {% else %}—{% endif %}
+              </td>
               <td>{{ e.comment or '-' }}</td>
             </tr>
           {% else %}
@@ -294,7 +424,7 @@
       </table>
     </div>
 
-    <!-- ALT: Yorumlar -->
+    {# ========= ALT: YORUMLAR ========= #}
     <div class="card" style="grid-column:1/-1">
       <div class="row" style="justify-content:space-between">
         <h3 style="margin-top:0">Yorumlar</h3>
@@ -329,9 +459,11 @@
       </div>
 
       {% if session.get('role') == 'admin' %}
-        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}" style="margin-top:12px">
+        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}"
+              style="margin-top:12px">
           <label>Yeni Yorum</label>
-          <textarea class="input" name="text" rows="2" placeholder="Güncelleme veya not girin"></textarea>
+          <textarea class="input" name="text" rows="2"
+                    placeholder="Güncelleme veya not girin"></textarea>
           <div class="right" style="margin-top:8px">
             <button class="btn">Yorum Ekle</button>
           </div>
@@ -363,10 +495,18 @@
 
   // Hızlı butonlar P/S
   document.querySelectorAll('[data-setp]').forEach(b=>{
-    b.addEventListener('click',()=>{ const v=b.dataset.setp; const s=document.getElementById('probSel'); if(s){ s.value=v; updateLiveRpn(); } });
+    b.addEventListener('click',()=>{
+      const v=b.dataset.setp;
+      const s=document.getElementById('probSel');
+      if(s){ s.value=v; updateLiveRpn(); }
+    });
   });
   document.querySelectorAll('[data-sets]').forEach(b=>{
-    b.addEventListener('click',()=>{ const v=b.dataset.sets; const s=document.getElementById('sevSel'); if(s){ s.value=v; updateLiveRpn(); } });
+    b.addEventListener('click',()=>{
+      const v=b.dataset.sets;
+      const s=document.getElementById('sevSel');
+      if(s){ s.value=v; updateLiveRpn(); }
+    });
   });
 
   // Canlı RPN
@@ -382,7 +522,7 @@
   });
   updateLiveRpn();
 
-  // Görünür date -> gizli YYYY-MM senkronu + basit doğrulama
+  // Tarih alanları → YYYY-MM
   (function(){
     const startDate = document.getElementById('start_date');
     const endDate   = document.getElementById('end_date');
@@ -408,7 +548,7 @@
     });
   })();
 
-  // Kısayol: Ctrl/Cmd+S -> form kaydet
+  // Ctrl/Cmd+S -> form kaydet
   document.addEventListener('keydown', (e)=>{
     if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
       e.preventDefault();
