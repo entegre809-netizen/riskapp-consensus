@@ -13,30 +13,32 @@
   <div style="display:flex; gap:.5rem; margin:.25rem 0 1rem">
     <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç (Kütüphane)</a>
 
-    {% if picked_suggestions and picked_suggestions|length > 0 %}
+    {% set _picked = picked_suggestions if picked_suggestions is defined and picked_suggestions else [] %}
+
+    {% if _picked and _picked|length > 0 %}
       <!-- Hızlı buton: HER ZAMAN tek riskte birleştirir -->
       <form method="post" id="bulk-create-form">
         <input type="hidden" name="action" value="create_from_picked">
-        <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
+        <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
         <!-- YYYY-MM gizli alanlar (JS doldurur) -->
         <input type="hidden" name="start_month" id="start_month">
         <input type="hidden" name="end_month" id="end_month">
         <!-- Tek riskte birleştir -->
         <input type="hidden" name="merge" value="1">
         <button class="btn btn-primary" type="submit">
-          Sepetten Risk Oluştur ({{ picked_suggestions|length }})
+          Sepetten Risk Oluştur ({{ _picked|length }})
         </button>
       </form>
     {% endif %}
   </div>
 
-  {% if picked_suggestions and picked_suggestions|length > 0 %}
+  {% if _picked and _picked|length > 0 %}
     <details class="card" style="margin:.5rem 0 1rem; border:1px dashed var(--line);">
       <summary class="small" style="cursor:pointer">
-        Sepetteki şablonlar ({{ picked_suggestions|length }})
+        Sepetteki şablonlar ({{ _picked|length }})
       </summary>
       <ul style="margin:.6rem 0 0 1rem">
-        {% for s in picked_suggestions %}
+        {% for s in _picked %}
           <li class="small" style="margin:.15rem 0">
             <strong>{{ s.category or 'Genel' }}</strong> — {{ s.text }}
             {% if s.risk_code %}
@@ -58,7 +60,7 @@
   <form method="post" class="grid" id="common-form"
         style="grid-template-columns:1fr 1fr; gap:16px; margin-top:10px">
     <input type="hidden" name="action" value="create_from_picked">
-    <input type="hidden" name="picked_ids" value="{{ picked_suggestions | map(attribute='id') | join(',') }}">
+    <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
     <!-- YYYY-MM gizli alanlar (JS doldurur) -->
     <input type="hidden" name="start_month" id="start_month_2">
     <input type="hidden" name="end_month" id="end_month_2">
@@ -71,31 +73,37 @@
 
     <div style="grid-column:1/-1">
       <label>Açıklama (boşsa şablon metni kullanılır)</label>
-      <textarea class="input" name="description" rows="3" placeholder="Ortak açıklama (tüm kayıtlara)">{{ request.form.get('description','') }}</textarea>
+      <textarea class="input" name="description" rows="3"
+                placeholder="Ortak açıklama (tüm kayıtlara)">{{ request.form.get('description','') }}</textarea>
     </div>
 
     <div style="grid-column:1/-1">
       <label>Önlemler (Mitigation — tüm kayıtlara aynı metin)</label>
-      <textarea class="input" name="mitigation" rows="3" placeholder="Ortak aksiyon/önlemler">{{ request.form.get('mitigation','') }}</textarea>
+      <textarea class="input" name="mitigation" rows="3"
+                placeholder="Ortak aksiyon/önlemler">{{ request.form.get('mitigation','') }}</textarea>
     </div>
 
     <div>
       <label>Sorumlu</label>
-      <input class="input" name="responsible" placeholder="Ad Soyad" value="{{ request.form.get('responsible','') }}">
+      <input class="input" name="responsible" placeholder="Ad Soyad"
+             value="{{ request.form.get('responsible','') }}">
     </div>
 
     <div>
       <label>Etki Süresi</label>
-      <input class="input" name="duration" placeholder="örn. 6 ay / proje boyunca" value="{{ request.form.get('duration','') }}">
+      <input class="input" name="duration" placeholder="örn. 6 ay / proje boyunca"
+             value="{{ request.form.get('duration','') }}">
     </div>
 
     <div>
       <label>Başlangıç Tarihi</label>
-      <input class="input" type="date" id="start_date" value="{{ request.form.get('start_date','') }}">
+      <input class="input" type="date" id="start_date"
+             value="{{ request.form.get('start_date','') }}">
     </div>
     <div>
       <label>Bitiş Tarihi</label>
-      <input class="input" type="date" id="end_date" value="{{ request.form.get('end_date','') }}">
+      <input class="input" type="date" id="end_date"
+             value="{{ request.form.get('end_date','') }}">
     </div>
 
     <!-- İKİ AYRI BUTON: ayrı ayrı / tek riske birleştir -->
