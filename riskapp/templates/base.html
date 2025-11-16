@@ -451,8 +451,22 @@
           <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Risklerim</a>
           <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">Kategoriler</a>
           <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">Zaman Çizelgesi</a>
-          <a href="{{ url_for('mitigations') }}" class="{{ 'active' if request.endpoint=='mitigations' }}">Önlemler (Mitigations)</a>
+          <a href="{{ url_for(_mit_ep) }}">Önlemler (Mitigations)</a>
+
           <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
+          {# ---- Mitigations için hangi endpoint varsa onu bul ---- #}
+          {% set _mit_ep = None %}
+          {% if 'mitigations_list' in current_app.view_functions %}
+            {% set _mit_ep = 'mitigations_list' %}
+          {% elif 'mitigation_list' in current_app.view_functions %}
+            {% set _mit_ep = 'mitigation_list' %}
+          {% elif 'mitigations' in current_app.view_functions %}
+            {% set _mit_ep = 'mitigations' %}
+          {% endif %}
+
+          {% if _mit_ep %}
+            <a href="{{ url_for(_mit_ep) }}" class="{{ 'active' if request.endpoint==_mit_ep }}">Önlemler (Mitigations)</a>
+          {% endif %}
 
           {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">Risk ve Kategori Aktarma (CSV,Excel)</a>

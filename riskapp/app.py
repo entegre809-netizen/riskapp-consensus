@@ -3216,6 +3216,12 @@ def create_app():
     @app.route("/ai/how-it-works")
     def ai_how_it_works():
         return render_template("ai_how_it_works.html")
+    
+    @app.route("/mitigations")
+    def mitigations_list():
+        # burası veri çekip mitigations_list.html'i render edecek
+        return render_template("mitigations_list.html", ...)
+
 
     # -------------------------------------------------
     #  AI — RAG tabanlı aksiyon/mitigation önerisi (TEMİZLENMİŞ)
