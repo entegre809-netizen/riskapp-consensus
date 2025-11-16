@@ -3253,25 +3253,38 @@ def create_app():
     
     @app.route("/mitigations")
     def mitigations_list():
-        # login kontrolü: dashboard hangi key'i kullanıyorsa onu yaz
-        if "account_id" not in session:   # sende "user_id" ise ona göre değiştir
+        # Giriş yapılmamışsa login'e at + next paramı ile geri getir
+        if "account_id" not in session:
             return redirect(url_for("login", next=request.path))
 
+        account_id = session["account_id"]
         project_id = request.args.get("project_id", type=int)
 
-        q = Mitigation.query
+        # Mitigation + Risk join ile filtre
+        q = Mitigation.query.join(Risk, Mitigation.risk_id == Risk.id)
+
         if project_id:
-            q = q.filter(Mitigation.project_id == project_id)
+            q = q.filter(Risk.project_id == project_id)
 
         mitigations = q.order_by(Mitigation.id.desc()).all()
-        projects = ProjectInfo.query.order_by(ProjectInfo.name).all()
+
+        # 🔧 BURASI ÖNEMLİ: ProjectInfo.name YOK, workplace_name VAR
+        projects = (
+            ProjectInfo.query
+            .filter(ProjectInfo.account_id == account_id)
+            .order_by(ProjectInfo.workplace_name)
+            .all()
+        )
 
         return render_template(
-            "mitigations_list.html",
+            "mitigations_list.html",   # sende dosya adı başka ise burayı değiştir
             mitigations=mitigations,
             projects=projects,
             selected_project_id=project_id,
         )
+
+
+        
 
 
 
