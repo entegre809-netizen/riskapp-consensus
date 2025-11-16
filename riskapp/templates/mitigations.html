@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Mitigasyonlar{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <div class="sticky-top">
+    <h1 class="page-title">Mitigasyonlar</h1>
+
+    {# Proje filtresi #}
+    {% if projects %}
+      <form method="get" class="filters" style="margin-bottom: 10px;">
+        <label>
+          Proje:
+          <select name="project_id" onchange="this.form.submit()">
+            <option value="">Tüm projeler</option>
+            {% for p in projects %}
+              <option value="{{ p.id }}" {% if selected_project_id == p.id %}selected{% endif %}>
+                {{ p.workplace_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    {% if mitigations %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Risk</th>
+            <th>Mitigasyon</th>
+            <th>Sorumlu</th>
+            <th>Durum</th>
+            <th>Termin</th>
+            <th>Etkinlik</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in mitigations %}
+            <tr>
+              <td>{{ m.id }}</td>
+              <td>
+                {% if m.risk %}
+                  {{ m.risk.id }} – {{ m.risk.title }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ m.title }}</td>
+              <td>{{ m.owner or "-" }}</td>
+              <td>{{ m.status or "-" }}</td>
+              <td>{{ m.due_date or "-" }}</td>
+              <td>
+                {% if m.effectiveness %}
+                  {{ m.effectiveness }}/5
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Henüz kayıtlı mitigasyon yok.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

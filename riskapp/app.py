@@ -3253,22 +3253,23 @@ def create_app():
     
     @app.route("/mitigations")
     def mitigations_list():
-        # Giriş yapılmamışsa login'e at + next paramı ile geri getir
+        # 🔐 Login kontrolü
         if "account_id" not in session:
             return redirect(url_for("login", next=request.path))
 
         account_id = session["account_id"]
         project_id = request.args.get("project_id", type=int)
 
-        # Mitigation + Risk join ile filtre
+        # Mitigation + Risk join
         q = Mitigation.query.join(Risk, Mitigation.risk_id == Risk.id)
 
+        # Proje filtreleme (isteğe bağlı)
         if project_id:
             q = q.filter(Risk.project_id == project_id)
 
         mitigations = q.order_by(Mitigation.id.desc()).all()
 
-        # 🔧 BURASI ÖNEMLİ: ProjectInfo.name YOK, workplace_name VAR
+        # Hesaba bağlı projeleri çek (dropdown için)
         projects = (
             ProjectInfo.query
             .filter(ProjectInfo.account_id == account_id)
@@ -3277,12 +3278,11 @@ def create_app():
         )
 
         return render_template(
-            "mitigations_list.html",   # sende dosya adı başka ise burayı değiştir
+            "mitigations.html",          # ✅ yeni dosyamız
             mitigations=mitigations,
             projects=projects,
             selected_project_id=project_id,
-        )
-
+            )
 
         
 
