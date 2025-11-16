@@ -3253,20 +3253,17 @@ def create_app():
     
     @app.route("/mitigations")
     def mitigations_list():
-        # Login kontrolü (sen zaten session tabanlı gidiyorsun)
-        if "user_id" not in session:
+        # login kontrolü: dashboard hangi key'i kullanıyorsa onu yaz
+        if "account_id" not in session:   # sende "user_id" ise ona göre değiştir
             return redirect(url_for("login", next=request.path))
 
         project_id = request.args.get("project_id", type=int)
 
         q = Mitigation.query
-
         if project_id:
             q = q.filter(Mitigation.project_id == project_id)
 
         mitigations = q.order_by(Mitigation.id.desc()).all()
-
-        # Senin modelde "Project" değil "ProjectInfo" var
         projects = ProjectInfo.query.order_by(ProjectInfo.name).all()
 
         return render_template(
