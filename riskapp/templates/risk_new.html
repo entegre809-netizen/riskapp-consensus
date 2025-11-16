@@ -68,19 +68,19 @@
     <div style="grid-column:1/-1">
       <label>Başlık (boşsa şablon metninin ilk 150 karakteri)</label>
       <input class="input" name="title" placeholder="örn. Tedarik gecikmesi, hava koşulları…"
-             value="{{ request.form.get('title','') }}">
+             value="{{ request.form.get('title', title_prefill or '') }}">
     </div>
 
     <div style="grid-column:1/-1">
       <label>Açıklama (boşsa şablon metni kullanılır)</label>
       <textarea class="input" name="description" rows="3"
-                placeholder="Ortak açıklama (tüm kayıtlara)">{{ request.form.get('description','') }}</textarea>
+                placeholder="Ortak açıklama (tüm kayıtlara)">{{ request.form.get('description', description_prefill or '') }}</textarea>
     </div>
 
     <div style="grid-column:1/-1">
       <label>Önlemler (Mitigation — tüm kayıtlara aynı metin)</label>
       <textarea class="input" name="mitigation" rows="3"
-                placeholder="Ortak aksiyon/önlemler">{{ request.form.get('mitigation','') }}</textarea>
+                placeholder="Ortak aksiyon/önlemler">{{ request.form.get('mitigation', mitigation_prefill or '') }}</textarea>
     </div>
 
     <div>

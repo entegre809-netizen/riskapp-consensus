@@ -143,6 +143,37 @@
   .cat-card:hover{ transform: none !important; }
   .table-select tbody tr:nth-child(even) td,
   .table-select tbody tr:hover td{ background-clip: padding-box; }
+
+  /* --- Mitigation (önerilen önlemler) bloğu --- */
+  .miti{
+    margin-top: 6px;
+  }
+  .miti > summary{
+    cursor: pointer;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .82rem;
+    color: var(--muted);
+  }
+  .miti > summary::before{
+    content: "➜";
+    font-size: .8rem;
+    opacity: .7;
+  }
+  .miti[open] > summary{
+    color: var(--primary);
+  }
+  .miti-text{
+    margin-top: 4px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px dashed color-mix(in oklab, var(--line) 80%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    font-size: .8rem;
+    white-space: pre-wrap;   /* Excel'den gelen satır sonlarını koru */
+  }
 </style>
 
 <div class="card" id="top">
@@ -294,7 +325,19 @@
                   </label>
                 </td>
 
-                <td class="small">{{ s.text }}</td>
+                <!-- RİSK FAKTÖRÜ + Mitigation -->
+                <td class="small">
+                  {{ s.risk_desc or s.text }}
+                  {% if s.mitigation_hint %}
+                    <details class="miti">
+                      <summary>Önerilen önlemleri göster</summary>
+                      <div class="miti-text">
+                        {{ s.mitigation_hint }}
+                      </div>
+                    </details>
+                  {% endif %}
+                </td>
+
                 <td><span class="badge">{{ s.risk_code or '—' }}</span></td>
                 <td>{{ s.default_prob if s.default_prob is not none else '—' }}</td>
                 <td>{{ s.default_sev  if s.default_sev  is not none else '—' }}</td>
@@ -375,7 +418,6 @@
   <div class="actionbar noprint" id="actionbar">
     <span class="chip" id="selCounter">0 seçili</span>
 
-    
     <!-- yeni akış: risk_new’de formda aç -->
     <button type="submit" class="btn btn-primary"
             form="select-form" name="action" value="pick_for_new"
@@ -459,8 +501,10 @@
     const badge = e.target.closest('.risk-badge .badge'); if (!badge) return;
     const code = badge.getAttribute('data-copy') || badge.textContent.trim();
     if (!code || code === '—') return;
-    try { await navigator.clipboard.writeText(code);
-      badge.style.outline='2px solid currentColor'; setTimeout(()=>badge.style.outline='', 700);
+    try {
+      await navigator.clipboard.writeText(code);
+      badge.style.outline='2px solid currentColor';
+      setTimeout(()=>badge.style.outline='', 700);
     } catch {}
   });
 

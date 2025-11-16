@@ -18,7 +18,7 @@ from pathlib import Path
 from collections import defaultdict
 from flask import current_app
 
-
+import json
 import os as _os, sys as _sys
 PKG_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 if PKG_ROOT not in _sys.path:
@@ -273,6 +273,14 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN default_sev INTEGER"))
         changed = True
 
+    # ✅ YENİ: Excel'den gelecek açıklama ve önlem alanları
+    if not has_col("suggestions", "risk_desc"):
+        db.session.execute(text("ALTER TABLE suggestions ADD COLUMN risk_desc TEXT"))
+        changed = True
+    if not has_col("suggestions", "mitigation_hint"):
+        db.session.execute(text("ALTER TABLE suggestions ADD COLUMN mitigation_hint TEXT"))
+        changed = True
+
     # suggestions.created_at / updated_at (backfill)
     if not has_col("suggestions", "created_at"):
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN created_at DATETIME"))
@@ -305,6 +313,7 @@ def ensure_schema():
 
     if changed:
         db.session.commit()
+
 
 def _gen_ref_code(prefix="PRJ", year=None, digits=6):
     y = year or datetime.now().year
@@ -1514,6 +1523,8 @@ def create_app():
         db.session.commit()
         flash("Kod kilidi güncellendi.", "success")
         return redirect(url_for("admin_refcodes_list"))
+    
+    
 
     # -------------------------------------------------
     #  CSV Export – Riskler
@@ -1807,7 +1818,7 @@ def create_app():
                 flash(f"{cnt} risk eklendi.", "success")
                 return redirect(url_for("dashboard"))
 
-            # B) Seçilen şablonları risk_new formunda aç (sepet)
+            # B) Seçilen şablonları risk_new formunda aç (from_suggestions ile)
             if action == "pick_for_new":
                 selected_ids = _collect_selected_ids()
                 if not selected_ids:
@@ -1819,17 +1830,22 @@ def create_app():
                         per_page=per_page, filter_cat_names=filter_cat_names
                     )
 
-                # Seçimleri session'a koy ve risk_new'e yönlendir
-                session["picked_rows"] = selected_ids          # risk_new ile aynı anahtar
-                session.pop("picked_suggestions", None)        # temizlik (opsiyonel)
-                flash(f"{len(selected_ids)} şablon seçildi. Yeni risk formunda düzenleyip oluşturabilirsiniz.", "success")
-                return redirect(url_for("risk_new"))
+                # Örn: [12, 14, 27] -> "12,14,27"
+                id_str = ",".join(str(i) for i in selected_ids)
+
+                flash(
+                    f"{len(selected_ids)} şablon seçildi. Yeni risk formunda düzenleyip oluşturabilirsiniz.",
+                    "success"
+                )
+
+                # /risk/new?from_suggestions=12,14,27
+                return redirect(url_for("risk_new", from_suggestions=id_str))
 
             # ❌ Bilinmeyen/boş action: “geçersiz işlem” demeden GET görünümüne dön
             return redirect(url_for("risk_identify", q=q, cat=cat, page=page))
 
         # -----------------------------
-        # 5) GET: Şablon render
+        # GET: Sayfa render
         # -----------------------------
         return render_template(
             "risk_identify.html",
@@ -1911,24 +1927,35 @@ def create_app():
         if not category:
             category = "Genel"
 
+        # Kategori tablosunda yoksa otomatik oluştur
         from sqlalchemy import func as _func
-        rc = (RiskCategory.query
+        rc = (
+            RiskCategory.query
             .filter(_func.lower(RiskCategory.name) == _func.lower(category))
-            .first())
+            .first()
+        )
         if not rc:
             db.session.add(RiskCategory(name=category, is_active=True))
 
+        # 🟡 YENİ: risk_desc ve mitigation_hint alanlarını da dolduruyoruz
+        # Bu formda tek metin olduğu için:
+        #   - risk_desc      = text  (Risk Tanımı)
+        #   - mitigation_hint = None (bu formda girilmiyor, Excel'den vs. gelebilir)
         s = Suggestion(
             text=text,
             category=category,
             risk_code=risk_code,
             default_prob=default_prob,
-            default_sev=default_sev
+            default_sev=default_sev,
+            risk_desc=text,
+            mitigation_hint=None,
         )
+
         db.session.add(s)
         db.session.commit()
         flash("Yeni şablon eklendi.", "success")
         return redirect(url_for("risk_identify") + f"#cat-{category.replace(' ', '-')}")
+
 
     # -------------------------------------------------
     #  Yeni Risk  (Kategori dropdown RiskCategory’den)
@@ -1942,7 +1969,30 @@ def create_app():
         - merge=1  -> tüm şablonlardan TEK risk oluştur (rapor mantığı)
         - merge=0  -> her şablondan ayrı risk (mevcut davranış)
         """
-        picked_ids = session.get("picked_rows") or []
+
+        # -----------------------------------------
+        # 0) from_suggestions query paramı (yeni akış)
+        #    /risks/new?from_suggestions=12,14,27 gibi
+        #    varsa BUNU kullan; yoksa eski session sepetini kullan
+        # -----------------------------------------
+        from_str = (request.args.get("from_suggestions") or "").strip()
+
+        picked_ids = []
+        if from_str:
+            try:
+                picked_ids = [
+                    int(part.strip())
+                    for part in from_str.split(",")
+                    if part.strip().isdigit()
+                ]
+            except Exception:
+                picked_ids = []
+
+            # Sepeti session'a da yaz (geri dönünce vs. işe yarar)
+            session["picked_rows"] = picked_ids
+        else:
+            picked_ids = session.get("picked_rows") or []
+
         picked_suggestions = []
         if picked_ids:
             picked_suggestions = (
@@ -1952,6 +2002,47 @@ def create_app():
                 .all()
             )
 
+        # -----------------------------------------
+        # GET + POST için PREFILL alanları hazırla
+        # (Risk Tanımı / Risk Azaltıcı Önlemler Excel kolonlarından)
+        # -----------------------------------------
+        title_prefill = ""
+        description_prefill = ""
+        mitigation_prefill = ""
+
+        if picked_suggestions:
+            # Tek şablon seçiliyse: direkt o satırdan doldur
+            if len(picked_suggestions) == 1:
+                s0 = picked_suggestions[0]
+                # Başlık: text'in ilk 150 karakteri
+                title_prefill = (s0.text or "")[:150]
+
+                # Açıklama: Risk Tanımı varsa onu, yoksa text
+                description_prefill = (s0.risk_desc or s0.text or "") or ""
+
+                # Önlemler: Risk Azaltıcı Önlemler
+                mitigation_prefill = s0.mitigation_hint or ""
+            else:
+                # Birden fazla şablon: bullet list yapalım
+                title_prefill = (picked_suggestions[0].text or "")[:150]
+
+                desc_lines = []
+                mit_lines  = []
+                for s in picked_suggestions:
+                    code = (s.risk_code or "").strip()
+                    label = f"[{code}] " if code else ""
+                    base_text = (s.risk_desc or s.text or "").strip()
+                    if base_text:
+                        desc_lines.append(f"- {label}{base_text}")
+                    if (s.mitigation_hint or "").strip():
+                        mit_lines.append(f"- {label}{s.mitigation_hint.strip()}")
+
+                description_prefill = "\n".join(desc_lines)
+                mitigation_prefill  = "\n".join(mit_lines)
+
+        # -----------------------------------------
+        # POST: Sepetten risk(ler) oluşturma
+        # -----------------------------------------
         if request.method == "POST":
             action = (request.form.get("action") or "").strip()
             if action == "create_from_picked":
@@ -1967,7 +2058,13 @@ def create_app():
 
                 if not sel_ids:
                     flash("Şablon seçimi boş görünüyor.", "warning")
-                    return render_template("risk_new.html", picked_suggestions=picked_suggestions)
+                    return render_template(
+                        "risk_new.html",
+                        picked_suggestions=picked_suggestions,
+                        title_prefill=title_prefill,
+                        description_prefill=description_prefill,
+                        mitigation_prefill=mitigation_prefill,
+                    )
 
                 # 2) Ortak alanlar
                 title_common       = (request.form.get("title") or "").strip() or None
@@ -1989,19 +2086,28 @@ def create_app():
 
                 def _toi(v):
                     try:
-                        vv = int(v); return max(1, min(5, vv))
+                        vv = int(v)
+                        return max(1, min(5, vv))
                     except Exception:
                         return None
 
                 # ==== A) TEK KAYIT (merge) ====
                 if merge_mode:
-                    sug_rows = (Suggestion.query
-                                .filter(Suggestion.id.in_(sel_ids))
-                                .order_by(Suggestion.category.asc(), Suggestion.id.desc())
-                                .all())
+                    sug_rows = (
+                        Suggestion.query
+                        .filter(Suggestion.id.in_(sel_ids))
+                        .order_by(Suggestion.category.asc(), Suggestion.id.desc())
+                        .all()
+                    )
                     if not sug_rows:
                         flash("Şablonlar yüklenemedi.", "danger")
-                        return render_template("risk_new.html", picked_suggestions=picked_suggestions)
+                        return render_template(
+                            "risk_new.html",
+                            picked_suggestions=picked_suggestions,
+                            title_prefill=title_prefill,
+                            description_prefill=description_prefill,
+                            mitigation_prefill=mitigation_prefill,
+                        )
 
                     # Kategori: ilk dolu kategori (yoksa Genel)
                     cat = None
@@ -2029,10 +2135,12 @@ def create_app():
                     for s in sug_rows:
                         p0 = _toi(getattr(s, "default_prob", None))
                         s0 = _toi(getattr(s, "default_sev", None))
-                        if p0: p_vals.append(p0)
-                        if s0: s_vals.append(s0)
-                    p_init = round(sum(p_vals)/len(p_vals)) if p_vals else None
-                    s_init = round(sum(s_vals)/len(s_vals)) if s_vals else None
+                        if p0:
+                            p_vals.append(p0)
+                        if s0:
+                            s_vals.append(s0)
+                    p_init = round(sum(p_vals) / len(p_vals)) if p_vals else None
+                    s_init = round(sum(s_vals) / len(s_vals)) if s_vals else None
 
                     r = Risk(
                         title=(title_common or (sug_rows[0].text or "")[:150]),
@@ -2059,7 +2167,6 @@ def create_app():
                             comment="Birleştirilmiş şablonların ortalaması"
                         ))
 
-                    # 🔧 Buradaki f-string/kaçışlar düzeltildi
                     db.session.add(Comment(
                         risk_id=r.id,
                         text=(
@@ -2119,8 +2226,17 @@ def create_app():
                 flash(f"{created} risk oluşturuldu.", "success")
                 return redirect(url_for("dashboard"))
 
-        # GET
-        return render_template("risk_new.html", picked_suggestions=picked_suggestions)
+        # -----------------------------------------
+        # GET: Formu render et
+        # -----------------------------------------
+        return render_template(
+            "risk_new.html",
+            picked_suggestions=picked_suggestions,
+            title_prefill=title_prefill,
+            description_prefill=description_prefill,
+            mitigation_prefill=mitigation_prefill,
+        )
+
 
 
 
@@ -2720,10 +2836,16 @@ def create_app():
     def import_suggestions():
         """
         CSV/XLSX içe aktarma:
-          - Header'dan Kod/Kategori/Metin (Risk Faktörü) sütunlarını tespit eder.
-          - Kategori yoksa son sütunu kategori sayar.
-          - "Risk Faktörü"nü yanlışlıkla kategori sanma durumuna karşı heuristik swap yapar.
-          - Opsiyonel P/Ş sütunlarını (1–5) okur; bulunamazsa tahmin eder.
+        - Header'dan Kod / Kategori / Metin (Risk Faktörü) sütunlarını tespit eder.
+        - Kategori yoksa son sütunu kategori sayar.
+        - 'Risk Faktörü'nü yanlışlıkla kategori sanma durumuna karşı guard koyar.
+        - Opsiyonel P/Ş sütunlarını (1–5) okur veya otomatik tahmin eder.
+        - YENİ: 'Risk Tanımı' ve 'Risk Azaltıcı Önlemler' kolonlarını
+                Suggestion.risk_desc ve Suggestion.mitigation_hint alanlarına yazar.
+        - Eski davranış korunur:
+            * Kategori önceliği: hücredeki kategori > current_category (başlık satırı)
+                                > kod prefix tahmini > 'Genel'
+            * Tekillik: kategori + text kombinasyonu
         """
         if request.method == "POST":
             f = request.files.get("file")
@@ -2731,25 +2853,29 @@ def create_app():
                 flash("Bir CSV/XLSX/XLS dosyası seçin.", "danger")
                 return render_template("import_suggestions.html")
 
-            # 1) Dosyayı oku
+            # 1) Dosyayı oku (header + satırlar)
             try:
                 rows = _read_rows_from_upload(f)
             except RuntimeError as e:
-                flash(str(e), "danger"); return render_template("import_suggestions.html")
+                flash(str(e), "danger")
+                return render_template("import_suggestions.html")
             except Exception as e:
-                flash(f"Dosya okunamadı: {e}", "danger"); return render_template("import_suggestions.html")
+                flash(f"Dosya okunamadı: {e}", "danger")
+                return render_template("import_suggestions.html")
 
             if not rows:
-                flash("Boş dosya.", "warning"); return render_template("import_suggestions.html")
+                flash("Boş dosya.", "warning")
+                return render_template("import_suggestions.html")
 
-            # 2) Header analizi (KESİN eşleme + güvenli fallback)
+            # 2) Header analizi (normalize)
             raw_header = rows[0]
             _TRMAP = str.maketrans({
-                "ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u",
-                "Ç":"c","Ğ":"g","İ":"i","Ö":"o","Ş":"s","Ü":"u"
+                "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u",
+                "Ç": "c", "Ğ": "g", "İ": "i", "Ö": "o", "Ş": "s", "Ü": "u"
             })
+
             def _norm(s: str) -> str:
-                s = str(s or "").replace("\n"," ").replace("\r"," ").strip().translate(_TRMAP).lower()
+                s = str(s or "").replace("\n", " ").replace("\r", " ").strip().translate(_TRMAP).lower()
                 return " ".join(s.split())
 
             # Header boş ise uyar
@@ -2770,32 +2896,55 @@ def create_app():
 
             # ZORUNLU kolonlar
             text_col = find_exact(["risk faktoru", "risk faktörü"])
-            # Kategori sütunu opsiyonel hale getirildi (yoksa tahmin edeceğiz)
-            cat_col  = find_exact(["kategoriler", "kategori"])
+            # Kategori sütunu opsiyonel (yoksa tahmin edeceğiz)
+            cat_col = find_exact(["kategoriler", "kategori"])
 
-            # OPSİYONEL kolonlar
+            # YENİ: Risk Tanımı / Risk Azaltıcı Önlemler kolonları
+            risk_desc_col = find_exact(["risk tanimi", "risk tanımı"])
+            mitigation_col = find_exact([
+                "risk azaltici onlemler",
+                "risk azaltıcı önlemler",
+                "risk azaltici onlem",
+                "risk azaltıcı önlem",
+            ])
+
+            # OPSİYONEL kolonlar (Kod, P, S)
             code_col = find_exact([
-                "risk kodlari", "risk kodları",  # 🆕
-                "risk kodu", "risk kod", "kod", "code"
+                "risk kodlari", "risk kodları",
+                "risk kodu", "risk kod", "kod", "code",
             ])
             prob_col = find_exact([
-                "ortalama risk olasiligi", "olasilik", "olasılık", "probability", "p (1-5)"
+                "ortalama risk olasiligi",
+                "olasilik", "olasılık",
+                "probability", "p (1-5)",
             ])
-            sev_col  = find_exact([
-                "ortalama risk etkisi", "siddet", "şiddet", "etki", "severity", "s (1-5)"
+            sev_col = find_exact([
+                "ortalama risk etkisi",
+                "siddet", "şiddet",
+                "etki", "severity", "s (1-5)",
             ])
 
             # Zorunlu başlık kontrolleri
             if text_col is None:
-                flash("Başlık bulunamadı: 'Risk Faktörü'", "danger")
+                flash("Başlık bulunamadı: 'Risk Faktörü' kolonu yok.", "danger")
                 return render_template("import_suggestions.html")
 
             # Aynı kolona çarpma guard'ı
             if cat_col is not None and text_col == cat_col:
-                flash("‘Risk Faktörü’ ve ‘Kategoriler’ aynı sütuna işaret ediyor. Dosya başlıklarını kontrol edin.", "danger")
+                flash("‘Risk Faktörü’ ve ‘Kategori’ aynı sütuna işaret ediyor. Dosya başlıklarını kontrol edin.", "danger")
                 return render_template("import_suggestions.html")
 
-            # P/Ş kolonları bulunamadıysa: kalan kolonlarda 1..5 yoğunluğuna bak
+            # Kategori bulunamadıysa: son sütunu kategori varsay (text ile çakışmasın)
+            n_cols = len(header)
+            if cat_col is None and n_cols > 1:
+                candidate = n_cols - 1
+                if candidate != text_col:
+                    cat_col = candidate
+
+            # -------------------------------------------------
+            # P/Ş kolonları bulunamadıysa: kalan kolonlarda 1..5
+            # aralığında yoğunluk arayıp otomatik tahmin et
+            # -------------------------------------------------
             def _looks_like_score(col_idx):
                 hits = 0
                 for row in rows[1: min(len(rows), 25)]:
@@ -2815,8 +2964,10 @@ def create_app():
             if prob_col is None or sev_col is None:
                 candidates = []
                 protected = {text_col}
-                if cat_col is not None: protected.add(cat_col)
-                if code_col is not None: protected.add(code_col)
+                if cat_col is not None:
+                    protected.add(cat_col)
+                if code_col is not None:
+                    protected.add(code_col)
                 for i in range(len(header)):
                     if i in protected:
                         continue
@@ -2828,7 +2979,9 @@ def create_app():
                     sev_col = candidates[1][1]
 
             # 3) Yardımcılar
-            def _clean(x): return str(x or "").strip()
+            def _clean(x):
+                return str(x or "").strip()
+
             def _toi(x):
                 try:
                     v = int(round(float(str(x).replace(",", ".").strip())))
@@ -2844,23 +2997,36 @@ def create_app():
                 sev_val  = _clean(get(sev_col))
                 cat_val  = _clean(get(cat_col)) if cat_col is not None else ""
                 only_text = (text_val != "" and code_val == "" and prob_val == "" and sev_val == "" and cat_val == "")
-                looks_like = (text_val.isupper() and len(text_val.split()) <= 10) or ("RİSKLER" in text_val.upper()) or text_val.endswith(":")
+                looks_like = (
+                    (text_val.isupper() and len(text_val.split()) <= 10)
+                    or ("RİSKLER" in text_val.upper())
+                    or text_val.endswith(":")
+                )
                 return only_text and looks_like
 
             PREFIX_TO_CATEGORY = {
-                "YÖR":"YÖNETSEL RİSKLER","SOR":"SÖZLEŞME / ONAY SÜREÇLERİ","UYR":"UYGULAMA / YAPIM RİSKLERİ",
-                "GER":"ZEMİN KOŞULLARI / GEOTEKNİK","ÇER":"ÇEVRESEL RİSKLER","CER":"ÇEVRESEL RİSKLER",
-                "DTR":"DENETİM / TETKİK / RAPOR","POR":"POLİTİK / ORGANİZASYONEL","TYR":"TEDARİK / MALZEME",
+                "YÖR": "YÖNETSEL RİSKLER",
+                "SOR": "SÖZLEŞME / ONAY SÜREÇLERİ",
+                "UYR": "UYGULAMA / YAPIM RİSKLERİ",
+                "GER": "ZEMİN KOŞULLARI / GEOTEKNİK",
+                "ÇER": "ÇEVRESEL RİSKLER",
+                "CER": "ÇEVRESEL RİSKLER",
+                "DTR": "DENETİM / TETKİK / RAPOR",
+                "POR": "POLİTİK / ORGANİZASYONEL",
+                "TYR": "TEDARİK / MALZEME",
             }
+
             def guess_category_from_code(code):
-                if not code: return None
+                if not code:
+                    return None
                 code = str(code).strip().upper()
                 letters = "".join([c for c in code if c.isalpha()])
                 return PREFIX_TO_CATEGORY.get(letters[:3])
 
             def _looks_like_sentence(x: str) -> bool:
                 x = (x or "").strip()
-                if not x: return False
+                if not x:
+                    return False
                 words = x.split()
                 return (len(words) >= 7) and (not x.isupper())
 
@@ -2876,16 +3042,18 @@ def create_app():
                 if _is_category_title(row):
                     current_category = _clean(row[text_col]).rstrip(":")
                     if current_category:
-                        rc = (RiskCategory.query
-                              .filter(func.lower(RiskCategory.name) == func.lower(current_category))
-                              .first())
+                        rc = (
+                            RiskCategory.query
+                            .filter(func.lower(RiskCategory.name) == func.lower(current_category))
+                            .first()
+                        )
                         if not rc:
                             db.session.add(RiskCategory(name=current_category, is_active=True))
                     continue
 
                 # Normal risk satırı
                 r = list(row)
-                idxs = [i for i in [code_col, text_col, cat_col, prob_col, sev_col] if i is not None]
+                idxs = [i for i in [code_col, text_col, cat_col, prob_col, sev_col, risk_desc_col, mitigation_col] if i is not None]
                 need_len = (max(idxs) if idxs else -1)
                 while len(r) <= need_len:
                     r.append("")
@@ -2894,10 +3062,28 @@ def create_app():
                 text     = _clean(r[text_col]) if text_col is not None else ""
                 cat_cell = _clean(r[cat_col])  if cat_col  is not None else ""
 
-                if not text:
+                # YENİ: Risk Tanımı + Azaltıcı Önlemler
+                if risk_desc_col is not None and risk_desc_col < len(r):
+                    risk_desc_raw = _clean(r[risk_desc_col])
+                else:
+                    risk_desc_raw = ""
+                if mitigation_col is not None and mitigation_col < len(r):
+                    mitigation_hint_raw = _clean(r[mitigation_col])
+                else:
+                    mitigation_hint_raw = ""
+
+                risk_desc       = risk_desc_raw or None
+                mitigation_hint = mitigation_hint_raw or None
+
+                # text boşsa ama Risk Tanımı doluysa, text'i oradan türet
+                if not text and risk_desc:
+                    text = risk_desc[:255]
+
+                # Hem text hem risk_desc boşsa satırı atla
+                if not text and not risk_desc:
                     continue
 
-                # Kategori önceliği
+                # Kategori önceliği: hücre > current_category > kod prefix > Genel
                 if cat_cell:
                     category = cat_cell
                 elif current_category:
@@ -2912,16 +3098,21 @@ def create_app():
                     elif _looks_like_sentence(category) and ("RİSKLER" not in category.upper()):
                         category = current_category or guess_category_from_code(code) or "Genel"
 
+                # RiskCategory tablosuna da yaz
                 if category:
-                    rc = (RiskCategory.query
-                          .filter(func.lower(RiskCategory.name) == func.lower(category))
-                          .first())
+                    rc = (
+                        RiskCategory.query
+                        .filter(func.lower(RiskCategory.name) == func.lower(category))
+                        .first()
+                    )
                     if not rc:
                         db.session.add(RiskCategory(name=category, is_active=True))
 
+                # P/S değerleri
                 p_val = _toi(r[prob_col]) if (prob_col is not None and prob_col < len(r)) else None
                 s_val = _toi(r[sev_col])  if (sev_col  is not None and sev_col  < len(r)) else None
 
+                # Tekillik: kategori + text kombinasyonu
                 existing = Suggestion.query.filter(
                     Suggestion.category == (category or ""),
                     Suggestion.text == text
@@ -2929,28 +3120,50 @@ def create_app():
 
                 if existing:
                     changed = False
-                    if p_val and not existing.default_prob: existing.default_prob = p_val; changed = True
-                    if s_val and not existing.default_sev: existing.default_sev = s_val; changed = True
-                    if code  and not existing.risk_code:   existing.risk_code   = code;  changed = True
+                    if p_val and not existing.default_prob:
+                        existing.default_prob = p_val
+                        changed = True
+                    if s_val and not existing.default_sev:
+                        existing.default_sev = s_val
+                        changed = True
+                    if code and not existing.risk_code:
+                        existing.risk_code = code
+                        changed = True
+                    # YENİ: risk_desc / mitigation_hint güncelle
+                    if risk_desc is not None and (existing.risk_desc or "") != risk_desc:
+                        existing.risk_desc = risk_desc
+                        changed = True
+                    if mitigation_hint is not None and (existing.mitigation_hint or "") != mitigation_hint:
+                        existing.mitigation_hint = mitigation_hint
+                        changed = True
+
                     if changed:
-                        db.session.add(existing); updated_cnt += 1
+                        db.session.add(existing)
+                        updated_cnt += 1
                     else:
                         skipped += 1
                     continue
 
+                # Yeni kayıt
                 db.session.add(Suggestion(
-                    category=category or "",
-                    text=text,
-                    risk_code=code or None,
-                    default_prob=p_val,
-                    default_sev=s_val
+                    category        = category or "",
+                    text            = text,
+                    risk_code       = code or None,
+                    default_prob    = p_val,
+                    default_sev     = s_val,
+                    risk_desc       = risk_desc,
+                    mitigation_hint = mitigation_hint,
                 ))
                 created += 1
 
             db.session.commit()
-            flash(f"İçe aktarma tamamlandı. Eklenen: {created}, güncellenen: {updated_cnt}, atlanan: {skipped}.", "success")
+            flash(
+                f"İçe aktarma tamamlandı. Eklenen: {created}, güncellenen: {updated_cnt}, atlanan: {skipped}.",
+                "success",
+            )
             return redirect(url_for("risk_identify"))
 
+        # GET → basit upload formu
         return render_template("import_suggestions.html")
 
     # -------------------------------------------------

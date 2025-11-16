@@ -287,8 +287,15 @@ class Suggestion(db.Model):
     __tablename__ = "suggestions"
 
     id       = db.Column(db.Integer, primary_key=True)
+
+    # Ana kategori + şablon metni
     category = db.Column(db.String(100), nullable=False, index=True)  # not: string
-    text     = db.Column(db.Text, nullable=False)
+    text     = db.Column(db.Text, nullable=False)                     # mevcut "risk faktörü" cümlesi
+
+    # YENİ: Excel'deki iki kolon
+    # Risk Tanımı  |  Risk Azaltıcı Önlemler
+    risk_desc       = db.Column(db.Text, nullable=True)  # Risk Tanımı
+    mitigation_hint = db.Column(db.Text, nullable=True)  # Risk Azaltıcı Önlemler
 
     # CSV içe aktarma ve otomatik öneri için:
     risk_code    = db.Column(db.String(32), index=True)  # örn: UYR01
