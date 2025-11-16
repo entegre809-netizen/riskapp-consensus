@@ -3002,75 +3002,7 @@ def create_app():
         resp = Response(bio.read(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         resp.headers["Content-Disposition"] = "attachment; filename=suggestions_export.xlsx"
         return resp
-    @app.route("/risks/export.csv")
-    def risks_export_csv():
-        pid    = _get_active_project_id()
-        q      = (request.args.get("q") or "").strip()
-        status = (request.args.get("status") or "").strip()
-
-        query = Risk.query
-        if pid:
-            query = query.filter(Risk.project_id == pid)
-        if q:
-            like = f"%{q}%"
-            query = query.filter(
-                (Risk.title.ilike(like)) |
-                (Risk.category.ilike(like)) |
-                (Risk.description.ilike(like))
-            )
-        if status:
-            query = query.filter(Risk.status == status)
-
-        risks = query.order_by(Risk.category.asc().nullsfirst(), Risk.id.asc()).all()
-
-        output = StringIO()
-        writer = csv.writer(output)
-
-        # XLSX ile uyumlu başlıklar
-        writer.writerow([
-            "No","Risk Adı","Risk Tanımlaması","Risk Sahibi",
-            "P","S","Risk Seviyesi","Karşı Önlemler","Kategori","Durum","Sorumlu","Başlangıç(YYYY-MM)","Bitiş(YYYY-MM)"
-        ])
-
-        def level_for_rpn(rpn):
-            if rpn is None: return ""
-            r = float(rpn)
-            if r <= 5:   return "Düşük"
-            if r <= 10:  return "Orta"
-            if r <= 15:  return "Yüksek"
-            return "Çok Yüksek"
-
-        # Kategori içi sıra numarası
-        from collections import defaultdict
-        counters = defaultdict(int)
-
-        for r in risks:
-            key = (r.category or "GENEL RİSKLER").strip()
-            counters[key] += 1
-
-            p = r.avg_prob()
-            s = r.avg_sev()
-            rpn = r.avg_rpn()
-
-            writer.writerow([
-                counters[key],
-                r.title or "",
-                r.description or "",
-                r.responsible or "",
-                f"{p:.2f}" if p is not None else "",
-                f"{s:.2f}" if s is not None else "",
-                level_for_rpn(rpn),
-                r.mitigation or "",
-                r.category or "",
-                r.status or "",
-                r.responsible or "",
-                r.start_month or "",
-                r.end_month or "",
-            ])
-
-        resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
-        resp.headers["Content-Disposition"] = "attachment; filename=risks_export.csv"
-        return resp
+    
     # -------------------------------------------------
     #  ADMIN — Kullanıcı Yönetimi
     # -------------------------------------------------
@@ -3970,7 +3902,91 @@ Lütfen sadece doğrudan kullanılabilir aksiyon/mitigation maddelerini üret.
         text = make_ai_risk_comment(risk_id)
         # Çok basic: plain text döndürelim
         return f"<pre>{text}</pre>"
+    
+    
+    @app.route("/risks/export.csv")
+    def risks_export_csv():
+            pid    = _get_active_project_id()
+            q      = (request.args.get("q") or "").strip()
+            status = (request.args.get("status") or "").strip()
 
+            query = Risk.query
+            if pid:
+                query = query.filter(Risk.project_id == pid)
+            if q:
+                like = f"%{q}%"
+                query = query.filter(
+                    (Risk.title.ilike(like)) |
+                    (Risk.category.ilike(like)) |
+                    (Risk.description.ilike(like))
+                )
+            if status:
+                query = query.filter(Risk.status == status)
+
+            risks = query.order_by(Risk.category.asc().nullsfirst(), Risk.id.asc()).all()
+
+            output = StringIO()
+            writer = csv.writer(output)
+
+            # XLSX ile uyumlu başlıklar
+            writer.writerow([
+                "No",
+                "Risk Adı",
+                "Risk Tanımlaması",
+                "Risk Sahibi",           # r.owner
+                "P",
+                "S",
+                "Risk Seviyesi",
+                "Karşı Önlemler",
+                "Kategori",
+                "Durum",
+                "Sorumlu",              # r.responsible
+                "Başlangıç(YYYY-MM)",
+                "Bitiş(YYYY-MM)",
+            ])
+
+            def level_for_rpn(rpn):
+                if rpn is None:
+                    return ""
+                r = float(rpn)
+                if r <= 5:
+                    return "Düşük"
+                if r <= 10:
+                    return "Orta"
+                if r <= 15:
+                    return "Yüksek"
+                return "Çok Yüksek"
+
+            from collections import defaultdict
+            counters = defaultdict(int)
+
+            for r in risks:
+                key = (r.category or "GENEL RİSKLER").strip()
+                counters[key] += 1
+
+                p = r.avg_prob()
+                s = r.avg_sev()
+                rpn = r.avg_rpn()
+
+                writer.writerow([
+                    counters[key],                          # No
+                    r.title or "",                          # Risk Adı
+                    r.description or "",                    # Risk Tanımlaması
+                    getattr(r, "owner", "") or "",          # Risk Sahibi (oluşturan kişi)
+                    f"{p:.2f}" if p is not None else "",    # P
+                    f"{s:.2f}" if s is not None else "",    # S
+                    level_for_rpn(rpn),                     # Risk Seviyesi
+                    r.mitigation or "",                     # Karşı Önlemler
+                    r.category or "",                       # Kategori
+                    r.status or "",                         # Durum
+                    r.responsible or "",                    # Sorumlu
+                    r.start_month or "",                    # Başlangıç(YYYY-MM)
+                    r.end_month or "",                      # Bitiş(YYYY-MM)
+                ])
+
+            resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+            resp.headers["Content-Disposition"] = "attachment; filename=risks_export.csv"
+            return resp
     
     return app
 
