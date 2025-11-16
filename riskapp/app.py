@@ -18,6 +18,7 @@ from pathlib import Path
 from collections import defaultdict
 from flask import current_app
 
+
 import os as _os, sys as _sys
 PKG_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 if PKG_ROOT not in _sys.path:
@@ -3003,9 +3004,6 @@ def create_app():
         resp.headers["Content-Disposition"] = "attachment; filename=suggestions_export.xlsx"
         return resp
     
-    # -------------------------------------------------
-    #  ADMIN — Kullanıcı Yönetimi
-    # -------------------------------------------------
         # -------------------------------------------------
     #  ADMIN — Kullanıcı Yönetimi
     # -------------------------------------------------
@@ -3062,25 +3060,118 @@ def create_app():
             flash("Veritabanı hatası: referans kodu atanamadı (unique kısıtı).", "danger")
             return redirect(url_for("admin_users"))
 
-        # 6) (Opsiyonel) Kullanıcıya e-posta ile ref kodu gönder
+        # 6) Opsiyonel bilgilendirme maili
         try:
             if acc.email:
-                send_email(
+                ok, err = send_email(
                     to_email=acc.email,
-                    subject="RiskApp referans kodunuz",
+                    subject="RiskApp — Referans Kodunuz",
                     body=(
                         f"Merhaba {acc.contact_name},\n\n"
-                        f"Hesabınız için referans kodunuz: {acc.ref_code}\n\n"
-                        "Artık e-posta + şifre + bu referans kodu ile giriş yapabilirsiniz.\n\n"
-                        "İyi çalışmalar."
-                    ),
+                        f"Sistem üzerinde giriş yaparken kullanacağınız referans kodunuz:\n\n"
+                        f"    {code}\n\n"
+                        "Giriş için e-posta + şifre + referans kodu gereklidir.\n\n"
+                        "Teşekkürler."
+                    )
                 )
-        except Exception:
-            # Mail hatası uygulamayı bozmasın, sadece loglansın
-            current_app.logger.exception("Ref kod maili gönderilemedi")
+                if not ok:
+                    flash(f"Ref. kodu atandı fakat e-posta gönderilemedi: {err}", "warning")
+                else:
+                    flash(f"Referans kodu atandı ve e-posta gönderildi: {code}", "success")
+            else:
+                flash(f"Referans kodu atandı: {code}", "success")
+        except Exception as e:
+            flash(f"Referans kodu atandı fakat e-posta gönderilemedi: {e}", "warning")
 
-        flash("Referans kodu atandı ve kullanıcı aktifleştirildi.", "success")
         return redirect(url_for("admin_users"))
+
+    @app.get("/admin/users")
+    @role_required("admin")
+    def admin_users():
+        """
+        Kullanıcı yönetimi listesi:
+        - Tüm hesaplar
+        - Son proje bilgisi (varsa)
+        """
+        accounts = Account.query.order_by(Account.created_at.desc()).all()
+
+        # Son proje kayıtlarını çek (varsa)
+        acc_ids = [a.id for a in accounts]
+        proj_rows = []
+        if acc_ids:
+            proj_rows = (
+                ProjectInfo.query
+                .filter(ProjectInfo.account_id.in_(acc_ids))
+                .order_by(ProjectInfo.created_at.desc())
+                .all()
+            )
+
+        # account_id -> son proje
+        proj_by_acc = {}
+        for p in proj_rows:
+            # created_at desc order olduğu için ilk gördüğümüz en yenisi
+            if p.account_id not in proj_by_acc:
+                proj_by_acc[p.account_id] = p
+
+        return render_template(
+            "admin_users.html",
+            accounts=accounts,
+            proj_by_acc=proj_by_acc,
+        )
+
+    @app.post("/admin/users/<int:uid>/set-role")
+    @role_required("admin")
+    def admin_users_set_role(uid):
+        """
+        Form: role=admin|uzman
+        """
+        acc = Account.query.get_or_404(uid)
+        role = (request.form.get("role") or "").strip()
+        if role not in ("admin", "uzman"):
+            flash("Geçersiz rol seçimi.", "danger")
+            return redirect(url_for("admin_users"))
+
+        acc.role = role
+        db.session.commit()
+        flash("Kullanıcı rolü güncellendi.", "success")
+        return redirect(url_for("admin_users"))
+
+    @app.post("/admin/users/<int:uid>/set-status")
+    @role_required("admin")
+    def admin_users_set_status(uid):
+        """
+        Form: status=pending|active|disabled
+        """
+        acc = Account.query.get_or_404(uid)
+        status = (request.form.get("status") or "").strip()
+        if status not in ("pending", "active", "disabled"):
+            flash("Geçersiz durum seçimi.", "danger")
+            return redirect(url_for("admin_users"))
+
+        acc.status = status
+        db.session.commit()
+        flash("Kullanıcı durumu güncellendi.", "success")
+        return redirect(url_for("admin_users"))
+
+    @app.post("/admin/users/<int:uid>/delete")
+    @role_required("admin")
+    def admin_users_delete(uid):
+        """
+        Kullanıcı silme (kendi hesabını silemez).
+        """
+        acc = Account.query.get_or_404(uid)
+
+        if acc.id == session.get("account_id"):
+            flash("Kendi hesabınızı silemezsiniz.", "danger")
+            return redirect(url_for("admin_users"))
+
+        db.session.delete(acc)
+        db.session.commit()
+        flash("Kullanıcı silindi.", "success")
+        return redirect(url_for("admin_users"))
+
+    
+
 
 
 
@@ -3162,8 +3253,30 @@ def create_app():
     
     @app.route("/mitigations")
     def mitigations_list():
-        # burası veri çekip mitigations_list.html'i render edecek
-        return render_template("mitigations_list.html", ...)
+        # Login kontrolü (sen zaten session tabanlı gidiyorsun)
+        if "user_id" not in session:
+            return redirect(url_for("login", next=request.path))
+
+        project_id = request.args.get("project_id", type=int)
+
+        q = Mitigation.query
+
+        if project_id:
+            q = q.filter(Mitigation.project_id == project_id)
+
+        mitigations = q.order_by(Mitigation.id.desc()).all()
+
+        # Senin modelde "Project" değil "ProjectInfo" var
+        projects = ProjectInfo.query.order_by(ProjectInfo.name).all()
+
+        return render_template(
+            "mitigations_list.html",
+            mitigations=mitigations,
+            projects=projects,
+            selected_project_id=project_id,
+        )
+
+
 
 
     # -------------------------------------------------
