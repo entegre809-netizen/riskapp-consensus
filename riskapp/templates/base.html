@@ -451,6 +451,7 @@
           <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Risklerim</a>
           <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">Kategoriler</a>
           <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">Zaman Çizelgesi</a>
+          <a href="{{ url_for('mitigations') }}" class="{{ 'active' if request.endpoint=='mitigations' }}">Önlemler (Mitigations)</a>
           <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
 
           {% if session.get('role') == 'admin' %}
