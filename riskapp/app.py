@@ -31,7 +31,8 @@ from urllib.parse import urlparse, quote
 from dotenv import load_dotenv
 load_dotenv()  # proje kökündeki .env dosyasını okur
 
-
+from riskapp.ai_local.ps_estimator import PSEstimator
+from riskapp.ai_local.engine import AILocal
 from riskapp.models import db, Risk, Mitigation   
 
 from sqlalchemy.exc import IntegrityError
@@ -1030,11 +1031,22 @@ def create_app():
     app.config["CONSENSUS_THRESHOLD"] = 30
 
     # 2) SQLite ise: thread ayarı + dosya/klasör garantisi
+        # 2) SQLite ise: thread ayarı + dosya/klasör garantisi
     if db_uri.startswith("sqlite:"):
         # Gunicorn/çoklu thread için
         engine_opts = app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {})
         conn_args = engine_opts.setdefault("connect_args", {})
-        conn_args.update({"check_same_thread": False})
+
+        # check_same_thread=False -> çoklu thread'de sqlite hata vermesin
+        conn_args.setdefault("check_same_thread", False)
+
+        # Dosya yolu varsa klasörü oluştur (örn: sqlite:////tmp/riskapp.db)
+        if db_uri.startswith("sqlite:///"):
+            db_path = db_uri.replace("sqlite:///", "", 1)
+            db_dir = os.path.dirname(db_path)
+            if db_dir and not os.path.exists(db_dir):
+                os.makedirs(db_dir, exist_ok=True)
+
 
         # /tmp/riskapp.db'yi önceden oluştur (permission/issues önleme)
         raw_path = urlparse(db_uri).path or "/tmp/riskapp.db"
