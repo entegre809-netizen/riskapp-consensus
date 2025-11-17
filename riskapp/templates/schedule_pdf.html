@@ -150,7 +150,8 @@
       </div>
     </div>
     <div class="header-right">
-      <div>Oluşturma Tarihi: {{ now().strftime("%d.%m.%Y %H:%M") }}</div>
+      <div>Oluşturma Tarihi: {{ generated_at }}</div>
+
       {% if categories %}
         <div>Kategoriler: {{ categories|join(", ") }}</div>
       {% endif %}

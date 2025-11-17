@@ -2548,8 +2548,10 @@ def create_app():
     def schedule_pdf():
         ctx = build_schedule_context()
 
-        # PDF için ayrı tasarım kullanıyoruz:
-        # schedule_pdf.html (küçük kart tasarımlı olan)
+        # Oluşturma zamanı (PDF footer’ında kullanacağız)
+        ctx["generated_at"] = datetime.now().strftime("%d.%m.%Y %H:%M")
+
+        # PDF için özel tasarım şablonu
         html = render_template("schedule_pdf.html", **ctx)
 
         pdf_bytes = HTML(
@@ -2569,6 +2571,7 @@ def create_app():
             download_name=filename,
             mimetype="application/pdf",
         )
+
 
     # -------------------------------------------------
     #  Kayıt — Tek Adım (Hesap + Proje)
