@@ -3305,56 +3305,89 @@ def create_app():
 
         return redirect(url_for("admin_users"))
 
-    @app.get("/admin/users")
+ 
+
+    @app.route("/admin/users", methods=["GET", "POST"])
     @role_required("admin")
     def admin_users():
         """
-        Kullanıcı yönetimi listesi:
-        - Tüm hesaplar
-        - Son proje bilgisi (varsa)
+        Kullanıcı yönetimi:
+        - GET: liste + istatistik
+        - POST: formdaki action'a göre rol / durum / ref kod işlemleri
         """
-        accounts = Account.query.order_by(Account.created_at.desc()).all()
 
-        # Son proje kayıtlarını çek (varsa)
-        acc_ids = [a.id for a in accounts]
-        proj_rows = []
-        if acc_ids:
-            proj_rows = (
-                ProjectInfo.query
-                .filter(ProjectInfo.account_id.in_(acc_ids))
-                .order_by(ProjectInfo.created_at.desc())
-                .all()
-            )
+        # ----- POST: butonlara basılınca -----
+        if request.method == "POST":
+            action = (request.form.get("action") or "").strip()
+            uid_raw = request.form.get("user_id") or ""
+            if not uid_raw.isdigit():
+                flash("Geçersiz kullanıcı bilgisi.", "danger")
+                return redirect(url_for("admin_users"))
 
-        # account_id -> son proje
-        proj_by_acc = {}
-        for p in proj_rows:
-            # created_at desc order olduğu için ilk gördüğümüz en yenisi
-            if p.account_id not in proj_by_acc:
-                proj_by_acc[p.account_id] = p
+            uid = int(uid_raw)
+            acc = Account.query.get(uid)
+            if not acc:
+                flash("Kullanıcı bulunamadı.", "danger")
+                return redirect(url_for("admin_users"))
 
-        return render_template(
-    "admin_users.html",
-    users=accounts,
-    proj_by_acc=proj_by_acc,
-)
+            is_self = (acc.id == session.get("account_id"))
 
-    @app.post("/admin/users/<int:uid>/set-role")
-    @role_required("admin")
-    def admin_users_set_role(uid):
-        """
-        Form: role=admin|uzman
-        """
-        acc = Account.query.get_or_404(uid)
-        role = (request.form.get("role") or "").strip()
-        if role not in ("admin", "uzman"):
-            flash("Geçersiz rol seçimi.", "danger")
+            # 1) Rol güncelle
+            if action == "set_role":
+                new_role = (request.form.get("new_role") or "").strip()
+                if new_role not in ("admin", "uzman"):
+                    flash("Geçersiz rol seçimi.", "danger")
+                else:
+                    acc.role = new_role
+                    db.session.commit()
+                    flash("Kullanıcı rolü güncellendi.", "success")
+
+            # 2) Durum güncelle
+            elif action == "set_status":
+                new_status = (request.form.get("new_status") or "").strip()
+                if new_status not in ("pending", "active", "disabled"):
+                    flash("Geçersiz durum seçimi.", "danger")
+                elif is_self and new_status != acc.status:
+                    flash("Kendi hesabınızın durumunu değiştiremezsiniz.", "warning")
+                else:
+                    acc.status = new_status
+                    db.session.commit()
+                    flash("Kullanıcı durumu güncellendi.", "success")
+
+            # 3) Ref kod ata / güncelle
+            elif action == "assign_ref":
+                ref_code = (request.form.get("ref_code") or "").strip().upper()
+                acc.ref_code = ref_code or None
+                db.session.commit()
+                flash("Referans kodu güncellendi.", "success")
+
+            # 4) Ref kod temizle
+            elif action == "clear_ref":
+                acc.ref_code = None
+                db.session.commit()
+                flash("Referans kodu silindi.", "success")
+
+            else:
+                flash("Bilinmeyen işlem.", "danger")
+
             return redirect(url_for("admin_users"))
 
-        acc.role = role
-        db.session.commit()
-        flash("Kullanıcı rolü güncellendi.", "success")
-        return redirect(url_for("admin_users"))
+        # ----- GET: sayfayı listele -----
+        users = Account.query.order_by(Account.created_at.desc()).all()
+
+        totals = {
+            "all": len(users),
+            "active": sum(1 for u in users if (u.status or "pending") == "active"),
+            "pending": sum(1 for u in users if (u.status or "pending") == "pending"),
+            "disabled": sum(1 for u in users if (u.status or "pending") == "disabled"),
+            "admins": sum(1 for u in users if (u.role or "uzman") == "admin"),
+        }
+
+        return render_template(
+            "admin_users.html",
+            users=users,
+            totals=totals,
+        )
 
     @app.post("/admin/users/<int:uid>/set-status")
     @role_required("admin")
