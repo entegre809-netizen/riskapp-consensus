@@ -94,6 +94,24 @@
           <option value="calendar" {{ 'selected' if view=='calendar' }}>Takvim</option>
         </select>
         <button class="btn btn-primary" type="submit">Uygula</button>
+
+        {# ---- PDF Export butonu ---- #}
+        <a class="btn"
+           href="{{ url_for(
+                    'schedule_pdf',
+                    q=request.args.get('q',''),
+                    category=request.args.get('category',''),
+                    owner=request.args.get('owner',''),
+                    status=request.args.get('status',''),
+                    grade=request.args.get('grade',''),
+                    month=cur_m,
+                    year=cur_y,
+                    view=view
+                ) }}"
+           target="_blank"
+           rel="noopener">
+          📄 PDF
+        </a>
       </div>
     </div>
   </form>

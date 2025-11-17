@@ -2,7 +2,7 @@
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash, current_app, Response, jsonify, abort
+    session, flash, current_app, Response, jsonify, abort,send_file
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
@@ -20,6 +20,8 @@ from flask import current_app
 from flask import request, redirect, url_for, flash, current_app
 from .models import db, Risk, Comment
 from .ai_local.commenter import make_ai_risk_comment, _propose_actions
+from io import BytesIO
+from weasyprint import HTML
 
 
 import json
@@ -2380,12 +2382,12 @@ def create_app():
         r = Risk.query.get_or_404(risk_id)
         suggestions = Suggestion.query.filter(Suggestion.category == (r.category or "")).all()
         return render_template("report_view.html", r=r, suggestions=suggestions)
+    
 
-    # -------------------------------------------------
-    #  Zaman Çizelgesi (Gantt benzeri) — /schedule
-    # -------------------------------------------------
-    @app.route("/schedule")
-    def schedule():
+# -------------------------------------------------
+#  Ortak context: Zaman Çizelgesi verisi
+# -------------------------------------------------
+    def build_schedule_context():
         pid = _get_active_project_id()
         query = Risk.query
         if pid:
@@ -2435,8 +2437,10 @@ def create_app():
         for r in risks:
             s, e = _norm_range(r.start_month, r.end_month)
             if s and e:
-                if (min_ym is None) or (s < min_ym): min_ym = s
-                if (max_ym is None) or (e > max_ym): max_ym = e
+                if (min_ym is None) or (s < min_ym):
+                    min_ym = s
+                if (max_ym is None) or (e > max_ym):
+                    max_ym = e
 
         # Varsayılan: bugün + 5 ay (toplam 6 ay)
         if not min_ym or not max_ym:
@@ -2457,7 +2461,12 @@ def create_app():
             y, m = _next_ym(y, m)
 
         # --- Grade map (UI sınıfları için) ---
-        _gmap = {"high": "critical", "medium": "moderate", "low": "low", "none": "acceptable"}
+        _gmap = {
+            "high": "critical",
+            "medium": "moderate",
+            "low": "low",
+            "none": "acceptable",
+        }
 
         # --- Satırlar ---
         rows = []
@@ -2482,20 +2491,63 @@ def create_app():
             })
 
         # --- Filtre dropdown verileri ---
-        categories = sorted({(r.category or "").strip() for r in risks if (r.category or "").strip()})
-        owners     = sorted({(r.responsible or "").strip() for r in risks if (r.responsible or "").strip()})
-        statuses   = sorted({(r.status or "").strip() for r in risks if (r.status or "").strip()})
+        categories = sorted({(r.category or "").strip()
+                            for r in risks if (r.category or "").strip()})
+        owners     = sorted({(r.responsible or "").strip()
+                            for r in risks if (r.responsible or "").strip()})
+        statuses   = sorted({(r.status or "").strip()
+                            for r in risks if (r.status or "").strip()})
 
-        # --- Şablon bağlamı ---
-        return render_template(
-            "schedule.html",
+        # Kullanıcının seçtiği ay/yıl (calendar + PDF için)
+        today = date.today()
+        cur_m = int(request.args.get("month") or today.month)
+        cur_y = int(request.args.get("year") or today.year)
+
+        return dict(
             months=months,
             rows=rows,
             categories=categories,
             owners=owners,
             statuses=statuses,
-            current_month=date.today().month,
-            current_year=date.today().year,
+            current_month=cur_m,
+            current_year=cur_y,
+        )
+
+
+    # -------------------------------------------------
+    #  Zaman Çizelgesi — HTML
+    # -------------------------------------------------
+    @app.route("/schedule")
+    def schedule():
+        ctx = build_schedule_context()
+        return render_template("schedule.html", **ctx)
+
+
+    # -------------------------------------------------
+    #  Zaman Çizelgesi — PDF
+    # -------------------------------------------------
+    @app.route("/schedule/pdf")
+    def schedule_pdf():
+        ctx = build_schedule_context()
+
+        html = render_template("schedule.html", **ctx)
+
+        pdf_bytes = HTML(
+            string=html,
+            base_url=request.host_url
+        ).write_pdf()
+
+        buf = BytesIO(pdf_bytes)
+
+        m = ctx.get("current_month") or date.today().month
+        y = ctx.get("current_year") or date.today().year
+        filename = f"risk_schedule_{y}_{str(m).zfill(2)}.pdf"
+
+        return send_file(
+            buf,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/pdf",
         )
 
     # -------------------------------------------------
