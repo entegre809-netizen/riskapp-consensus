@@ -22,6 +22,8 @@ from .models import db, Risk, Comment
 from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
 from weasyprint import HTML
+import re
+from sqlalchemy.exc import IntegrityError
 
 from io import BytesIO
 from datetime import date
@@ -3354,12 +3356,74 @@ def create_app():
                     db.session.commit()
                     flash("Kullanıcı durumu güncellendi.", "success")
 
-            # 3) Ref kod ata / güncelle
+            # 3) Ref kod ata / güncelle (boş ise otomatik üret)
             elif action == "assign_ref":
-                ref_code = (request.form.get("ref_code") or "").strip().upper()
-                acc.ref_code = ref_code or None
-                db.session.commit()
-                flash("Referans kodu güncellendi.", "success")
+                # Formdan kod al (boş ise otomatik üretilecek)
+                raw = (request.form.get("ref_code") or "").strip().upper()
+
+                PATTERN = r"^PRJ-[A-Z0-9]{6}$"
+                if raw and not re.fullmatch(PATTERN, raw):
+                    flash("Geçersiz referans kodu formatı (örn. PRJ-ABC123).", "danger")
+                    return redirect(url_for("admin_users"))
+
+                # Kod üretimi (boş bırakıldıysa otomatik)
+                code = raw
+                MAX_TRIES = 8
+                tries = 0
+                while not code:
+                    tries += 1
+                    candidate = _gen_ref_code(prefix="PRJ")
+                    exists = Account.query.filter(Account.ref_code == candidate).first()
+                    if not exists:
+                        code = candidate
+                        break
+                    if tries >= MAX_TRIES:
+                        flash("Referans kodu üretilemedi, lütfen tekrar deneyin.", "danger")
+                        return redirect(url_for("admin_users"))
+
+                # Başka kullanıcıda var mı?
+                clash = Account.query.filter(
+                    Account.ref_code == code,
+                    Account.id != acc.id
+                ).first()
+                if clash:
+                    flash("Bu referans kodu başka bir kullanıcıda mevcut.", "danger")
+                    return redirect(url_for("admin_users"))
+
+                # Atama + active yap
+                acc.ref_code = code
+                acc.status = "active"
+
+                try:
+                    db.session.commit()
+                except IntegrityError:
+                    db.session.rollback()
+                    flash("Veritabanı hatası: referans kodu atanamadı (unique kısıtı).", "danger")
+                    return redirect(url_for("admin_users"))
+
+                # Checkbox'a göre mail gönder
+                notify = request.form.get("notify_email") == "1"
+                if notify and acc.email:
+                    try:
+                        ok, err = send_email(
+                            to_email=acc.email,
+                            subject="RiskApp — Referans Kodunuz",
+                            body=(
+                                f"Merhaba {acc.contact_name},\n\n"
+                                f"Sistem üzerinde giriş yaparken kullanacağınız referans kodunuz:\n\n"
+                                f"    {code}\n\n"
+                                "Giriş için e-posta + şifre + referans kodu gereklidir.\n\n"
+                                "Teşekkürler."
+                            )
+                        )
+                        if not ok:
+                            flash(f"Ref. kodu atandı fakat e-posta gönderilemedi: {err}", "warning")
+                        else:
+                            flash(f"Referans kodu atandı ve e-posta gönderildi: {code}", "success")
+                    except Exception as e:
+                        flash(f"Ref. kodu atandı fakat e-posta gönderilemedi: {e}", "warning")
+                else:
+                    flash(f"Referans kodu atandı: {code}", "success")
 
             # 4) Ref kod temizle
             elif action == "clear_ref":
@@ -3388,6 +3452,7 @@ def create_app():
             users=users,
             totals=totals,
         )
+
 
     @app.post("/admin/users/<int:uid>/set-status")
     @role_required("admin")
