@@ -2153,7 +2153,7 @@ def create_app():
 
 
 
-    # -------------------------------------------------
+       # -------------------------------------------------
     #  Risk Listesi / Arama
     # -------------------------------------------------
     @app.route("/risks")
@@ -2177,15 +2177,15 @@ def create_app():
                 (Risk.description.ilike(like))
             )
 
-        # Hücreye tıklama filtresi: ortalama P/S yuvarlanınca hücreye denk düşenler
+        # Hücreye tıklama filtresi: ORTALAMA P/S yuvarlanınca hücreye denk düşenler
         if p and s:
             query = (
                 query.join(Evaluation, Evaluation.risk_id == Risk.id)
-                    .group_by(Risk.id)
-                    .having(func.avg(Evaluation.probability) >= p - 0.5)
-                    .having(func.avg(Evaluation.probability) <  p + 0.5)
-                    .having(func.avg(Evaluation.severity)   >= s - 0.5)
-                    .having(func.avg(Evaluation.severity)   <  s + 0.5)
+                     .group_by(Risk.id)
+                     .having(func.avg(Evaluation.probability) >= p - 0.5)
+                     .having(func.avg(Evaluation.probability) <  p + 0.5)
+                     .having(func.avg(Evaluation.severity)   >= s - 0.5)
+                     .having(func.avg(Evaluation.severity)   <  s + 0.5)
             )
 
         risks = query.order_by(Risk.updated_at.desc()).all()
@@ -2274,6 +2274,32 @@ def create_app():
             if cnt >= threshold:
                 consensus = {"p": p, "s": s, "count": cnt}
 
+        # ----- Geçmiş değerlendirmeler / Ortalama P-S mantığı -----
+        # tarih sırasına göre liste
+        eval_history = sorted(
+            list(r.evaluations),
+            key=lambda ev: ev.created_at
+        ) if r.evaluations else []
+
+        avg_p = avg_s = None   # sadece 2+ kayıt olunca dolacak
+        last_p = last_s = None # son kaydı tutuyoruz
+        use_avg = False        # template'te "Ortalama mı, son mu?" seçimi için
+
+        if eval_history:
+            last = eval_history[-1]
+            last_p = last.probability
+            last_s = last.severity
+
+            if len(eval_history) >= 2:
+                probs = [ev.probability for ev in eval_history if ev.probability is not None]
+                sevs  = [ev.severity for ev in eval_history if ev.severity is not None]
+                if probs:
+                    avg_p = sum(probs) / len(probs)
+                if sevs:
+                    avg_s = sum(sevs) / len(sevs)
+                if avg_p is not None or avg_s is not None:
+                    use_avg = True   # 2+ kayıt varsa ve ortalama hesaplanabildiyse
+
         # ----- Sistemin önerdiği P/S (çoklu kategoriye göre) -----
         ps_reco = None
         if cats_sel:
@@ -2307,7 +2333,13 @@ def create_app():
             consensus=consensus,
             threshold=threshold,
             ps_reco=ps_reco,
-            categories=cats,  # formda listelemek için
+            categories=cats,   # formda listelemek için
+            eval_history=eval_history,
+            avg_p=avg_p,
+            avg_s=avg_s,
+            last_p=last_p,
+            last_s=last_s,
+            use_avg=use_avg,
         )
 
     # -------------------------------------------------
@@ -2364,7 +2396,7 @@ def create_app():
         db.session.commit()
         flash("Değerlendirme eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
-    
+
 
     @app.get("/health")
     def health():
