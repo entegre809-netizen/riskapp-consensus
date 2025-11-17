@@ -48,6 +48,10 @@
   .btn-danger { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
   .btn:disabled { opacity:.6; cursor:not-allowed; }
 
+  .btn.tiny, .btn-secondary.tiny, .btn-danger.tiny {
+    padding:4px 8px; font-size:.8rem; border-radius:8px;
+  }
+
   .input {
     border:1px solid #e5e7eb; border-radius:10px;
     padding:7px 10px; min-width:140px;
@@ -233,13 +237,23 @@
                     </button>
                   </form>
 
+                  {# Gmail'de hazır mail aç #}
+                  {% if u.ref_code and u.email %}
+                    <a class="btn btn-secondary tiny"
+                       href="{{ url_for('admin_compose_ref', uid=u.id) }}"
+                       target="_blank"
+                       title="Gmail'de hazır mail aç">
+                      Gmail ile Gönder
+                    </a>
+                  {% endif %}
+
                   {# Ref kod temizle #}
                   {% if u.ref_code %}
                   <form method="post" action="{{ url_for('admin_users') }}"
                         onsubmit="return confirm('Ref kodu silinsin mi?');">
                     <input type="hidden" name="user_id" value="{{ u.id }}">
                     <input type="hidden" name="action" value="clear_ref">
-                    <button class="btn btn-danger" title="Ref kodu temizle">
+                    <button class="btn btn-danger tiny" title="Ref kodu temizle">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M6 6l12 12M6 18 18 6"
                               stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -277,8 +291,3 @@
   </div>
 </div>
 {% endblock %}
-
-
-
-
-
