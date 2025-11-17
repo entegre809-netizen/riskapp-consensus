@@ -1,347 +1,398 @@
 {% extends "base.html" %}
 {% block title %}Risk Yönetim Modeli{% endblock %}
 
-{% block body_class %}layout-welcome{% endblock %}
+{# Menü + sidebar gizlensin, onboarding için ayrı body class #}
+{% block body_class %}auth onboarding{% endblock %}
 
 {% block content %}
 
 <style>
-  .welcome-shell {
-    min-height: calc(100vh - 40px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* === Bu sayfaya özel: panel kabuğunu sıfırla ve full onboarding kullan === */
+  .panel{
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* Body arka planını daha mobil-onboarding havasına çekelim */
+  body.onboarding{
+    background: radial-gradient(circle at 0% 0%, #dbeafe 0, #c4e4ff 40%, #bcdff7 60%, #c7f0f0 100%) !important;
+    color: #0f172a;
+  }
+
+  .onboard-shell{
+    min-height: calc(100vh - 72px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
     padding: 32px 16px;
   }
 
-  .welcome-hero {
-    max-width: 1040px;
+  .onboard-grid{
+    max-width: 1100px;
     width: 100%;
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-    gap: 28px;
-    align-items: stretch;
+    display:grid;
+    grid-template-columns: minmax(0,1.05fr) minmax(0,0.95fr);
+    gap: 40px;
+    align-items:center;
   }
 
-  @media (max-width: 960px) {
-    .welcome-hero {
+  @media (max-width: 960px){
+    .onboard-shell{
+      padding-top: 24px;
+    }
+    .onboard-grid{
       grid-template-columns: 1fr;
+      gap: 28px;
+      text-align:center;
+      justify-items:center;
     }
   }
 
-  .welcome-main-card,
-  .welcome-side-card {
-    border-radius: 28px;
-    background: #ffffff;
-    box-shadow:
-      0 24px 80px rgba(15,23,42,0.18),
-      0 0 0 1px rgba(148,163,184,0.15);
-  }
+  /* === Sol taraf: başlık alanı (OnBoarding Travel App tarzı) === */
 
-  .welcome-main-card {
-    padding: 28px 30px 24px;
-  }
-
-  .welcome-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: .78rem;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    background: #111827;
-    color: #e5e7eb;
-  }
-  .welcome-pill-dot {
-    width: 8px; height: 8px; border-radius: 999px;
-    background: #22c55e;
-    box-shadow: 0 0 0 4px rgba(34,197,94,.25);
-  }
-
-  .welcome-title {
-    margin: 18px 0 10px;
-    font-size: clamp(2.1rem, 3vw, 2.9rem);
-    font-weight: 700;
-    letter-spacing: -.03em;
-    color: #0f172a;
-  }
-  .welcome-title span {
-    color: #16a34a;
-  }
-
-  .welcome-sub {
-    font-size: .98rem;
-    color: #4b5563;
-    max-width: 34rem;
-    line-height: 1.6;
-  }
-
-  .welcome-bullets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 20px 0 22px;
-  }
-  .welcome-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 11px;
-    border-radius: 999px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    font-size: .82rem;
-  }
-  .welcome-badge-icon {
-    width: 18px; height: 18px;
-    border-radius: 999px;
-    background: #f97316;
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .78rem;
-  }
-
-  .welcome-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-  }
-  @media (max-width: 960px) {
-    .welcome-actions { justify-content: flex-start; }
-  }
-
-  .welcome-btn-primary {
-    font-size: .98rem;
-    padding: .85rem 1.9rem;
-    border-radius: 999px;
-    border: none;
-    background: linear-gradient(135deg, #fbbf24, #f97316);
-    color: #111827;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    box-shadow: 0 18px 40px rgba(248,181,0,.5);
-    transform: translateY(0);
-    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
-  }
-  .welcome-btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 24px 60px rgba(248,181,0,.6);
-  }
-
-  .welcome-btn-secondary {
-    font-size: .9rem;
-    padding: .8rem 1.4rem;
-    border-radius: 999px;
-    border: 1px solid #e5e7eb;
-    background: #ffffff;
-    color: #4b5563;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .welcome-btn-secondary-dot {
-    width: 8px; height: 8px; border-radius: 999px;
-    background: #22c55e;
-  }
-
-  .welcome-footnote {
-    margin-top: 10px;
-    font-size: .8rem;
-    color: #6b7280;
-  }
-
-  .welcome-side-card {
-    padding: 18px 18px 16px;
-    background: radial-gradient(circle at 0 0, #eef2ff 0, #ffffff 50%);
-  }
-
-  .welcome-side-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+  .onboard-left-eyebrow{
     font-size: .85rem;
-  }
-  .welcome-side-tag {
-    padding: 3px 8px;
-    border-radius: 999px;
-    border: 1px solid #4f46e5;
-    background: rgba(79,70,229,.04);
-    color: #312e81;
-    font-size: .72rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    font-weight:700;
+    color:#475569;
+    margin-bottom: .7rem;
   }
 
-  .welcome-metrics {
-    display: grid;
-    grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .welcome-metric {
-    border-radius: 14px;
-    padding: 9px 9px 7px;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-  }
-  .welcome-metric-label {
-    font-size: .7rem;
-    color: #6b7280;
-    margin-bottom: 3px;
-  }
-  .welcome-metric-value {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #111827;
-  }
-  .welcome-metric-chip {
-    margin-top: 3px;
-    font-size: .65rem;
-    padding: 2px 6px;
-    border-radius: 999px;
-    background: #e0f2fe;
-    color: #0369a1;
+  .onboard-left-title{
+    font-size: clamp(2.1rem, 3.4vw, 2.9rem);
+    line-height:1.05;
+    font-weight:800;
+    letter-spacing:-.04em;
+    margin:0 0 .75rem;
   }
 
-  .welcome-side-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 10px;
-    font-size: .78rem;
-    color: #4b5563;
-  }
-  .welcome-side-list li {
-    display: flex;
-    gap: 8px;
-    padding: 4px 0;
-  }
-  .welcome-side-bullet {
-    width: 6px; height: 6px; border-radius: 999px;
-    background: #22c55e;
-    margin-top: 5px;
+  .onboard-left-title span{
+    display:block;
   }
 
-  .welcome-side-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: .75rem;
-    color: #6b7280;
+  .onboard-left-sub{
+    max-width: 360px;
+    font-size:.98rem;
+    color:#64748b;
+    line-height:1.6;
+    margin-bottom: 1.1rem;
   }
-  .welcome-side-footer-badge {
-    padding: 2px 7px;
+
+  .onboard-left-meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 12px;
+    align-items:center;
+    font-size:.85rem;
+    color:#475569;
+  }
+
+  .onboard-dot{
+    width:4px; height:4px;
+    border-radius:999px;
+    background:#94a3b8;
+  }
+
+  .onboard-handle{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  @media (max-width: 960px){
+    .onboard-left-sub{
+      margin-left:auto;
+      margin-right:auto;
+    }
+    .onboard-left-meta{
+      justify-content:center;
+    }
+  }
+
+  /* === Sağ taraf: Telefon mock-up + onboarding card === */
+
+  .onboard-right{
+    display:flex;
+    justify-content:center;
+  }
+
+  .phone-frame{
+    width: 320px;
+    aspect-ratio: 9 / 19;
+    border-radius: 34px;
+    padding: 10px;
+    background: linear-gradient(145deg, #f9fafb, #e5e7eb);
+    box-shadow:
+      0 26px 60px rgba(15,23,42,0.32),
+      0 0 0 1px rgba(148,163,184,0.30);
+    position:relative;
+    display:flex;
+    align-items:stretch;
+    justify-content:center;
+  }
+
+  @media (max-width: 480px){
+    .phone-frame{
+      width: 270px;
+    }
+  }
+
+  .phone-inner{
+    border-radius: 26px;
+    overflow:hidden;
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 22%, #f97316 100%);
+    position:relative;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Üstte dekoratif “sahil” ilüstrasyon hissi */
+  .phone-art{
+    position:relative;
+    flex: 1.1;
+    background:
+      radial-gradient(circle at 20% 15%, #38bdf8 0, #0ea5e9 40%, transparent 72%),
+      radial-gradient(circle at 90% 0%, #f97316 0, #fb923c 40%, transparent 75%),
+      radial-gradient(circle at -10% 80%, #22c55e 0, #16a34a 35%, transparent 70%);
+    overflow:hidden;
+  }
+
+  .phone-art::before,
+  .phone-art::after{
+    content:"";
+    position:absolute;
     border-radius: 999px;
-    border: 1px solid #e5e7eb;
-    background: #fff7ed;
-    color: #b45309;
+    opacity:.9;
+  }
+  .phone-art::before{
+    width: 160%;
+    height: 70%;
+    background:#fef3c7;
+    top: 45%;
+    left: -30%;
+    transform: rotate(-10deg);
+  }
+  .phone-art::after{
+    width: 120%;
+    height: 70%;
+    background:#f97316;
+    top: 60%;
+    left: -10%;
+    transform: rotate(8deg);
+    opacity:.7;
+  }
+
+  /* Küçük baloncuk/dot'lar */
+  .phone-decor-dot{
+    position:absolute;
+    width:10px; height:10px;
+    border-radius:999px;
+    background:#ffffffcc;
+    box-shadow:0 0 0 4px rgba(248,250,252,0.35);
+  }
+  .phone-decor-dot.dot-1{ top: 20%; right: 14%; }
+  .phone-decor-dot.dot-2{ top: 55%; right: 24%; width:7px; height:7px; }
+  .phone-decor-dot.dot-3{ top: 35%; left: 16%; width:8px; height:8px; }
+
+  /* Üst status bar hissi */
+  .phone-status{
+    position:absolute;
+    top:10px;
+    left:0; right:0;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: 0 18px;
+    font-size:.60rem;
+    color:#e5e7eb;
+    opacity:.9;
+  }
+  .phone-notch{
+    position:absolute;
+    top: 10px; left: 50%;
+    width: 90px; height: 16px;
+    border-radius: 999px;
+    background:#020617cc;
+    transform: translateX(-50%);
+  }
+
+  .phone-bottom{
+    flex: 1;
+    display:flex;
+    align-items:flex-end;
+    padding: 0 12px 12px;
+  }
+
+  .phone-card{
+    width:100%;
+    border-radius: 24px;
+    background:#ffffff;
+    box-shadow:
+      0 16px 40px rgba(15,23,42,0.22),
+      0 0 0 1px rgba(148,163,184,0.18);
+    padding: 16px 18px 14px;
+    font-size:.80rem;
+    color:#4b5563;
+  }
+
+  .phone-card-label{
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.15em;
+    color:#9ca3af;
+    font-weight:700;
+    margin-bottom: 4px;
+  }
+
+  .phone-card-title{
+    font-size: 1.15rem;
+    font-weight:800;
+    margin:0 0 6px;
+    color:#0f172a;
+  }
+  .phone-card-title span{
+    color:#22c55e;
+  }
+
+  .phone-card-text{
+    font-size:.78rem;
+    line-height:1.5;
+    margin-bottom: 12px;
+  }
+
+  .phone-dots{
+    display:flex;
+    justify-content:center;
+    gap:4px;
+    margin-bottom: 10px;
+  }
+  .phone-dot{
+    width:6px; height:6px;
+    border-radius:999px;
+    background:#e5e7eb;
+  }
+  .phone-dot.active{
+    width:14px;
+    border-radius:999px;
+    background:#38bdf8;
+  }
+
+  .phone-actions{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .phone-btn-primary{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 8px 10px;
+    border-radius:999px;
+    background:#0ea5e9;
+    color:#f9fafb;
+    font-size:.80rem;
+    font-weight:600;
+    text-decoration:none;
+    box-shadow:0 10px 20px rgba(14,165,233,0.35);
+  }
+  .phone-btn-primary:hover{
+    filter:brightness(1.05);
+    text-decoration:none;
+  }
+
+  .phone-btn-ghost{
+    border:none;
+    background:transparent;
+    color:#9ca3af;
+    font-size:.72rem;
+    padding:4px 0 0;
+    text-decoration:none;
+  }
+  .phone-btn-ghost:hover{
+    text-decoration:underline;
   }
 </style>
 
-<div class="welcome-shell">
-  <div class="welcome-hero">
+<div class="onboard-shell">
+  <div class="onboard-grid">
 
-    <!-- Sol ana kart -->
-    <div class="welcome-main-card">
-      <div class="welcome-pill">
-        <span class="welcome-pill-dot"></span>
-        <span>Kurumsal Risk Yönetimi · 2025</span>
-      </div>
-
-      <h1 class="welcome-title">
-        <span>Risk Yönetim Modeli</span> ile
-        riskleri tek ekrandan yönet.
+    <!-- Sol taraf: yazısal alan -->
+    <div class="onboard-left">
+      <div class="onboard-left-eyebrow">ENTEGRE RİSK YÖNETİMİ</div>
+      <h1 class="onboard-left-title">
+        <span>Risk Yönetim</span>
+        <span>Modeli</span>
       </h1>
-
-      <p class="welcome-sub">
-        Riskleri kaydet, puanla, önleyici/iyileştirici aksiyonları tanımla
-        ve <strong>tek tıkla PDF/rapor</strong> üret. Tüm proje ve süreçlerin
-        için sade ama güçlü bir panel.
+      <p class="onboard-left-sub">
+        Kurumunun tüm risklerini tek bir modern panelde yönet.
+        Onboarding ekranından; risk kaydı, değerlendirme ve raporlamaya
+        kadar süreci adım adım keşfet.
       </p>
 
-      <div class="welcome-bullets">
-        <div class="welcome-badge">
-          <span class="welcome-badge-icon">✓</span>
-          <span>RPN &amp; etkiseverlik skorları</span>
-        </div>
-        <div class="welcome-badge">
-          <span class="welcome-badge-icon">⚙</span>
-          <span>Proje / süreç bazlı kayıtlar</span>
-        </div>
-        <div class="welcome-badge">
-          <span class="welcome-badge-icon">📝</span>
-          <span>Yazdırılabilir rapor şablonları</span>
-        </div>
-      </div>
-
-      <div class="welcome-actions">
-        <a href="{{ url_for('login') }}" class="welcome-btn-primary">
-          <span>Giriş Yap</span>
-          <span>↗</span>
-        </a>
-
-        <a href="{{ url_for('setup_step1') }}" class="welcome-btn-secondary">
-          <span class="welcome-btn-secondary-dot"></span>
-          <span>İlk defa mı kullanıyorsun? Kayıt Ol</span>
-        </a>
-      </div>
-
-      <div class="welcome-footnote">
-        Deneme hesabı açarak örnek risk tablolarını inceleyebilir, daha sonra gerçek
-        projelerin için aynı modeli kullanabilirsin.
+      <div class="onboard-left-meta">
+        <span class="onboard-handle">
+          <span>⚠️</span>
+          <span>@riskapp</span>
+        </span>
+        <span class="onboard-dot"></span>
+        <span class="onboard-handle">
+          <span>📊</span>
+          <span>RPN · ISO 31000 bakış</span>
+        </span>
       </div>
     </div>
 
-    <!-- Sağ mini özet kart -->
-    <div class="welcome-side-card">
-      <div class="welcome-side-header">
-        <span>Canlı risk özeti (örnek)</span>
-        <span class="welcome-side-tag">Dashboard önizleme</span>
-      </div>
+    <!-- Sağ taraf: telefon mock + onboarding card -->
+    <div class="onboard-right">
+      <div class="phone-frame">
+        <div class="phone-inner">
 
-      <div class="welcome-metrics">
-        <div class="welcome-metric">
-          <div class="welcome-metric-label">Aktif Risk</div>
-          <div class="welcome-metric-value">18</div>
-          <div class="welcome-metric-chip">3 kritik</div>
-        </div>
-        <div class="welcome-metric">
-          <div class="welcome-metric-label">Ortalama RPN</div>
-          <div class="welcome-metric-value">64</div>
-          <div class="welcome-metric-chip">+12 iyileşme</div>
-        </div>
-        <div class="welcome-metric">
-          <div class="welcome-metric-label">Aksiyon</div>
-          <div class="welcome-metric-value">75%</div>
-          <div class="welcome-metric-chip">Tamamlandı</div>
-        </div>
-      </div>
+          <div class="phone-art">
+            <div class="phone-notch"></div>
+            <div class="phone-status">
+              <span>12:22</span>
+              <span>⬤  ▂▃▅</span>
+            </div>
+            <div class="phone-decor-dot dot-1"></div>
+            <div class="phone-decor-dot dot-2"></div>
+            <div class="phone-decor-dot dot-3"></div>
+          </div>
 
-      <ul class="welcome-side-list">
-        <li>
-          <span class="welcome-side-bullet"></span>
-          <span>Makine arızası, iş sağlığı, bilgi güvenliği gibi tüm risk tiplerini tek yerde topla.</span>
-        </li>
-        <li>
-          <span class="welcome-side-bullet"></span>
-          <span>Her risk için sorumlu atayıp planlanan / gerçekleşen tarihleri takip et.</span>
-        </li>
-        <li>
-          <span class="welcome-side-bullet"></span>
-          <span>Yönetim gözden geçirmesi için hazır rapor çıktısı al.</span>
-        </li>
-      </ul>
+          <div class="phone-bottom">
+            <div class="phone-card">
+              <div class="phone-card-label">Hoş geldin</div>
+              <h2 class="phone-card-title">
+                <span>RiskApp</span> giriş
+              </h2>
+              <p class="phone-card-text">
+                Risklerini kaydet, önlemlerini planla ve yönetim için
+                hazır PDF raporlar üret. Başlamak için hesabınla giriş yap
+                ya da birkaç adımda kayıt ol.
+              </p>
 
-      <div class="welcome-side-footer">
-        <span class="welcome-side-footer-badge">ISO 9001 / ISO 31000 uyumlu bakış</span>
-        <span>Demo kayıt &lt; 1 dk</span>
+              <div class="phone-dots">
+                <div class="phone-dot active"></div>
+                <div class="phone-dot"></div>
+                <div class="phone-dot"></div>
+              </div>
+
+              <div class="phone-actions">
+                <a href="{{ url_for('login') }}" class="phone-btn-primary">
+                  Giriş Yap
+                </a>
+                <a href="{{ url_for('setup_step1') }}" class="phone-btn-ghost">
+                  İlk defa kullanıyorum · Kayıt ol
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
 
