@@ -2837,17 +2837,7 @@ def create_app():
         """
         CSV/XLSX içe aktarma:
 
-        - Header'dan Kod / Kategori / Metin (Risk Faktörü) sütunlarını tespit eder.
-        - Kategori yoksa son sütunu kategori sayar.
-        - 'Risk Faktörü'nü yanlışlıkla kategori sanma durumuna karşı guard koyar.
-        - Opsiyonel P/Ş sütunlarını (1–5) okur veya otomatik tahmin eder.
-        - YENİ: 'Risk' / 'Risk Adı' kolonunu Suggestion.risk_title alanına yazar.
-        - YENİ: 'Risk Tanımı' ve 'Risk Azaltıcı Önlemler' kolonlarını
-                Suggestion.risk_desc ve Suggestion.mitigation_hint alanlarına yazar.
-        - Eski davranış korunur:
-            * Kategori önceliği: hücredeki kategori > current_category (başlık satırı)
-                                > kod prefix tahmini > 'Genel'
-            * Tekillik: kategori + text kombinasyonu
+        
         """
         if request.method == "POST":
             f = request.files.get("file")

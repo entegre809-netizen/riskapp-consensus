@@ -165,7 +165,7 @@
           ➕ Yeni Risk
         </a>
 
-        {# AI mitigation önerisi: form + AJAX (id ile) #}
+        {# AI mitigation önerisi: form + (fetch ile) #}
         <form method="post"
               action="{{ url_for('ai_suggest', risk_id=r.id) }}"
               id="aiSuggestForm">
@@ -211,8 +211,6 @@
           <label>Başlık</label>
           <input class="input" name="title" value="{{ r.title }}" required>
         </div>
-
-        
 
         <div>
           <label>Durum</label>
@@ -280,8 +278,6 @@
           <input type="hidden" name="end_month" id="end_month"
                  value="{{ r.end_month or '' }}">
         </div>
-
-        
 
         <div class="right" style="grid-column:1/-1">
           <button class="btn btn-primary" id="saveBtn" title="Ctrl+S">Kaydet</button>
@@ -545,13 +541,12 @@
     }
   });
 
-  // ========= AI SUGGEST: AJAX entegrasyonu =========
+  // ========= AI SUGGEST: fetch + reload =========
   document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('aiSuggestForm');
     const btn  = document.getElementById('btn-ai-suggest');
-    const area = document.getElementById('mitigation-textarea');
 
-    if (!form || !btn || !area) return;
+    if (!form || !btn) return;
 
     form.addEventListener('submit', function (ev) {
       // JS çalışıyorsa normal form submit'i engelle
@@ -561,27 +556,23 @@
       btn.disabled = true;
       btn.innerText = '🤖 Çalışıyor...';
 
-      fetch("{{ url_for('ai_suggest', risk_id=r.id) }}", {
+      fetch(form.action, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "X-Requested-With": "XMLHttpRequest"
-        },
-        body: JSON.stringify({})
-      })
-      .then(resp => resp.json())
-      .then(data => {
-        if (data && data.ok) {
-          area.value = data.mitigation || "";
-        } else {
-          alert(data && data.error ? data.error : "AI önerisi üretilemedi.");
         }
+      })
+      .then(resp => {
+        if (!resp.ok) throw new Error("AI isteği başarısız");
+        return resp.text();  // JSON beklemiyoruz
+      })
+      .then(() => {
+        // Backend mitigation'ı güncelledi, sayfayı tazeleyelim
+        window.location.reload();
       })
       .catch(err => {
         console.error(err);
         alert("AI çağrısında hata oluştu.");
-      })
-      .finally(() => {
         btn.disabled = false;
         btn.innerText = oldText;
       });
