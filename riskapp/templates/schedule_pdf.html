@@ -20,33 +20,60 @@
       padding: 0;
     }
 
+    /* ---------- HEADER ---------- */
     .header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       border-bottom: 1px solid #e5e7eb;
       padding-bottom: 8px;
     }
 
     .header-left {
       font-size: 12px;
+      max-width: 55%;
     }
 
     .header-left h1 {
       font-size: 18px;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
     }
 
     .header-right {
       text-align: right;
       font-size: 10px;
       color: #6b7280;
+      max-width: 40%;
+    }
+
+    .meta-row {
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    .meta-label {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 8.5px;
+      color: #9ca3af;
+      margin-right: 4px;
+    }
+
+    .meta-value {
+      font-size: 9.5px;
+      color: #4b5563;
+    }
+
+    .tag-row {
+      margin-top: 2px;
     }
 
     .tag {
       display: inline-block;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 999px;
       font-size: 9px;
       border: 1px solid #e5e7eb;
@@ -58,6 +85,7 @@
     .tag-low  { background:#dcfce7; border-color:#bbf7d0; }
     .tag-acc  { background:#f3f4f6; border-color:#e5e7eb; }
 
+    /* ---------- TABLE ---------- */
     table {
       border-collapse: collapse;
       width: 100%;
@@ -81,6 +109,7 @@
     th.month-col {
       text-align: center;
       white-space: nowrap;
+      font-size: 9px;
     }
 
     .risk-title {
@@ -142,18 +171,24 @@
   <div class="header">
     <div class="header-left">
       <h1>{{ pdf_title }}</h1>
-      <div>
+      <div class="tag-row">
         <span class="tag tag-crit">Kritik</span>
         <span class="tag tag-mod">Orta</span>
         <span class="tag tag-low">Düşük</span>
         <span class="tag tag-acc">Kabul edilebilir</span>
       </div>
     </div>
-    <div class="header-right">
-      <div>Oluşturma Tarihi: {{ generated_at }}</div>
 
+    <div class="header-right">
+      <div class="meta-row">
+        <span class="meta-label">Oluşturma</span>
+        <span class="meta-value">{{ generated_at }}</span>
+      </div>
       {% if categories %}
-        <div>Kategoriler: {{ categories|join(", ") }}</div>
+      <div class="meta-row">
+        <span class="meta-label">Kategoriler</span>
+        <span class="meta-value">{{ categories|join(", ") }}</span>
+      </div>
       {% endif %}
     </div>
   </div>
@@ -161,19 +196,17 @@
   {% if rows and months %}
     <table>
       <thead>
-  <tr>
-    <th style="width: 32%">Risk</th>
-    <th style="width: 12%">Kategori / Sorumlu</th>
-    <th style="width: 9%">Durum</th>
-    <th style="width: 10%">RPN</th>
-    <th style="width: 14%">Dönem (Başlangıç → Bitiş)</th>
-    {% for m in months %}
-      <th class="month-col">
-        {{ m }}
-      </th>
-    {% endfor %}
-  </tr>
-</thead>
+        <tr>
+          <th style="width: 32%">Risk</th>
+          <th style="width: 12%">Kategori / Sorumlu</th>
+          <th style="width: 9%">Durum</th>
+          <th style="width: 10%">RPN</th>
+          <th style="width: 14%">Dönem (Başlangıç → Bitiş)</th>
+          {% for m in months %}
+            <th class="month-col">{{ m }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
 
       <tbody>
         {% for row in rows %}
@@ -189,6 +222,7 @@
                 <span class="chip chip-{{ row.grade }}">{{ row.grade|capitalize }}</span>
               </div>
             </td>
+
             <td>
               <div class="risk-meta">
                 Kat: {{ r.category or '-' }}
@@ -197,9 +231,11 @@
                 Sorumlu: {{ r.responsible or '-' }}
               </div>
             </td>
+
             <td>
               {{ r.status or '—' }}
             </td>
+
             <td>
               {% if r.avg_rpn() is not none %}
                 {{ '%.2f'|format(r.avg_rpn()) }}
@@ -207,6 +243,7 @@
                 —
               {% endif %}
             </td>
+
             <td>
               {% if r.start_month or r.end_month %}
                 {{ r.start_month or '—' }} → {{ r.end_month or '—' }}
