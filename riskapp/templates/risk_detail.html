@@ -166,20 +166,11 @@
         </a>
 
         {# AI mitigation önerisi: form + (fetch ile) #}
-        <form method="post"
-              action="{{ url_for('ai_suggest', risk_id=r.id) }}"
-              id="aiSuggestForm">
-          <button class="btn btn-success" type="submit"
-                  id="btn-ai-suggest"
-                  title="Benzer önerilerden aksiyon planı">
-            🤖 Öneri Üret
-          </button>
-        </form>
-
+        
         <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
           <button class="btn btn-primary" type="submit"
                   title="Sayısal özet + RACI + KPI">
-            ✨ Zengin AI Yorum
+            AI Yorum
           </button>
         </form>
 
