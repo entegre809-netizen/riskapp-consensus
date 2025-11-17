@@ -338,7 +338,9 @@
 
     <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
       <div class="rm-corner" aria-hidden="true"></div>
-      {% for p in range(1,6) %}
+
+      {# Olasılık: 5 → 1 (Çok Yüksek → Çok Düşük) #}
+      {% for p in range(5,0,-1) %}
         <div class="rm-colhead" role="columnheader" aria-label="Olasılık {{p}}: {{ prob_labels[p-1] }}">
           <div class="rm-coltitle">{{ prob_labels[p-1] }}</div>
           <div class="rm-colnum">{{ p }}</div>
@@ -350,7 +352,9 @@
           <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
           <div class="rm-rownum">{{ s }}</div>
         </div>
-        {% for p in range(1,6) %}
+
+        {# Hücreler de aynı sırayı izliyor: P=5..1 #}
+        {% for p in range(5,0,-1) %}
           {% set score = p * s %}
           {% set count = (matrix[5-s][p-1]) if matrix is defined else 0 %}
           {% set lvl = 'low' if score<=3 else ('mid' if score<=8 else ('hi' if score<=12 else 'crit')) %}
