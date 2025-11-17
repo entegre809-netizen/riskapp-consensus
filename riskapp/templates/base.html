@@ -449,19 +449,16 @@
         <nav class="menu submenu">
           <a href="{{ url_for('risk_identify') }}" class="{{ 'active' if request.endpoint=='risk_identify' }}">Risk / Kategorisi Görüntüleme</a>
           <a href="{{ url_for('risk_new') }}" class="{{ 'active' if request.endpoint=='risk_new' }}">Yeni Risk Tanımlama</a>
-          <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Risklerim</a>
+          <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Geçmiş İşlem Verilerim</a>
           <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">Kategoriler</a>
           <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">Zaman Çizelgesi</a>
-          <a href="{{ url_for('mitigations_list') }}" class="{{ 'active' if request.endpoint=='mitigations_list' }}">Önlemler (Mitigations)</a>
+         
 
           <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
 
           {# Sadece risk detayında (r tanımlı iken) Mitigations linkini göster #}
           {% if r is defined %}
-            <a href="{{ url_for('mitigations_list_create', risk_id=r.id) }}"
-               class="{{ 'active' if request.endpoint=='mitigations_list_create' }}">
-              Önlemler (Mitigations)
-            </a>
+            
           {% endif %}
 
           {% if session.get('role') == 'admin' %}
