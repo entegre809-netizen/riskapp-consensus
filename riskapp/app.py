@@ -23,6 +23,10 @@ from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
 from weasyprint import HTML
 
+from io import BytesIO
+from datetime import date
+from flask import send_file
+from weasyprint import HTML
 
 import json
 import os as _os, sys as _sys
@@ -2383,7 +2387,6 @@ def create_app():
         suggestions = Suggestion.query.filter(Suggestion.category == (r.category or "")).all()
         return render_template("report_view.html", r=r, suggestions=suggestions)
     
-
 # -------------------------------------------------
 #  Ortak context: Zaman Çizelgesi verisi
 # -------------------------------------------------
@@ -2415,21 +2418,27 @@ def create_app():
         if status:
             query = query.filter(Risk.status == status)
 
-        risks = (query
-                .order_by(
-                    Risk.start_month.is_(None),
-                    Risk.start_month.asc(),
-                    Risk.updated_at.desc(),
-                    Risk.title.asc(),
-                )
-                .all())
+        risks = (
+            query
+            .order_by(
+                Risk.start_month.is_(None),
+                Risk.start_month.asc(),
+                Risk.updated_at.desc(),
+                Risk.title.asc(),
+            )
+            .all()
+        )
 
         # --- Yardımcı: yyyy-mm aralığını normalize et ---
         def _norm_range(sm, em):
-            s = _parse_ym(sm); e = _parse_ym(em)
-            if s and not e: e = s
-            if e and not s: s = e
-            if s and e and s > e: s, e = e, s
+            s = _parse_ym(sm)
+            e = _parse_ym(em)
+            if s and not e:
+                e = s
+            if e and not s:
+                s = e
+            if s and e and s > e:
+                s, e = e, s
             return s, e
 
         # --- Ay penceresi (min..max) ---
@@ -2491,12 +2500,21 @@ def create_app():
             })
 
         # --- Filtre dropdown verileri ---
-        categories = sorted({(r.category or "").strip()
-                            for r in risks if (r.category or "").strip()})
-        owners     = sorted({(r.responsible or "").strip()
-                            for r in risks if (r.responsible or "").strip()})
-        statuses   = sorted({(r.status or "").strip()
-                            for r in risks if (r.status or "").strip()})
+        categories = sorted({
+            (r.category or "").strip()
+            for r in risks
+            if (r.category or "").strip()
+        })
+        owners = sorted({
+            (r.responsible or "").strip()
+            for r in risks
+            if (r.responsible or "").strip()
+        })
+        statuses = sorted({
+            (r.status or "").strip()
+            for r in risks
+            if (r.status or "").strip()
+        })
 
         # Kullanıcının seçtiği ay/yıl (calendar + PDF için)
         today = date.today()
@@ -2530,11 +2548,13 @@ def create_app():
     def schedule_pdf():
         ctx = build_schedule_context()
 
-        html = render_template("schedule.html", **ctx)
+        # PDF için ayrı tasarım kullanıyoruz:
+        # schedule_pdf.html (küçük kart tasarımlı olan)
+        html = render_template("schedule_pdf.html", **ctx)
 
         pdf_bytes = HTML(
             string=html,
-            base_url=request.host_url
+            base_url=request.host_url,
         ).write_pdf()
 
         buf = BytesIO(pdf_bytes)
