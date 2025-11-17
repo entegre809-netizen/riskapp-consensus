@@ -212,26 +212,7 @@
           <input class="input" name="title" value="{{ r.title }}" required>
         </div>
 
-        {# Çoklu kategori seçimi #}
-        <div>
-          <label>Kategoriler</label>
-          <select class="input" name="categories" id="detail-category-select" multiple size="8" required>
-            {% for c in categories %}
-              <option value="{{ c }}"
-                      {% if __cats and (c in __cats) %}selected{% endif %}>
-                {{ c }}
-              </option>
-            {% endfor %}
-            <option value="__custom__">+ Özel kategori ekle (aşağıya yaz)</option>
-          </select>
-          <div style="margin-top:6px">
-            <input class="input" name="category_custom"
-                   placeholder="Virgülle birden çok özel kategori (örn: Finans, Denetim)">
-            <div class="muted">
-              Çoklu seçim için Ctrl/⌘ tuşunu kullan. Özel kategorileri virgülle ayır.
-            </div>
-          </div>
-        </div>
+        
 
         <div>
           <label>Durum</label>
@@ -300,12 +281,7 @@
                  value="{{ r.end_month or '' }}">
         </div>
 
-        <div style="grid-column:1/-1">
-          <label>Etki Süresi</label>
-          <input class="input" name="duration"
-                 value="{{ r.duration or '' }}"
-                 placeholder="örn. 6 ay / proje boyunca">
-        </div>
+        
 
         <div class="right" style="grid-column:1/-1">
           <button class="btn btn-primary" id="saveBtn" title="Ctrl+S">Kaydet</button>
@@ -315,7 +291,7 @@
 
     {# ========= SAĞ: DEĞERLENDİRMELER ========= #}
     <div class="card">
-      <h3 style="margin-top:0">Değerlendirmeler</h3>
+      <h3 style="margin-top:0">Geçmiş İşlem Verileri</h3>
 
       <div class="grid grid-2" style="margin-bottom:10px">
         <div class="chip">
