@@ -17,6 +17,10 @@ from werkzeug.utils import secure_filename
 from pathlib import Path
 from collections import defaultdict
 from flask import current_app
+from flask import request, redirect, url_for, flash, current_app
+from .models import db, Risk, Comment
+from .ai_local.commenter import make_ai_risk_comment, _propose_actions
+
 
 import json
 import os as _os, sys as _sys
@@ -2406,13 +2410,30 @@ def create_app():
     # -------------------------------------------------
     #  Yorum / Değerlendirme
     # -------------------------------------------------
-    @app.route("/risks/<int:risk_id>/comment", methods=["POST"])
+    @app.route("/risk/<int:risk_id>/comment", methods=["POST"])
     def add_comment(risk_id):
         r = Risk.query.get_or_404(risk_id)
-        text_val = request.form.get("text", "").strip()
-        if text_val:
-            db.session.add(Comment(risk_id=r.id, text=text_val, is_system=False))
-            db.session.commit()
+
+        # admin alttaki formdan "normal yorum" girdiyse
+        text = (request.form.get("text") or "").strip()
+
+        # Zengin AI Yorum butonu, BOŞ text ile POST atıyor
+        if not text:
+            # burada senin gönderdiğin make_ai_risk_comment devreye giriyor
+            text = make_ai_risk_comment(risk_id)
+            is_system = True
+        else:
+            is_system = False
+
+        c = Comment(
+            risk_id=r.id,
+            text=text,
+            is_system=is_system,
+        )
+        db.session.add(c)
+        db.session.commit()
+
+        flash("Yorum eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
 
     @app.route("/risks/<int:risk_id>/evaluation", methods=["POST"])
@@ -3578,50 +3599,64 @@ def create_app():
         mit_block = base_mit if base_mit else "- (tanımlı mevcut önlem yok)"
 
         prompt = f"""
-Sen bir inşaat/altyapı projeleri için çalışan uzman bir risk yönetimi danışmanısın.
+    Sen bir inşaat/altyapı projeleri için çalışan uzman bir risk yönetimi danışmanısın.
 
-Aşağıdaki risk için, uygulanabilir ve sahada yapılabilir nitelikte 3–7 arası aksiyon/mitigation maddesi üret:
+    Aşağıdaki risk için, uygulanabilir ve sahada yapılabilir nitelikte 3–7 arası aksiyon/mitigation maddesi üret:
 
-- Kısa, net, madde madde yaz.
-- Her madde tek bir aksiyonu anlatsın.
-- Gereksiz uzun girişler, tekrarlar ve “bu sadece bir öneridir” gibi ifadeler kullanma.
-- Aynı şeyi farklı cümlelerle tekrar etme.
-- ISO 31000, FMEA ve inşaat sahası pratikleriyle uyumlu olsun.
+    - Kısa, net, madde madde yaz.
+    - Her madde tek bir aksiyonu anlatsın.
+    - Gereksiz uzun girişler, tekrarlar ve “bu sadece bir öneridir” gibi ifadeler kullanma.
+    - Aynı şeyi farklı cümlelerle tekrar etme.
+    - ISO 31000, FMEA ve inşaat sahası pratikleriyle uyumlu olsun.
 
-RİSK BİLGİSİ
-------------
-- Başlık: {title}
-- Kategori: {cat}
-- Açıklama: {desc}
+    RİSK BİLGİSİ
+    ------------
+    - Başlık: {title}
+    - Kategori: {cat}
+    - Açıklama: {desc}
 
-MEVCUT ÖNLEMLER
-----------------
-{mit_block}
+    MEVCUT ÖNLEMLER
+    ----------------
+    {mit_block}
 
-SAYISAL ÖZET
-------------
-{numeric_line}
+    SAYISAL ÖZET
+    ------------
+    {numeric_line}
 
-BENZER ŞABLONLARDAN NOTLAR
---------------------------
-{ctx_text}
+    BENZER ŞABLONLARDAN NOTLAR
+    --------------------------
+    {ctx_text}
 
-Lütfen sadece doğrudan kullanılabilir aksiyon/mitigation maddelerini üret.
-"BENZER ÖNERİLER" gibi başlıklar ekleme, giriş/sonuç paragrafı yazma.
-"""
+    Lütfen sadece doğrudan kullanılabilir aksiyon/mitigation maddelerini üret.
+    "BENZER ÖNERİLER" gibi başlıklar ekleme, giriş/sonuç paragrafı yazma.
+    """
 
-        # 4) OpenAI / local LLM çağrısı
+        # 4) OpenAI / local LLM çağrısı (+ fallback: _propose_actions)
+        cleaned = ""
         try:
             raw = ai_complete(prompt)
+            cleaned = _strip_ai_artifacts(raw or "").strip()
         except Exception as e:
             current_app.logger.exception("AI önerisi alınırken hata: %s", e)
-            flash("AI önerisi alınırken bir hata oluştu.", "danger")
-            return redirect(url_for("risk_detail", risk_id=r.id))
+            cleaned = ""
 
-        cleaned = _strip_ai_artifacts(raw or "").strip()
+        # Eğer AI hiçbir şey veremediyse → _propose_actions fallback
         if not cleaned:
-            flash("AI anlamlı bir çıktı üretemedi.", "warning")
-            return redirect(url_for("risk_detail", risk_id=r.id))
+            try:
+                actions = _propose_actions(r)
+            except Exception as e2:
+                current_app.logger.exception("_propose_actions hata verdi: %s", e2)
+                actions = []
+
+            if actions:
+                cleaned_lines = [
+                    f"- {a['action']} (Termin: {a['due']})"
+                    for a in actions
+                ]
+                cleaned = "\n".join(cleaned_lines)
+            else:
+                flash("Ne AI ne de hazır aksiyon seti anlamlı bir öneri üretemedi.", "warning")
+                return redirect(url_for("risk_detail", risk_id=r.id))
 
         # 5) Mitigation alanına ekle (mevcut metni bozmadan altına AI bloğu koy)
         ts = datetime.utcnow().isoformat(timespec="seconds")
@@ -3644,6 +3679,7 @@ Lütfen sadece doğrudan kullanılabilir aksiyon/mitigation maddelerini üret.
 
         flash("AI önerisi mitigation alanına eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
+
 
 
 
