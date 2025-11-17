@@ -3334,10 +3334,10 @@ def create_app():
                 proj_by_acc[p.account_id] = p
 
         return render_template(
-            "admin_users.html",
-            accounts=accounts,
-            proj_by_acc=proj_by_acc,
-        )
+    "admin_users.html",
+    users=accounts,
+    proj_by_acc=proj_by_acc,
+)
 
     @app.post("/admin/users/<int:uid>/set-role")
     @role_required("admin")
