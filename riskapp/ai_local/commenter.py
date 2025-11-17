@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 from datetime import date, timedelta
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 import re as _re
 
 from flask import current_app
 
 from .ps_estimator import PSEstimator
-from .engine import AILocal, ai_complete
-from ..models import db, Risk, Comment, Suggestion
+from .engine import AILocal          # ⬅️ DİKKAT: sadece AILocal, ai_complete YOK
+from ..models import db, Risk
 
 
 # ============================
@@ -771,3 +771,4 @@ def make_ai_risk_comment(risk_id: int) -> str:
             lines.append(f"- {rr.get('text', '')}")
 
     return "\n".join(lines)
+
