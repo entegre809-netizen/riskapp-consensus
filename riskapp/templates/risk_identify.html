@@ -323,22 +323,20 @@
 
                 <!-- RİSK: kısa risk adı + kategori + kopyalanabilir kod rozeti -->
                 <td>
-                  <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
-                    <div class="risk-badge">
-                      <span class="badge risk-code"
-                            title="Risk kodu kopyala"
-                            data-copy="{{ s.risk_code or '' }}">
-                        {{ s.risk_code or '—' }}
-                      </span>
-                      <span class="risk-title">
-                        {{ s.risk_title or s.text }}
-                      </span>
-                    </div>
-                    <div class="small text-muted">
-                      {{ s.category or 'Genel' }}
-                    </div>
-                  </label>
-                </td>
+  <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
+    <div class="risk-badge">
+      <span class="badge risk-code"
+            title="Risk kodu kopyala"
+            data-copy="{{ s.risk_code or '' }}">
+        {{ s.risk_code or '—' }}
+      </span>
+      <span class="risk-title">
+        {{ s.risk_title or s.text }}
+      </span>
+    </div>
+  </label>
+</td>
+
 
                 <!-- RİSK FAKTÖRÜ + Mitigation -->
                 <td class="small">
