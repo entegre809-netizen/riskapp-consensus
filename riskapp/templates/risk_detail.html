@@ -154,6 +154,17 @@
 
       {# --- sağ taraftaki aksiyon butonları --- #}
       <div class="btnbar noprint">
+        {# Şablon kütüphanesi ve yeni risk akışı #}
+        <a class="btn" href="{{ url_for('risk_identify') }}"
+           title="Tanımlı risk kütüphanesine git">
+          📚 Şablon Kütüphanesi
+        </a>
+
+        <a class="btn" href="{{ url_for('risk_new') }}"
+           title="Şablondan yeni risk oluştur">
+          ➕ Yeni Risk
+        </a>
+
         {# AI mitigation önerisi: form + AJAX (id ile) #}
         <form method="post"
               action="{{ url_for('ai_suggest', risk_id=r.id) }}"
@@ -172,12 +183,7 @@
           </button>
         </form>
 
-        <a class="btn" href="{{ url_for('mitigations_list_create', risk_id=r.id) }}"
-           title="Risk için mitigasyonları görüntüle/ekle">
-          🧩 Mitigations
-        </a>
-
-        <a class="btn" href="{{ url_for('index') }}">← Listeye Dön</a>
+        <a class="btn" href="{{ url_for('index') }}">← Risk Listesine Dön</a>
       </div>
     </div>
 
