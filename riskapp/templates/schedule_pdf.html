@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Risk Zaman Çizelgesi PDF</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 15mm 15mm 15mm 15mm;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 11px;
+      color: #111827;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      padding: 0;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 8px;
+    }
+
+    .header-left {
+      font-size: 12px;
+    }
+
+    .header-left h1 {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .header-right {
+      text-align: right;
+      font-size: 10px;
+      color: #6b7280;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 9px;
+      border: 1px solid #e5e7eb;
+      margin-right: 4px;
+    }
+
+    .tag-crit { background:#fee2e2; border-color:#fecaca; }
+    .tag-mod  { background:#fef3c7; border-color:#fde68a; }
+    .tag-low  { background:#dcfce7; border-color:#bbf7d0; }
+    .tag-acc  { background:#f3f4f6; border-color:#e5e7eb; }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+      font-size: 10px;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 4px 5px;
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+
+    th {
+      background: #f3f4f6;
+      font-weight: 600;
+      text-align: left;
+    }
+
+    th.month-col {
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .risk-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .risk-meta {
+      color: #6b7280;
+      font-size: 9px;
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      font-size: 9px;
+      margin-right: 3px;
+    }
+
+    .chip-critical   { background:#fee2e2; }
+    .chip-moderate   { background:#fef3c7; }
+    .chip-low        { background:#dcfce7; }
+    .chip-acceptable { background:#f3f4f6; }
+
+    .bar-cell {
+      text-align: center;
+      padding: 0;
+    }
+
+    .bar {
+      display: block;
+      height: 10px;
+      margin: 2px;
+      border-radius: 999px;
+    }
+
+    .bar-critical   { background:#ef4444; }
+    .bar-moderate   { background:#f59e0b; }
+    .bar-low        { background:#10b981; }
+    .bar-acceptable { background:#9ca3af; }
+
+    .no-data {
+      text-align: center;
+      padding: 16px;
+      color: #6b7280;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  {# ------- ÜST BİLGİ ------- #}
+  {% set month_names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'] %}
+  {% set pdf_month_name = month_names[(current_month or 1) - 1] %}
+  {% set pdf_title = "Risk Zaman Çizelgesi - " ~ pdf_month_name ~ " " ~ current_year %}
+
+  <div class="header">
+    <div class="header-left">
+      <h1>{{ pdf_title }}</h1>
+      <div>
+        <span class="tag tag-crit">Kritik</span>
+        <span class="tag tag-mod">Orta</span>
+        <span class="tag tag-low">Düşük</span>
+        <span class="tag tag-acc">Kabul edilebilir</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div>Oluşturma Tarihi: {{ now().strftime("%d.%m.%Y %H:%M") }}</div>
+      {% if categories %}
+        <div>Kategoriler: {{ categories|join(", ") }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if rows and months %}
+    <table>
+      <thead>
+  <tr>
+    <th style="width: 32%">Risk</th>
+    <th style="width: 12%">Kategori / Sorumlu</th>
+    <th style="width: 9%">Durum</th>
+    <th style="width: 10%">RPN</th>
+    <th style="width: 14%">Dönem (Başlangıç → Bitiş)</th>
+    {% for m in months %}
+      <th class="month-col">
+        {{ m }}
+      </th>
+    {% endfor %}
+  </tr>
+</thead>
+
+      <tbody>
+        {% for row in rows %}
+          {% set r = row.risk %}
+          <tr>
+            <td>
+              <div class="risk-title">{{ r.title }}</div>
+              <div class="risk-meta">
+                ID: {{ r.id }}{% if r.code %} · Kod: {{ r.code }}{% endif %}
+              </div>
+              <div class="risk-meta">
+                Seviye:
+                <span class="chip chip-{{ row.grade }}">{{ row.grade|capitalize }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="risk-meta">
+                Kat: {{ r.category or '-' }}
+              </div>
+              <div class="risk-meta">
+                Sorumlu: {{ r.responsible or '-' }}
+              </div>
+            </td>
+            <td>
+              {{ r.status or '—' }}
+            </td>
+            <td>
+              {% if r.avg_rpn() is not none %}
+                {{ '%.2f'|format(r.avg_rpn()) }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if r.start_month or r.end_month %}
+                {{ r.start_month or '—' }} → {{ r.end_month or '—' }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            {# Ay sütunları: row.active set'indeki aylar için bar çiz #}
+            {% for m in months %}
+              {% set active = (m in (row.active or [])) %}
+              <td class="bar-cell">
+                {% if active %}
+                  <span class="bar bar-{{ row.grade }}"></span>
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="no-data">
+      Seçilen kriterlerde gösterilecek risk bulunamadı.
+    </div>
+  {% endif %}
+
+</body>
+</html>
