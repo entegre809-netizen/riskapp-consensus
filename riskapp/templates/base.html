@@ -394,12 +394,12 @@
     .auth #sidebarToggle{ display:none !important; } /* Üst bardaki ☰ de gizlensin */
   </style>
 </head>
-<body class="{% block body_class %}{{ 'auth' if hide_nav }}{% endblock %}">
+<body class="{% block body_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
 
 <div class="shell">
   <!-- ÜST BAR -->
   <header class="topbar noprint">
-    {% if not hide_nav %}
+    {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
       <button class="btn-icon" id="sidebarToggle" aria-label="Menüyü Aç/Kapat">☰</button>
     {% endif %}
     <div class="brand">⚠️ Risk Yönetimi</div>
@@ -414,10 +414,10 @@
     </button>
   </header>
 
-  <div class="layout {% block layout_class %}{{ 'auth' if hide_nav }}{% endblock %}">
+  <div class="layout {% block layout_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
     <!-- SOL MENÜ -->
     {% block sidebar %}
-    {% if not hide_nav %}
+    {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
     <aside class="sidebar" id="sidebar">
       <!-- Proje Seçici (varsa) -->
       {% if session.get('account_id') %}
