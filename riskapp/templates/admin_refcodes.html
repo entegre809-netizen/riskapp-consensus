@@ -1,43 +1,142 @@
 {% extends "base.html" %}
+{% block title %}Ref Kodları Yönetimi{% endblock %}
+
 {% block content %}
-<h2>Referans Kodları</h2>
+<style>
+  .card-modern {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.06);
+    padding: 18px 18px 12px;
+    margin-bottom: 16px;
+  }
+  .toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .table-wrap { overflow:auto; border:1px solid #eee; border-radius:12px; }
+  table.table-modern { width:100%; border-collapse:separate; border-spacing:0; }
+  table.table-modern thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: #fafafa; color:#444; font-weight:600;
+    border-bottom:1px solid #eee;
+  }
+  table.table-modern th, table.table-modern td { padding:10px; vertical-align:middle; }
+  table.table-modern tbody tr + tr td { border-top:1px solid #f1f1f4; }
+  .muted { color:#6b7280; font-size:.9rem; }
+  .input {
+    border:1px solid #e5e7eb; border-radius:10px;
+    padding:7px 10px; min-width:140px;
+  }
+  .input:focus {
+    outline:none; border-color:#0d6efd33;
+    box-shadow:0 0 0 4px #0d6efd1a;
+  }
+  .btn, .btn-primary, .btn-danger, .btn-ghost {
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    border-radius:10px; padding:7px 12px; border:1px solid transparent; font-weight:600;
+    background:#f5f6f8; color:#222; font-size:.9rem;
+  }
+  .btn-primary { background:#0d6efd; color:#fff; }
+  .btn-danger  { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+  .btn-ghost   { background:transparent; color:#111827; border-color:#e5e7eb; }
+  .btn.tiny, .btn-ghost.tiny, .btn-danger.tiny {
+    padding:4px 8px; font-size:.8rem; border-radius:8px;
+  }
+</style>
 
-<form method="post" action="{{ url_for('admin_refcodes_create') }}" class="card" style="margin-bottom:1rem; padding:1rem;">
-  <label>Prefix
-    <input name="prefix" value="PRJ">
-  </label>
-  <label>Bitiş (opsiyonel, YYYY-MM-DD)
-    <input name="expires_at" placeholder="2025-12-31">
-  </label>
-  <button class="btn btn-primary">Kod Üret</button>
-</form>
+<div class="container">
+  <div class="card-modern">
+    <div class="toolbar" style="justify-content:space-between; margin-bottom:12px">
+      <div class="toolbar">
+        <a class="btn" href="{{ url_for('admin_users') }}">← Kullanıcı Yönetimi</a>
+      </div>
+      <h2 style="margin:0; font-size:1.25rem;">Referans Kodları</h2>
+    </div>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>Kod</th><th>Atanan e-posta</th><th>Kullanım</th><th>Son Tarih</th><th>Oluşturan</th><th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for r in rows %}
-    <tr>
-      <td><code>{{ r.code }}</code></td>
-      <td>
-        <form method="post" action="{{ url_for('admin_refcodes_lock', rid=r.id) }}" style="display:flex; gap:.5rem; align-items:center;">
-          <input name="email" value="{{ r.assigned_email or '' }}" placeholder="kilitlemek için e-posta">
-          <button class="btn btn-ghost tiny">Kaydet</button>
-        </form>
-      </td>
-      <td>{{ 'Kullanıldı' if r.is_used else 'Boş' }}</td>
-      <td>{{ r.expires_at or '—' }}</td>
-      <td>#{{ r.created_by or '—' }}</td>
-      <td>
-        <form method="post" action="{{ url_for('admin_refcodes_delete', rid=r.id) }}" onsubmit="return confirm('Silinsin mi?')">
-          <button class="btn btn-danger tiny">Sil</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for c,m in messages %}
+          <div class="flash {{c}}" style="margin:8px 0; padding:10px 12px; border-radius:10px; border:1px solid #eee; background:#fcfcfd">
+            {{m}}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('admin_refcodes_create') }}"
+          class="card-modern" style="padding:14px 14px 10px; margin-bottom:12px;">
+      <div class="toolbar" style="align-items:flex-end;">
+        <label style="display:flex; flex-direction:column; gap:4px;">
+          <span class="muted">Prefix</span>
+          <input class="input" name="prefix" value="PRJ">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:4px;">
+          <span class="muted">Bitiş (opsiyonel, YYYY-MM-DD)</span>
+          <input class="input" name="expires_at" placeholder="2025-12-31">
+        </label>
+        <button class="btn btn-primary">Kod Üret</button>
+      </div>
+      <div class="muted" style="margin-top:6px;">
+        Not: Prefix aynı kalır, rastgele bir kod üretilir. Bitiş tarihi dolduğunda kod kullanılamaz.
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table class="table-modern">
+        <thead>
+          <tr>
+            <th>Kod</th>
+            <th>Atanan e-posta</th>
+            <th>Kullanım</th>
+            <th>Son Tarih</th>
+            <th>Oluşturan</th>
+            <th style="width:80px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td style="min-width:140px;"><code>{{ r.code }}</code></td>
+            <td style="min-width:260px;">
+              <form method="post"
+                    action="{{ url_for('admin_refcodes_lock', rid=r.id) }}"
+                    style="display:flex; gap:.5rem; align-items:center;">
+                <input class="input" name="email"
+                       value="{{ r.assigned_email or '' }}"
+                       placeholder="kilitlemek için e-posta">
+                <button class="btn btn-ghost tiny">Kaydet</button>
+              </form>
+            </td>
+            <td style="min-width:100px;">
+              {{ 'Kullanıldı' if r.is_used else 'Boş' }}
+            </td>
+            <td style="min-width:120px;">
+              {{ r.expires_at or '—' }}
+            </td>
+            <td style="min-width:90px;">
+              #{{ r.created_by or '—' }}
+            </td>
+            <td style="text-align:right; min-width:80px;">
+              <form method="post"
+                    action="{{ url_for('admin_refcodes_delete', rid=r.id) }}"
+                    onsubmit="return confirm('Silinsin mi?')">
+                <button class="btn btn-danger tiny">Sil</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="padding:16px; text-align:center;" class="muted">
+              Henüz ref kod bulunmuyor. Yukarıdan yeni kod üretebilirsiniz.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="toolbar" style="margin-top:14px">
+      <a class="btn" href="{{ url_for('dashboard') }}">← Ana Sayfa</a>
+    </div>
+  </div>
+</div>
 {% endblock %}
