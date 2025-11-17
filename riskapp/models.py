@@ -289,7 +289,8 @@ class Suggestion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Ana kategori
-    category = db.Column(db.String(100), nullable=False, index=True)
+    category = db.Column(db.String(100), nullable=False, index=True)  # not: string
+    text     = db.Column(db.Text, nullable=False)   
 
     # B sütunu: kısa risk adı (eski "Risk Faktörü" başlığı)
     risk_title = db.Column(db.String(200), nullable=True)

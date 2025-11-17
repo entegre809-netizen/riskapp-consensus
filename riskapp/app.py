@@ -2841,6 +2841,7 @@ def create_app():
         - Kategori yoksa son sütunu kategori sayar.
         - 'Risk Faktörü'nü yanlışlıkla kategori sanma durumuna karşı guard koyar.
         - Opsiyonel P/Ş sütunlarını (1–5) okur veya otomatik tahmin eder.
+        - YENİ: 'Risk' / 'Risk Adı' kolonunu Suggestion.risk_title alanına yazar.
         - YENİ: 'Risk Tanımı' ve 'Risk Azaltıcı Önlemler' kolonlarını
                 Suggestion.risk_desc ve Suggestion.mitigation_hint alanlarına yazar.
         - Eski davranış korunur:
@@ -2899,6 +2900,14 @@ def create_app():
             text_col = find_exact(["risk faktoru", "risk faktörü"])   # B sütunu: Risk Faktörü (kısa ad)
             # Kategori sütunu opsiyonel (yoksa tahmin edeceğiz)
             cat_col = find_exact(["kategoriler", "kategori"])
+
+            # YENİ: Kısa risk adı ("Risk", "Risk Adı" vb.) — Excel'de ayrı kolonsa
+            risk_title_col = find_exact([
+                "risk",
+                "risk adi",
+                "risk adı",
+                "riskler",
+            ])
 
             # YENİ: Risk Tanımı / Risk Azaltıcı Önlemler kolonları
             risk_desc_col = find_exact(["risk tanimi", "risk tanımı"])  # C sütunu
@@ -3054,7 +3063,7 @@ def create_app():
 
                 # Normal risk satırı
                 r = list(row)
-                idxs = [i for i in [code_col, text_col, cat_col, prob_col, sev_col, risk_desc_col, mitigation_col] if i is not None]
+                idxs = [i for i in [code_col, text_col, cat_col, prob_col, sev_col, risk_desc_col, mitigation_col, risk_title_col] if i is not None]
                 need_len = (max(idxs) if idxs else -1)
                 while len(r) <= need_len:
                     r.append("")
@@ -3062,6 +3071,13 @@ def create_app():
                 code     = _clean(r[code_col]) if code_col is not None else ""
                 text     = _clean(r[text_col]) if text_col is not None else ""
                 cat_cell = _clean(r[cat_col])  if cat_col  is not None else ""
+
+                # YENİ: Kısa risk adı
+                if risk_title_col is not None and risk_title_col < len(r):
+                    risk_title_raw = _clean(r[risk_title_col])
+                else:
+                    risk_title_raw = ""
+                risk_title = risk_title_raw or None
 
                 # YENİ: Risk Tanımı + Azaltıcı Önlemler
                 if risk_desc_col is not None and risk_desc_col < len(r):
@@ -3073,15 +3089,18 @@ def create_app():
                 else:
                     mitigation_hint_raw = ""
 
-                risk_desc       = risk_desc_raw or None            # C sütunu
-                mitigation_hint = mitigation_hint_raw or None      # D sütunu
+                risk_desc       = risk_desc_raw or None
+                mitigation_hint = mitigation_hint_raw or None
 
-                # text boşsa ama Risk Tanımı doluysa, text'i oradan türet
-                if not text and risk_desc:
-                    text = risk_desc[:255]
+                # text boşsa önce risk_title'dan, o da yoksa risk_desc'ten türet
+                if not text:
+                    if risk_title:
+                        text = risk_title[:255]
+                    elif risk_desc:
+                        text = risk_desc[:255]
 
-                # Hem text hem risk_desc boşsa satırı atla
-                if not text and not risk_desc:
+                # Hem text hem risk_desc hem risk_title boşsa satırı atla
+                if not text and not risk_desc and not risk_title:
                     continue
 
                 # Kategori önceliği: hücre > current_category > kod prefix > Genel
@@ -3130,7 +3149,10 @@ def create_app():
                     if code and not existing.risk_code:
                         existing.risk_code = code
                         changed = True
-                    # YENİ: risk_desc / mitigation_hint güncelle
+                    # YENİ: risk_title / risk_desc / mitigation_hint güncelle
+                    if risk_title is not None and (existing.risk_title or "") != risk_title:
+                        existing.risk_title = risk_title
+                        changed = True
                     if risk_desc is not None and (existing.risk_desc or "") != risk_desc:
                         existing.risk_desc = risk_desc
                         changed = True
@@ -3148,12 +3170,13 @@ def create_app():
                 # Yeni kayıt
                 db.session.add(Suggestion(
                     category        = category or "",
-                    text            = text,               # B sütunu: Risk Faktörü (kısa ad)
+                    text            = text,               # Risk Faktörü (kısa ifade)
                     risk_code       = code or None,
                     default_prob    = p_val,
                     default_sev     = s_val,
-                    risk_desc       = risk_desc,          # C sütunu: Risk Tanımı
-                    mitigation_hint = mitigation_hint,    # D sütunu: Risk Azaltıcı Önlemler
+                    risk_title      = risk_title,         # "Risk" / "Risk Adı"
+                    risk_desc       = risk_desc,          # Risk Tanımı
+                    mitigation_hint = mitigation_hint,    # Risk Azaltıcı Önlemler
                 ))
                 created += 1
 
@@ -3166,6 +3189,7 @@ def create_app():
 
         # GET → basit upload formu
         return render_template("import_suggestions.html")
+
 
 
     # -------------------------------------------------
