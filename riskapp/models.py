@@ -286,13 +286,18 @@ class Comment(db.Model):
 class Suggestion(db.Model):
     __tablename__ = "suggestions"
 
-    id       = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
 
-    # Ana kategori + şablon metni
-    category = db.Column(db.String(100), nullable=False, index=True)  # not: string
-    text     = db.Column(db.Text, nullable=False)                     # mevcut "risk faktörü" cümlesi
+    # Ana kategori
+    category = db.Column(db.String(100), nullable=False, index=True)
 
-    # YENİ: Excel'deki iki kolon
+    # B sütunu: kısa risk adı (eski "Risk Faktörü" başlığı)
+    risk_title = db.Column(db.String(200), nullable=True)
+
+    # Uzun metin: Risk Tanımı veya detaylı açıklama
+    text = db.Column(db.Text, nullable=False)
+
+    # Excel'deki iki kolon
     # Risk Tanımı  |  Risk Azaltıcı Önlemler
     risk_desc       = db.Column(db.Text, nullable=True)  # Risk Tanımı
     mitigation_hint = db.Column(db.Text, nullable=True)  # Risk Azaltıcı Önlemler

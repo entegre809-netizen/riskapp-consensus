@@ -2836,6 +2836,7 @@ def create_app():
     def import_suggestions():
         """
         CSV/XLSX içe aktarma:
+
         - Header'dan Kod / Kategori / Metin (Risk Faktörü) sütunlarını tespit eder.
         - Kategori yoksa son sütunu kategori sayar.
         - 'Risk Faktörü'nü yanlışlıkla kategori sanma durumuna karşı guard koyar.
@@ -2895,18 +2896,18 @@ def create_app():
                 return None
 
             # ZORUNLU kolonlar
-            text_col = find_exact(["risk faktoru", "risk faktörü"])
+            text_col = find_exact(["risk faktoru", "risk faktörü"])   # B sütunu: Risk Faktörü (kısa ad)
             # Kategori sütunu opsiyonel (yoksa tahmin edeceğiz)
             cat_col = find_exact(["kategoriler", "kategori"])
 
             # YENİ: Risk Tanımı / Risk Azaltıcı Önlemler kolonları
-            risk_desc_col = find_exact(["risk tanimi", "risk tanımı"])
+            risk_desc_col = find_exact(["risk tanimi", "risk tanımı"])  # C sütunu
             mitigation_col = find_exact([
                 "risk azaltici onlemler",
                 "risk azaltıcı önlemler",
                 "risk azaltici onlem",
                 "risk azaltıcı önlem",
-            ])
+            ])  # D sütunu
 
             # OPSİYONEL kolonlar (Kod, P, S)
             code_col = find_exact([
@@ -3072,8 +3073,8 @@ def create_app():
                 else:
                     mitigation_hint_raw = ""
 
-                risk_desc       = risk_desc_raw or None
-                mitigation_hint = mitigation_hint_raw or None
+                risk_desc       = risk_desc_raw or None            # C sütunu
+                mitigation_hint = mitigation_hint_raw or None      # D sütunu
 
                 # text boşsa ama Risk Tanımı doluysa, text'i oradan türet
                 if not text and risk_desc:
@@ -3147,12 +3148,12 @@ def create_app():
                 # Yeni kayıt
                 db.session.add(Suggestion(
                     category        = category or "",
-                    text            = text,
+                    text            = text,               # B sütunu: Risk Faktörü (kısa ad)
                     risk_code       = code or None,
                     default_prob    = p_val,
                     default_sev     = s_val,
-                    risk_desc       = risk_desc,
-                    mitigation_hint = mitigation_hint,
+                    risk_desc       = risk_desc,          # C sütunu: Risk Tanımı
+                    mitigation_hint = mitigation_hint,    # D sütunu: Risk Azaltıcı Önlemler
                 ))
                 created += 1
 
@@ -3165,6 +3166,7 @@ def create_app():
 
         # GET → basit upload formu
         return render_template("import_suggestions.html")
+
 
     # -------------------------------------------------
     #  Kütüphane Dışa Aktar (CSV / XLSX) — Sadece admin
