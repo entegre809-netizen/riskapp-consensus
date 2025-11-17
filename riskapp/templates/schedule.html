@@ -13,6 +13,15 @@
   {% set cur_y = (request.args.get('year')  or current_year  or 2025)|int %}
   {% set month_names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'] %}
 
+  {# Seviye etiketleri #}
+  {% set grade_labels = {
+    'critical':   'Çok yüksek',
+    'moderate':   'Yüksek',
+    'low':        'Orta',
+    'acceptable': 'Düşük',
+    'very_low':   'Çok düşük'
+  } %}
+
   {# ---------- GÜVENLİ YEDEKLER ---------- #}
   {% set rows_safe   = rows   or [] %}
   {% set months_safe = months or month_names %}
@@ -46,8 +55,11 @@
       <label>Seviye</label>
       <select class="input" name="grade">
         <option value="">Tümü</option>
-        {% for g in ['critical','moderate','low','acceptable'] %}
-          <option value="{{ g }}" {{ 'selected' if request.args.get('grade')==g }}>{{ g|capitalize }}</option>
+        {% for g in ['critical','moderate','low','acceptable','very_low'] %}
+          <option value="{{ g }}"
+                  {{ 'selected' if request.args.get('grade')==g }}>
+            {{ grade_labels.get(g, g|capitalize) }}
+          </option>
         {% endfor %}
       </select>
     </div>
@@ -120,19 +132,72 @@
     :root{ --cal-scale: 1; }
     .cal-zoom-shell{ width:100%; overflow:auto; }
 
-    .gx-critical  { background: color-mix(in oklab, var(--danger) 35%, transparent);  outline: 1px solid color-mix(in oklab, var(--danger) 55%, transparent); }
-    .gx-moderate  { background: color-mix(in oklab, var(--warning) 36%, transparent); outline: 1px solid color-mix(in oklab, var(--warning) 55%, transparent); }
-    .gx-low       { background: color-mix(in oklab, var(--success) 30%, transparent); outline: 1px solid color-mix(in oklab, var(--success) 50%, transparent); }
-    .gx-acceptable{ background: color-mix(in oklab, var(--line) 60%, transparent);    outline: 1px solid color-mix(in oklab, var(--line) 85%, transparent); }
+    /* Timeline / takvim bar renkleri */
+    .gx-critical{
+      background:#fecaca;
+      outline:1px solid #b91c1c;
+    }
+    .gx-moderate{
+      background:#fed7aa;
+      outline:1px solid #b45309;
+    }
+    .gx-low{
+      background:#fef3c7;
+      outline:1px solid #a16207;
+    }
+    .gx-acceptable{
+      background:#bbf7d0;
+      outline:1px solid #15803d;
+    }
+    .gx-very_low{
+      background:#e5e7eb;
+      outline:1px solid #4b5563;
+    }
 
-    .risk-chip{ display:inline-flex; align-items:center; gap:6px; padding:.15rem .5rem; border-radius:999px; font-size:12px; border:1px solid rgba(0,0,0,.06); }
-    .risk-chip.critical{ background: color-mix(in oklab, var(--danger) 18%, transparent); }
-    .risk-chip.moderate{ background: color-mix(in oklab, var(--warning) 18%, transparent); }
-    .risk-chip.low{      background: color-mix(in oklab, var(--success) 16%, transparent); }
-    .risk-chip.acceptable{background: color-mix(in oklab, var(--line) 30%, transparent); }
+    /* Seviye chip’leri */
+    .risk-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:.18rem .55rem;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:600;
+      color:#fff;
+      border:1px solid transparent;
+    }
+    .risk-chip.critical{
+      background:#b91c1c;
+      border-color:#7f1d1d;
+    }
+    .risk-chip.moderate{
+      background:#b45309;
+      border-color:#92400e;
+    }
+    .risk-chip.low{
+      background:#a16207;
+      border-color:#854d0e;
+    }
+    .risk-chip.acceptable{
+      background:#15803d;
+      border-color:#166534;
+    }
+    .risk-chip.very_low{
+      background:#374151;
+      border-color:#1f2937;
+    }
 
-    .icon-btn{ display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(0,0,0,.08); background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(245,248,255,.9));
-      padding:.25rem .5rem; border-radius:8px; cursor:pointer; font-size:12px; }
+    .icon-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid rgba(0,0,0,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(245,248,255,.9));
+      padding:.25rem .5rem;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:12px;
+    }
     .icon-btn:hover{ filter:brightness(1.02) }
 
     .table-scroll{ overflow:auto; border:1px solid color-mix(in oklab, var(--line) 75%, transparent); border-radius:12px; }
@@ -211,7 +276,9 @@
                     {{ r.category or '-' }} · RPN: {{ '%.2f'|format(r.avg_rpn()) if r.avg_rpn() is not none else '—' }} · {{ r.status or '—' }}
                   </div>
                   <div class="small" style="margin-top:4px">
-                    <span class="risk-chip {{ row.grade }}">{{ row.grade|capitalize }}</span>
+                    <span class="risk-chip {{ row.grade or 'acceptable' }}">
+                      {{ grade_labels.get(row.grade, row.grade|capitalize) }}
+                    </span>
                     {% if r.start_month or r.end_month %}
                       · <span>{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
                     {% endif %}
@@ -227,7 +294,10 @@
               {% set active = (m in (row.active or [])) %}
               <td>
                 {% if active %}
-                  <div class="tl-bar gx-{{ row.grade }}" title="{{ r.title }} · {{ m }}" data-open-reminder data-risk-title="{{ r.title }}"></div>
+                  <div class="tl-bar gx-{{ row.grade or 'acceptable' }}"
+                       title="{{ r.title }} · {{ m }}"
+                       data-open-reminder
+                       data-risk-title="{{ r.title }}"></div>
                 {% endif %}
               </td>
             {% endfor %}
@@ -314,8 +384,9 @@
         const dow = (d) => (d.getDay() + 6) % 7;
 
         const firstPad = dow(startOfMonth);
-        const totalDays = endOfMonth.getDate();
-        const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
+const totalDays = endOfMonth.getDate();
+const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
+
 
         grid.innerHTML = "";
         for(let i=0; i<totalCells; i++){
