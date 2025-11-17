@@ -2530,24 +2530,25 @@ def create_app():
     def schedule_pdf():
         ctx = build_schedule_context()
 
-        html = render_template("schedule.html", **ctx)
+        html = render_template("schedule_pdf.html", **ctx)
 
-        pdf_bytes = HTML(
-            string=html,
-            base_url=request.host_url
-        ).write_pdf()
+        options = {
+            "page-size": "A4",
+            "margin-top": "10mm",
+            "margin-right": "10mm",
+            "margin-bottom": "10mm",
+            "margin-left": "10mm",
+            "encoding": "UTF-8",
+        }
 
-        buf = BytesIO(pdf_bytes)
-
-        m = ctx.get("current_month") or date.today().month
-        y = ctx.get("current_year") or date.today().year
-        filename = f"risk_schedule_{y}_{str(m).zfill(2)}.pdf"
+        pdf_bytes = pdfkit.from_string(html, False, options=options)
+        filename = f"risk_schedule_{ctx['current_year']}-{ctx['current_month']:02d}.pdf"
 
         return send_file(
-            buf,
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
             as_attachment=True,
             download_name=filename,
-            mimetype="application/pdf",
         )
 
     # -------------------------------------------------
