@@ -200,44 +200,140 @@
     }
     .icon-btn:hover{ filter:brightness(1.02) }
 
-    .table-scroll{ overflow:auto; border:1px solid color-mix(in oklab, var(--line) 75%, transparent); border-radius:12px; }
-    .timeline-table { border-collapse: collapse; width:100%; table-layout: fixed; min-width:760px; }
-    .timeline-table th, .timeline-table td { border:1px solid color-mix(in oklab, var(--line) 80%, transparent); padding:8px; font-size: 12px; }
-    .timeline-table thead th{ position:sticky; top:0; background: color-mix(in oklab, var(--bg-soft) 96%, transparent); z-index:1; }
+    .table-scroll{
+      overflow:auto;
+      border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+      border-radius:12px;
+    }
+    .timeline-table {
+      border-collapse: collapse;
+      width:100%;
+      table-layout: fixed;
+      min-width:760px;
+    }
+    .timeline-table th,
+    .timeline-table td {
+      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+      padding:8px;
+      font-size: 12px;
+    }
+    .timeline-table thead th{
+      position:sticky;
+      top:0;
+      background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+      z-index:1;
+    }
     .timeline-table th.month { text-align:center; white-space:nowrap; }
     .tl-bar { height: 18px; border-radius: 999px; cursor:pointer; }
-    .risk-title { max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700 }
+    .risk-title {
+      max-width:260px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-weight:700
+    }
     .risk-meta { color:var(--muted); font-size:12px; }
 
     .calendar-wrap{
       border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      border-radius:12px; overflow:hidden;
+      border-radius:12px;
+      overflow:hidden;
       transform: scale(var(--cal-scale));
       transform-origin: top left;
       width:100%;
     }
-    .cal-header{ display:grid; grid-template-columns: repeat(7, 1fr); background: color-mix(in oklab, var(--bg-soft) 96%, transparent); border-bottom:1px solid color-mix(in oklab, var(--line) 85%, transparent); }
-    .cal-header div{ padding:.6rem .5rem; font-size:12px; font-weight:800; text-transform:uppercase; color:var(--muted); text-align:center }
-    .cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); margin-bottom: calc(20px * var(--cal-scale)); }
-    .cal-cell{ min-height:140px; border-right:1px solid color-mix(in oklab, var(--line) 75%, transparent); border-bottom:1px solid color-mix(in oklab, var(--line) 75%, transparent); position:relative; padding:10px }
+    .cal-header{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+      border-bottom:1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    }
+    .cal-header div{
+      padding:.6rem .5rem;
+      font-size:12px;
+      font-weight:800;
+      text-transform:uppercase;
+      color:var(--muted);
+      text-align:center
+    }
+    .cal-grid{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: calc(20px * var(--cal-scale));
+    }
+    .cal-cell{
+      min-height:140px;
+      border-right:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+      border-bottom:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+      position:relative;
+      padding:10px
+    }
     .cal-cell:nth-child(7n){ border-right:0 }
-    .cal-date{ font-size:12px; color:var(--muted); position:absolute; top:10px; right:10px }
-    .cal-badge{ position:relative; margin-top:22px; padding:.35rem .55rem; border-radius:10px; font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:grab }
-    .cal-badge .lvl{ font-weight:800; margin-right:4px; text-transform:uppercase; }
+    .cal-date{
+      font-size:12px;
+      color:var(--muted);
+      position:absolute;
+      top:10px;
+      right:10px
+    }
+    .cal-badge{
+      position:relative;
+      margin-top:22px;
+      padding:.35rem .55rem;
+      border-radius:10px;
+      font-size:13px;
+      line-height:1.25;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      cursor:grab
+    }
+    .cal-badge .lvl{
+      font-weight:800;
+      margin-right:4px;
+      text-transform:uppercase;
+    }
     .cal-badge:active{ cursor:grabbing; }
-    .cal-more{ position:absolute; bottom:8px; left:8px; right:8px; font-size:12px; color:var(--muted); cursor:pointer }
+    .cal-more{
+      position:absolute;
+      bottom:8px;
+      left:8px;
+      right:8px;
+      font-size:12px;
+      color:var(--muted);
+      cursor:pointer
+    }
 
     /* +N daha popover */
     .cal-pop{
-      position:absolute; left:8px; right:8px; bottom:34px;
+      position:absolute;
+      left:8px;
+      right:8px;
+      bottom:34px;
       background: var(--card-solid);
       border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      border-radius:10px; padding:8px; box-shadow: var(--elev-card);
-      max-height:220px; overflow:auto; z-index:5; font-size:12px;
+      border-radius:10px;
+      padding:8px;
+      box-shadow: var(--elev-card);
+      max-height:220px;
+      overflow:auto;
+      z-index:5;
+      font-size:12px;
     }
     .cal-pop .cal-badge{ margin:4px 0; display:block; }
-    .cal-pop .head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--muted) }
-    .cal-pop .close{ cursor:pointer; padding:2px 6px; border-radius:6px; border:1px solid color-mix(in oklab, var(--line) 80%, transparent) }
+    .cal-pop .head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:6px;
+      color:var(--muted)
+    }
+    .cal-pop .close{
+      cursor:pointer;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid color-mix(in oklab, var(--line) 80%, transparent)
+    }
 
     .muted-day{ opacity:.45 }
     @media (max-width: 980px){
@@ -245,10 +341,27 @@
       .risk-title{ max-width:240px; }
     }
 
-    .modal-backdrop{ position:fixed; inset:0; background: rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:50; }
-    .modal{ background:var(--card-solid); border:1px solid color-mix(in oklab, var(--line) 80%, transparent); border-radius:14px; padding:14px; width:min(460px, 92vw); box-shadow: var(--elev-card); }
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.35);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+    }
+    .modal-backdrop.show{
+      display:flex;
+    }
+    .modal{
+      background:var(--card-solid);
+      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+      border-radius:14px;
+      padding:14px;
+      width:min(460px, 92vw);
+      box-shadow: var(--elev-card);
+    }
     .modal h3{ margin:.2rem 0 .5rem }
-    .modal.show{ display:flex; }
   </style>
 
   {% if view == 'table' %}
@@ -286,7 +399,10 @@
                 </div>
                 <div style="display:flex; gap:6px; align-items:center">
                   <a class="icon-btn" href="{{ url_for('risk_detail', risk_id=r.id) }}">📄 Detay</a>
-                  <button class="icon-btn" data-open-reminder data-risk-id="{{ r.id }}" data-risk-title="{{ r.title }}">🔔 Hatırlat</button>
+                  <button class="icon-btn"
+                          data-open-reminder
+                          data-risk-id="{{ r.id }}"
+                          data-risk-title="{{ r.title }}">🔔 Hatırlat</button>
                 </div>
               </div>
             </td>
@@ -384,9 +500,8 @@
         const dow = (d) => (d.getDay() + 6) % 7;
 
         const firstPad = dow(startOfMonth);
-const totalDays = endOfMonth.getDate();
-const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
-
+        const totalDays = endOfMonth.getDate();
+        const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
 
         grid.innerHTML = "";
         for(let i=0; i<totalCells; i++){
@@ -486,7 +601,6 @@ const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
                 more.dataset.count = String(n);
                 more.textContent = `+${n} daha`;
               }
-              // gizli item’ı da id ile sakla ki tıklanınca detay açılsın
               const payload = { id: r.id, title: r.title, grade: r.grade, category: r.category, status: r.status };
               const items = JSON.parse(more.dataset.items || '[]');
               items.push(payload);

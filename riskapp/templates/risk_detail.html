@@ -70,6 +70,18 @@
 
 <div class="page">
 
+  {# ========= TÜM SAYFADA KULLANILACAK SON DEĞERLENDİRME ========= #}
+  {% set evals = r.evaluations or [] %}
+  {% if evals %}
+    {% if evals[0].created_at is defined %}
+      {% set last_eval = (evals | sort(attribute='created_at') | last) %}
+    {% else %}
+      {% set last_eval = (evals | sort(attribute='id') | last) %}
+    {% endif %}
+  {% else %}
+    {% set last_eval = None %}
+  {% endif %}
+
   {# ========= ÜST ÖZET + AKSİYONLAR ========= #}
   <div class="card sticky-top">
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
@@ -123,33 +135,20 @@
           {% endif %}
         </div>
 
-        {# Ortalama P/S hesapla (method mu property mi farketmesin) #}
-        {% if r.avg_prob is defined %}
-          {% if r.avg_prob is callable %}
-            {% set avg_prob = r.avg_prob() %}
-          {% else %}
-            {% set avg_prob = r.avg_prob %}
-          {% endif %}
+        {# ==== BURADA ARTIK ORTALAMA DEĞİL, SON DEĞERLENDİRME GÖRÜNÜYOR ==== #}
+        {% if last_eval %}
+          <div class="muted" style="margin-top:4px">
+            Son değerlendirme:
+            P = {{ last_eval.probability }},
+            S = {{ last_eval.severity }},
+            RPN = {{ last_eval.probability * last_eval.severity }}
+            (toplam {{ evals|length }} kayıt)
+          </div>
         {% else %}
-          {% set avg_prob = 0 %}
+          <div class="muted" style="margin-top:4px">
+            Bu risk için henüz değerlendirme yok.
+          </div>
         {% endif %}
-        {% if avg_prob is none %}{% set avg_prob = 0 %}{% endif %}
-
-        {% if r.avg_sev is defined %}
-          {% if r.avg_sev is callable %}
-            {% set avg_sev = r.avg_sev() %}
-          {% else %}
-            {% set avg_sev = r.avg_sev %}
-          {% endif %}
-        {% else %}
-          {% set avg_sev = 0 %}
-        {% endif %}
-        {% if avg_sev is none %}{% set avg_sev = 0 %}{% endif %}
-
-        <div class="muted" style="margin-top:4px">
-          Ortalama P={{ '%.1f'|format(avg_prob) }},
-          S={{ '%.1f'|format(avg_sev) }}
-        </div>
       </div>
 
       {# --- sağ taraftaki aksiyon butonları --- #}
@@ -166,7 +165,6 @@
         </a>
 
         {# AI mitigation önerisi: form + (fetch ile) #}
-        
         <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
           <button class="btn btn-primary" type="submit"
                   title="Sayısal özet + RACI + KPI">
@@ -282,12 +280,17 @@
 
       <div class="grid grid-2" style="margin-bottom:10px">
         <div class="chip">
-          <strong>Ortalama P/S</strong> ·
-          P={{ '%.1f'|format(avg_prob) }},
-          S={{ '%.1f'|format(avg_sev) }}
+          <strong>Son P/S</strong> ·
+          {% if last_eval %}
+            P={{ last_eval.probability }},
+            S={{ last_eval.severity }},
+            RPN={{ last_eval.probability * last_eval.severity }}
+          {% else %}
+            Henüz değerlendirme yok
+          {% endif %}
         </div>
         <div class="chip">
-          <strong>RPN</strong>:
+          <strong>Genel RPN</strong>:
           {% if avg_rpn is not none %}
             {{ '%.2f'|format(avg_rpn) }} · {{ grade }}
           {% else %}
