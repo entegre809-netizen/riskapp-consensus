@@ -2156,6 +2156,9 @@ def create_app():
        # -------------------------------------------------
     #  Risk Listesi / Arama
     # -------------------------------------------------
+   # -------------------------------------------------
+#  Risk Listesi / Arama
+# -------------------------------------------------
     @app.route("/risks")
     def risk_select():
         pid = _get_active_project_id()
@@ -2177,15 +2180,27 @@ def create_app():
                 (Risk.description.ilike(like))
             )
 
-        # Hücreye tıklama filtresi: ORTALAMA P/S yuvarlanınca hücreye denk düşenler
+        # Hücreye tıklama filtresi:
+        # *** ARTIK ORTALAMA YOK ***
+        # Her risk için SON değerlendirmedeki P/S değerine göre filtreliyoruz.
         if p and s:
+            latest_eval_sub = (
+                db.session.query(
+                    Evaluation.risk_id,
+                    func.max(Evaluation.id).label("max_id")
+                )
+                .group_by(Evaluation.risk_id)
+                .subquery()
+            )
+
             query = (
-                query.join(Evaluation, Evaluation.risk_id == Risk.id)
-                     .group_by(Risk.id)
-                     .having(func.avg(Evaluation.probability) >= p - 0.5)
-                     .having(func.avg(Evaluation.probability) <  p + 0.5)
-                     .having(func.avg(Evaluation.severity)   >= s - 0.5)
-                     .having(func.avg(Evaluation.severity)   <  s + 0.5)
+                query
+                .join(latest_eval_sub, latest_eval_sub.c.risk_id == Risk.id)
+                .join(Evaluation, Evaluation.id == latest_eval_sub.c.max_id)
+                .filter(
+                    Evaluation.probability == p,
+                    Evaluation.severity == s,
+                )
             )
 
         risks = query.order_by(Risk.updated_at.desc()).all()
@@ -2270,35 +2285,16 @@ def create_app():
             pair_counts[pair] = pair_counts.get(pair, 0) + 1
         consensus = None
         if pair_counts:
-            (p, s), cnt = max(pair_counts.items(), key=lambda kv: kv[1])
+            (p_val, s_val), cnt = max(pair_counts.items(), key=lambda kv: kv[1])
             if cnt >= threshold:
-                consensus = {"p": p, "s": s, "count": cnt}
+                consensus = {"p": p_val, "s": s_val, "count": cnt}
 
-        # ----- Geçmiş değerlendirmeler / Ortalama P-S mantığı -----
-        # tarih sırasına göre liste
+        # ----- Geçmiş değerlendirmeler -----
+        # Sadece listeyi yolluyoruz; HİÇBİR ORTALAMA HESAPLAMIYORUZ.
         eval_history = sorted(
             list(r.evaluations),
-            key=lambda ev: ev.created_at
+            key=lambda ev: ev.created_at or datetime.min
         ) if r.evaluations else []
-
-        avg_p = avg_s = None   # sadece 2+ kayıt olunca dolacak
-        last_p = last_s = None # son kaydı tutuyoruz
-        use_avg = False        # template'te "Ortalama mı, son mu?" seçimi için
-
-        if eval_history:
-            last = eval_history[-1]
-            last_p = last.probability
-            last_s = last.severity
-
-            if len(eval_history) >= 2:
-                probs = [ev.probability for ev in eval_history if ev.probability is not None]
-                sevs  = [ev.severity for ev in eval_history if ev.severity is not None]
-                if probs:
-                    avg_p = sum(probs) / len(probs)
-                if sevs:
-                    avg_s = sum(sevs) / len(sevs)
-                if avg_p is not None or avg_s is not None:
-                    use_avg = True   # 2+ kayıt varsa ve ortalama hesaplanabildiyse
 
         # ----- Sistemin önerdiği P/S (çoklu kategoriye göre) -----
         ps_reco = None
@@ -2316,8 +2312,8 @@ def create_app():
                 )
                 .all()
             )
-            probs = [p for (p, s) in rows if p is not None]
-            sevs  = [s for (p, s) in rows if s is not None]
+            probs = [p for (p, s_val) in rows if p is not None]
+            sevs  = [s_val for (p, s_val) in rows if s_val is not None]
             if probs or sevs:
                 p_mode = Counter(probs).most_common(1)
                 s_mode = Counter(sevs).most_common(1)
@@ -2335,11 +2331,6 @@ def create_app():
             ps_reco=ps_reco,
             categories=cats,   # formda listelemek için
             eval_history=eval_history,
-            avg_p=avg_p,
-            avg_s=avg_s,
-            last_p=last_p,
-            last_s=last_s,
-            use_avg=use_avg,
         )
 
     # -------------------------------------------------
@@ -2397,10 +2388,10 @@ def create_app():
         flash("Değerlendirme eklendi.", "success")
         return redirect(url_for("risk_detail", risk_id=r.id))
 
-
     @app.get("/health")
     def health():
         return {"ok": True}, 200
+
 
 
     # -------------------------------------------------
