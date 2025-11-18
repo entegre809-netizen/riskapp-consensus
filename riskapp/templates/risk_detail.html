@@ -71,15 +71,18 @@
 <div class="page">
 
   {# ========= TÜM SAYFADA KULLANILACAK SON DEĞERLENDİRME ========= #}
-  {% set evals = r.evaluations or [] %}
+  {# id'ye göre sırala; en büyük id son kayıt demek #}
+  {% set evals = (r.evaluations or [])|sort(attribute='id') %}
   {% if evals %}
-    {% if evals[0].created_at is defined %}
-      {% set last_eval = (evals | sort(attribute='created_at') | last) %}
-    {% else %}
-      {% set last_eval = (evals | sort(attribute='id') | last) %}
-    {% endif %}
+    {% set last_eval = evals|last %}
   {% else %}
     {% set last_eval = None %}
+  {% endif %}
+
+  {% if last_eval %}
+    {% set last_rpn = (last_eval.probability or 0) * (last_eval.severity or 0) %}
+  {% else %}
+    {% set last_rpn = None %}
   {% endif %}
 
   {# ========= ÜST ÖZET + AKSİYONLAR ========= #}
@@ -107,17 +110,7 @@
             <span class="pill" title="Risk Tipi"><strong>🏷️</strong> {{ r.risk_type }}</span>
           {% endif %}
 
-          {# avg_rpn ve grade hem property hem method olsa da patlamasın #}
-          {% if r.avg_rpn is defined %}
-            {% if r.avg_rpn is callable %}
-              {% set avg_rpn = r.avg_rpn() %}
-            {% else %}
-              {% set avg_rpn = r.avg_rpn %}
-            {% endif %}
-          {% else %}
-            {% set avg_rpn = None %}
-          {% endif %}
-
+          {# grade backend'den gelsin, ama RPN sadece SON kayıt üzerinden hesaplansın #}
           {% if r.grade is defined %}
             {% if r.grade is callable %}
               {% set grade = r.grade() %}
@@ -128,20 +121,20 @@
             {% set grade = '' %}
           {% endif %}
 
-          {% if avg_rpn is not none %}
+          {% if last_rpn is not none %}
             <span class="pill" title="RPN">
-              <strong>RPN</strong> {{ '%.2f'|format(avg_rpn) }} · {{ grade }}
+              <strong>RPN</strong> {{ '%.2f'|format(last_rpn) }}{% if grade %} · {{ grade }}{% endif %}
             </span>
           {% endif %}
         </div>
 
-        {# ==== ORTALAMA YOK, SADECE SON DEĞERLENDİRME ==== #}
+        {# ==== Üstte son değerlendirme bilgisi ==== #}
         {% if last_eval %}
           <div class="muted" style="margin-top:4px">
             Son değerlendirme:
             P = {{ last_eval.probability }},
             S = {{ last_eval.severity }},
-            RPN = {{ last_eval.probability * last_eval.severity }}
+            RPN = {{ last_rpn }}
             (toplam {{ evals|length }} kayıt)
           </div>
         {% else %}
@@ -163,7 +156,6 @@
           ➕ Yeni Risk
         </a>
 
-        {# AI yorum (boş text ile POST) #}
         <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
           <button class="btn btn-primary" type="submit"
                   title="Sayısal özet + RACI + KPI">
@@ -283,15 +275,15 @@
           {% if last_eval %}
             P={{ last_eval.probability }},
             S={{ last_eval.severity }},
-            RPN={{ last_eval.probability * last_eval.severity }}
+            RPN={{ last_rpn }}
           {% else %}
             Henüz değerlendirme yok
           {% endif %}
         </div>
         <div class="chip">
-          <strong>Genel RPN</strong>:
-          {% if avg_rpn is not none %}
-            {{ '%.2f'|format(avg_rpn) }} · {{ grade }}
+          <strong>RPN Rozeti</strong>:
+          {% if last_rpn is not none %}
+            {{ '%.2f'|format(last_rpn) }}{% if grade %} · {{ grade }}{% endif %}
           {% else %}
             —
           {% endif %}
