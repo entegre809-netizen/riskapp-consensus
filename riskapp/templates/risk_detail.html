@@ -135,7 +135,7 @@
           {% endif %}
         </div>
 
-        {# ==== BURADA ARTIK ORTALAMA DEĞİL, SON DEĞERLENDİRME GÖRÜNÜYOR ==== #}
+        {# ==== ORTALAMA YOK, SADECE SON DEĞERLENDİRME ==== #}
         {% if last_eval %}
           <div class="muted" style="margin-top:4px">
             Son değerlendirme:
@@ -153,7 +153,6 @@
 
       {# --- sağ taraftaki aksiyon butonları --- #}
       <div class="btnbar noprint">
-        {# Şablon kütüphanesi ve yeni risk akışı #}
         <a class="btn" href="{{ url_for('risk_identify') }}"
            title="Tanımlı risk kütüphanesine git">
           📚 Şablon Kütüphanesi
@@ -164,7 +163,7 @@
           ➕ Yeni Risk
         </a>
 
-        {# AI mitigation önerisi: form + (fetch ile) #}
+        {# AI yorum (boş text ile POST) #}
         <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
           <button class="btn btn-primary" type="submit"
                   title="Sayısal özet + RACI + KPI">
@@ -543,7 +542,6 @@
     if (!form || !btn) return;
 
     form.addEventListener('submit', function (ev) {
-      // JS çalışıyorsa normal form submit'i engelle
       ev.preventDefault();
 
       const oldText = btn.innerText;
@@ -558,10 +556,9 @@
       })
       .then(resp => {
         if (!resp.ok) throw new Error("AI isteği başarısız");
-        return resp.text();  // JSON beklemiyoruz
+        return resp.text();
       })
       .then(() => {
-        // Backend mitigation'ı güncelledi, sayfayı tazeleyelim
         window.location.reload();
       })
       .catch(err => {
