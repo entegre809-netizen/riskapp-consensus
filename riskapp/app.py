@@ -2289,12 +2289,31 @@ def create_app():
             if cnt >= threshold:
                 consensus = {"p": p_val, "s": s_val, "count": cnt}
 
-        # ----- Geçmiş değerlendirmeler -----
-        # Sadece listeyi yolluyoruz; HİÇBİR ORTALAMA HESAPLAMIYORUZ.
+        # ----- Geçmiş değerlendirmeler / Ortalama P-S mantığı -----
+        # tarih sırasına göre liste
         eval_history = sorted(
             list(r.evaluations),
-            key=lambda ev: ev.created_at or datetime.min
+            key=lambda ev: ev.created_at
         ) if r.evaluations else []
+
+        avg_p = avg_s = None   # sadece 2+ kayıt olunca dolacak
+        last_p = last_s = None # son kaydı tutuyoruz
+        use_avg = False        # template'te "Ortalama mı, son mu?" seçimi için
+
+        if eval_history:
+            last = eval_history[-1]
+            last_p = last.probability
+            last_s = last.severity
+
+            if len(eval_history) >= 2:
+                probs = [ev.probability for ev in eval_history if ev.probability is not None]
+                sevs  = [ev.severity for ev in eval_history if ev.severity is not None]
+                if probs:
+                    avg_p = sum(probs) / len(probs)
+                if sevs:
+                    avg_s = sum(sevs) / len(sevs)
+                if avg_p is not None or avg_s is not None:
+                    use_avg = True   # 2+ kayıt varsa ve ortalama hesaplanabildiyse
 
         # ----- Sistemin önerdiği P/S (çoklu kategoriye göre) -----
         ps_reco = None
@@ -2312,8 +2331,8 @@ def create_app():
                 )
                 .all()
             )
-            probs = [p for (p, s_val) in rows if p is not None]
-            sevs  = [s_val for (p, s_val) in rows if s_val is not None]
+            probs = [p for (p, s) in rows if p is not None]
+            sevs  = [s for (p, s) in rows if s is not None]
             if probs or sevs:
                 p_mode = Counter(probs).most_common(1)
                 s_mode = Counter(sevs).most_common(1)
@@ -2331,6 +2350,11 @@ def create_app():
             ps_reco=ps_reco,
             categories=cats,   # formda listelemek için
             eval_history=eval_history,
+            avg_p=avg_p,
+            avg_s=avg_s,
+            last_p=last_p,
+            last_s=last_s,
+            use_avg=use_avg,
         )
 
     # -------------------------------------------------
