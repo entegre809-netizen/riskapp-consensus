@@ -162,23 +162,19 @@
      Layout Stabilization Kit — cihazlar arası kaymaları azaltır
      ========================================================= */
 
-  /* 0) Tutarlı ölçüm */
   *, *::before, *::after { box-sizing: border-box; }
 
-  /* 1) Tutarlı font ailesi + metrikler */
   :root{
     --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
     --base-font-px: 14.5px;
   }
   html, body{ font-family: var(--font-sans); line-height: 1.25; }
 
-  /* 2) Taban yazı boyutunu rem ile yönet (vw/clamp yok) */
   html { font-size: var(--base-font-px); }
   @media (max-width: 1280px){ html{ font-size: 14px; } }
   @media (max-width: 980px){  html{ font-size: 13.5px; } }
   @media (max-width: 540px){  html{ font-size: 13px; } }
 
-  /* 3) Risk Matrisi: ölçüleri değişkenle kilitle, sarmayı engelle */
   .risk-matrix{
     --label-w: 140px;
     --cell-size: 64px;
@@ -200,25 +196,34 @@
   .rm-score{ font: 900 1rem/1 var(--mono); }
   .rm-count{ right:6px; bottom:5px; font-size:.78rem; white-space: nowrap; }
 
-  /* 4) Kart/KPI’larda daha güvenli min ölçüler */
   .kpi{ min-height: 48px; }
   .card{ min-width: 0; }
 
-  /* 5) Tablo başlıkları ve scrollbar istikrarı */
   .table thead th{ white-space: nowrap; }
   .table-wrap{ scrollbar-gutter: stable both-edges; }
 
-  /* 6) color-mix desteklenmiyorsa sınır rengi fallback */
   @supports not (color: color-mix(in oklab, white 50%, black)) {
     .kpi, .card, .legend-chip, .table th, .table td { border-color: var(--line); }
   }
 </style>
 
-{# ==== KPI hesap (frontend): risks + r.score() üzerinden ==== #}
+{# ==== KPI hesap: her risk için SON değerlendirme (en büyük id) ==== #}
 {% set ns = namespace(total=0, low=0, mid=0, high=0, sum=0.0, have=0) %}
 {% for r in risks or [] %}
-  {% set sc = r.score() %}
-  {% if sc %}
+  {% set evals = (r.evaluations or [])|sort(attribute='id') %}
+  {% if evals %}
+    {% set last_eval = evals|last %}
+    {% if last_eval.probability is not none and last_eval.severity is not none %}
+      {% set sc = last_eval.probability * last_eval.severity %}
+    {% else %}
+      {% set sc = None %}
+    {% endif %}
+  {% else %}
+    {% set last_eval = None %}
+    {% set sc = None %}
+  {% endif %}
+
+  {% if sc is not none %}
     {% set ns.sum  = ns.sum + sc %}
     {% set ns.have = ns.have + 1 %}
     {% if sc <= 8 %}{% set ns.low = ns.low + 1 %}
@@ -281,7 +286,20 @@
           </thead>
           <tbody>
             {% for r in risks[:8] %}
-            {% set sc = r.score() %}
+            {# Her risk için son evaluation = en büyük id #}
+            {% set evals = (r.evaluations or [])|sort(attribute='id') %}
+            {% if evals %}
+              {% set last_eval = evals|last %}
+              {% if last_eval.probability is not none and last_eval.severity is not none %}
+                {% set sc = last_eval.probability * last_eval.severity %}
+              {% else %}
+                {% set sc = None %}
+              {% endif %}
+            {% else %}
+              {% set last_eval = None %}
+              {% set sc = None %}
+            {% endif %}
+
             <tr>
               <td>
                 <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
@@ -293,12 +311,17 @@
               </td>
               <td>{{ r.category or "-" }}</td>
               <td style="text-align:center">
-                {% if sc %}
-                  <span class="badge {% if sc<=8 %}score-low{% elif sc<=15 %}score-mid{% else %}score-high{% endif %}"
-                        title="P×S = {{ '%.2f'|format(sc) if sc is number else sc }}">
-                    {{ '%.2f'|format(sc) if sc is number else sc }}
+                {% if sc is not none %}
+                  <span class="badge
+                              {% if sc<=8 %}score-low
+                              {% elif sc<=15 %}score-mid
+                              {% else %}score-high{% endif %}"
+                        title="Son değerlendirme · P={{ last_eval.probability }}, S={{ last_eval.severity }}, RPN={{ sc }}">
+                    {{ '%.2f'|format(sc) }}
                   </span>
-                {% else %}<span class="badge">—</span>{% endif %}
+                {% else %}
+                  <span class="badge">—</span>
+                {% endif %}
               </td>
               <td>{{ r.status or '—' }}</td>
             </tr>
@@ -382,7 +405,6 @@
     <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
   </div>
 
-  
   {% if category_stats and category_stats|length > 0 %}
     <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
 
@@ -412,9 +434,7 @@
         const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
         const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
 
-        // Renk paleti (kategori donut için)
         const PALETTE = ['#60a5fa','#34d399','#f59e0b','#ef4444','#a78bfa','#f472b6','#22d3ee','#84cc16','#fb7185','#f97316'];
-        // Seviye renkleri
         const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
 
         // --- 1) Kategori Donut ---
