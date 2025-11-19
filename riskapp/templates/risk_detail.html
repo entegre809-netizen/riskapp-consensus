@@ -372,37 +372,54 @@
         </div>
       </form>
 
-      {# Kayıtlar #}
-      <table class="table" style="margin-top:10px">
-        <thead>
-          <tr>
-            <th>Tarih</th>
-            <th>Değerlendiren</th>
-            <th>P</th>
-            <th>Ş</th>
-            <th>RPN</th>
-            <th>Yorum</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for e in r.evaluations|sort(attribute='id', reverse=True) %}
-            <tr>
-              <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '-' }}</td>
-              <td>{{ e.evaluator or '-' }}</td>
-              <td>{{ e.probability }}</td>
-              <td>{{ e.severity }}</td>
-              <td>
-                {% if e.probability and e.severity %}
-                  {{ e.probability * e.severity }}
-                {% else %}—{% endif %}
-              </td>
-              <td>{{ e.comment or '-' }}</td>
-            </tr>
-          {% else %}
-            <tr><td colspan="6">Henüz değerlendirme yok.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      {# Kayıtlar – varsayılan KAPALI, kullanıcı isterse açıyor #}
+      <details class="history-details" style="margin-top:10px">
+        <summary class="muted" style="cursor:pointer; padding:.35rem .1rem;">
+          Geçmiş değerlendirmeleri göster/gizle
+        </summary>
+        <div style="margin-top:6px; max-height:260px; overflow:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Değerlendiren</th>
+                <th>P</th>
+                <th>Ş</th>
+                <th>RPN</th>
+                <th>Yorum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in r.evaluations|sort(attribute='id', reverse=True) %}
+                <tr>
+                  <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '-' }}</td>
+                  <td>{{ e.evaluator or '-' }}</td>
+                  <td>{{ e.probability }}</td>
+                  <td>{{ e.severity }}</td>
+                  <td>
+                    {% if e.probability and e.severity %}
+                      {# Satır bazında P×S ve gerekirse RPN ort: override #}
+                      {% set row_rpn = e.probability * e.severity %}
+                      {% set row_rpn_display = row_rpn %}
+                      {% if e.comment and 'RPN ort:' in e.comment %}
+                        {% set __chunk = e.comment.split('RPN ort:')[1].strip() %}
+                        {% set __num   = __chunk.split(')')[0].strip() %}
+                        {% set row_rpn_display = __num %}
+                      {% endif %}
+                      {{ row_rpn_display }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td>{{ e.comment or '-' }}</td>
+                </tr>
+              {% else %}
+                <tr><td colspan="6">Henüz değerlendirme yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </div>
 
     {# ========= ALT: YORUMLAR ========= #}
