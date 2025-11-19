@@ -1934,7 +1934,7 @@ def create_app():
                 title_prefill = (picked_suggestions[0].text or "")[:150]
 
                 desc_lines = []
-                mit_lines  = []
+                mit_lines = []
                 for s in picked_suggestions:
                     code = (s.risk_code or "").strip()
                     label = f"[{code}] " if code else ""
@@ -1945,7 +1945,7 @@ def create_app():
                         mit_lines.append(f"- {label}{s.mitigation_hint.strip()}")
 
                 description_prefill = "\n".join(desc_lines)
-                mitigation_prefill  = "\n".join(mit_lines)
+                mitigation_prefill = "\n".join(mit_lines)
 
         # -----------------------------------------
         # POST: Sepetten risk(ler) oluşturma
@@ -2037,24 +2037,30 @@ def create_app():
                     else:
                         final_desc = "**Birleştirilen Şablonlar:**\n" + bullets_text
 
-                    # ---------- P/S + RPN ORTALAMASI ----------
-                    ps_list = []
+                    # ---------- P/S + RPN ORTALAMASI ve tek tek kayıtlar ----------
+                    p_vals, s_vals, rpn_vals = [], [], []
+                    eval_items = []  # (p0, s0, s_row)
+
                     for s in sug_rows:
                         p0 = _toi(getattr(s, "default_prob", None))
                         s0 = _toi(getattr(s, "default_sev", None))
-                        if p0 is not None and s0 is not None:
-                            ps_list.append((p0, s0))
+
+                        if p0 is not None:
+                            p_vals.append(p0)
+                        if s0 is not None:
+                            s_vals.append(s0)
+
+                        if p0 and s0:
+                            rpn_vals.append(p0 * s0)
+                            eval_items.append((p0, s0, s))
 
                     p_init = s_init = avg_rpn = None
-                    if ps_list:
-                        n = len(ps_list)
-                        sum_p   = sum(p for p, _ in ps_list)
-                        sum_s   = sum(s for _, s in ps_list)
-                        sum_rpn = sum(p * s for p, s in ps_list)
-
-                        p_init  = round(sum_p / n)
-                        s_init  = round(sum_s / n)
-                        avg_rpn = sum_rpn / n  # float
+                    if p_vals:
+                        p_init = round(sum(p_vals) / len(p_vals))
+                    if s_vals:
+                        s_init = round(sum(s_vals) / len(s_vals))
+                    if rpn_vals:
+                        avg_rpn = sum(rpn_vals) / len(rpn_vals)
 
                     # Risk kaydını oluştur
                     r = Risk(
@@ -2072,7 +2078,20 @@ def create_app():
                     db.session.add(r)
                     db.session.flush()
 
-                    # İlk değerlendirme: ortalama P/S + RPN ort bilgisi
+                    # 1) Her şablon için ayrı Evaluation satırı
+                    for p0, s0, s in eval_items:
+                        code = (s.risk_code or "").strip()
+                        label = code or f"#{s.id}"
+                        db.session.add(Evaluation(
+                            risk_id=r.id,
+                            evaluator=owner or "System",
+                            probability=int(p0),
+                            severity=int(s0),
+                            detection=None,
+                            comment=f"{label} şablon varsayılan P/S (P={p0}, S={s0}, RPN={p0 * s0})"
+                        ))
+
+                    # 2) En son: ORTALAMA Evaluation satırı
                     if p_init is not None and s_init is not None:
                         if avg_rpn is not None:
                             comment = f"Birleştirilmiş şablonların ortalaması (RPN ort: {avg_rpn:.2f})"
@@ -2120,7 +2139,7 @@ def create_app():
                         owner=owner,
                         project_id=pid,
                     )
-                    
+
                     db.session.add(r)
                     db.session.flush()
 
