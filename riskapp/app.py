@@ -1304,17 +1304,34 @@ def create_app():
         risks = query.order_by(Risk.updated_at.desc()).all()
 
         # --- 5x5 matris (olasılık × şiddet) ---
-        matrix = [[0] * 5 for _ in range(5)]
+        # Eski: 5x5 liste -> matrix[si][pi]
+        # Yeni: "P-S" key'li dict -> matrix["3-2"] = adet
+        matrix = defaultdict(int)
+
         for r in risks:
             try:
                 ap, asv = r.avg_prob(), r.avg_sev()
             except Exception:
                 ap, asv = None, None
-            if ap and asv:
-                # 1..5 arasında yuvarla, indexe çevir
-                pi = max(1, min(5, int(round(float(ap))))) - 1
-                si = max(1, min(5, int(round(float(asv))))) - 1
-                matrix[si][pi] += 1
+
+            if ap is None or asv is None:
+                continue
+
+            try:
+                p = int(round(float(ap)))
+                s = int(round(float(asv)))
+            except Exception:
+                continue
+
+            # 1..5 arasında sıkıştır
+            p = max(1, min(5, p))
+            s = max(1, min(5, s))
+
+            key = f"{p}-{s}"
+            matrix[key] += 1
+
+        # Jinja'ya sade dict gitsin
+        matrix = dict(matrix)
 
         # --- Kategori bazlı dağılım ---
         # Eşikler (dashboard ile uyumlu):
@@ -1336,7 +1353,9 @@ def create_app():
                 return "low"    # Düşük
             return None
 
-        by_cat = defaultdict(lambda: {"cat": "", "total": 0, "low": 0, "mid": 0, "high": 0, "vhigh": 0})
+        by_cat = defaultdict(
+            lambda: {"cat": "", "total": 0, "low": 0, "mid": 0, "high": 0, "vhigh": 0}
+        )
 
         for r in risks:
             cat = (getattr(r, "category", None) or "Genel")
@@ -1383,7 +1402,7 @@ def create_app():
             "dashboard.html",
             risks=risks,
             matrix=matrix,
-            category_stats=category_stats,  # şablonda kullanılıyor
+            category_stats=category_stats,
         )
 
     

@@ -176,7 +176,7 @@
   @media (max-width: 540px){  html{ font-size: 13px; } }
 
   .risk-matrix{
-    --label-w: 140px;
+    --label-w: 150px;
     --cell-size: 64px;
     grid-template-columns: var(--label-w) repeat(5, var(--cell-size));
     grid-auto-rows: var(--cell-size);
@@ -184,14 +184,26 @@
     margin-top: 10px;
   }
   @media (max-width: 980px){
-    .risk-matrix{ --label-w: 120px; --cell-size: 58px; }
+    .risk-matrix{ --label-w: 130px; --cell-size: 58px; }
   }
   @media (max-width: 640px){
-    .risk-matrix{ --label-w: 110px; --cell-size: 52px; }
+    .risk-matrix{ --label-w: 120px; --cell-size: 52px; }
   }
-  .rm-colhead, .rm-rowhead{ white-space: nowrap; min-width: 0; padding:8px 10px; border-radius:10px; }
-  .rm-coltitle, .rm-rowtitle{ overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+  .rm-colhead, .rm-rowhead{
+    white-space: normal;       /* TAM YAZI GÖRÜNSÜN, SATIR KIRILSIN */
+    min-width: 0;
+    padding:8px 10px;
+    border-radius:10px;
+    align-items:flex-start;
+  }
+  .rm-coltitle, .rm-rowtitle{
+    overflow: visible;          /* ELLIPSIS YOK */
+    text-overflow: clip;
+    max-width: 100%;
+  }
   .rm-colnum, .rm-rownum{ flex-shrink: 0; }
+
   .rm-cell{ padding:4px; border-width:1.5px; border-radius:10px; }
   .rm-score{ font: 900 1rem/1 var(--mono); }
   .rm-count{ right:6px; bottom:5px; font-size:.78rem; white-space: nowrap; }
@@ -370,21 +382,32 @@
         </div>
       {% endfor %}
 
+      {# Satırlar: Şiddet 5 → 1 #}
       {% for s in range(5,0,-1) %}
         <div class="rm-rowhead" role="rowheader" aria-label="Şiddet {{s}}: {{ sev_labels[s-1] }}">
           <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
           <div class="rm-rownum">{{ s }}</div>
         </div>
 
-        {# Hücreler de aynı sırayı izliyor: P=5..1 #}
+        {# Hücreler: P=5..1 (her hücre P,S için P×S ve backend’den gelen adet) #}
         {% for p in range(5,0,-1) %}
           {% set score = p * s %}
-          {% set count = (matrix[5-s][p-1]) if matrix is defined else 0 %}
+          {% set key   = p ~ "-" ~ s %}
+          {% set cell  = matrix is defined and matrix ? matrix.get(key) : None %}
+          {% if cell is mapping %}
+            {% set count = cell.count %}
+          {% else %}
+            {% set count = cell or 0 %}
+          {% endif %}
+
           {% set lvl = 'low' if score<=3 else ('mid' if score<=8 else ('hi' if score<=12 else 'crit')) %}
+
           <a class="rm-cell {{ lvl }}"
              href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
              title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{count}} adet"
-             role="gridcell" aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{count}} adet" tabindex="0">
+             role="gridcell"
+             aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{count}} adet"
+             tabindex="0">
             <span class="rm-score">{{ score }}</span>
             <span class="rm-count">{{ count }}</span>
           </a>
