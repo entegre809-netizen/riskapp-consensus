@@ -71,7 +71,6 @@
 <div class="page">
 
   {# ========= TÜM SAYFADA KULLANILACAK SON DEĞERLENDİRME ========= #}
-  {# id'ye göre sırala; en büyük id son kayıt demek #}
   {% set evals = (r.evaluations or [])|sort(attribute='id') %}
   {% if evals %}
     {% set last_eval = evals|last %}
@@ -80,12 +79,8 @@
   {% endif %}
 
   {% if last_eval %}
-    {# Normal P×S #}
     {% set last_rpn = (last_eval.probability or 0) * (last_eval.severity or 0) %}
-    {# Gösterilecek değer (default = P×S) #}
     {% set last_rpn_display = last_rpn %}
-
-    {# Eğer yorumda "RPN ort:" varsa → oradaki değeri kullan #}
     {% if last_eval.comment and 'RPN ort:' in last_eval.comment %}
       {% set _chunk = last_eval.comment.split('RPN ort:')[1].strip() %}
       {% set _num   = _chunk.split(')')[0].strip() %}
@@ -139,7 +134,6 @@
           {% endif %}
         </div>
 
-        {# ==== Üstte son değerlendirme bilgisi ==== #}
         {% if last_eval %}
           <div class="muted" style="margin-top:4px">
             Son değerlendirme:
@@ -178,7 +172,6 @@
       </div>
     </div>
 
-    {# Konsensüs bilgisi #}
     {% if consensus %}
       <div class="flash info" style="margin-top:10px">
         🔔 Konsensüs: P={{ consensus.p }}, Ş={{ consensus.s }}
@@ -329,50 +322,69 @@
         </div>
       {% endif %}
 
-      {# Değerlendirme formu (canlı RPN) #}
-      <form id="evalForm" method="post"
-            action="{{ url_for('add_eval', risk_id=r.id) }}" class="grid">
-        <div class="grid grid-2">
-          <div>
-            <label>Olasılık (P)</label>
-            <select class="input" name="probability" id="probSel">
-              {% for i in range(1,6) %}
-                <option value="{{ i }}">{{ i }}</option>
-              {% endfor %}
-            </select>
-            <div class="btnbar" style="margin-top:6px">
-              {% for i in range(1,6) %}
-                <button class="btn btn-tab" type="button" data-setp="{{i}}">{{ i }}</button>
-              {% endfor %}
-            </div>
-          </div>
-          <div>
-            <label>Şiddet (S)</label>
-            <select class="input" name="severity" id="sevSel">
-              {% for i in range(1,6) %}
-                <option value="{{ i }}">{{ i }}</option>
-              {% endfor %}
-            </select>
-            <div class="btnbar" style="margin-top:6px">
-              {% for i in range(1,6) %}
-                <button class="btn btn-tab" type="button" data-sets="{{i}}">{{ i }}</button>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
+      {# ========= ÇOKLU RİSK İÇİN DEĞERLENDİRME FORMLARI ========= #}
+      {# bulk_risks backend'ten geliyorsa hepsini kullan, yoksa sadece r #}
+      {% if bulk_risks is defined and bulk_risks %}
+        {% set eval_targets = bulk_risks %}
+      {% else %}
+        {% set eval_targets = [r] %}
+      {% endif %}
 
-        <div class="row">
-          <input class="input grow" name="evaluator"
-                 placeholder="Değerlendiren (opsiyonel)">
-          <span class="pill nowrap" id="liveRpn">RPN: 1×1 = 1</span>
-        </div>
-        <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
-        <div class="right">
-          <button class="btn btn-success">Değerlendirmeyi Ekle</button>
-        </div>
-      </form>
+      {% for rr in eval_targets %}
+        {% for rr in eval_targets %}
+  <div class="eval-block" data-risk-id="{{ rr.id }}">
 
-      {# Kayıtlar – varsayılan KAPALI, kullanıcı isterse açıyor #}
+          {% if eval_targets|length > 1 %}
+            <div class="muted" style="margin-bottom:4px">
+              <strong>{{ rr.code or ('Risk #' ~ rr.id) }}</strong> · {{ rr.title }}
+            </div>
+          {% endif %}
+          <form method="post"
+                action="{{ url_for('add_eval', risk_id=rr.id) }}"
+                class="grid">
+            <div class="grid grid-2">
+              <div>
+                <label>Olasılık (P)</label>
+                <select class="input probSel" name="probability">
+                  {% for i in range(1,6) %}
+                    <option value="{{ i }}">{{ i }}</option>
+                  {% endfor %}
+                </select>
+                <div class="btnbar" style="margin-top:6px">
+                  {% for i in range(1,6) %}
+                    <button class="btn btn-tab" type="button" data-setp="{{i}}">{{ i }}</button>
+                  {% endfor %}
+                </div>
+              </div>
+              <div>
+                <label>Şiddet (S)</label>
+                <select class="input sevSel" name="severity">
+                  {% for i in range(1,6) %}
+                    <option value="{{ i }}">{{ i }}</option>
+                  {% endfor %}
+                </select>
+                <div class="btnbar" style="margin-top:6px">
+                  {% for i in range(1,6) %}
+                    <button class="btn btn-tab" type="button" data-sets="{{i}}">{{ i }}</button>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <input class="input grow" name="evaluator"
+                     placeholder="Değerlendiren (opsiyonel)">
+              <span class="pill nowrap liveRpn">RPN: 1×1 = 1</span>
+            </div>
+            <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
+            <div class="right">
+              <button class="btn btn-success">Değerlendirmeyi Ekle</button>
+            </div>
+          </form>
+        </div>
+      {% endfor %}
+
+      {# ========= GEÇMİŞ KAYIT TABLOSU — VARSAYILAN GİZLİ ========= #}
       <details class="history-details" style="margin-top:10px">
         <summary class="muted" style="cursor:pointer; padding:.35rem .1rem;">
           Geçmiş değerlendirmeleri göster/gizle
@@ -398,7 +410,6 @@
                   <td>{{ e.severity }}</td>
                   <td>
                     {% if e.probability and e.severity %}
-                      {# Satır bazında P×S ve gerekirse RPN ort: override #}
                       {% set row_rpn = e.probability * e.severity %}
                       {% set row_rpn_display = row_rpn %}
                       {% if e.comment and 'RPN ort:' in e.comment %}
@@ -479,46 +490,56 @@
 </div>
 
 <script>
-  // Konsensüs P/S'yi forma bas
+  // Konsensüs P/S'yi ilk değerlendirme bloğuna bas
   function applyConsensus(p, s) {
     try {
-      const pSel = document.getElementById('probSel');
-      const sSel = document.getElementById('sevSel');
+      const block = document.querySelector('.eval-block');
+      if (!block) return;
+      const pSel = block.querySelector('.probSel');
+      const sSel = block.querySelector('.sevSel');
       if (pSel) pSel.value = String(p);
       if (sSel) sSel.value = String(s);
-      updateLiveRpn();
-      document.getElementById('evalForm')?.scrollIntoView({ behavior:'smooth', block:'center' });
+      updateLiveRpnBlock(block);
+      block.scrollIntoView({ behavior:'smooth', block:'center' });
     } catch(e){ console.error(e); }
   }
 
-  // Hızlı butonlar P/S
-  document.querySelectorAll('[data-setp]').forEach(b=>{
-    b.addEventListener('click',()=>{
-      const v=b.dataset.setp;
-      const s=document.getElementById('probSel');
-      if(s){ s.value=v; updateLiveRpn(); }
-    });
-  });
-  document.querySelectorAll('[data-sets]').forEach(b=>{
-    b.addEventListener('click',()=>{
-      const v=b.dataset.sets;
-      const s=document.getElementById('sevSel');
-      if(s){ s.value=v; updateLiveRpn(); }
-    });
-  });
-
-  // Canlı RPN
-  function updateLiveRpn(){
-    const p = parseInt(document.getElementById('probSel')?.value||'1',10);
-    const s = parseInt(document.getElementById('sevSel')?.value||'1',10);
-    const el = document.getElementById('liveRpn');
+  // Belirli bir eval-block için canlı RPN güncelle
+  function updateLiveRpnBlock(block){
+    const pSel = block.querySelector('.probSel');
+    const sSel = block.querySelector('.sevSel');
+    if (!pSel || !sSel) return;
+    const p = parseInt(pSel.value || '1', 10);
+    const s = parseInt(sSel.value || '1', 10);
+    const el = block.querySelector('.liveRpn');
     if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
   }
-  ['probSel','sevSel'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('change', updateLiveRpn);
+
+  // Tüm eval-block'ları başlat
+  document.addEventListener('DOMContentLoaded', ()=>{
+    document.querySelectorAll('.eval-block').forEach(block=>{
+      const pSel = block.querySelector('.probSel');
+      const sSel = block.querySelector('.sevSel');
+
+      if (pSel) pSel.addEventListener('change', ()=>updateLiveRpnBlock(block));
+      if (sSel) sSel.addEventListener('change', ()=>updateLiveRpnBlock(block));
+
+      block.querySelectorAll('[data-setp]').forEach(b=>{
+        b.addEventListener('click',()=>{
+          const v=b.dataset.setp;
+          if(pSel){ pSel.value=v; updateLiveRpnBlock(block); }
+        });
+      });
+      block.querySelectorAll('[data-sets]').forEach(b=>{
+        b.addEventListener('click',()=>{
+          const v=b.dataset.sets;
+          if(sSel){ sSel.value=v; updateLiveRpnBlock(block); }
+        });
+      });
+
+      updateLiveRpnBlock(block);
+    });
   });
-  updateLiveRpn();
 
   // Tarih alanları → YYYY-MM
   (function(){
