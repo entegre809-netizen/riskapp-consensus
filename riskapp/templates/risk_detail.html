@@ -80,9 +80,20 @@
   {% endif %}
 
   {% if last_eval %}
+    {# Normal P×S #}
     {% set last_rpn = (last_eval.probability or 0) * (last_eval.severity or 0) %}
+    {# Gösterilecek değer (default = P×S) #}
+    {% set last_rpn_display = last_rpn %}
+
+    {# Eğer yorumda "RPN ort:" varsa → oradaki değeri kullan #}
+    {% if last_eval.comment and 'RPN ort:' in last_eval.comment %}
+      {% set _chunk = last_eval.comment.split('RPN ort:')[1].strip() %}
+      {% set _num   = _chunk.split(')')[0].strip() %}
+      {% set last_rpn_display = _num %}
+    {% endif %}
   {% else %}
     {% set last_rpn = None %}
+    {% set last_rpn_display = None %}
   {% endif %}
 
   {# ========= ÜST ÖZET + AKSİYONLAR ========= #}
@@ -121,9 +132,9 @@
             {% set grade = '' %}
           {% endif %}
 
-          {% if last_rpn is not none %}
+          {% if last_rpn_display is not none %}
             <span class="pill" title="RPN">
-              <strong>RPN</strong> {{ '%.2f'|format(last_rpn) }}{% if grade %} · {{ grade }}{% endif %}
+              <strong>RPN</strong> {{ last_rpn_display }}{% if grade %} · {{ grade }}{% endif %}
             </span>
           {% endif %}
         </div>
@@ -134,7 +145,7 @@
             Son değerlendirme:
             P = {{ last_eval.probability }},
             S = {{ last_eval.severity }},
-            RPN = {{ last_rpn }}
+            RPN = {{ last_rpn_display }}
             (toplam {{ evals|length }} kayıt)
           </div>
         {% else %}
@@ -275,15 +286,15 @@
           {% if last_eval %}
             P={{ last_eval.probability }},
             S={{ last_eval.severity }},
-            RPN={{ last_rpn }}
+            RPN={{ last_rpn_display }}
           {% else %}
             Henüz değerlendirme yok
           {% endif %}
         </div>
         <div class="chip">
           <strong>RPN Rozeti</strong>:
-          {% if last_rpn is not none %}
-            {{ '%.2f'|format(last_rpn) }}{% if grade %} · {{ grade }}{% endif %}
+          {% if last_rpn_display is not none %}
+            {{ last_rpn_display }}{% if grade %} · {{ grade }}{% endif %}
           {% else %}
             —
           {% endif %}
