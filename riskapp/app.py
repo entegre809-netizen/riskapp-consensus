@@ -2256,6 +2256,9 @@ def create_app():
     # -------------------------------------------------
     #  Risk Detay + Konsensüs + Öneri
     # -------------------------------------------------
+    # -------------------------------------------------
+#  Risk Detay + Konsensüs + Öneri
+# -------------------------------------------------
     @app.route("/risks/<int:risk_id>", methods=["GET", "POST"])
     def risk_detail(risk_id):
         r = Risk.query.get_or_404(risk_id)
@@ -2283,6 +2286,7 @@ def create_app():
             # ===== KATEGORİLER (ÇOKLU) =====
             # <select multiple name="categories"> ... </select>
             selected = request.form.getlist("categories")  # birden fazla gelebilir
+
             # Özel kategori alanı: "A, B, C" gibi virgüllü
             custom_raw = request.form.get("category_custom", "")
             custom = [x.strip() for x in custom_raw.split(",") if x.strip()]
@@ -2317,6 +2321,7 @@ def create_app():
         for e in r.evaluations:
             pair = (e.probability, e.severity)
             pair_counts[pair] = pair_counts.get(pair, 0) + 1
+
         consensus = None
         if pair_counts:
             (p_val, s_val), cnt = max(pair_counts.items(), key=lambda kv: kv[1])
@@ -2332,7 +2337,7 @@ def create_app():
 
         avg_p = avg_s = None   # sadece 2+ kayıt olunca dolacak
         last_p = last_s = None # son kaydı tutuyoruz
-        use_avg = False        # template'te "Ortalama mı, son mu?" seçimi için
+        use_avg = False        # (template şu an kullanmıyor ama dursun)
 
         if eval_history:
             last = eval_history[-1]
@@ -2347,7 +2352,7 @@ def create_app():
                 if sevs:
                     avg_s = sum(sevs) / len(sevs)
                 if avg_p is not None or avg_s is not None:
-                    use_avg = True   # 2+ kayıt varsa ve ortalama hesaplanabildiyse
+                    use_avg = True
 
         # ----- Sistemin önerdiği P/S (çoklu kategoriye göre) -----
         ps_reco = None
@@ -2382,7 +2387,7 @@ def create_app():
             consensus=consensus,
             threshold=threshold,
             ps_reco=ps_reco,
-            categories=cats,   # formda listelemek için
+            categories=cats,
             eval_history=eval_history,
             avg_p=avg_p,
             avg_s=avg_s,
