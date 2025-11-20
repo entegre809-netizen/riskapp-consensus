@@ -2141,7 +2141,7 @@ def create_app():
                     return redirect(url_for("risk_detail", risk_id=r.id))
 
                 # ==== B) AYRI AYRI ====
-                created = 0
+                created_ids = []
                 for sid in sel_ids:
                     s = Suggestion.query.get(int(sid))
                     if not s:
@@ -2160,7 +2160,8 @@ def create_app():
                     )
 
                     db.session.add(r)
-                    db.session.flush()
+                    db.session.flush()   # id hemen gelsin
+                    created_ids.append(r.id)
 
                     p0 = _toi(getattr(s, "default_prob", None))
                     s0 = _toi(getattr(s, "default_sev", None))
@@ -2179,12 +2180,26 @@ def create_app():
                         text=f"Tanımlı şablondan oluşturuldu: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
                         is_system=True
                     ))
-                    created += 1
 
                 db.session.commit()
                 session.pop("picked_rows", None)
+
+                created = len(created_ids)
                 flash(f"{created} risk oluşturuldu.", "success")
-                return redirect(url_for("dashboard"))
+
+                # 🔴 BURADAN İTİBAREN: DASHBOARD YERİNE BULK DETAY
+                if not created_ids:
+                    return redirect(url_for("risk_new"))
+
+                main_id = created_ids[0]
+
+                if len(created_ids) == 1:
+                    # Tek risk => normal detay sayfası
+                    return redirect(url_for("risk_detail", risk_id=main_id))
+
+                # Birden fazla risk => bulk parametresiyle P/S paneli
+                bulk_param = ",".join(str(x) for x in created_ids)
+                return redirect(url_for("risk_detail", risk_id=main_id, bulk=bulk_param))
 
         # -----------------------------------------
         # GET: Formu render et
