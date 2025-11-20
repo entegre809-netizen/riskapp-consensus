@@ -2290,24 +2290,24 @@ def create_app():
             .all()
         ]
 
-        # ====== BULK RISK DEĞERLENDİRME (URL param: ?bulk=1,2,3) ======
+        # ========= TOPLU DEĞERLENDİRME (bulk) =========
+        # /risks/3?bulk=3,4,5 gibi bir URL'den geliyorsa
         bulk_risks = None
-        bulk_param = request.args.get("bulk")  # örnek: "2,5,7"
-        if bulk_param:
+        bulk_raw = request.args.get("bulk", "").strip()
+        if bulk_raw:
             try:
-                ids = [int(x) for x in bulk_param.split(",") if x.strip()]
-                # Şu anki risk id'si yoksa listeye ekle
-                if risk_id not in ids:
-                    ids.insert(0, risk_id)
+                id_list = sorted({int(x) for x in bulk_raw.split(",") if x.strip()})
+            except ValueError:
+                id_list = []
+            if id_list:
                 bulk_risks = (
                     Risk.query
-                    .filter(Risk.id.in_(ids))
+                    .filter(Risk.id.in_(id_list))
                     .order_by(Risk.id.asc())
                     .all()
                 )
-            except Exception:
-                bulk_risks = None  # param bozuksa sessizce tek risk moduna düş
 
+        # ========= POST: RİSK FORMUNU KAYDET =========
         if request.method == "POST":
             # ----- Diğer alanlar -----
             r.title        = request.form.get("title", r.title)
@@ -2321,8 +2321,7 @@ def create_app():
             r.end_month    = (request.form.get("end_month") or None)    # YYYY-MM (hidden)
 
             # ===== KATEGORİLER (ÇOKLU) =====
-            # <select multiple name="categories"> ... </select>
-            selected = request.form.getlist("categories")  # birden fazla gelebilir
+            selected = request.form.getlist("categories")  # <select multiple name="categories">
 
             # Özel kategori alanı: "A, B, C" gibi virgüllü
             custom_raw = request.form.get("category_custom", "")
@@ -2335,6 +2334,7 @@ def create_app():
             r.set_categories(cats_final)
 
             db.session.commit()
+
             # Sistem notu
             db.session.add(Comment(
                 risk_id=r.id,
@@ -2342,17 +2342,18 @@ def create_app():
                 is_system=True
             ))
             db.session.commit()
+
             flash("Değişiklikler kaydedildi.", "success")
             return redirect(url_for("risk_detail", risk_id=r.id))
 
-        # ----- GET: Öneriler (Suggestion) seçili kategorilere göre -----
+        # ========= GET: ÖNERİLER =========
         cats_sel = r.categories_list or ([r.category] if r.category else [])
         if cats_sel:
             sugg = Suggestion.query.filter(Suggestion.category.in_(cats_sel)).all()
         else:
             sugg = []
 
-        # ----- Konsensüs (mevcut mantığın aynısı) -----
+        # ========= Konsensüs =========
         threshold = int(current_app.config.get("CONSENSUS_THRESHOLD", 30))
         pair_counts = {}
         for e in r.evaluations:
@@ -2365,15 +2366,15 @@ def create_app():
             if cnt >= threshold:
                 consensus = {"p": p_val, "s": s_val, "count": cnt}
 
-        # ----- Geçmiş değerlendirmeler / Ortalama P-S mantığı -----
+        # ========= Geçmiş değerlendirmeler / ortalama =========
         eval_history = sorted(
             list(r.evaluations),
             key=lambda ev: ev.created_at
         ) if r.evaluations else []
 
-        avg_p = avg_s = None   # sadece 2+ kayıt olunca dolacak
-        last_p = last_s = None # son kaydı tutuyoruz
-        use_avg = False        # (template şu an kullanmıyor ama dursun)
+        avg_p = avg_s = None
+        last_p = last_s = None
+        use_avg = False
 
         if eval_history:
             last = eval_history[-1]
@@ -2390,7 +2391,7 @@ def create_app():
                 if avg_p is not None or avg_s is not None:
                     use_avg = True
 
-        # ----- Sistemin önerdiği P/S (çoklu kategoriye göre) -----
+        # ========= Sistemin önerdiği P/S =========
         ps_reco = None
         if cats_sel:
             rows = (
@@ -2429,7 +2430,7 @@ def create_app():
             last_p=last_p,
             last_s=last_s,
             use_avg=use_avg,
-            bulk_risks=bulk_risks,   # ✅ template için kritik
+            bulk_risks=bulk_risks,          # 🔴 EKLEDİK
         )
 
 
