@@ -191,14 +191,14 @@
   }
 
   .rm-colhead, .rm-rowhead{
-    white-space: normal;       /* TAM YAZI GÖRÜNSÜN, SATIR KIRILSIN */
+    white-space: normal;
     min-width: 0;
     padding:8px 10px;
     border-radius:10px;
     align-items:flex-start;
   }
   .rm-coltitle, .rm-rowtitle{
-    overflow: visible;          /* ELLIPSIS YOK */
+    overflow: visible;
     text-overflow: clip;
     max-width: 100%;
   }
@@ -298,7 +298,6 @@
           </thead>
           <tbody>
             {% for r in risks[:8] %}
-            {# Her risk için son evaluation = en büyük id #}
             {% set evals = (r.evaluations or [])|sort(attribute='id') %}
             {% if evals %}
               {% set last_eval = evals|last %}
@@ -389,16 +388,11 @@
           <div class="rm-rownum">{{ s }}</div>
         </div>
 
-        {# Hücreler: P=5..1 (her hücre P,S için P×S ve backend’den gelen adet) #}
         {% for p in range(5,0,-1) %}
           {% set score = p * s %}
           {% set key   = p ~ "-" ~ s %}
-          {% set cell  = matrix is defined and matrix ? matrix.get(key) : None %}
-          {% if cell is mapping %}
-            {% set count = cell.count %}
-          {% else %}
-            {% set count = cell or 0 %}
-          {% endif %}
+          {# backend: matrix = {"P-S": adet} #}
+          {% set count = matrix.get(key, 0) if matrix is defined and matrix else 0 %}
 
           {% set lvl = 'low' if score<=3 else ('mid' if score<=8 else ('hi' if score<=12 else 'crit')) %}
 
