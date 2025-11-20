@@ -2290,6 +2290,24 @@ def create_app():
             .all()
         ]
 
+        # ====== BULK RISK DEĞERLENDİRME (URL param: ?bulk=1,2,3) ======
+        bulk_risks = None
+        bulk_param = request.args.get("bulk")  # örnek: "2,5,7"
+        if bulk_param:
+            try:
+                ids = [int(x) for x in bulk_param.split(",") if x.strip()]
+                # Şu anki risk id'si yoksa listeye ekle
+                if risk_id not in ids:
+                    ids.insert(0, risk_id)
+                bulk_risks = (
+                    Risk.query
+                    .filter(Risk.id.in_(ids))
+                    .order_by(Risk.id.asc())
+                    .all()
+                )
+            except Exception:
+                bulk_risks = None  # param bozuksa sessizce tek risk moduna düş
+
         if request.method == "POST":
             # ----- Diğer alanlar -----
             r.title        = request.form.get("title", r.title)
@@ -2348,7 +2366,6 @@ def create_app():
                 consensus = {"p": p_val, "s": s_val, "count": cnt}
 
         # ----- Geçmiş değerlendirmeler / Ortalama P-S mantığı -----
-        # tarih sırasına göre liste
         eval_history = sorted(
             list(r.evaluations),
             key=lambda ev: ev.created_at
@@ -2376,7 +2393,6 @@ def create_app():
         # ----- Sistemin önerdiği P/S (çoklu kategoriye göre) -----
         ps_reco = None
         if cats_sel:
-            # Hem yeni çoklu tabloyu hem de geriye uyumluluk için risks.category'yi dikkate al
             rows = (
                 db.session.query(Evaluation.probability, Evaluation.severity)
                 .join(Risk, Risk.id == Evaluation.risk_id)
@@ -2413,7 +2429,9 @@ def create_app():
             last_p=last_p,
             last_s=last_s,
             use_avg=use_avg,
+            bulk_risks=bulk_risks,   # ✅ template için kritik
         )
+
 
     # -------------------------------------------------
     #  Yorum / Değerlendirme

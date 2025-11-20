@@ -338,6 +338,7 @@
               <strong>{{ rr.code or ('Risk #' ~ rr.id) }}</strong> · {{ rr.title }}
             </div>
           {% endif %}
+
           <form method="post"
                 action="{{ url_for('add_eval', risk_id=rr.id) }}"
                 class="grid">
