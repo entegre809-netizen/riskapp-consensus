@@ -47,6 +47,10 @@ def _unique(seq: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
+# ============================
+# 1) Keyword kümeleri
+# ============================
+
 # Kategori anahtar kümeleri (normalize edilmiş aramayla eşleşir)
 KEYSETS = {
     "insaat": [
@@ -127,6 +131,11 @@ KEYSETS = {
         "malzeme teslim", "giris cikis", "stok devir", "ambar fisi"
     ],
 }
+
+
+# ============================
+# 2) Kategori -> aksiyon şablonları
+# ============================
 
 # Kategori -> aksiyon şablonları (metin, due_gun)
 ACTION_TEMPLATES = {
@@ -227,6 +236,10 @@ def _match_keys(text: str) -> List[str]:
             hits.append(key)
     return hits
 
+
+# ============================
+# 3) RACI / Departman varsayılanları
+# ============================
 
 def _dept_raci_defaults(cat_lower: str) -> Dict[str, Any]:
     """
@@ -524,6 +537,10 @@ def _dept_raci_defaults(cat_lower: str) -> Dict[str, Any]:
     }
 
 
+# ============================
+# 4) Aksiyon önerileri
+# ============================
+
 def _propose_actions(risk: "Risk") -> List[Dict[str, Any]]:
     """
     Her aksiyon: {dept, R, A, C, I, action, due}
@@ -563,6 +580,10 @@ def _propose_actions(risk: "Risk") -> List[Dict[str, Any]]:
 
     return _unique(actions)
 
+
+# ============================
+# 5) KPI varsayılanları
+# ============================
 
 def _kpis_default(cat_lower: str) -> List[str]:
     cat_lower_norm = _normalize(cat_lower or "")
@@ -666,6 +687,177 @@ def _kpis_default(cat_lower: str) -> List[str]:
     return common
 
 
+# ============================
+# 6) Makale tabanlı manuel kurallar
+# ============================
+
+def _risk_text_blob(risk: "Risk") -> str:
+    """Kategori + başlık + açıklamayı normalize edilmiş tek text olarak birleştir."""
+    parts = [risk.category or "", risk.title or "", risk.description or ""]
+    return _normalize(" ".join(parts))
+
+
+def _paper_rule_summaries(risk: "Risk") -> List[str]:
+    """
+    Yüklediğin makalelerden çıkarılmış bazı sabit kuralları,
+    risk metniyle eşleşirse döndürür.
+    Tamamen lokalde, AILocal'den bağımsız çalışır.
+    """
+    t = _risk_text_blob(risk)
+    out: List[str] = []
+
+    # --- Genc 2021: Turkish construction sector, RII/EFA ---
+
+    # Kalifiye olmayan taşeron / işçi / personel
+    if any(k in t for k in [
+        "alt yuklenici", "altyuklenici", "tasaron", "tasaron", "subcontractor",
+        "vasifsiz", "niteliksiz", "unqualified", "yetersiz personel"
+    ]):
+        out.append(
+            "Genc 2021 çalışması, kalifiye olmayan taşeron/işçi/personel kullanımını "
+            "Türk inşaat sektöründe en yüksek olasılıklı risklerden biri olarak raporluyor; "
+            "taşeron seçimi, oryantasyon ve denetim bu riski yönetmek için kritik."
+        )
+
+    # Ödeme gecikmeleri / hakediş
+    if any(k in t for k in [
+        "odeme gecikmesi", "geciken odeme", "gecikmis odeme",
+        "hak edis", "hakedis", "payment delay", "delayed payment"
+    ]):
+        out.append(
+            "Aynı çalışmada, ödemelerde gecikme ve hakediş sorunları en olası riskler arasında; "
+            "sözleşmede net ödeme takvimi, gecikme faizi ve nakit akış planı öneriliyor."
+        )
+
+    # Enflasyon / fiyat spekülasyonu / kur riski
+    if any(k in t for k in [
+        "enflasyon", "fiyat artis", "fiyat artis", "fiyat spekulasyon",
+        "speku", "kur riski", "doviz", "price escalation", "inflation"
+    ]):
+        out.append(
+            "Genc 2021 sonuçlarına göre enflasyon ve fiyat dalgalanmaları yüksek olasılıklı "
+            "dışsal riskler arasında; fiyat farkı maddeleri, kısa vadeli alım sözleşmeleri "
+            "ve kur riskini hedge eden finansal araçlar öneriliyor."
+        )
+
+    # Geç change-order / son dakika revizyon
+    if any(k in t for k in [
+        "change order", "degisiklik emri", "revizyon talebi", "gec gelen revizyon",
+        "late change", "gecikmis change"
+    ]):
+        out.append(
+            "Çalışma, geç gelen change-order/değişiklik taleplerinin hem süre hem maliyet "
+            "üzerinde kritik etki yaptığını vurguluyor; onaylı değişiklik prosedürü ve "
+            "kapsam dondurma tarihleri tanımlanmalı."
+        )
+
+    # Bütçe aşımı / cost overrun
+    if any(k in t for k in [
+        "butce asimi", "maliyet artisi", "cost overrun", "budget overrun",
+        "butce disi", "butceyi asmasi"
+    ]):
+        out.append(
+            "Genc 2021'de işin beklenen bütçe sınırları içinde tamamlanamaması, en olası "
+            "üst seviye risklerden biri; erken aşamada ayrıntılı maliyet kırılımı ve "
+            "kontenjan bütçe yönetimi öneriliyor."
+        )
+
+    # --- Satpal 2022: Kurumsal bina projeleri, risk tahsisi ---
+
+    # İş kazası / zayıf İSG
+    if any(k in t for k in [
+        "is kazasi", "kaza", "safety", "guvenlik", "isg", "poor safety"
+    ]):
+        out.append(
+            "Satpal 2022, kurumsal bina işlerinde iş kazaları ve zayıf iş güvenliğini "
+            "ağırlıklı olarak yüklenicinin yönetmesi gereken riskler olarak sınıflandırıyor; "
+            "sistematik İSG planı, toolbox talk'lar ve saha denetimleri kritik."
+        )
+
+    # Malzeme kalitesi / kusurlu malzeme
+    if any(k in t for k in [
+        "kusurlu malzeme", "defolu malzeme", "malzeme hatasi", "defective material"
+    ]):
+        out.append(
+            "Aynı çalışmada kusurlu malzeme tedariki, tedarik zinciri ve yüklenici "
+            "sorumluluğu altında ele alınıyor; tedarikçi onay süreci ve giriş kalite kontrolü "
+            "önemli azaltıcı tedbirler olarak belirtiliyor."
+        )
+
+    # İşgücü / ekipman / malzeme bulunabilirliği
+    if any(k in t for k in [
+        "iscinin bulunmamasi", "iscinin yetersizligi", "isgucu eksikligi", "labour shortage",
+        "equipment", "ekipman yok", "malzeme yok", "unavailability of labour", "unavailability of material"
+    ]):
+        out.append(
+            "Satpal 2022, işgücü/ekipman/malzeme bulunabilirliğini yüklenici tarafında "
+            "yoğunlaşan önemli bir üretim riski olarak veriyor; alternatif tedarikçiler ve "
+            "yedek kapasite planı öneriliyor."
+        )
+
+    # Hava koşulları
+    if any(k in t for k in [
+        "hava muhalefeti", "unpredictable weather", "siddetli hava", "yagis", "storm", "firtina"
+    ]):
+        out.append(
+            "Çalışmada öngörülemeyen hava koşulları, iş programı ve maliyet üzerinde "
+            "önemli etkiye sahip; süre tamponları ve mevsimsellik analizi ile yönetilmesi öneriliyor."
+        )
+
+    # --- Shelake 2022: Tünel projeleri ---
+
+    if any(k in t for k in [
+        "tunel", "tunnel", "metro tünel", "tbm", "delgi tünel", "shaft", "lining"
+    ]):
+        out.append(
+            "Shelake 2022, tünel projelerinde jeoteknik belirsizlikler ve yeraltı koşullarının "
+            "yetersiz analizinin ciddi süre ve maliyet aşımlarına yol açtığını gösteriyor; "
+            "erken jeoteknik kampanya, kademeli tasarım ve senaryo bazlı programlama tavsiye ediliyor."
+        )
+
+    # --- Ke et al. 2010: PPP risk allocation ---
+
+    if any(k in t for k in [
+        "ppp", "public private", "yap islet devret", "bot", "concession",
+        "imtiyaz sozlesmesi", "ozel finansman"
+    ]):
+        out.append(
+            "Ke vd. 2010, PPP projelerinde politik/hukuki makro risklerin genelde kamu "
+            "tarafında tutulduğunu, proje-özel meso risklerin daha çok özel sektöre "
+            "aktarılabildiğini, operasyonel mikro risklerin ise çoğunlukla yüklenicide "
+            "toplandığını raporluyor; bu risk için taraflara göre adil paylaşım kurgulanmalı."
+        )
+
+    # --- Genel metodoloji makaleleri: Akintoye 1997, Dziadosz 2015 vs. ---
+
+    # Eğer hiçbir spesifik tetik yoksa ya da çok genel bir riskse, metodoloji notları ekle
+    if not out:
+        out.append(
+            "Akintoye & MacLeod 1997, inşaat projelerinde risklerin çoğunlukla maliyet, süre "
+            "ve kalite hedeflerine etkisi üzerinden algılandığını ve yönetimin çoğu zaman "
+            "sezgiye bırakıldığını belirtiyor; yapılandırılmış risk analizi (senaryo, hassasiyet, "
+            "olasilik-etki matrisleri) ile daha sağlam kararlar alınabiliyor."
+        )
+        out.append(
+            "Dziadosz & Rejment 2015, risk yönetim sürecini üç çekirdeğe indiriyor: tanımla, "
+            "nicelleştir, tepki ver; projede hem nitel uzman görüşü hem RII gibi nicel araçların "
+            "beraber kullanılması öneriliyor."
+        )
+
+    # Aynı cümleleri tekrar yazmamak için uniq yap
+    seen: set[str] = set()
+    uniq: List[str] = []
+    for s in out:
+        if s not in seen:
+            seen.add(s)
+            uniq.append(s)
+    return uniq
+
+
+# ============================
+# 7) Ana fonksiyon
+# ============================
+
 def make_ai_risk_comment(risk_id: int) -> str:
     r = Risk.query.get(risk_id)
     if not r:
@@ -764,11 +956,24 @@ def make_ai_risk_comment(risk_id: int) -> str:
     lines.append("\n### 5) Kapanış Kriteri")
     lines.append(f"- {close_criteria}")
 
-    # --- Makale bağlamı ---
-    if rules:
-        lines.append("\n### 6) Makale Bağlamı")
-        for rr in rules:
-            lines.append(f"- {rr.get('text', '')}")
+    # --- Makale / literatür bağlamı ---
+    paper_notes = _paper_rule_summaries(r)
+    if paper_notes or rules:
+        lines.append("\n### 6) Literatür Bağlamı (Makaleler)")
+
+        if paper_notes:
+            lines.append("**Seçilmiş akademik bulgular (manuel gömülü kurallar):**")
+            for note in paper_notes:
+                lines.append(f"- {note}")
+
+        if rules:
+            lines.append("\n**Lokal AI indeksinden eşleşen kurallar:**")
+            for rr in rules:
+                txt = rr.get("text", "")
+                src = rr.get("source", "")
+                if src:
+                    lines.append(f"- {txt} _(kaynak: {src})_")
+                else:
+                    lines.append(f"- {txt}")
 
     return "\n".join(lines)
-
