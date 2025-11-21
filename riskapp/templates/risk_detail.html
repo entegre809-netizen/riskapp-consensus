@@ -91,6 +91,21 @@
     {% set last_rpn_display = None %}
   {% endif %}
 
+  {# RPN seviyesini Excel ölçeğine göre üret:
+     1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
+  {% set grade = '' %}
+  {% if last_rpn is not none and last_rpn > 0 %}
+    {% if last_rpn <= 4 %}
+      {% set grade = 'Düşük' %}
+    {% elif last_rpn <= 10 %}
+      {% set grade = 'Orta' %}
+    {% elif last_rpn <= 15 %}
+      {% set grade = 'Yüksek' %}
+    {% else %}
+      {% set grade = 'Çok Yüksek' %}
+    {% endif %}
+  {% endif %}
+
   {# ========= ÜST ÖZET + AKSİYONLAR ========= #}
   <div class="card sticky-top">
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
@@ -114,17 +129,6 @@
 
           {% if r.risk_type %}
             <span class="pill" title="Risk Tipi"><strong>🏷️</strong> {{ r.risk_type }}</span>
-          {% endif %}
-
-          {# grade backend'den gelsin, ama RPN sadece SON kayıt üzerinden hesaplansın #}
-          {% if r.grade is defined %}
-            {% if r.grade is callable %}
-              {% set grade = r.grade() %}
-            {% else %}
-              {% set grade = r.grade %}
-            {% endif %}
-          {% else %}
-            {% set grade = '' %}
           {% endif %}
 
           {% if last_rpn_display is not none %}

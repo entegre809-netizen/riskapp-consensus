@@ -54,7 +54,7 @@
 
   /* ===========================
      RISK MATRIX — 5×5 ısı haritası
-     Eşikler: 1–3 yeşil / 4–8 sarı / 9–12 turuncu / 15–25 kırmızı
+     Eşikler: 1–4 yeşil / 5–10 sarı / 11–15 turuncu / 16–25 kırmızı
      =========================== */
   .risk-matrix{
     display:grid;
@@ -220,7 +220,7 @@
 </style>
 
 {# ==== KPI hesap: her risk için SON değerlendirme (en büyük id) ==== #}
-{% set ns = namespace(total=0, low=0, mid=0, high=0, sum=0.0, have=0) %}
+{% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
 {% for r in risks or [] %}
   {% set evals = (r.evaluations or [])|sort(attribute='id') %}
   {% if evals %}
@@ -238,9 +238,16 @@
   {% if sc is not none %}
     {% set ns.sum  = ns.sum + sc %}
     {% set ns.have = ns.have + 1 %}
-    {% if sc <= 8 %}{% set ns.low = ns.low + 1 %}
-    {% elif sc <= 15 %}{% set ns.mid = ns.mid + 1 %}
-    {% else %}{% set ns.high = ns.high + 1 %}{% endif %}
+    {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
+    {% if sc <= 4 %}
+      {% set ns.low = ns.low + 1 %}
+    {% elif sc <= 10 %}
+      {% set ns.mid = ns.mid + 1 %}
+    {% elif sc <= 15 %}
+      {% set ns.high = ns.high + 1 %}
+    {% else %}
+      {% set ns.crit = ns.crit + 1 %}
+    {% endif %}
   {% endif %}
   {% set ns.total = ns.total + 1 %}
 {% endfor %}
@@ -253,8 +260,10 @@
     <div class="value">{{ ns.total }}</div>
   </div>
   <div class="kpi" role="listitem">
-    <div class="label">Yüksek Skor</div>
-    <div class="value"><span class="badge score-high">{{ ns.high }}</span></div>
+    <div class="label">Çok Yüksek + Yüksek</div>
+    <div class="value">
+      <span class="badge score-high">{{ ns.crit + ns.high }}</span>
+    </div>
   </div>
   <div class="kpi" role="listitem">
     <div class="label">Orta / Düşük</div>
@@ -323,11 +332,12 @@
               <td>{{ r.category or "-" }}</td>
               <td style="text-align:center">
                 {% if sc is not none %}
+                  {# Tablo rozetinde 3 renk: Düşük / Orta / (Yüksek+Çok Yüksek) #}
                   <span class="badge
-                              {% if sc<=8 %}score-low
-                              {% elif sc<=15 %}score-mid
+                              {% if sc<=4 %}score-low
+                              {% elif sc<=10 %}score-mid
                               {% else %}score-high{% endif %}"
-                        title="Son değerlendirme · P={{ last_eval.probability }}, S={{ last_eval.severity }}, RPN={{ sc }}">
+                        title="Son değerlendirme · P={{ last_eval.probability }}, S={{ last_eval.severity }}, Skor={{ sc }}">
                     {{ '%.2f'|format(sc) }}
                   </span>
                 {% else %}
@@ -360,10 +370,10 @@
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
       <h3 id="matrixTitle" style="margin:0">Risk Matrisi</h3>
       <div class="legend" aria-label="Seviye açıklamaları">
-        <span class="badge score-low">1–3 Düşük</span>
-        <span class="badge score-mid">4–8 Orta</span>
-        <span class="badge" style="background:rgba(253,186,116,.25);color:#4a2500;border-color:#f59e0b">9–12 Yüksek</span>
-        <span class="badge" style="background:rgba(239,68,68,.20);color:#7a1e1e;border-color:#ef4444">15–25 Kritik</span>
+        <span class="badge score-low">1–4 Düşük</span>
+        <span class="badge score-mid">5–10 Orta</span>
+        <span class="badge" style="background:rgba(253,186,116,.25);color:#4a2500;border-color:#f59e0b">11–15 Yüksek</span>
+        <span class="badge" style="background:rgba(239,68,68,.20);color:#7a1e1e;border-color:#ef4444">16–25 Çok Yüksek</span>
       </div>
     </div>
 
@@ -394,7 +404,8 @@
           {# backend: matrix = {"P-S": adet} #}
           {% set count = matrix.get(key, 0) if matrix is defined and matrix else 0 %}
 
-          {% set lvl = 'low' if score<=3 else ('mid' if score<=8 else ('hi' if score<=12 else 'crit')) %}
+          {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
+          {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
 
           <a class="rm-cell {{ lvl }}"
              href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
