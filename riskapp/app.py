@@ -1839,9 +1839,13 @@ def create_app():
     def admin_suggestion_update(sid):
         s = Suggestion.query.get_or_404(sid)
 
-        new_text = (request.form.get("text") or "").strip()
+        new_text     = (request.form.get("text") or "").strip()
         new_category = (request.form.get("category") or s.category or "").strip()
-        new_code = (request.form.get("risk_code") or "").strip() or None
+        new_code     = (request.form.get("risk_code") or "").strip() or None
+
+        # 🔹 edit formundaki alanlar
+        new_risk_desc       = (request.form.get("risk_desc") or "").strip()
+        new_mitigation_hint = (request.form.get("mitigation_hint") or "").strip()
 
         def _toi(x):
             if x in (None, ""):
@@ -1857,8 +1861,19 @@ def create_app():
 
         if new_text:
             s.text = new_text
+
+        if new_risk_desc:
+            s.risk_desc = new_risk_desc
+        elif not s.risk_desc:
+            # tamamen boşsa en azından text'e yaslan
+            s.risk_desc = s.text
+
+        # boş stringe set etme, None yap
+        s.mitigation_hint = new_mitigation_hint or None
+
         s.category = new_category or s.category
         s.risk_code = new_code
+
         if new_p is not None:
             s.default_prob = new_p
         if new_s is not None:
@@ -1867,6 +1882,7 @@ def create_app():
         db.session.commit()
         flash("Şablon güncellendi.", "success")
         return redirect(url_for("risk_identify"))
+
 
     @app.post("/admin/suggestions/<int:sid>/delete")
     @role_required("admin")
@@ -1883,6 +1899,10 @@ def create_app():
         text = (request.form.get("text") or "").strip()
         category = (request.form.get("category") or "").strip()
         risk_code = (request.form.get("risk_code") or "").strip() or None
+
+        # 🔹 Yeni alanlar: formdaki textarea isimleriyle birebir aynı
+        risk_desc = (request.form.get("risk_desc") or "").strip()
+        mitigation_hint = (request.form.get("mitigation_hint") or "").strip()
 
         def _toi(x):
             if x in (None, ""):
@@ -1913,24 +1933,22 @@ def create_app():
         if not rc:
             db.session.add(RiskCategory(name=category, is_active=True))
 
-        # 🟡 YENİ: risk_desc ve mitigation_hint alanlarını da dolduruyoruz
-        # Bu formda tek metin olduğu için:
-        #   - risk_desc      = text  (Risk Tanımı)
-        #   - mitigation_hint = None (bu formda girilmiyor, Excel'den vs. gelebilir)
+        # 🔹 risk_desc boşsa text’i kopyalıyoruz, mitigation_hint boşsa None
         s = Suggestion(
             text=text,
             category=category,
             risk_code=risk_code,
             default_prob=default_prob,
             default_sev=default_sev,
-            risk_desc=text,
-            mitigation_hint=None,
+            risk_desc=risk_desc or text,
+            mitigation_hint=mitigation_hint or None,
         )
 
         db.session.add(s)
         db.session.commit()
         flash("Yeni şablon eklendi.", "success")
         return redirect(url_for("risk_identify") + f"#cat-{category.replace(' ', '-')}")
+
 
 
     # -------------------------------------------------
