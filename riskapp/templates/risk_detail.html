@@ -66,6 +66,46 @@
     background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
     color: var(--text);
   }
+
+  /* ===== Yorum blokları (Sistem + Kullanıcı) ===== */
+  .comment{
+    margin-bottom:10px;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+  }
+  .comment.system{
+    border-color: color-mix(in oklab, var(--primary) 55%, var(--line) 45%);
+    background:
+      radial-gradient(circle at 0 0,
+        color-mix(in oklab, var(--primary) 18%, transparent),
+        color-mix(in oklab, var(--bg-soft) 96%, transparent));
+  }
+  .comment .meta{
+    font-size:.8rem;
+    opacity:.85;
+  }
+  .comment pre{
+    margin-top:.4rem;
+    padding:10px 12px;
+    border-radius:8px;
+    background:#020617;
+    color:#e5e7eb;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                 "Liberation Mono","Courier New", monospace;
+    font-size:.85rem;
+    line-height:1.45;
+    white-space:pre-wrap;
+  }
+  html[data-theme="light"] .comment pre{
+    background:#0b1120;
+    color:#e5e7eb;
+  }
+  html[data-theme="dark"] .comment pre{
+    background:#020617;
+    color:#e5e7eb;
+  }
 </style>
 
 <div class="page">
@@ -327,7 +367,6 @@
       {% endif %}
 
       {# ========= ÇOKLU RİSK İÇİN DEĞERLENDİRME FORMLARI ========= #}
-      {# bulk_risks backend'ten geliyorsa hepsini kullan, yoksa sadece r #}
       {% if bulk_risks is defined and bulk_risks %}
         {% set eval_targets = bulk_risks %}
       {% else %}
@@ -460,10 +499,10 @@
             {% if _is_long %}
               <details style="margin-top:.35rem">
                 <summary class="muted" style="cursor:pointer">Yorumu aç/kapat</summary>
-                <pre style="margin-top:.35rem">{{ _txt }}</pre>
+                <pre>{{ _txt }}</pre>
               </details>
             {% else %}
-              <pre style="margin-top:.35rem">{{ _txt }}</pre>
+              <pre>{{ _txt }}</pre>
             {% endif %}
           </div>
         {% else %}
