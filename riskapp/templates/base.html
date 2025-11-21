@@ -175,6 +175,16 @@
       .layout{ grid-template-columns: 1fr }
     }
 
+    /* Desktop: hamburger ile sidebar'ı tamamen gizle */
+    @media (min-width: 981px){
+      body.sidebar-collapsed .layout{
+        grid-template-columns: 1fr;
+      }
+      body.sidebar-collapsed .sidebar{
+        display:none;
+      }
+    }
+
     /* Sidebar */
     .sidebar{
       position:sticky; top:62px; align-self:start;
@@ -443,7 +453,7 @@
         </nav>
       </div>
 
-      <!-- RİSK MENÜSÜ (burada Mitigations linkini r varsa gösteriyoruz) -->
+      <!-- RİSK MENÜSÜ -->
       <div class="menu-section">
         <div class="menu-title">Risk</div>
         <nav class="menu submenu">
@@ -452,13 +462,11 @@
           <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Geçmiş İşlem Verilerim</a>
           <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">Kategoriler</a>
           <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">Zaman Çizelgesi</a>
-         
 
           <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
 
-          {# Sadece risk detayında (r tanımlı iken) Mitigations linkini göster #}
           {% if r is defined %}
-            
+            {# Risk detayındayken ekstra linkler koyacaksan buraya #}
           {% endif %}
 
           {% if session.get('role') == 'admin' %}
@@ -531,6 +539,7 @@
 <script>
 (function(){
   const KEY = 'riskapp.theme';
+  const SIDEBAR_KEY = 'riskapp.sidebarCollapsed';
   const root = document.documentElement;
   const getBtnTheme = () => document.getElementById('themeToggle');
   const sidebar = document.getElementById('sidebar');
@@ -555,16 +564,51 @@
     applyTheme(current === 'light' ? 'dark' : 'light');
   };
 
-  // Mobil sidebar toggle (hide_nav=False iken)
+  function isMobile(){
+    return window.matchMedia && window.matchMedia('(max-width: 980px)').matches;
+  }
+
+  // Desktop için sidebar collapsed state'ini yükle
+  (function initSidebarPref(){
+    if (!sidebar) return;
+    let collapsed = false;
+    try{
+      collapsed = localStorage.getItem(SIDEBAR_KEY) === '1';
+    } catch(e){}
+    if (collapsed && !isMobile()){
+      document.body.classList.add('sidebar-collapsed');
+    }
+  })();
+
+  // Sidebar toggle (mobil + desktop)
   if (sidebarToggle && sidebar){
     sidebarToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
+      if (isMobile()){
+        // Mobil: slide-in menü
+        sidebar.classList.toggle('open');
+      } else {
+        // Desktop: sidebar tamamen gizle/göster
+        document.body.classList.toggle('sidebar-collapsed');
+        try{
+          const collapsed = document.body.classList.contains('sidebar-collapsed');
+          localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
+        } catch(e){}
+      }
     });
-    // Sidebar dışına tıklayınca kapat (mobil)
+
+    // Sidebar dışına tıklayınca kapat (sadece mobilde)
     document.addEventListener('click', (e)=>{
+      if (!isMobile()) return;
       if (!sidebar.classList.contains('open')) return;
       const within = sidebar.contains(e.target) || sidebarToggle.contains(e.target);
       if (!within) sidebar.classList.remove('open');
+    });
+
+    // Ekran boyutu değişince mobil>desktop geçişinde açık sidebar'ı kapat
+    window.addEventListener('resize', ()=>{
+      if (!isMobile()){
+        sidebar.classList.remove('open');
+      }
     });
   }
 
@@ -586,5 +630,3 @@
 </script>
 </body>
 </html>
-
-
