@@ -199,7 +199,7 @@
         <div>
           <label>Durum</label>
           <select class="input" name="status">
-            {% for s in ['Open','Assessed','Mitigating','Closed'] %}
+            {% for s in ['Aktif','Değerlendirildi','Azaltıcı','kapandı'] %}
               <option value="{{ s }}" {% if r.status == s %}selected{% endif %}>{{ s }}</option>
             {% endfor %}
           </select>
