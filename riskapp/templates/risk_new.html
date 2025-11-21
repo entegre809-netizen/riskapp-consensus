@@ -39,11 +39,26 @@
       </summary>
       <ul style="margin:.6rem 0 0 1rem">
         {% for s in _picked %}
-          <li class="small" style="margin:.15rem 0">
-            <strong>{{ s.category or 'Genel' }}</strong> — {{ s.text }}
-            {% if s.risk_code %}
-              <span class="badge" style="margin-left:.35rem">{{ s.risk_code }}</span>
-            {% endif %}
+          <li class="small"
+              style="margin:.15rem 0; display:flex; align-items:center; justify-content:space-between; gap:.5rem;">
+            <div>
+              <strong>{{ s.category or 'Genel' }}</strong> — {{ s.text }}
+              {% if s.risk_code %}
+                <span class="badge" style="margin-left:.35rem">{{ s.risk_code }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Sepetten kaldır butonu -->
+            <form method="post"
+                  action="{{ url_for('risk_basket_remove') }}"
+                  style="margin:0;">
+              <input type="hidden" name="template_id" value="{{ s.id }}">
+              <button type="submit"
+                      class="btn btn-ghost"
+                      style="padding:2px 10px; font-size:.78rem; border-radius:999px;">
+                ✕ Kaldır
+              </button>
+            </form>
           </li>
         {% endfor %}
       </ul>

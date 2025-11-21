@@ -4605,6 +4605,26 @@ def create_app():
             resp.headers["Content-Disposition"] = "attachment; filename=risks_export.csv"
             return resp
     
+    @app.post("/risks/basket/remove")
+    def risk_basket_remove():
+        """Sepetteki şablonlardan birini kaldır."""
+        template_id = request.form.get("template_id", type=int)
+        if not template_id:
+            return redirect(url_for("risk_new"))
+
+        basket = session.get("picked_rows") or []
+
+        # sepette ID listesi tutuyorsan:
+        try:
+            basket = [rid for rid in basket if rid != template_id]
+        except Exception:
+            # ne olur ne olmaz, bozuk format falan olursa
+            basket = []
+
+        session["picked_rows"] = basket
+        flash("Şablon sepetten kaldırıldı.", "info")
+        return redirect(url_for("risk_new"))
+    
     return app
 
 
