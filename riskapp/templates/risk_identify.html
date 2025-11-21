@@ -179,6 +179,48 @@
     font-size: .8rem;
     white-space: pre-wrap;   /* Excel'den gelen satır sonlarını koru */
   }
+
+  /* ---- Mini tablo (2. screenshot görünümü) ---- */
+  .mini-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:8px;
+  }
+  .mini-table th,
+  .mini-table td{
+    padding:.4rem .55rem;
+    border-bottom:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    font-size:.82rem;
+  }
+  .mini-table thead th{
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-weight:800;
+    color:var(--muted);
+  }
+  .mini-table tbody tr:nth-child(even) td{
+    background: color-mix(in oklab, var(--bg) 97%, transparent);
+  }
+  .badge-soft{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:.1rem .5rem;
+    border-radius:999px;
+    background: color-mix(in oklab, var(--brand-2) 10%, transparent);
+    border:1px solid color-mix(in oklab, var(--brand-2) 32%, transparent);
+    font-weight:700;
+    font-size:.78rem;
+  }
+  .btn-xs{
+    padding:.28rem .55rem;
+    font-size:.8rem;
+    border-radius:8px;
+  }
 </style>
 
 <div class="card" id="top">
@@ -250,8 +292,9 @@
           <span class="small cat-count" id="count-{{ cat_idx }}">(0 seçili)</span>
         </div>
 
+        {# 1) Bu kategoriye yeni madde ekle (1. screenshot) #}
         {% if session.get('role') == 'admin' %}
-        <details style="margin:6px 0 12px;">
+        <details style="margin:6px 0 10px;">
           <summary class="small" style="cursor:pointer; user-select:none;">➕ Bu kategoriye yeni madde ekle</summary>
           <form method="post" action="{{ url_for('admin_suggestion_create') }}" class="grid grid-2" style="margin-top:.5rem;">
             <input type="hidden" name="category" value="{{ cat_name }}">
@@ -278,6 +321,35 @@
         </details>
         {% endif %}
 
+        {# 2) Kayıtlı riskler mini tablosu (2. screenshot görünümü) #}
+        {% if session.get('role') == 'admin' and risks %}
+          <div class="small text-muted" style="margin:4px 0;">Bu kategorideki kayıtlı riskler</div>
+          <div class="table-wrap-mini" style="margin-bottom:8px; max-height:220px; overflow:auto;">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>RİSK KODU</th>
+                  <th style="text-align:center;">VARS. OLASILIK</th>
+                  <th style="text-align:center;">VARS. ŞİDDET</th>
+                  <th style="width:90px; text-align:right;">İŞLEM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in risks %}
+                  <tr>
+                    <td><span class="badge-soft">{{ s.risk_code or '—' }}</span></td>
+                    <td style="text-align:center;">{{ s.default_prob if s.default_prob is not none else '—' }}</td>
+                    <td style="text-align:center;">{{ s.default_sev  if s.default_sev  is not none else '—' }}</td>
+                    <td style="text-align:right;">
+                      <a href="#editrow-{{ s.id }}" class="btn btn-xs btn-edit" data-sid="{{ s.id }}">Düzenle</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
         <div class="bulk-row">
           <label class="small">
             <input type="checkbox" class="toggle-all" data-group="{{ cat_idx }}">
@@ -289,6 +361,7 @@
           </div>
         </div>
 
+        {# 3) Ana seçim tablosu (3. screenshot + ek kolonlar) #}
         <div class="table-wrap" data-collapsible>
           <table class="table-select">
             <thead>
@@ -321,18 +394,16 @@
                   >
                 </td>
 
-                <!-- RİSK: kısa risk adı + kategori + kopyalanabilir kod rozeti -->
+                <!-- RİSK: kısa risk adı -->
                 <td>
-  <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
-    <div class="risk-badge">
-      
-      <span class="risk-title">
-        {{ s.risk_title or s.text }}
-      </span>
-    </div>
-  </label>
-</td>
-
+                  <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
+                    <div class="risk-badge">
+                      <span class="risk-title">
+                        {{ s.risk_title or s.text }}
+                      </span>
+                    </div>
+                  </label>
+                </td>
 
                 <!-- RİSK FAKTÖRÜ + Mitigation -->
                 <td class="small">
@@ -480,6 +551,7 @@
   document.addEventListener('click', (e) => {
     const editBtn = e.target.closest('.btn-edit');
     if (editBtn){
+      e.preventDefault();
       const sid = editBtn.getAttribute('data-sid');
       const row = $('#editrow-' + sid);
       if (row) row.toggleAttribute('hidden');
@@ -487,6 +559,7 @@
     }
     const cancelBtn = e.target.closest('.btn-cancel-edit');
     if (cancelBtn){
+      e.preventDefault();
       const sid2 = cancelBtn.getAttribute('data-sid');
       const row2 = $('#editrow-' + sid2);
       if (row2) row2.setAttribute('hidden','');
