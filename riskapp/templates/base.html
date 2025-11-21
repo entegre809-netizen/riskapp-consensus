@@ -415,9 +415,13 @@
     <div class="brand">⚠️ Risk Yönetimi</div>
     <div class="spacer"></div>
 
-    {% if session.get('username') %}
-      <div class="small">👋 {{ session.get('username') }}{% if session.get('role') %} · {{ session.get('role')|capitalize }}{% endif %}</div>
+       {% if session.get('username') and request.endpoint != 'welcome' %}
+      <div class="small">
+        👋 {{ session.get('username') }}
+        {% if session.get('role') %} · {{ session.get('role')|capitalize }}{% endif %}
+      </div>
     {% endif %}
+
 
     <button id="themeToggle" class="btn" onclick="window.__toggleTheme?.()" style="margin-left:8px">
       🌙 Koyu Tema
