@@ -3,16 +3,33 @@
 <head>
   <meta charset="utf-8">
   <title>Risk Zaman Çizelgesi PDF</title>
+
+  {# Sayfa yönü: orientation = 'portrait' / 'landscape' (varsayılan: landscape) #}
+  {% set orient = orientation or 'landscape' %}
+
+  {# Yön sadece @page içinde kullanılıyor; CSS içinde Jinja yok #}
+  {% if orient == 'portrait' %}
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 14mm 16mm 14mm;
+    }
+  </style>
+  {% else %}
   <style>
     @page {
       size: A4 landscape;
-      margin: 15mm 15mm 15mm 15mm;
+      margin: 14mm 14mm 16mm 14mm;
     }
+  </style>
+  {% endif %}
 
+  <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 11px;
-      color: #111827;
+      font-size: 10.5px;
+      color: #0f172a;
+      line-height: 1.3;
     }
 
     h1, h2, h3 {
@@ -25,27 +42,33 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 14px;
-      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 10px;
       padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
     }
 
     .header-left {
-      font-size: 12px;
-      max-width: 55%;
+      font-size: 11px;
+      max-width: 60%;
     }
 
     .header-left h1 {
-      font-size: 18px;
-      margin-bottom: 6px;
-      letter-spacing: 0.01em;
+      font-size: 17px;
+      margin-bottom: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    .header-sub {
+      font-size: 9px;
+      color: #6b7280;
+      margin-top: 2px;
     }
 
     .header-right {
       text-align: right;
-      font-size: 10px;
+      font-size: 9.5px;
       color: #6b7280;
-      max-width: 40%;
+      max-width: 38%;
     }
 
     .meta-row {
@@ -56,8 +79,8 @@
     .meta-label {
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-size: 8.5px;
+      letter-spacing: 0.08em;
+      font-size: 8px;
       color: #9ca3af;
       margin-right: 4px;
     }
@@ -68,29 +91,44 @@
     }
 
     .tag-row {
-      margin-top: 2px;
+      margin-top: 4px;
     }
 
     .tag {
       display: inline-block;
       padding: 2px 7px;
       border-radius: 999px;
-      font-size: 9px;
+      font-size: 8.5px;
       border: 1px solid #e5e7eb;
       margin-right: 4px;
+      margin-bottom: 2px;
     }
 
     .tag-crit { background:#fee2e2; border-color:#fecaca; }
     .tag-mod  { background:#fef3c7; border-color:#fde68a; }
     .tag-low  { background:#dcfce7; border-color:#bbf7d0; }
-    .tag-acc  { background:#f3f4f6; border-color:#e5e7eb; }
+    .tag-acc  { background:#eef2f7; border-color:#e5e7eb; }
+
+    /* ---------- GENEL ÖZET ---------- */
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 9px;
+      color: #6b7280;
+    }
+
+    .summary-row div {
+      margin-right: 8px;
+    }
 
     /* ---------- TABLE ---------- */
     table {
       border-collapse: collapse;
       width: 100%;
       table-layout: fixed;
-      font-size: 10px;
+      font-size: 9.5px;
     }
 
     th, td {
@@ -104,22 +142,45 @@
       background: #f3f4f6;
       font-weight: 600;
       text-align: left;
+      font-size: 9px;
+    }
+
+    th:first-child {
+      border-top-left-radius: 4px;
+    }
+    th:last-child {
+      border-top-right-radius: 4px;
     }
 
     th.month-col {
       text-align: center;
       white-space: nowrap;
-      font-size: 9px;
+      font-size: 8.5px;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #f9fafb;
     }
 
     .risk-title {
       font-weight: 600;
       margin-bottom: 2px;
+      color: #111827;
     }
 
     .risk-meta {
       color: #6b7280;
-      font-size: 9px;
+      font-size: 8.8px;
+    }
+
+    .code-badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      font-size: 8.5px;
+      margin-left: 3px;
+      background: #f9fafb;
     }
 
     .chip {
@@ -127,7 +188,7 @@
       padding: 1px 6px;
       border-radius: 999px;
       border: 1px solid #e5e7eb;
-      font-size: 9px;
+      font-size: 8.5px;
       margin-right: 3px;
     }
 
@@ -143,8 +204,8 @@
 
     .bar {
       display: block;
-      height: 10px;
-      margin: 2px;
+      height: 9px;
+      margin: 2px 3px;
       border-radius: 999px;
     }
 
@@ -155,9 +216,25 @@
 
     .no-data {
       text-align: center;
-      padding: 16px;
+      padding: 24px 10px;
       color: #6b7280;
       font-size: 11px;
+      border-radius: 8px;
+      border: 1px dashed #e5e7eb;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      font-size: 8.5px;
+      background: #f9fafb;
+    }
+
+    .period-text {
+      font-size: 8.8px;
+      color: #4b5563;
     }
   </style>
 </head>
@@ -171,9 +248,12 @@
   <div class="header">
     <div class="header-left">
       <h1>{{ pdf_title }}</h1>
+      <div class="header-sub">
+        Seçilen dönem için risklerin zaman içerisindeki dağılımı ve önem seviyesi.
+      </div>
       <div class="tag-row">
-        <span class="tag tag-crit">Kritik</span>
-        <span class="tag tag-mod">Orta</span>
+        <span class="tag tag-crit">Kritik (Çok Yüksek)</span>
+        <span class="tag tag-mod">Orta / Yüksek</span>
         <span class="tag tag-low">Düşük</span>
         <span class="tag tag-acc">Kabul edilebilir</span>
       </div>
@@ -184,23 +264,48 @@
         <span class="meta-label">Oluşturma</span>
         <span class="meta-value">{{ generated_at }}</span>
       </div>
+      <div class="meta-row">
+        <span class="meta-label">Sayfa</span>
+        <span class="meta-value">A4 · {{ 'Dikey' if orient == 'portrait' else 'Yatay' }}</span>
+      </div>
       {% if categories %}
       <div class="meta-row">
         <span class="meta-label">Kategoriler</span>
         <span class="meta-value">{{ categories|join(", ") }}</span>
       </div>
       {% endif %}
+      {% if rows %}
+      <div class="meta-row">
+        <span class="meta-label">Toplam Risk</span>
+        <span class="meta-value">{{ rows|length }}</span>
+      </div>
+      {% endif %}
     </div>
   </div>
 
   {% if rows and months %}
+    <div class="summary-row">
+      <div>
+        <span class="meta-label">Dönem</span>
+        <span class="meta-value">
+          {{ pdf_month_name }} {{ current_year }}
+        </span>
+      </div>
+      <div>
+        <span class="meta-label">Ay Sütunları</span>
+        <span class="meta-value">
+          {{ months|join(" · ") }}
+        </span>
+      </div>
+    </div>
+
     <table>
       <thead>
         <tr>
-          <th style="width: 32%">Risk</th>
-          <th style="width: 12%">Kategori / Sorumlu</th>
-          <th style="width: 9%">Durum</th>
-          <th style="width: 10%">RPN</th>
+          <th style="width: 30%">Risk</th>
+          <th style="width: 14%">Kategori / Sorumlu</th>
+          <th style="width: 10%">Durum</th>
+          <th style="width: 10%">RPN (P×S)</th>
           <th style="width: 14%">Dönem (Başlangıç → Bitiş)</th>
           {% for m in months %}
             <th class="month-col">{{ m }}</th>
@@ -215,9 +320,12 @@
             <td>
               <div class="risk-title">{{ r.title }}</div>
               <div class="risk-meta">
-                ID: {{ r.id }}{% if r.code %} · Kod: {{ r.code }}{% endif %}
+                ID: {{ r.id }}
+                {% if r.code %}
+                  <span class="code-badge">Kod: {{ r.code }}</span>
+                {% endif %}
               </div>
-              <div class="risk-meta">
+              <div class="risk-meta" style="margin-top:2px;">
                 Seviye:
                 <span class="chip chip-{{ row.grade }}">{{ row.grade|capitalize }}</span>
               </div>
@@ -225,15 +333,19 @@
 
             <td>
               <div class="risk-meta">
-                Kat: {{ r.category or '-' }}
+                Kategori: {{ r.category or '-' }}
               </div>
-              <div class="risk-meta">
+              <div class="risk-meta" style="margin-top:2px;">
                 Sorumlu: {{ r.responsible or '-' }}
               </div>
             </td>
 
             <td>
-              {{ r.status or '—' }}
+              {% if r.status %}
+                <span class="status-pill">{{ r.status }}</span>
+              {% else %}
+                —
+              {% endif %}
             </td>
 
             <td>
@@ -246,7 +358,9 @@
 
             <td>
               {% if r.start_month or r.end_month %}
-                {{ r.start_month or '—' }} → {{ r.end_month or '—' }}
+                <span class="period-text">
+                  {{ r.start_month or '—' }} → {{ r.end_month or '—' }}
+                </span>
               {% else %}
                 —
               {% endif %}
