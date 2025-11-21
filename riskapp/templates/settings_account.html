@@ -1,37 +1,235 @@
 {% extends "base.html" %}
 {% block title %}Hesap Ayarları{% endblock %}
 {% block content %}
-<div class="container" style="max-width:640px">
-  <div class="card">
-    <h2>Hesap Ayarları</h2>
+
+<style>
+  .settings-shell{
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .settings-card{
+    padding: 20px 22px;
+    border-radius: 16px;
+    box-shadow: var(--elev-2, 0 10px 30px rgba(15,23,42,0.12));
+    border: 1px solid var(--line-soft, rgba(148,163,184,0.25));
+  }
+
+  .settings-header{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+
+  .settings-header h2{
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .settings-header p{
+    margin: 0;
+    font-size: .85rem;
+    color: var(--muted, #6b7280);
+  }
+
+  .settings-section{
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line-soft, rgba(148,163,184,0.4));
+  }
+
+  .settings-section:first-of-type{
+    border-top: none;
+    padding-top: 0;
+    margin-top: 8px;
+  }
+
+  .settings-section-title{
+    font-size: .95rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .settings-section-title span.badge{
+    font-size: .7rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--bg-soft, #f3f4f6);
+    border: 1px solid var(--line-soft, rgba(148,163,184,0.4));
+  }
+
+  .form-grid{
+    display: grid;
+    gap: 10px;
+  }
+
+  .field-label{
+    display:flex;
+    justify-content:space-between;
+    font-size:.85rem;
+    margin-bottom: 2px;
+  }
+
+  .field-label span.helper{
+    font-size:.75rem;
+    color:var(--muted,#6b7280);
+  }
+
+  .field-hint{
+    margin: 2px 0 0;
+    font-size: .75rem;
+    color: var(--muted,#6b7280);
+  }
+
+  .settings-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top: 16px;
+  }
+
+  @media (max-width: 520px){
+    .settings-card{
+      padding: 16px 14px;
+      border-radius: 12px;
+    }
+    .settings-actions{
+      flex-wrap: wrap;
+    }
+  }
+</style>
+
+<div class="container settings-shell">
+  <div class="card settings-card">
+    <div class="settings-header">
+      <h2>Hesap Ayarları</h2>
+      <p>Profil bilgilerini güncelle, dili seç ve şifreni güvenli bir şekilde değiştir.</p>
+    </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for c,m in messages %}<div class="flash {{c}}">{{m}}</div>{% endfor %}
+      {% for c,m in messages %}
+        <div class="flash {{c}}">{{ m }}</div>
+      {% endfor %}
     {% endwith %}
 
     <form method="post" class="form">
-      <label>Ad Soyad</label>
-      <input class="input" name="contact_name" value="{{ acc.contact_name }}">
+      <!-- Profil bilgileri -->
+      <div class="settings-section">
+        <h3 class="settings-section-title">
+          Profil
+          <span class="badge">Görünür bilgiler</span>
+        </h3>
 
-      <label>Ünvan</label>
-      <input class="input" name="contact_title" value="{{ acc.contact_title or '' }}">
+        <div class="form-grid">
+          <div>
+            <div class="field-label">
+              <label for="contact_name">Ad Soyad</label>
+              <span class="helper">En fazla 80 karakter</span>
+            </div>
+            <input
+              id="contact_name"
+              class="input"
+              name="contact_name"
+              value="{{ acc.contact_name|e }}"
+              maxlength="80"
+              minlength="2"
+              required
+            >
+            <p class="field-hint">Gerçek adını veya raporlarda görünmesini istediğin adı yaz.</p>
+          </div>
 
-      <label>Lisan</label>
-      <select class="input" name="language">
-        <option value="Türkçe" {{ 'selected' if acc.language=='Türkçe' }}>Türkçe</option>
-        <option value="English" {{ 'selected' if acc.language=='English' }}>English</option>
-      </select>
+          <div>
+            <div class="field-label">
+              <label for="contact_title">Ünvan</label>
+              <span class="helper">En fazla 80 karakter</span>
+            </div>
+            <input
+              id="contact_title"
+              class="input"
+              name="contact_title"
+              value="{{ (acc.contact_title or '')|e }}"
+              maxlength="80"
+            >
+            <p class="field-hint">Örnek: Proje Müdürü, Kalite Mühendisi, Planlama Uzmanı…</p>
+          </div>
 
-      <hr/>
-      <h3>Şifre Değiştir</h3>
-      <label>Mevcut Şifre</label>
-      <input class="input" type="password" name="current_password" placeholder="••••••••">
-      <label>Yeni Şifre</label>
-      <input class="input" type="password" name="new_password" placeholder="Yeni şifre">
-      <label>Yeni Şifre (Tekrar)</label>
-      <input class="input" type="password" name="new_password2" placeholder="Yeni şifre tekrar">
+          <div>
+            <div class="field-label">
+              <label for="language">Lisan</label>
+            </div>
+            <select id="language" class="input" name="language">
+              <option value="Türkçe" {{ 'selected' if acc.language=='Türkçe' }}>Türkçe</option>
+              <option value="English" {{ 'selected' if acc.language=='English' }}>English</option>
+            </select>
+            <p class="field-hint">Sistem bildirimlerinin ve arayüzün dili.</p>
+          </div>
+        </div>
+      </div>
 
-      <div class="row" style="margin-top:12px">
+      <!-- Şifre değiştirme -->
+      <div class="settings-section">
+        <h3 class="settings-section-title">
+          Şifre Değiştir
+          <span class="badge">Güvenlik</span>
+        </h3>
+
+        <div class="form-grid">
+          <div>
+            <div class="field-label">
+              <label for="current_password">Mevcut Şifre</label>
+            </div>
+            <input
+              id="current_password"
+              class="input"
+              type="password"
+              name="current_password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              maxlength="128"
+            >
+          </div>
+
+          <div>
+            <div class="field-label">
+              <label for="new_password">Yeni Şifre</label>
+              <span class="helper">Min. 8 karakter</span>
+            </div>
+            <input
+              id="new_password"
+              class="input"
+              type="password"
+              name="new_password"
+              placeholder="Yeni şifre"
+              autocomplete="new-password"
+              minlength="8"
+              maxlength="128"
+            >
+          </div>
+
+          <div>
+            <div class="field-label">
+              <label for="new_password2">Yeni Şifre (Tekrar)</label>
+            </div>
+            <input
+              id="new_password2"
+              class="input"
+              type="password"
+              name="new_password2"
+              placeholder="Yeni şifre tekrar"
+              autocomplete="new-password"
+              minlength="8"
+              maxlength="128"
+            >
+            <p class="field-hint">Yeni şifreni doğrulamak için aynı şekilde tekrar yaz.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-actions">
         <a class="btn" href="{{ url_for('dashboard') }}">Geri</a>
         <div style="flex:1"></div>
         <button class="btn btn-primary">Kaydet</button>

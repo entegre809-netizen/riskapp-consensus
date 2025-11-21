@@ -1997,6 +1997,9 @@ def create_app():
                 description_common = (request.form.get("description") or "").strip() or None
                 mitigation_common  = (request.form.get("mitigation") or "").strip() or None
 
+                # 🔴 mitigation_common boşsa, prefill'den al:
+                mitigation_effective = mitigation_common or mitigation_prefill or None
+
                 responsible = (request.form.get("responsible") or "").strip() or None
                 duration    = (request.form.get("duration") or "").strip() or None
 
@@ -2086,7 +2089,7 @@ def create_app():
                         title=(title_common or (sug_rows[0].text or "")[:150]),
                         category=cat,
                         description=final_desc,
-                        mitigation=mitigation_common,
+                        mitigation=mitigation_effective,   # 🔴 burası
                         responsible=responsible,
                         duration=duration,
                         start_month=start_month,
@@ -2150,7 +2153,7 @@ def create_app():
                         title=(title_common or (s.text or "")[:150]),
                         category=(s.category or None),
                         description=(description_common or (s.text or None)),
-                        mitigation=mitigation_common,
+                        mitigation=mitigation_effective,   # 🔴 burada da aynı metni kullan
                         responsible=responsible,
                         duration=duration,
                         start_month=start_month,
