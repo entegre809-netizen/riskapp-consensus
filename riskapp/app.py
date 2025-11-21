@@ -2287,6 +2287,29 @@ def create_app():
         flash(f"Risk silindi: {title}", "success")
         return redirect(url_for("risk_select"))
 
+
+    @app.route("/risks/delete_all", methods=["POST"])
+    @role_required("admin")
+    def risks_delete_all():
+        """
+        Tüm riskleri toplu siler.
+        Sadece admin rolü kullanabilir.
+        """
+        risks = Risk.query.all()
+        deleted = len(risks)
+
+        if deleted == 0:
+            flash("Silinecek risk bulunamadı.", "info")
+            return redirect(url_for("risk_select"))
+
+        for r in risks:
+            db.session.delete(r)
+
+        db.session.commit()
+        flash(f"Tüm riskler silindi. ({deleted} kayıt)", "success")
+        return redirect(url_for("risk_select"))
+
+
     # -------------------------------------------------
     #  Risk Detay + Konsensüs + Öneri
     # -------------------------------------------------

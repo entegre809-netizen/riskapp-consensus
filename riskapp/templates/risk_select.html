@@ -33,6 +33,8 @@
   .pager{ display:flex; gap:.5rem; justify-content:flex-end; flex-wrap:wrap; margin-top:.6rem }
   .pager .btn[aria-disabled="true"]{ opacity:.5; pointer-events:none }
   .empty{ border:1px dashed var(--line); border-radius:12px; padding:28px; text-align:center; color:var(--muted) }
+
+  .danger{ background:#ef4444; border-color:transparent; color:#fff; }
 </style>
 
 <div class="card">
@@ -110,6 +112,16 @@
     </div>
   </form>
 
+  {# Tüm riskleri sil (sadece admin) #}
+  {% if session.get('role') == 'admin' and risks and risks|length > 0 %}
+    <form method="post"
+          action="{{ url_for('risks_delete_all') }}"
+          onsubmit="return confirm('TÜM riskleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');"
+          style="margin:-.3rem 0 .8rem; display:flex; justify-content:flex-end;">
+      <button type="submit" class="btn danger">Tüm Riskleri Sil</button>
+    </form>
+  {% endif %}
+
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for c,m in messages %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
   {% endwith %}
@@ -123,6 +135,7 @@
             <th style="width:200px">Kategori</th>
             <th style="width:100px; text-align:center">Skor</th>
             <th style="width:160px">Güncel</th>
+            <th style="width:110px; text-align:right">İşlem</th>
           </tr>
         </thead>
         <tbody>
@@ -141,12 +154,32 @@
             <td>{{ r.category or "—" }}</td>
             <td style="text-align:center">
               {% set sc = r.score() %}
-              {% if sc %}<span class="score-badge" title="P x S">{% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}</span>{% else %}—{% endif %}
+              {% if sc %}
+                <span class="score-badge" title="P x S">
+                  {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
+                </span>
+              {% else %}
+                —
+              {% endif %}
             </td>
             <td>
               {% if r.updated_at %}
                 {{ r.updated_at.strftime("%Y-%m-%d %H:%M") }}
               {% else %}—{% endif %}
+            </td>
+            <td style="text-align:right">
+              {% if session.get('role') == 'admin' %}
+                <form method="post"
+                      action="{{ url_for('risk_delete', risk_id=r.id) }}"
+                      onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
+                      style="display:inline">
+                  <button type="submit" class="btn danger" style="padding:.15rem .55rem; font-size:.78rem;">
+                    Sil
+                  </button>
+                </form>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
