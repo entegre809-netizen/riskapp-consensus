@@ -24,7 +24,9 @@ from io import BytesIO
 from weasyprint import HTML
 import re
 from sqlalchemy.exc import IntegrityError
-
+from flask import request
+from .models import db, Risk, Mitigation
+from datetime import datetime
 from io import BytesIO
 from datetime import date
 from flask import send_file
@@ -1016,6 +1018,54 @@ def create_app():
             db.session.commit()
         except Exception:
             pass
+    def _sync_mitigations(risk: Risk) -> None:
+        """
+        Formdan gelen mitigasyon/önlem satırlarını al,
+        eski kayıtları sil, yenilerini ekle.
+        """
+
+        # Eski mitigasyonları sil
+        Mitigation.query.filter_by(risk_id=risk.id).delete()
+
+        # Formdan listeleri çek
+        texts   = request.form.getlist("mit_text[]")   or request.form.getlist("mit_text")
+        owners  = request.form.getlist("mit_owner[]")  or request.form.getlist("mit_owner")
+        dues    = request.form.getlist("mit_due[]")    or request.form.getlist("mit_due")
+        status_ = request.form.getlist("mit_status[]") or request.form.getlist("mit_status")
+
+        n = max(len(texts), len(owners), len(dues), len(status_)) if any([texts, owners, dues, status_]) else 0
+
+        def _safe(lst, i, default=""):
+            return lst[i] if i < len(lst) else default
+
+        for i in range(n):
+            text = (_safe(texts, i) or "").strip()
+            if not text:
+                continue  # tamamen boş satırı kaydetme
+
+            owner   = (_safe(owners, i) or "").strip()
+            status  = (_safe(status_, i) or "").strip()
+            due_raw = (_safe(dues, i) or "").strip()
+
+            due_date = None
+            if due_raw:
+                try:
+                    due_date = datetime.strptime(due_raw, "%Y-%m-%d").date()
+                except ValueError:
+                    due_date = None
+
+            m = Mitigation(
+                risk_id = risk.id,
+                text    = text,
+                owner   = owner,      # modelinde isim farklıysa BURAYI değiştir
+                status  = status,     # modelinde isim farklıysa BURAYI değiştir
+                due_date = due_date,  # modelinde isim farklıysa BURAYI değiştir
+            )
+            db.session.add(m)
+
+    # 🔼🔼🔼 BURADA BİTİYOR, SONRA ROUTE’LAR BAŞLIYOR 🔼🔼🔼
+
+   
 
    
     def _build_suggestions_by_category(category_rows):
@@ -4627,6 +4677,7 @@ def create_app():
         session["picked_rows"] = basket
         flash("Şablon sepetten kaldırıldı.", "info")
         return redirect(url_for("risk_new"))
+    
     
     return app
 
