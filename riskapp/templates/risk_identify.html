@@ -149,35 +149,33 @@
   .table-select tbody tr:nth-child(even) td,
   .table-select tbody tr:hover td{ background-clip: padding-box; }
 
-  /* --- Mitigation (önerilen önlemler) bloğu --- */
-  .miti{
-    margin-top: 6px;
+  /* --- Mitigation (önerilen önlemler) bloğu (link + gizli kutu) --- */
+  .mit-link{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-size:.82rem;
+    color:var(--muted);
+    text-decoration:none;
+    margin-top:4px;
   }
-  .miti > summary{
-    cursor: pointer;
-    list-style: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: .82rem;
-    color: var(--muted);
+  .mit-link::before{
+    content:"➜";
+    font-size:.8rem;
+    opacity:.7;
   }
-  .miti > summary::before{
-    content: "➜";
-    font-size: .8rem;
-    opacity: .7;
+  .mit-link.is-open{
+    color:var(--primary);
   }
-  .miti[open] > summary{
-    color: var(--primary);
-  }
-  .miti-text{
-    margin-top: 4px;
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: 1px dashed color-mix(in oklab, var(--line) 80%, transparent);
+  .mit-box{
+    display:none;
+    margin-top:4px;
+    padding:6px 8px;
+    border-radius:8px;
+    border:1px dashed color-mix(in oklab, var(--line) 80%, transparent);
     background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-    font-size: .8rem;
-    white-space: pre-wrap;   /* Excel'den gelen satır sonlarını koru */
+    font-size:.8rem;
+    white-space:pre-wrap;
   }
 </style>
 
@@ -260,14 +258,14 @@
               <textarea class="input" name="text" rows="2" required placeholder="Risk cümlesi..."></textarea>
             </div>
 
-            <!-- YENİ: Risk Faktörü -->
+            <!-- Risk Faktörü -->
             <div style="grid-column:1/-1">
               <label>Risk Faktörü (açıklama)</label>
               <textarea class="input" name="risk_desc" rows="2"
                         placeholder="Jeoteknik, batimetrik veya çevresel verilerin eksik/yanlış olması sonucu tasarım parametrelerinin hatalı belirlenmesi gibi..."></textarea>
             </div>
 
-            <!-- YENİ: Önerilen Önlemler -->
+            <!-- Önerilen Önlemler -->
             <div style="grid-column:1/-1">
               <label>Önerilen Önlemler (opsiyonel)</label>
               <textarea class="input" name="mitigation_hint" rows="2"
@@ -351,12 +349,15 @@
                 <td class="small">
                   {{ s.risk_desc or s.text }}
                   {% if s.mitigation_hint %}
-                    <details class="miti">
-                      <summary>Önerilen önlemleri göster</summary>
-                      <div class="miti-text">
-                        {{ s.mitigation_hint }}
-                      </div>
-                    </details>
+                    <br>
+                    <a href="#"
+                       class="mit-link"
+                       data-target="mit-{{ s.id }}">
+                      Önerilen önlemleri göster
+                    </a>
+                    <div id="mit-{{ s.id }}" class="mit-box">
+                      {{ s.mitigation_hint }}
+                    </div>
                   {% endif %}
                 </td>
 
@@ -389,13 +390,13 @@
                         <textarea class="input" name="text" rows="2" required>{{ s.text }}</textarea>
                       </div>
 
-                      <!-- YENİ: edit için Risk Faktörü -->
+                      <!-- edit için Risk Faktörü -->
                       <div style="grid-column:1/-1">
                         <label>Risk Faktörü (açıklama)</label>
                         <textarea class="input" name="risk_desc" rows="2">{{ s.risk_desc or '' }}</textarea>
                       </div>
 
-                      <!-- YENİ: edit için Önerilen Önlemler -->
+                      <!-- edit için Önerilen Önlemler -->
                       <div style="grid-column:1/-1">
                         <label>Önerilen Önlemler (opsiyonel)</label>
                         <textarea class="input" name="mitigation_hint" rows="2">{{ s.mitigation_hint or '' }}</textarea>
@@ -582,5 +583,20 @@
       if (t.scrollWidth > w.clientWidth) w.style.overflowX = 'auto';
     });
   })();
+
+  // Önerilen önlemler linki → kutu aç/kapa
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('.mit-link');
+    if (!link) return;
+    e.preventDefault();
+    const targetId = link.dataset.target;
+    const box = document.getElementById(targetId);
+    if (!box) return;
+
+    const isOpen = box.style.display === 'block';
+    box.style.display = isOpen ? 'none' : 'block';
+    link.classList.toggle('is-open', !isOpen);
+    link.textContent = isOpen ? 'Önerilen önlemleri göster' : 'Önerilen önlemleri gizle';
+  });
 </script>
 {% endblock %}
