@@ -99,19 +99,21 @@
     </div>
 
     <div>
-      <label>Sorumlu</label>
-      <input class="input" name="responsible" placeholder="Ad Soyad"
+      <label>Sorumlu <span class="small" style="opacity:.7">(en az 3 karakter)</span></label>
+      <input class="input" name="responsible" id="responsible" placeholder="Ad Soyad"
              value="{{ request.form.get('responsible','') }}">
     </div>
 
     <div>
       <label>Başlangıç Tarihi</label>
       <input class="input" type="date" id="start_date"
+             min="2000-01-01" max="2100-12-31"
              value="{{ request.form.get('start_date','') }}">
     </div>
     <div>
       <label>Bitiş Tarihi</label>
       <input class="input" type="date" id="end_date"
+             min="2000-01-01" max="2100-12-31"
              value="{{ request.form.get('end_date','') }}">
     </div>
 
@@ -138,12 +140,56 @@
     const hiddenA2  = document.getElementById('start_month_2');
     const hiddenB2  = document.getElementById('end_month_2');
 
+    const responsible = document.getElementById('responsible');
+
     function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
+
     function syncHidden(){
       const ymS = toYM(startDate.value);
       const ymE = toYM(endDate.value);
       [hiddenA1, hiddenA2].forEach(el => { if(el) el.value = ymS || ""; });
       [hiddenB1, hiddenB2].forEach(el => { if(el) el.value = ymE || ""; });
+    }
+
+    function validateCommon(){
+      // Sorumlu adı kontrolü
+      if (responsible) {
+        const name = responsible.value.trim();
+        if (name && name.length < 3) {
+          alert("Sorumlu adı en az 3 karakter olmalı.");
+          responsible.focus();
+          return false;
+        }
+      }
+
+      // Tarih / yıl aralığı kontrolü
+      function checkYear(input, label){
+        if (!input || !input.value) return true;
+        const d = new Date(input.value);
+        const y = d.getFullYear();
+        if (isNaN(y) || y < 2000 || y > 2100) {
+          alert(label + " 2000–2100 yılı arasında olmalı.");
+          input.focus();
+          return false;
+        }
+        return true;
+      }
+
+      if (!checkYear(startDate, "Başlangıç tarihi")) return false;
+      if (!checkYear(endDate, "Bitiş tarihi")) return false;
+
+      // Başlangıç > Bitiş ise engelle (JS zaten eşitlemeye çalışıyor ama yine de koruma)
+      if (startDate && endDate && startDate.value && endDate.value) {
+        const ds = new Date(startDate.value);
+        const de = new Date(endDate.value);
+        if (de < ds) {
+          alert("Bitiş tarihi, başlangıç tarihinden önce olamaz.");
+          endDate.focus();
+          return false;
+        }
+      }
+
+      return true;
     }
 
     startDate?.addEventListener('change', ()=>{
@@ -159,10 +205,28 @@
       syncHidden();
     });
 
-    // ilk yüklemede ve submit anında doldur
+    // ilk yüklemede doldur
     syncHidden();
-    document.getElementById('bulk-create-form')?.addEventListener('submit', syncHidden);
-    document.getElementById('common-form')?.addEventListener('submit', syncHidden);
+
+    const bulkForm   = document.getElementById('bulk-create-form');
+    const commonForm = document.getElementById('common-form');
+
+    if (bulkForm){
+      bulkForm.addEventListener('submit', function(e){
+        syncHidden();
+        if (!validateCommon()){
+          e.preventDefault();
+        }
+      });
+    }
+    if (commonForm){
+      commonForm.addEventListener('submit', function(e){
+        syncHidden();
+        if (!validateCommon()){
+          e.preventDefault();
+        }
+      });
+    }
   })();
   </script>
 </div>
