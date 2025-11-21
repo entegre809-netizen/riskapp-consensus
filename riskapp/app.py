@@ -2424,14 +2424,19 @@ def create_app():
             # Risk objesine set et (ilkini geri uyumluluk için r.category'ye de yazar)
             r.set_categories(cats_final)
 
-            db.session.commit()
+            # 🔹 YENİ: Mitigation satırlarını (Mitigation tablosu) senkronize et
+            # Bu fonksiyon create_app içinde yukarıda TANIMLI olmalı:
+            # def _sync_mitigations(risk: Risk): ...
+            _sync_mitigations(r)
 
-            # Sistem notu
+            # Sistem notu (aynı transaction içinde)
             db.session.add(Comment(
                 risk_id=r.id,
                 text=f"Risk düzenlendi: {datetime.utcnow().isoformat(timespec='seconds')} UTC",
                 is_system=True
             ))
+
+            # Tek commit yeter
             db.session.commit()
 
             flash("Değişiklikler kaydedildi.", "success")
@@ -2521,8 +2526,9 @@ def create_app():
             last_p=last_p,
             last_s=last_s,
             use_avg=use_avg,
-            bulk_risks=bulk_risks,          # 🔴 EKLEDİK
+            bulk_risks=bulk_risks,
         )
+
 
 
     # -------------------------------------------------
