@@ -7,7 +7,6 @@
   {# Sayfa yönü: orientation = 'portrait' / 'landscape' (varsayılan: landscape) #}
   {% set orient = orientation or 'landscape' %}
 
-  {# Yön sadece @page içinde kullanılıyor; CSS içinde Jinja yok #}
   {% if orient == 'portrait' %}
   <style>
     @page {
@@ -252,10 +251,10 @@
         Seçilen dönem için risklerin zaman içerisindeki dağılımı ve önem seviyesi.
       </div>
       <div class="tag-row">
-        <span class="tag tag-crit">Kritik (Çok Yüksek)</span>
-        <span class="tag tag-mod">Orta / Yüksek</span>
-        <span class="tag tag-low">Düşük</span>
-        <span class="tag tag-acc">Kabul edilebilir</span>
+        <span class="tag tag-crit">16–25 Çok Yüksek</span>
+        <span class="tag tag-mod">11–15 Yüksek</span>
+        <span class="tag tag-low">5–10 Orta</span>
+        <span class="tag tag-acc">1–4 Düşük</span>
       </div>
     </div>
 
@@ -316,6 +315,42 @@
       <tbody>
         {% for row in rows %}
           {% set r = row.risk %}
+
+          {# --- P×S skor ve seviye hesabı (dashboard ile aynı) --- #}
+          {% set sc = None %}
+          {% if r.score is not none %}
+            {% set _tmp = r.score() %}
+            {% if _tmp is not none %}
+              {% set sc = _tmp %}
+            {% endif %}
+          {% endif %}
+          {% if sc is none %}
+            {% set ap = r.avg_prob() %}
+            {% set asv = r.avg_sev() %}
+            {% if ap is not none and asv is not none %}
+              {% set sc = ap * asv %}
+            {% endif %}
+          {% endif %}
+
+          {% set lvl_label = "—" %}
+          {% set lvl_class = "acceptable" %}
+          {% if sc is not none %}
+            {% set sc = sc|float %}
+            {% if sc <= 4 %}
+              {% set lvl_label = "Düşük" %}
+              {% set lvl_class = "acceptable" %}
+            {% elif sc <= 10 %}
+              {% set lvl_label = "Orta" %}
+              {% set lvl_class = "low" %}
+            {% elif sc <= 15 %}
+              {% set lvl_label = "Yüksek" %}
+              {% set lvl_class = "moderate" %}
+            {% else %}
+              {% set lvl_label = "Çok Yüksek" %}
+              {% set lvl_class = "critical" %}
+            {% endif %}
+          {% endif %}
+
           <tr>
             <td>
               <div class="risk-title">{{ r.title }}</div>
@@ -327,7 +362,7 @@
               </div>
               <div class="risk-meta" style="margin-top:2px;">
                 Seviye:
-                <span class="chip chip-{{ row.grade }}">{{ row.grade|capitalize }}</span>
+                <span class="chip chip-{{ lvl_class }}">{{ lvl_label }}</span>
               </div>
             </td>
 
@@ -349,8 +384,8 @@
             </td>
 
             <td>
-              {% if r.avg_rpn() is not none %}
-                {{ '%.2f'|format(r.avg_rpn()) }}
+              {% if sc is not none %}
+                {{ '%.2f'|format(sc) }}
               {% else %}
                 —
               {% endif %}
@@ -371,7 +406,7 @@
               {% set active = (m in (row.active or [])) %}
               <td class="bar-cell">
                 {% if active %}
-                  <span class="bar bar-{{ row.grade }}"></span>
+                  <span class="bar bar-{{ lvl_class }}"></span>
                 {% endif %}
               </td>
             {% endfor %}
