@@ -5039,6 +5039,20 @@ def create_app():
         return render_template("risk_template_detail.html", s=s)
 
 
+    # -------------------------------------------------
+#  Risk sepetini temizle (eski endpointi geri getir)
+# -------------------------------------------------
+    @app.route("/risk/basket/remove", methods=["POST"])
+    def risk_basket_remove():
+        # Sepeti session'dan sil
+        session.pop("picked_rows", None)
+
+        # İstersen flash mesajı da gösterebilir:
+        flash("Risk sepeti temizlendi.", "info")
+
+        # Tekrar şablon seçme ekranına dön
+        return redirect(url_for("risk_identify"))
+
 
     
     return app
