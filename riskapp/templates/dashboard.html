@@ -219,22 +219,10 @@
   }
 </style>
 
-{# ==== KPI hesap: her risk için SON değerlendirme (en büyük id) ==== #}
+{# ==== KPI hesap: her risk için Risk.score() (detaydakiyle aynı) ==== #}
 {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
 {% for r in risks or [] %}
-  {% set evals = (r.evaluations or [])|sort(attribute='id') %}
-  {% if evals %}
-    {% set last_eval = evals|last %}
-    {% if last_eval.probability is not none and last_eval.severity is not none %}
-      {% set sc = last_eval.probability * last_eval.severity %}
-    {% else %}
-      {% set sc = None %}
-    {% endif %}
-  {% else %}
-    {% set last_eval = None %}
-    {% set sc = None %}
-  {% endif %}
-
+  {% set sc = r.score() %}
   {% if sc is not none %}
     {% set ns.sum  = ns.sum + sc %}
     {% set ns.have = ns.have + 1 %}
@@ -307,19 +295,7 @@
           </thead>
           <tbody>
             {% for r in risks[:8] %}
-            {% set evals = (r.evaluations or [])|sort(attribute='id') %}
-            {% if evals %}
-              {% set last_eval = evals|last %}
-              {% if last_eval.probability is not none and last_eval.severity is not none %}
-                {% set sc = last_eval.probability * last_eval.severity %}
-              {% else %}
-                {% set sc = None %}
-              {% endif %}
-            {% else %}
-              {% set last_eval = None %}
-              {% set sc = None %}
-            {% endif %}
-
+            {% set sc = r.score() %}
             <tr>
               <td>
                 <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
@@ -337,7 +313,7 @@
                               {% if sc<=4 %}score-low
                               {% elif sc<=10 %}score-mid
                               {% else %}score-high{% endif %}"
-                        title="Son değerlendirme · P={{ last_eval.probability }}, S={{ last_eval.severity }}, Skor={{ sc }}">
+                        title="Skor: {{ '%.2f'|format(sc) }}">
                     {{ '%.2f'|format(sc) }}
                   </span>
                 {% else %}
