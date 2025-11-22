@@ -1592,23 +1592,27 @@ def create_app():
         cell.alignment = AC
         row += 2
 
-        # legend (sağ üst)
-        ws.cell(row=1, column=len(HEAD) + 2, value="Legend").font = H
+        # ===== Legend (sağ üst, TEK SATIRDA YATAY) =====
+        base_col = len(HEAD) + 2
+
+        ws.cell(row=1, column=base_col, value="Legend").font = H
+
         legend = [
             ("Çok Yüksek Risk", FILL_VHIGH),
             ("Yüksek Risk",     FILL_HIGH),
             ("Orta Risk",       FILL_MED),
             ("Düşük Risk",      FILL_LOW),
         ]
-        lr = 2
+
+        row_legend = 2
+        col = base_col
         for text, fill in legend:
-            c1 = ws.cell(row=lr, column=len(HEAD) + 2, value=text)
-            c1.alignment = AL
-            c2 = ws.cell(row=lr, column=len(HEAD) + 3, value="")
-            c2.fill = fill
-            c2.border = border
-            ws.column_dimensions[get_column_letter(len(HEAD) + 3)].width = 14
-            lr += 1
+            col += 1
+            c = ws.cell(row=row_legend, column=col, value=text)
+            c.alignment = AC
+            c.fill = fill
+            c.border = border
+            ws.column_dimensions[get_column_letter(col)].width = max(len(text) + 4, 16)
 
         # her kategori için blok
         for cat, items in buckets.items():
@@ -1622,8 +1626,8 @@ def create_app():
             row += 1
 
             # tablo başlıkları
-            for col, head in enumerate(HEAD, 1):
-                c = ws.cell(row=row, column=col, value=head)
+            for col_idx, head in enumerate(HEAD, 1):
+                c = ws.cell(row=row, column=col_idx, value=head)
                 c.font = H
                 c.fill = FILL_HEAD
                 c.alignment = AC
@@ -1644,7 +1648,7 @@ def create_app():
                     p_val = r.avg_prob()
                     s_val = r.avg_sev()
 
-                # --- RPN: r.score() (RPN ort: varsa onu kullanır) ---
+                # --- RPN: score() varsa onu kullan, yoksa P×S ---
                 sc = None
                 score_fn = getattr(r, "score", None)
                 if callable(score_fn):
@@ -1670,15 +1674,15 @@ def create_app():
                     (r.mitigation or ""),
                 ]
 
-                for col, val in enumerate(values, 1):
-                    c = ws.cell(row=row, column=col, value=val)
-                    c.alignment = AL if col in (2, 3, 9) else AC
+                for col_idx, val in enumerate(values, 1):
+                    c = ws.cell(row=row, column=col_idx, value=val)
+                    c.alignment = AL if col_idx in (2, 3, 9) else AC
                     c.border = border
-                    if col == 8 and lvl_fill:
+                    if col_idx == 8 and lvl_fill:
                         c.fill = lvl_fill
                 row += 1
 
-            row += 1  # kategori sonrası bir boş satır
+            row += 1  # kategori sonrası boş satır
 
         import io
         bio = io.BytesIO()
@@ -1690,7 +1694,6 @@ def create_app():
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f'attachment; filename="{fname}"'}
         )
-
 
 
     # -------------------------------------------------
