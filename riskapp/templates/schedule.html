@@ -13,7 +13,7 @@
   {% set cur_y = (request.args.get('year')  or current_year  or 2025)|int %}
   {% set month_names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'] %}
 
-  {# Seviye etiketleri #}
+  {# Seviye etiketleri (backend "grade" filtresi için) #}
   {% set grade_labels = {
     'critical':   'Çok yüksek',
     'moderate':   'Yüksek',
@@ -204,14 +204,14 @@
       overflow:auto;
       border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
       border-radius:12px;
-      background:transparent;              /* gri blok yok */
+      background:transparent;
     }
     .timeline-table {
       border-collapse: collapse;
       width:100%;
       table-layout: fixed;
       min-width:760px;
-      background:#ffffff;                  /* tüm canvas beyaz */
+      background:#ffffff;
     }
     .timeline-table th,
     .timeline-table td {
@@ -227,7 +227,6 @@
     }
     .timeline-table th.month { text-align:center; white-space:nowrap; }
 
-    /* gövde hücreleri beyaz kalsın, başka tabloların zebra’ları ezilsin */
     .timeline-table tbody td{
       background:#ffffff !important;
     }
@@ -254,7 +253,6 @@
     .cal-badge:active{ cursor:grabbing; }
     .cal-more{ position:absolute; bottom:8px; left:8px; right:8px; font-size:12px; color:var(--muted); cursor:pointer }
 
-    /* +N daha popover */
     .cal-pop{
       position:absolute; left:8px; right:8px; bottom:34px;
       background: var(--card-solid);
@@ -302,6 +300,42 @@
       <tbody>
         {% for row in rows_safe %}
           {% set r = row.risk %}
+
+          {# --- P×S skorunu ve seviyeyi hesapla (dashboard ile aynı) --- #}
+          {% set sc = None %}
+          {% if r.score is not none %}
+            {% set _tmp = r.score() %}
+            {% if _tmp is not none %}
+              {% set sc = _tmp %}
+            {% endif %}
+          {% endif %}
+          {% if sc is none %}
+            {% set ap = r.avg_prob() %}
+            {% set asv = r.avg_sev() %}
+            {% if ap is not none and asv is not none %}
+              {% set sc = ap * asv %}
+            {% endif %}
+          {% endif %}
+
+          {% set lvl_label = "—" %}
+          {% set lvl_class = "acceptable" %}
+          {% if sc is not none %}
+            {% set sc = sc|float %}
+            {% if sc <= 4 %}
+              {% set lvl_label = "Düşük" %}
+              {% set lvl_class = "acceptable" %}
+            {% elif sc <= 10 %}
+              {% set lvl_label = "Orta" %}
+              {% set lvl_class = "low" %}
+            {% elif sc <= 15 %}
+              {% set lvl_label = "Yüksek" %}
+              {% set lvl_class = "moderate" %}
+            {% else %}
+              {% set lvl_label = "Çok Yüksek" %}
+              {% set lvl_class = "critical" %}
+            {% endif %}
+          {% endif %}
+
           <tr>
             <td>
               <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
@@ -310,11 +344,13 @@
                     <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
                   </div>
                   <div class="risk-meta">
-                    {{ r.category or '-' }} · RPN: {{ '%.2f'|format(r.avg_rpn()) if r.avg_rpn() is not none else '—' }} · {{ r.status or '—' }}
+                    {{ r.category or '-' }}
+                    · RPN: {{ sc is not none and ('%.2f'|format(sc)) or '—' }}
+                    · {{ r.status or '—' }}
                   </div>
                   <div class="small" style="margin-top:4px">
-                    <span class="risk-chip {{ row.grade or 'acceptable' }}">
-                      {{ grade_labels.get(row.grade, row.grade|capitalize) }}
+                    <span class="risk-chip {{ lvl_class }}">
+                      {{ lvl_label }}
                     </span>
                     {% if r.start_month or r.end_month %}
                       · <span>{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
@@ -334,7 +370,7 @@
               {% set active = (m in (row.active or [])) %}
               <td>
                 {% if active %}
-                  <div class="tl-bar gx-{{ row.grade or 'acceptable' }}"
+                  <div class="tl-bar gx-{{ lvl_class }}"
                        title="{{ r.title }} · {{ m }}"
                        data-open-reminder
                        data-risk-title="{{ r.title }}"></div>
@@ -375,12 +411,43 @@
       [
         {% for row in rows_safe %}
           {% set r = row.risk %}
+
+          {# Aynı P×S seviye hesabı (takvim renkleri için) #}
+          {% set sc = None %}
+          {% if r.score is not none %}
+            {% set _tmp = r.score() %}
+            {% if _tmp is not none %}
+              {% set sc = _tmp %}
+            {% endif %}
+          {% endif %}
+          {% if sc is none %}
+            {% set ap = r.avg_prob() %}
+            {% set asv = r.avg_sev() %}
+            {% if ap is not none and asv is not none %}
+              {% set sc = ap * asv %}
+            {% endif %}
+          {% endif %}
+
+          {% set lvl_class = "acceptable" %}
+          {% if sc is not none %}
+            {% set sc = sc|float %}
+            {% if sc <= 4 %}
+              {% set lvl_class = "acceptable" %}
+            {% elif sc <= 10 %}
+              {% set lvl_class = "low" %}
+            {% elif sc <= 15 %}
+              {% set lvl_class = "moderate" %}
+            {% else %}
+              {% set lvl_class = "critical" %}
+            {% endif %}
+          {% endif %}
+
           {
             "id": {{ r.id|int }},
             "title": {{ (r.title or '')|tojson }},
             "startYM": {{ (row.startYM or r.start_month or '')|tojson }},
             "endYM":   {{ (row.endYM   or r.end_month   or '')|tojson }},
-            "grade":   {{ (row.grade or 'acceptable')|tojson }},
+            "grade":   {{ lvl_class|tojson }},
             "category": {{ (r.category or '-')|tojson }},
             "status":   {{ (r.status or '-')|tojson }}
           }{% if not loop.last %},{% endif %}
@@ -399,7 +466,6 @@
         const month = parseInt(root.dataset.month, 10) || (new Date().getMonth()+1);
         const year  = parseInt(root.dataset.year, 10) || (new Date().getFullYear());
 
-        // detay link şablonu
         const detailPattern = root.dataset.detailPattern || '/risks/0';
         const toDetail = (id) => detailPattern.replace('/0', `/${id}`);
         const goDetail = (id, newTab=false) =>
@@ -431,13 +497,12 @@
         for(let i=0; i<totalCells; i++){
           const cell = document.createElement('div');
           cell.className = 'cal-cell';
-          cell.addEventListener('dragover', ev => ev.preventDefault()); // droppable
+          cell.addEventListener('dragover', ev => ev.preventDefault());
           cell.addEventListener('drop', async (ev) => {
             ev.preventDefault();
             const rid = ev.dataTransfer.getData('text/risk-id');
             if(!rid) return;
             const ym = `${year}-${String(month).padStart(2,'0')}`;
-            // Alt: sadece start, Shift: sadece end, aksi: ikisi
             const onlyStart = ev.altKey;
             const onlyEnd   = ev.shiftKey;
             let payload = {};
@@ -533,7 +598,6 @@
           }
         });
 
-        // +N daha -> popover
         grid.addEventListener('click', (ev)=>{
           const more = ev.target.closest('.cal-more');
           if(!more) return;
@@ -567,7 +631,6 @@
           pop.querySelector('.close').addEventListener('click', ()=> pop.remove());
         });
 
-        // Hücre dışına tıklayınca popover'ları kapat
         document.addEventListener('click', (e)=>{
           if(e.target.closest('.cal-pop') || e.target.closest('.cal-more')) return;
           document.querySelectorAll('.cal-pop').forEach(p=>p.remove());
