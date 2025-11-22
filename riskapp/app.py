@@ -1354,28 +1354,27 @@ def create_app():
         risks = query.order_by(Risk.updated_at.desc()).all()
 
         # --- 5x5 matris (olasılık × şiddet) ---
-        # Eski: 5x5 liste -> matrix[si][pi]
-        # Yeni: "P-S" key'li dict -> matrix["3-2"] = adet
+        # Eski: ortalama P/S kullanıyordu, o yüzden hücreler kayıyordu.
+        # Yeni: HER RİSK İÇİN SON Evaluation (en büyük id) alınır,
+        #       P ve S direkt o kayıttan okunur, key = "P-S".
         matrix = defaultdict(int)
 
         for r in risks:
-            try:
-                ap, asv = r.avg_prob(), r.avg_sev()
-            except Exception:
-                ap, asv = None, None
-
-            if ap is None or asv is None:
+            evals = sorted(r.evaluations or [], key=lambda e: e.id)
+            if not evals:
                 continue
 
-            try:
-                p = int(round(float(ap)))
-                s = int(round(float(asv)))
-            except Exception:
+            last = evals[-1]
+            p = last.probability or 0
+            s = last.severity or 0
+
+            # P veya S yoksa matrise sokma
+            if not p or not s:
                 continue
 
-            # 1..5 arasında sıkıştır
-            p = max(1, min(5, p))
-            s = max(1, min(5, s))
+            # 1..5 aralığında bırak (yine de emniyet)
+            p = max(1, min(5, int(p)))
+            s = max(1, min(5, int(s)))
 
             key = f"{p}-{s}"
             matrix[key] += 1
@@ -1384,8 +1383,8 @@ def create_app():
         matrix = dict(matrix)
 
         # --- Kategori bazlı dağılım ---
-        # Eşikler (dashboard ile uyumlu):
-        # Düşük: 1–3, Orta: 4–8, Yüksek: 9–12, Çok Yüksek: 15–25
+        # Eşikler UI ile uyumlu:
+        # 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek
         def _score_bucket(sc):
             if sc is None:
                 return None
@@ -1393,14 +1392,15 @@ def create_app():
                 sc = float(sc)
             except Exception:
                 return None
-            if sc >= 15:
-                return "vhigh"  # Çok Yüksek
-            if sc >= 9:
-                return "high"   # Yüksek
-            if sc >= 4:
-                return "mid"    # Orta
+
+            if sc >= 16:
+                return "vhigh"   # Çok Yüksek
+            if sc >= 11:
+                return "high"    # Yüksek
+            if sc >= 5:
+                return "mid"     # Orta
             if sc >= 1:
-                return "low"    # Düşük
+                return "low"     # Düşük
             return None
 
         by_cat = defaultdict(
@@ -1421,9 +1421,9 @@ def create_app():
                     sc = None
             if sc is None:
                 try:
-                    p, s = r.avg_prob(), r.avg_sev()
-                    if p and s:
-                        sc = float(p) * float(s)
+                    p2, s2 = r.avg_prob(), r.avg_sev()
+                    if p2 and s2:
+                        sc = float(p2) * float(s2)
                 except Exception:
                     sc = None
 
@@ -1437,7 +1437,7 @@ def create_app():
         # Listeyi toplam sayıya göre azalan sırala, sonra ada göre
         category_stats = sorted(by_cat.values(), key=lambda x: (-x["total"], x["cat"]))
 
-        # (İsteğe bağlı) Toplam satırı ekle – şablonda en alta “Toplam Riskler”
+        # Toplam satırı ekle – şablonda en alta “Toplam Riskler”
         if category_stats:
             totals = {"cat": "Toplam Riskler", "total": 0, "low": 0, "mid": 0, "high": 0, "vhigh": 0}
             for row in category_stats:
