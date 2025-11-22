@@ -368,11 +368,12 @@
                       <span class="risk-title">
                         {{ s.risk_title or s.text }}
                       </span>
-                      <a href="{{ url_for('risk_template_detail', ref_id=s.id) }}"
-                         class="btn-icon"
-                         title="Risk detayını görüntüle">
-                        🔍
-                      </a>
+                      <a href="{{ url_for('risk_template_detail', sid=s.id) }}"
+   class="btn-icon"
+   title="Risk detayını görüntüle">
+  🔍
+</a>
+
                     </div>
                   </label>
                 </td>

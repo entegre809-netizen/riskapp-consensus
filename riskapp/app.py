@@ -4997,11 +4997,12 @@ def create_app():
         return redirect(url_for("risk_select"))
     
     
-    @app.route("/risk-templates/<int:ref_id>")
-    def risk_template_detail(ref_id):
-        from riskapp.models import RiskCategoryRef  # model adın neyse
-        ref = RiskCategoryRef.query.get_or_404(ref_id)
-        return render_template("risk_template_detail.html", ref=ref)
+    @app.route("/risk-templates/<int:sid>")
+    def risk_template_detail(sid):
+        s = Suggestion.query.get_or_404(sid)
+        return render_template("risk_template_detail.html", s=s)
+
+
 
     
     return app
