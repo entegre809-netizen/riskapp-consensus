@@ -1506,6 +1506,7 @@ def create_app():
     #  CSV Export – Riskler
     # -------------------------------------------------
     # === XLSX Risk Analizi (biçimli) ===
+    # === XLSX Risk Analizi (biçimli) ===
     @app.route("/risks/export.xlsx")
     def risks_export_xlsx():
         try:
@@ -1536,7 +1537,7 @@ def create_app():
 
         # kategori -> kayıtlar
         risks = query.order_by(Risk.category.asc().nullsfirst(), Risk.id.asc()).all()
-        buckets = {}
+        buckets: dict[str, list[Risk]] = {}
         for r in risks:
             buckets.setdefault((r.category or "GENEL RİSKLER").strip(), []).append(r)
 
@@ -1545,49 +1546,40 @@ def create_app():
         ws = wb.active
         ws.title = "Risk Analizi"
 
-        # stiller
         thin = Side(style="thin", color="808080")
         border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-        H = Font(bold=True, size=12)
+        H    = Font(bold=True, size=12)
         HBIG = Font(bold=True, size=14)
         HCAT = Font(bold=True, size=11)
-        AL = Alignment(vertical="center", horizontal="left", wrap_text=True)
-        AC = Alignment(vertical="center", horizontal="center", wrap_text=True)
+        AL   = Alignment(vertical="center", horizontal="left", wrap_text=True)
+        AC   = Alignment(vertical="center", horizontal="center", wrap_text=True)
 
-        FILL_LOW    = PatternFill("solid", fgColor="92D050")  # yeşil
-        FILL_MED    = PatternFill("solid", fgColor="FFFF00")  # sarı
-        FILL_HIGH   = PatternFill("solid", fgColor="FFC000")  # turuncu
-        FILL_VHIGH  = PatternFill("solid", fgColor="FF0000")  # kırmızı
-        FILL_CAT    = PatternFill("solid", fgColor="E6E6E6")  # kategori satırı
-        FILL_HEAD   = PatternFill("solid", fgColor="D9D9D9")  # tablo başlık
+        FILL_LOW   = PatternFill("solid", fgColor="92D050")  # yeşil
+        FILL_MED   = PatternFill("solid", fgColor="FFFF00")  # sarı
+        FILL_HIGH  = PatternFill("solid", fgColor="FFC000")  # turuncu
+        FILL_VHIGH = PatternFill("solid", fgColor="FF0000")  # kırmızı
+        FILL_CAT   = PatternFill("solid", fgColor="E6E6E6")  # kategori satırı
+        FILL_HEAD  = PatternFill("solid", fgColor="D9D9D9")  # tablo başlık
 
         def level_for_rpn(rpn: float | None):
-            """
-            1–4  Düşük
-            5–10 Orta
-            11–15 Yüksek
-            16–25 Çok Yüksek
-            (dashboard / matris ile uyumlu)
-            """
+            """1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek."""
             if rpn is None:
                 return "", None
             r = float(rpn)
             if r <= 4:
                 return "Düşük", FILL_LOW
             if r <= 10:
-                return "Orta",  FILL_MED
+                return "Orta", FILL_MED
             if r <= 15:
                 return "Yüksek", FILL_HIGH
             return "Çok Yüksek", FILL_VHIGH
 
+        HEAD = [
+            "No", "Risk Adı", "Risk Tanımlaması", "Risk Sahibi",
+            "P", "S", "D", "Risk Seviyesi", "Karşı Önlemler"
+        ]
 
-
-        # sütun başlıkları
-        HEAD = ["No", "Risk Adı", "Risk Tanımlaması", "Risk Sahibi",
-                "P", "S", "D", "Risk Seviyesi", "Karşı Önlemler"]
-
-        # sütun genişlikleri
         widths = [5, 22, 48, 18, 6, 6, 6, 16, 42]
         for i, w in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(i)].width = w
@@ -1596,67 +1588,98 @@ def create_app():
         # büyük başlık
         ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(HEAD))
         cell = ws.cell(row=row, column=1, value=title)
-        cell.font = HBIG; cell.alignment = AC
+        cell.font = HBIG
+        cell.alignment = AC
         row += 2
 
         # legend (sağ üst)
-        ws.cell(row=1, column=len(HEAD)+2, value="Legend").font = H
-        legend = [("Çok Yüksek Risk", FILL_VHIGH),
-                ("Yüksek Risk", FILL_HIGH),
-                ("Orta Risk", FILL_MED),
-                ("Düşük Risk", FILL_LOW)]
+        ws.cell(row=1, column=len(HEAD) + 2, value="Legend").font = H
+        legend = [
+            ("Çok Yüksek Risk", FILL_VHIGH),
+            ("Yüksek Risk",     FILL_HIGH),
+            ("Orta Risk",       FILL_MED),
+            ("Düşük Risk",      FILL_LOW),
+        ]
         lr = 2
         for text, fill in legend:
-            c1 = ws.cell(row=lr, column=len(HEAD)+2, value=text); c1.alignment = AL
-            c2 = ws.cell(row=lr, column=len(HEAD)+3, value="");   c2.fill = fill; c2.border = border
-            ws.column_dimensions[get_column_letter(len(HEAD)+3)].width = 14
+            c1 = ws.cell(row=lr, column=len(HEAD) + 2, value=text)
+            c1.alignment = AL
+            c2 = ws.cell(row=lr, column=len(HEAD) + 3, value="")
+            c2.fill = fill
+            c2.border = border
+            ws.column_dimensions[get_column_letter(len(HEAD) + 3)].width = 14
             lr += 1
 
         # her kategori için blok
         for cat, items in buckets.items():
-            # kategori şeridi
+            # kategori bandı
             ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=len(HEAD))
             kc = ws.cell(row=row, column=1, value=f"Risk Kategorisi : {cat}")
-            kc.font = HCAT; kc.fill = FILL_CAT; kc.alignment = AL; kc.border = border
+            kc.font = HCAT
+            kc.fill = FILL_CAT
+            kc.alignment = AL
+            kc.border = border
             row += 1
 
             # tablo başlıkları
             for col, head in enumerate(HEAD, 1):
                 c = ws.cell(row=row, column=col, value=head)
-                c.font = H; c.fill = FILL_HEAD; c.alignment = AC; c.border = border
+                c.font = H
+                c.fill = FILL_HEAD
+                c.alignment = AC
+                c.border = border
             row += 1
 
             # satırlar
             for idx, r in enumerate(items, 1):
-                p = r.avg_prob()
-                s = r.avg_sev()
-                rpn = r.avg_rpn()
-                lvl_txt, lvl_fill = level_for_rpn(rpn)
+                # --- SON değerlendirme P/S ---
+                last_eval = None
+                if r.evaluations:
+                    last_eval = sorted(r.evaluations, key=lambda e: e.id)[-1]
+
+                if last_eval and last_eval.probability is not None and last_eval.severity is not None:
+                    p_val = float(last_eval.probability)
+                    s_val = float(last_eval.severity)
+                else:
+                    p_val = r.avg_prob()
+                    s_val = r.avg_sev()
+
+                # --- RPN: r.score() (RPN ort: varsa onu kullanır) ---
+                sc = None
+                score_fn = getattr(r, "score", None)
+                if callable(score_fn):
+                    try:
+                        sc = score_fn()
+                        sc = float(sc) if sc is not None else None
+                    except Exception:
+                        sc = None
+                if sc is None and p_val is not None and s_val is not None:
+                    sc = float(p_val) * float(s_val)
+
+                lvl_txt, lvl_fill = level_for_rpn(sc)
 
                 values = [
                     idx,
                     (r.title or ""),
                     (r.description or ""),
                     (r.responsible or ""),
-                    (round(p,2) if p is not None else ""),
-                    (round(s,2) if s is not None else ""),
+                    (round(p_val, 2) if p_val is not None else ""),
+                    (round(s_val, 2) if s_val is not None else ""),
                     "",  # D kullanılmıyor
                     lvl_txt,
-                    (r.mitigation or "")
+                    (r.mitigation or ""),
                 ]
+
                 for col, val in enumerate(values, 1):
                     c = ws.cell(row=row, column=col, value=val)
-                    c.alignment = AL if col in (2,3,9) else AC
+                    c.alignment = AL if col in (2, 3, 9) else AC
                     c.border = border
-                    # Risk seviyesi renklendir
                     if col == 8 and lvl_fill:
                         c.fill = lvl_fill
                 row += 1
 
-            # kategori sonrası bir boş satır
-            row += 1
+            row += 1  # kategori sonrası bir boş satır
 
-        # çıktı
         import io
         bio = io.BytesIO()
         wb.save(bio)
@@ -1667,6 +1690,7 @@ def create_app():
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f'attachment; filename="{fname}"'}
         )
+
 
 
     # -------------------------------------------------
@@ -4675,114 +4699,108 @@ def create_app():
     
     @app.route("/risks/export.csv")
     def risks_export_csv():
-            pid    = _get_active_project_id()
-            q      = (request.args.get("q") or "").strip()
-            status = (request.args.get("status") or "").strip()
+        pid    = _get_active_project_id()
+        q      = (request.args.get("q") or "").strip()
+        status = (request.args.get("status") or "").strip()
 
-            query = Risk.query
-            if pid:
-                query = query.filter(Risk.project_id == pid)
-            if q:
-                like = f"%{q}%"
-                query = query.filter(
-                    (Risk.title.ilike(like)) |
-                    (Risk.category.ilike(like)) |
-                    (Risk.description.ilike(like))
-                )
-            if status:
-                query = query.filter(Risk.status == status)
+        query = Risk.query
+        if pid:
+            query = query.filter(Risk.project_id == pid)
+        if q:
+            like = f"%{q}%"
+            query = query.filter(
+                (Risk.title.ilike(like)) |
+                (Risk.category.ilike(like)) |
+                (Risk.description.ilike(like))
+            )
+        if status:
+            query = query.filter(Risk.status == status)
 
-            risks = query.order_by(Risk.category.asc().nullsfirst(), Risk.id.asc()).all()
+        risks = query.order_by(Risk.category.asc().nullsfirst(), Risk.id.asc()).all()
 
-            output = StringIO()
-            writer = csv.writer(output)
+        output = StringIO()
+        writer = csv.writer(output)
 
-            # XLSX ile uyumlu başlıklar
+        writer.writerow([
+            "No",
+            "Risk Adı",
+            "Risk Tanımlaması",
+            "Risk Sahibi",           # r.owner
+            "P",
+            "S",
+            "Risk Seviyesi",
+            "Karşı Önlemler",
+            "Kategori",
+            "Durum",
+            "Sorumlu",              # r.responsible
+            "Başlangıç(YYYY-MM)",
+            "Bitiş(YYYY-MM)",
+        ])
+
+        def level_for_rpn(rpn: float | None) -> str:
+            """1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek."""
+            if rpn is None:
+                return ""
+            r = float(rpn)
+            if r <= 4:
+                return "Düşük"
+            if r <= 10:
+                return "Orta"
+            if r <= 15:
+                return "Yüksek"
+            return "Çok Yüksek"
+
+        from collections import defaultdict
+        counters = defaultdict(int)
+
+        for r in risks:
+            key = (r.category or "GENEL RİSKLER").strip()
+            counters[key] += 1
+
+            # SON değerlendirme P/S
+            last_eval = None
+            if r.evaluations:
+                last_eval = sorted(r.evaluations, key=lambda e: e.id)[-1]
+
+            if last_eval and last_eval.probability is not None and last_eval.severity is not None:
+                p_val = float(last_eval.probability)
+                s_val = float(last_eval.severity)
+            else:
+                p_val = r.avg_prob()
+                s_val = r.avg_sev()
+
+            # RPN: r.score()
+            sc = None
+            score_fn = getattr(r, "score", None)
+            if callable(score_fn):
+                try:
+                    sc = score_fn()
+                    sc = float(sc) if sc is not None else None
+                except Exception:
+                    sc = None
+            if sc is None and p_val is not None and s_val is not None:
+                sc = float(p_val) * float(s_val)
+
             writer.writerow([
-                "No",
-                "Risk Adı",
-                "Risk Tanımlaması",
-                "Risk Sahibi",           # r.owner
-                "P",
-                "S",
-                "Risk Seviyesi",
-                "Karşı Önlemler",
-                "Kategori",
-                "Durum",
-                "Sorumlu",              # r.responsible
-                "Başlangıç(YYYY-MM)",
-                "Bitiş(YYYY-MM)",
+                counters[key],                             # No
+                r.title or "",                             # Risk Adı
+                r.description or "",                       # Risk Tanımlaması
+                getattr(r, "owner", "") or "",             # Risk Sahibi (oluşturan kişi)
+                f"{p_val:.2f}" if p_val is not None else "",   # P (son değerlendirme)
+                f"{s_val:.2f}" if s_val is not None else "",   # S
+                level_for_rpn(sc),                         # Risk Seviyesi
+                r.mitigation or "",                        # Karşı Önlemler
+                r.category or "",                          # Kategori
+                r.status or "",                            # Durum
+                r.responsible or "",                       # Sorumlu
+                r.start_month or "",                       # Başlangıç(YYYY-MM)
+                r.end_month or "",                         # Bitiş(YYYY-MM)
             ])
 
-            def level_for_rpn(rpn):
-                """
-                1–4  Düşük
-                5–10 Orta
-                11–15 Yüksek
-                16–25 Çok Yüksek
-                """
-                if rpn is None:
-                    return ""
-                r = float(rpn)
-                if r <= 4:
-                    return "Düşük"
-                if r <= 10:
-                    return "Orta"
-                if r <= 15:
-                    return "Yüksek"
-                return "Çok Yüksek"
+        resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+        resp.headers["Content-Disposition"] = "attachment; filename=risks_export.csv"
+        return resp
 
-
-            from collections import defaultdict
-            counters = defaultdict(int)
-
-            for r in risks:
-                key = (r.category or "GENEL RİSKLER").strip()
-                counters[key] += 1
-
-                p = r.avg_prob()
-                s = r.avg_sev()
-                rpn = r.avg_rpn()
-
-                writer.writerow([
-                    counters[key],                          # No
-                    r.title or "",                          # Risk Adı
-                    r.description or "",                    # Risk Tanımlaması
-                    getattr(r, "owner", "") or "",          # Risk Sahibi (oluşturan kişi)
-                    f"{p:.2f}" if p is not None else "",    # P
-                    f"{s:.2f}" if s is not None else "",    # S
-                    level_for_rpn(rpn),                     # Risk Seviyesi
-                    r.mitigation or "",                     # Karşı Önlemler
-                    r.category or "",                       # Kategori
-                    r.status or "",                         # Durum
-                    r.responsible or "",                    # Sorumlu
-                    r.start_month or "",                    # Başlangıç(YYYY-MM)
-                    r.end_month or "",                      # Bitiş(YYYY-MM)
-                ])
-
-            resp = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
-            resp.headers["Content-Disposition"] = "attachment; filename=risks_export.csv"
-            return resp
-    
-    @app.post("/risks/basket/remove")
-    def risk_basket_remove():
-        """Sepetteki şablonlardan birini kaldır."""
-        template_id = request.form.get("template_id", type=int)
-        if not template_id:
-            return redirect(url_for("risk_new"))
-
-        basket = session.get("picked_rows") or []
-
-        # sepette ID listesi tutuyorsan:
-        try:
-            basket = [rid for rid in basket if rid != template_id]
-        except Exception:
-            # ne olur ne olmaz, bozuk format falan olursa
-            basket = []
-
-        session["picked_rows"] = basket
-        flash("Şablon sepetten kaldırıldı.", "info")
-        return redirect(url_for("risk_new"))
     
         # -------------------------------------------------
     #  Mevcut riskleri birleştirme (ADMIN)
