@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Risk Detayı · {{ ref.title }}{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2 style="margin-top:0">{{ ref.title }}</h2>
+
+  {% if ref.category %}
+    <div class="small muted" style="margin-bottom:.6rem">
+      Kategori: <strong>{{ ref.category }}</strong>
+    </div>
+  {% endif %}
+
+  {% if ref.description %}
+    <p style="margin-bottom:1rem">{{ ref.description }}</p>
+  {% endif %}
+
+  <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+    <div class="pill">
+      Şiddet (S): <strong>{{ ref.severity or '-' }}</strong>
+    </div>
+    <div class="pill">
+      Olasılık (P): <strong>{{ ref.probability or '-' }}</strong>
+    </div>
+    <div class="pill">
+      Skor (P×S):
+      {% if ref.severity and ref.probability %}
+        <strong>{{ ref.severity * ref.probability }}</strong>
+      {% else %}
+        <strong>-</strong>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if ref.mitigations %}
+    <h3 style="margin:1rem 0 .4rem; font-size:1rem;">Önerilen Önlemler</h3>
+    <ul>
+      {# mitigations alanı string ise satırlara bölebilirsin #}
+      {% for line in (ref.mitigations.split('\n')) %}
+        {% if line.strip() %}
+          <li>{{ line }}</li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div style="margin-top:1.2rem">
+    <a href="{{ request.referrer or url_for('risk_identify') }}" class="btn btn-ghost">← Listeye dön</a>
+  </div>
+</div>
+
+{% endblock %}

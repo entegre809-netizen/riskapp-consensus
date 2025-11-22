@@ -98,6 +98,22 @@
   .btn-ghost:hover{ opacity:1 }
   .btn.btn-edit{ background: color-mix(in oklab, var(--primary) 16%, transparent); border-color: transparent; }
 
+  /* 🔍 küçük detay butonu */
+  .btn-icon{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:.15rem .35rem;
+    border-radius:999px;
+    border:1px solid color-mix(in oklab, var(--line) 70%, transparent);
+    background:transparent;
+    font-size:.9rem;
+    cursor:pointer;
+  }
+  .btn-icon:hover{
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+  }
+
   .pager{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-end; margin-top:12px }
   .pager .btn[aria-disabled="true"]{ pointer-events:none; opacity:.5 }
   .totalinfo{ color:var(--muted); font-size:.9rem; margin-top:.35rem }
@@ -345,13 +361,18 @@
                   >
                 </td>
 
-                <!-- RİSK: kısa risk adı + kategori + kopyalanabilir kod rozeti -->
+                <!-- RİSK: kısa risk adı + kategori + büyüteç -->
                 <td>
                   <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
                     <div class="risk-badge">
                       <span class="risk-title">
                         {{ s.risk_title or s.text }}
                       </span>
+                      <a href="{{ url_for('risk_template_detail', ref_id=s.id) }}"
+                         class="btn-icon"
+                         title="Risk detayını görüntüle">
+                        🔍
+                      </a>
                     </div>
                   </label>
                 </td>
