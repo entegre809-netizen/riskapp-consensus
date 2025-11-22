@@ -167,10 +167,10 @@ class Risk(db.Model):
         rpn = p * s
 
         # Eğer AI yorumunda "RPN ort:" geçiyorsa, o değeri kullan
-        if last.comment and 'RPN ort:' in last.comment:
+        if last.comment and "RPN ort:" in last.comment:
             try:
-                chunk = last.comment.split('RPN ort:')[1].strip()
-                num = chunk.split(')')[0].strip()
+                chunk = last.comment.split("RPN ort:")[1].strip()
+                num = chunk.split(")")[0].strip()
                 rpn = float(num)
             except Exception:
                 # Parse edemezsek P×S ile devam ediyoruz
@@ -313,7 +313,6 @@ class Suggestion(db.Model):
 
     # Ana kategori
     category = db.Column(db.String(100), nullable=False, index=True)  # not: string
-    text     = db.Column(db.Text, nullable=False)
 
     # B sütunu: kısa risk adı (eski "Risk Faktörü" başlığı)
     risk_title = db.Column(db.String(200), nullable=True)
