@@ -27,17 +27,18 @@
           </td>
           <td>
             {% if row.critical %}
-              <a href="{{ url_for('risk_detail', risk_id=row.critical.id) }}">{{ row.critical.title }}</a>
-              {% set cr = row.critical.avg_rpn() %}
-              {% if cr is not none %}
-                <span class="small">· RPN {{ '%.2f'|format(cr) }}</span>
-              {% endif %}
-              <div class="small" style="color:#6b7280">
-                {{ row.critical.category or '-' }} · {{ row.critical.status }}
-              </div>
-            {% else %}
-              —
-            {% endif %}
+  <a href="{{ url_for('risk_detail', risk_id=row.critical.id) }}">{{ row.critical.title }}</a>
+  {% set cr = row.critical.score() %}
+  {% if cr is not none %}
+    <span class="small">· RPN {{ '%.2f'|format(cr) }}</span>
+  {% endif %}
+  <div class="small" style="color:#6b7280">
+    {{ row.critical.category or '-' }} · {{ row.critical.status }}
+  </div>
+{% else %}
+  —
+{% endif %}
+
           </td>
         </tr>
       {% else %}
