@@ -112,14 +112,25 @@
     </div>
   </form>
 
-  {# Tüm riskleri sil (sadece admin) #}
+  {# Birleştirme + Tüm riskleri sil (sadece admin) #}
   {% if session.get('role') == 'admin' and risks and risks|length > 0 %}
-    <form method="post"
-          action="{{ url_for('risks_delete_all') }}"
-          onsubmit="return confirm('TÜM riskleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');"
-          style="margin:-.3rem 0 .8rem; display:flex; justify-content:flex-end;">
-      <button type="submit" class="btn danger">Tüm Riskleri Sil</button>
-    </form>
+    <div style="margin:-.3rem 0 .8rem; display:flex; justify-content:space-between; gap:.5rem; flex-wrap:wrap;">
+      <form method="post"
+            action="{{ url_for('risks_merge') }}"
+            onsubmit="return confirm('Seçili riskleri tek bir raporda birleştirmek istediğinize emin misiniz?');"
+            style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+        <input type="hidden" name="risk_ids" id="merge-ids">
+        <span class="small muted">Seçili riskleri tek bir raporda birleştir.</span>
+        <button type="submit" class="btn" id="merge-submit" disabled>Seçilenleri Birleştir</button>
+      </form>
+
+      <form method="post"
+            action="{{ url_for('risks_delete_all') }}"
+            onsubmit="return confirm('TÜM riskleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');"
+            style="display:flex; justify-content:flex-end;">
+        <button type="submit" class="btn danger">Tüm Riskleri Sil</button>
+      </form>
+    </div>
   {% endif %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -131,16 +142,29 @@
       <table class="table">
         <thead>
           <tr>
+            {% if session.get('role') == 'admin' %}
+              <th style="width:34px; text-align:center;">
+                <input type="checkbox" id="check-all" onclick="toggleSelectAll(this)">
+              </th>
+            {% endif %}
             <th>Başlık</th>
             <th style="width:200px">Kategori</th>
             <th style="width:100px; text-align:center">Skor</th>
             <th style="width:160px">Güncel</th>
-            <th style="width:110px; text-align:right">İşlem</th>
+            <th style="width:150px; text-align:right">İşlem</th>
           </tr>
         </thead>
         <tbody>
           {% for r in risks %}
           <tr>
+            {% if session.get('role') == 'admin' %}
+              <td style="text-align:center">
+                <input type="checkbox"
+                       class="risk-check"
+                       value="{{ r.id }}"
+                       onchange="updateMergeIds()">
+              </td>
+            {% endif %}
             <td>
               <a href="{{ url_for('risk_detail', risk_id=r.id) }}">
                 {{ r.title }}
@@ -169,6 +193,21 @@
             </td>
             <td style="text-align:right">
               {% if session.get('role') == 'admin' %}
+
+                {# AYIR: description içinde '---' varsa göster #}
+                {% if '---' in (r.description or '') %}
+                  <form method="post"
+                        action="{{ url_for('risk_split', risk_id=r.id) }}"
+                        onsubmit="return confirm('Bu risk açıklaması içindeki bloklara göre ayrı kayıtlara bölünecek. Devam edilsin mi?');"
+                        style="display:inline; margin-right:.25rem;">
+                    <button type="submit"
+                            class="btn btn-ghost"
+                            style="padding:.15rem .55rem; font-size:.78rem;">
+                      Ayır
+                    </button>
+                  </form>
+                {% endif %}
+
                 <form method="post"
                       action="{{ url_for('risk_delete', risk_id=r.id) }}"
                       onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
@@ -216,6 +255,23 @@
 </div>
 
 <script>
+  // Birleştirme için seçilen risk ID'lerini güncelle
+  function updateMergeIds() {
+    const checks = document.querySelectorAll('.risk-check:checked');
+    const ids = Array.from(checks).map(el => el.value).join(',');
+    const hidden = document.getElementById('merge-ids');
+    const btn = document.getElementById('merge-submit');
+    if (hidden) hidden.value = ids;
+    if (btn) btn.disabled = !ids;
+  }
+
+  // Tümünü seç / bırak
+  function toggleSelectAll(source) {
+    const checks = document.querySelectorAll('.risk-check');
+    checks.forEach(ch => { ch.checked = source.checked; });
+    updateMergeIds();
+  }
+
   // Küçük UX: Enter ile ara, Ctrl/⌘+K ile odak
   (function(){
     const q = document.getElementById('q');

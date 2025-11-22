@@ -290,7 +290,7 @@ class Suggestion(db.Model):
 
     # Ana kategori
     category = db.Column(db.String(100), nullable=False, index=True)  # not: string
-    text     = db.Column(db.Text, nullable=False)   
+    text     = db.Column(db.Text, nullable=False)
 
     # B sütunu: kısa risk adı (eski "Risk Faktörü" başlığı)
     risk_title = db.Column(db.String(200), nullable=True)
@@ -356,3 +356,70 @@ class ProjectInfo(db.Model):
 
     def __repr__(self):
         return f"<ProjectInfo id={self.id} name={self.workplace_name!r}>"
+
+
+# --------------------------------
+# Rapor (Report) — geçmiş risk raporları + merge/split
+# --------------------------------
+class Report(db.Model):
+    """
+    Geçmiş risk raporları.
+    - Normal rapor: is_merged=False, parent_id=None
+    - Birleştirilmiş rapor: is_merged=True, children ile alt raporları var
+    """
+    __tablename__ = "reports"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    title       = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    # İstersen proje bazlı filtrede kullanırsın
+    project_id  = db.Column(db.Integer, index=True, nullable=True)
+
+    # Birleşik rapor mantığı
+    is_merged   = db.Column(db.Boolean, default=False, nullable=False)
+    parent_id   = db.Column(db.Integer, db.ForeignKey("reports.id"), nullable=True, index=True)
+
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # kendi kendine ilişki: merged raporun altındaki raporlar
+    children = db.relationship(
+        "Report",
+        backref=db.backref("parent", remote_side=[id]),
+        lazy="selectin"
+    )
+
+    # rapora bağlı riskler
+    items = db.relationship(
+        "ReportRisk",
+        backref="report",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
+    def risk_ids(self):
+        return [ri.risk_id for ri in (self.items or [])]
+
+    def __repr__(self):
+        return f"<Report id={self.id} title={self.title!r} merged={self.is_merged}>"
+
+
+# --------------------------------
+# Rapor–Risk ilişkisi (ReportRisk)
+# --------------------------------
+class ReportRisk(db.Model):
+    """
+    Bir rapor içinde hangi riskler var?
+    """
+    __tablename__ = "report_risks"
+
+    report_id   = db.Column(db.Integer, db.ForeignKey("reports.id"), primary_key=True)
+    risk_id     = db.Column(db.Integer, db.ForeignKey("risks.id"), primary_key=True, index=True)
+    order_index = db.Column(db.Integer, nullable=True)  # tablo sırası için opsiyonel
+
+    # Risk objesine hızlı erişim için
+    risk = db.relationship("Risk")
+
+    def __repr__(self):
+        return f"<ReportRisk report_id={self.report_id} risk_id={self.risk_id}>"

@@ -4766,6 +4766,235 @@ def create_app():
         flash("Şablon sepetten kaldırıldı.", "info")
         return redirect(url_for("risk_new"))
     
+        # -------------------------------------------------
+    #  Mevcut riskleri birleştirme (ADMIN)
+    # -------------------------------------------------
+    @app.post("/risks/merge")
+    @role_required("admin")
+    def risks_merge():
+        """
+        /risks ekranından seçilen riskleri tek bir raporda birleştirir.
+        Beklenen form field:
+          - risk_ids: "3,5,7" gibi virgüllü ID listesi
+          - title (opsiyonel): yeni risk başlığı
+        """
+        raw_ids = (request.form.get("risk_ids") or "").strip()
+        if not raw_ids:
+            flash("Birleştirmek için en az bir risk seçmelisiniz.", "danger")
+            return redirect(url_for("risk_select"))
+
+        try:
+            ids = sorted({
+                int(x) for x in raw_ids.split(",")
+                if x.strip().isdigit()
+            })
+        except ValueError:
+            flash("Geçersiz risk ID listesi.", "danger")
+            return redirect(url_for("risk_select"))
+
+        if len(ids) < 2:
+            flash("Birleştirme için en az 2 risk seçmelisiniz.", "warning")
+            return redirect(url_for("risk_select"))
+
+        risks = (
+            Risk.query
+            .filter(Risk.id.in_(ids))
+            .order_by(Risk.id.asc())
+            .all()
+        )
+        if len(risks) < 2:
+            flash("Yeterli sayıda geçerli risk bulunamadı.", "danger")
+            return redirect(url_for("risk_select"))
+
+        # Aynı projeye ait olduklarından emin ol (değilse ilk projeye zorlayacağız)
+        first = risks[0]
+        pid   = first.project_id
+        for r in risks:
+            if r.project_id != pid:
+                flash("Farklı projelere ait riskler birleştiriliyor. Yeni risk ilk projenin altında oluşturulacak.", "warning")
+                break
+
+        # Kategori: ilk dolu kategori, yoksa "Genel"
+        cat = None
+        for r in risks:
+            if (r.category or "").strip():
+                cat = r.category.strip()
+                break
+        cat = cat or "Genel"
+
+        # Yeni title: formdan gelen veya ilk risk + "(Birleştirilmiş)"
+        title_form = (request.form.get("title") or "").strip()
+        new_title  = title_form or f"{first.title or 'Birleştirilmiş Risk'} (Birleştirilmiş)"
+
+        # Açıklama: önce kısa bir üst bilgi, sonra tek tek risklerin detayları
+        desc_lines = []
+        desc_lines.append("Bu kayıt aşağıdaki risklerin birleştirilmesiyle oluşturulmuştur:\n")
+        for r in risks:
+            desc_lines.append(f"- [#{r.id}] {r.title or ''}")
+        desc_lines.append("\n--- Ayrıntılı açıklamalar ---\n")
+        for r in risks:
+            if r.description:
+                desc_lines.append(f"### Risk #{r.id}: {r.title or ''}")
+                desc_lines.append(r.description)
+                desc_lines.append("")  # boş satır
+
+        final_desc = "\n".join(desc_lines).strip()
+
+        # Mitigation alanı (Risk.mitigation text): eskilerin mitigation'larını birleştir
+        mit_lines = []
+        for r in risks:
+            if (r.mitigation or "").strip():
+                mit_lines.append(f"- [#{r.id}] {r.mitigation.strip()}")
+        mitigation_merged = "\n".join(mit_lines) if mit_lines else None
+
+        owner       = session.get("username")
+        responsible = (request.form.get("responsible") or "").strip() or first.responsible
+        duration    = first.duration
+
+        # Tarih aralığı: seçilen risklerin min(start), max(end)
+        def _norm_ym_pair(sm, em):
+            s = _parse_ym(sm)
+            e = _parse_ym(em)
+            if s and not e:
+                e = s
+            if e and not s:
+                s = e
+            if s and e and s > e:
+                s, e = e, s
+            return s, e
+
+        min_ym, max_ym = None, None
+        for r in risks:
+            s, e = _norm_ym_pair(r.start_month, r.end_month)
+            if s and ((min_ym is None) or (s < min_ym)):
+                min_ym = s
+            if e and ((max_ym is None) or (e > max_ym)):
+                max_ym = e
+
+        def _ym_or_none(t):
+            return _ym_to_str(*t) if t else None
+
+        start_month = _ym_or_none(min_ym)
+        end_month   = _ym_or_none(max_ym)
+
+        # Yeni risk kaydı
+        new_risk = Risk(
+            title       = new_title,
+            category    = cat,
+            description = final_desc,
+            mitigation  = mitigation_merged,
+            responsible = responsible,
+            duration    = duration,
+            start_month = start_month,
+            end_month   = end_month,
+            owner       = owner,
+            project_id  = pid,
+            status      = "Merged",
+        )
+        db.session.add(new_risk)
+        db.session.flush()  # id lazım
+
+        # Eski risklerin değerlendirmelerini yeni riske taşı
+        for r in risks:
+            for ev in getattr(r, "evaluations", []):
+                db.session.add(Evaluation(
+                    risk_id    = new_risk.id,
+                    evaluator  = ev.evaluator,
+                    probability= ev.probability,
+                    severity   = ev.severity,
+                    detection  = ev.detection,
+                    comment    = f"[Eski #{r.id}] {ev.comment or ''}",
+                ))
+
+        # Eski risklerin Mitigation satırlarını yeni riske kopyala
+        for r in risks:
+            m_rows = Mitigation.query.filter_by(risk_id=r.id).all()
+            for m in m_rows:
+                db.session.add(Mitigation(
+                    risk_id  = new_risk.id,
+                    text     = f"[Eski #{r.id}] {m.text}",
+                    owner    = m.owner,
+                    status   = m.status,
+                    due_date = m.due_date,
+                ))
+
+        # Eski risklere sistem notu + status güncelle
+        now_txt = datetime.utcnow().isoformat(timespec="seconds") + " UTC"
+        merged_ids_str = ", ".join(f"#{r.id}" for r in risks)
+        for r in risks:
+            r.status = "Merged"
+            db.session.add(Comment(
+                risk_id = r.id,
+                text    = f"Bu risk, yeni birleştirilmiş kayıt altında toplandı: {merged_ids_str} ({now_txt})",
+                is_system=True
+            ))
+
+        # Yeni risk için de açıklayıcı sistem notu
+        db.session.add(Comment(
+            risk_id = new_risk.id,
+            text    = f"Birleştirilmiş risk oluşturuldu; kaynak riskler: {merged_ids_str} ({now_txt})",
+            is_system=True
+        ))
+
+        db.session.commit()
+        flash(f"{len(risks)} risk tek bir raporda birleştirildi (Yeni ID: {new_risk.id}).", "success")
+        return redirect(url_for("risk_detail", risk_id=new_risk.id))
+    @app.post("/risks/split/<int:risk_id>")
+    def risk_split(risk_id: int):
+        """Birleşik bir riski description içindeki --- bloklarına göre parçalara böler."""
+        if session.get("role") != "admin":
+            abort(403)
+
+        r = Risk.query.get_or_404(risk_id)
+
+        raw = (r.description or "").strip()
+        if not raw:
+            flash("Bu riskin açıklaması boş, ayıracak bir içerik yok.", "warning")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        # Birleştirmede kullandığımız ayrım: \n\n---\n\n
+        parts = [p.strip() for p in raw.split("\n\n---\n\n") if p.strip()]
+
+        if len(parts) < 2:
+            flash("Bu kayıt birleştirilmiş formatta görünmüyor; ayırma yapılmadı.", "warning")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        created = 0
+
+        for idx, part in enumerate(parts, start=1):
+            lines = [ln for ln in part.splitlines() if ln.strip()]
+            if not lines:
+                continue
+
+            first_line = lines[0].strip()
+            body = "\n".join(lines[1:]).strip() or None
+
+            # İlk satırda [#id] Başlık formatını yakala
+            m = _re.match(r"\[#(\d+)\]\s*(.+)", first_line)
+            if m:
+                title = (m.group(2) or "").strip() or f"{r.title} · Bölüm {idx}"
+            else:
+                title = first_line or f"{r.title} · Bölüm {idx}"
+
+            new_risk = Risk(
+                title=title[:255],
+                description=body,
+                category=getattr(r, "category", None),
+            )
+
+            if hasattr(Risk, "project_id"):
+                new_risk.project_id = getattr(r, "project_id", None)
+
+            db.session.add(new_risk)
+            created += 1
+
+        if created == 0:
+            flash("Ayırma sırasında yeni kayıt oluşturulamadı.", "warning")
+            return redirect(url_for("risk_detail", risk_id=r.id))
+
+        db.session.commit()
+        flash(f"Risk {created} parçaya ayrıldı ve ayrı kayıtlar oluşturuldu.", "success")
+        return redirect(url_for("risk_select"))
     
     return app
 
