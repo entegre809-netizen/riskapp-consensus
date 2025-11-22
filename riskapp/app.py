@@ -3069,45 +3069,85 @@ def create_app():
         query = Risk.query
         if pid:
             query = query.filter(Risk.project_id == pid)
-        risks = query.order_by(Risk.responsible.asc(), Risk.updated_at.desc()).all()
 
-        buckets = {}
+        # Sorumlusu olan riskler
+        risks = (
+            query
+            .filter(Risk.responsible.isnot(None))
+            .filter(Risk.responsible != "")
+            .all()
+        )
+
+        from collections import defaultdict
+        buckets = defaultdict(lambda: {
+            "responsible": "",
+            "count": 0,
+            "_sum_rpn": 0.0,
+            "_n_rpn": 0,
+            "critical": None,   # en yüksek skorlu risk
+        })
+
+        # Uygulamanın geri kalanıyla tutarlı skor hesabı
+        def _risk_score(r):
+            sc = None
+
+            # 1) score() metodu varsa onu kullan
+            s_method = getattr(r, "score", None)
+            if callable(s_method):
+                try:
+                    sc = s_method()
+                except Exception:
+                    sc = None
+
+            # 2) Yoksa avg_rpn()
+            if sc is None:
+                try:
+                    sc = r.avg_rpn()
+                except Exception:
+                    sc = None
+
+            try:
+                return float(sc) if sc is not None else None
+            except Exception:
+                return None
+
         for r in risks:
             name = (r.responsible or "").strip()
             if not name:
                 continue
-            buckets.setdefault(name, []).append(r)
 
+            score = _risk_score(r)
+            row = buckets[name]
+            row["responsible"] = name
+            row["count"] += 1
+
+            if score is not None:
+                row["_sum_rpn"] += score
+                row["_n_rpn"] += 1
+
+                # en kritik risk: en yüksek skorlu olan
+                cur_crit = row["critical"]
+                if cur_crit is None:
+                    row["critical"] = r
+                else:
+                    cur_score = _risk_score(cur_crit)
+                    if cur_score is None or score > cur_score:
+                        row["critical"] = r
+
+        # sözlükleri listeye çevir + ortalama RPN
         rows = []
-        for name, items in buckets.items():
-            rpns = []
-            for ri in items:
-                val = ri.avg_rpn()
-                if val is not None:
-                    rpns.append(float(val))
+        for data in buckets.values():
+            total = data.pop("_sum_rpn")
+            n     = data.pop("_n_rpn")
+            data["avg_rpn"] = (total / n) if n else None
+            rows.append(data)
 
-            avg_rpn = (sum(rpns) / len(rpns)) if rpns else None
-
-            critical = None
-            best = -1.0
-            for ri in items:
-                val = ri.avg_rpn()
-                if val is not None and float(val) > best:
-                    best = float(val)
-                    critical = ri
-
-            rows.append({
-                "responsible": name,
-                "count": len(items),
-                "avg_rpn": avg_rpn,
-                "critical": critical
-            })
-
+        # Ortalama RPN'e göre azalan sırala
         rows.sort(
             key=lambda x: (
                 x["avg_rpn"] is None,
-                -x["avg_rpn"] if x["avg_rpn"] is not None else 0,
-                x["responsible"]
+                -(x["avg_rpn"] or 0.0),
+                x["responsible"].lower(),
             )
         )
 
