@@ -247,25 +247,41 @@
     <div class="label">Toplam Risk</div>
     <div class="value">{{ ns.total }}</div>
   </div>
+
   <div class="kpi" role="listitem">
-    <div class="label">Çok Yüksek + Yüksek</div>
+    <div class="label">Çok Yüksek</div>
     <div class="value">
-      <span class="badge score-high">{{ ns.crit + ns.high }}</span>
+      <span class="badge score-high">{{ ns.crit }}</span>
     </div>
   </div>
+
   <div class="kpi" role="listitem">
-    <div class="label">Orta / Düşük</div>
+    <div class="label">Yüksek</div>
+    <div class="value">
+      <span class="badge score-high">{{ ns.high }}</span>
+    </div>
+  </div>
+
+  <div class="kpi" role="listitem">
+    <div class="label">Orta</div>
     <div class="value">
       <span class="badge score-mid">{{ ns.mid }}</span>
-      &nbsp;/&nbsp;
+    </div>
+  </div>
+
+  <div class="kpi" role="listitem">
+    <div class="label">Düşük</div>
+    <div class="value">
       <span class="badge score-low">{{ ns.low }}</span>
     </div>
   </div>
+
   <div class="kpi" role="listitem">
     <div class="label">Ortalama Skor</div>
     <div class="value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
   </div>
 </div>
+
 
 <!-- ===== ÜST İKİLİ: Genel Görünüm + Risk Matrisi ===== -->
 <div class="grid grid-2">
