@@ -103,7 +103,9 @@
   .totalinfo{ color:var(--muted); font-size:.9rem; margin-top:.35rem }
 
   /* küçük iyileştirmeler */
-  .input-search{ min-width: clamp(220px, 26vw, 340px) }
+  .input-search{
+  min-width: clamp(220px, 26vw, 340px);
+}
   .w-code{ width:110px }
   .w-num{ width:130px }
   .w-ops{ width:170px }
@@ -254,7 +256,10 @@
           <form method="post" action="{{ url_for('admin_suggestion_create') }}" class="grid grid-2" style="margin-top:.5rem;">
             <input type="hidden" name="category" value="{{ cat_name }}">
             <div style="grid-column:1/-1">
-              <label>Risk Metni</label>
+              <label>
+                Risk Metni
+                <span class="small text-muted">(kısa ve net yazın; çok uzun metinler kaydedilmeyebilir)</span>
+              </label>
               <textarea class="input" name="text" rows="2" required placeholder="Risk cümlesi..."></textarea>
             </div>
 
@@ -273,8 +278,14 @@
             </div>
 
             <div>
-              <label>Risk Kodu</label>
-              <input class="input" name="risk_code" placeholder="örn: UYR02">
+              <label>Risk Kodu
+                <span class="small text-muted">(ilk 3 harf, son 2 rakam · örn: UYR02)</span>
+              </label>
+              <input class="input"
+                     name="risk_code"
+                     placeholder="örn: UYR02"
+                     pattern="[A-Za-z]{3}[0-9]{2}"
+                     title="İlk 3 karakter harf, son 2 karakter rakam olmalı. Örn: UYR02">
             </div>
             <div>
               <label>Vars. Olasılık (1–5)</label>
@@ -386,7 +397,10 @@
                   <div class="inline-edit">
                     <form method="post" action="{{ url_for('admin_suggestion_update', sid=s.id) }}" class="grid grid-2">
                       <div style="grid-column:1/-1">
-                        <label>Risk Metni</label>
+                        <label>
+                          Risk Metni
+                          <span class="small text-muted">(kısa ve net tutun; gereksiz uzun metinler reddedilebilir)</span>
+                        </label>
                         <textarea class="input" name="text" rows="2" required>{{ s.text }}</textarea>
                       </div>
 
@@ -407,8 +421,15 @@
                         <input class="input" name="category" value="{{ s.category or '' }}">
                       </div>
                       <div>
-                        <label>Risk Kodu</label>
-                        <input class="input" name="risk_code" value="{{ s.risk_code or '' }}">
+                        <label>
+                          Risk Kodu
+                          <span class="small text-muted">(ilk 3 harf, son 2 rakam · örn: UYR02)</span>
+                        </label>
+                        <input class="input"
+                               name="risk_code"
+                               value="{{ s.risk_code or '' }}"
+                               pattern="[A-Za-z]{3}[0-9]{2}"
+                               title="İlk 3 karakter harf, son 2 karakter rakam olmalı. Örn: UYR02">
                       </div>
                       <div>
                         <label>Varsayılan Olasılık (1–5)</label>

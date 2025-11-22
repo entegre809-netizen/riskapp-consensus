@@ -1841,11 +1841,42 @@ def create_app():
 
         new_text     = (request.form.get("text") or "").strip()
         new_category = (request.form.get("category") or s.category or "").strip()
-        new_code     = (request.form.get("risk_code") or "").strip() or None
 
-        # 🔹 edit formundaki alanlar
+        # ham risk kodu
+        risk_code_raw = (request.form.get("risk_code") or "").strip()
+
+        # edit formundaki alanlar
         new_risk_desc       = (request.form.get("risk_desc") or "").strip()
         new_mitigation_hint = (request.form.get("mitigation_hint") or "").strip()
+
+        # ------- Kelime limitleri (create ile aynı) -------
+        def _word_count(s_: str) -> int:
+            return len(s_.split()) if s_ else 0
+
+        MAX_MAIN_WORDS = 120      # Risk metni
+        MAX_DESC_WORDS = 200      # Risk faktörü (açıklama)
+        MAX_HINT_WORDS = 200      # Önerilen önlemler
+
+        # Sadece dolu gelen alanları kontrol ediyoruz
+        if new_text and _word_count(new_text) > MAX_MAIN_WORDS:
+            flash(f"Risk metni çok uzun (en fazla {MAX_MAIN_WORDS} kelime).", "danger")
+            return redirect(url_for("risk_identify"))
+
+        if new_risk_desc and _word_count(new_risk_desc) > MAX_DESC_WORDS:
+            flash(f"Risk faktörü açıklaması çok uzun (en fazla {MAX_DESC_WORDS} kelime).", "danger")
+            return redirect(url_for("risk_identify"))
+
+        if new_mitigation_hint and _word_count(new_mitigation_hint) > MAX_HINT_WORDS:
+            flash(f"Önerilen önlemler çok uzun (en fazla {MAX_HINT_WORDS} kelime).", "danger")
+            return redirect(url_for("risk_identify"))
+
+        # ------- Risk kodu formatı: ABC12 -------
+        new_code = risk_code_raw.upper() or None
+        if new_code:
+            # ilk 3 harf, son 2 rakam
+            if not re.match(r"^[A-Z]{3}[0-9]{2}$", new_code):
+                flash("Risk kodu formatı hatalı. Örnek: UYR02 (ilk 3 karakter harf, son 2 karakter rakam).", "danger")
+                return redirect(url_for("risk_identify"))
 
         def _toi(x):
             if x in (None, ""):
@@ -1859,20 +1890,21 @@ def create_app():
         new_p = _toi(request.form.get("default_prob"))
         new_s = _toi(request.form.get("default_sev"))
 
+        # ---- Asıl alanları güncelle ----
         if new_text:
             s.text = new_text
 
         if new_risk_desc:
             s.risk_desc = new_risk_desc
         elif not s.risk_desc:
-            # tamamen boşsa en azından text'e yaslan
+            # tamamen boşsa en azından text’e yaslan
             s.risk_desc = s.text
 
         # boş stringe set etme, None yap
         s.mitigation_hint = new_mitigation_hint or None
 
         s.category = new_category or s.category
-        s.risk_code = new_code
+        s.risk_code = new_code  # format kontrolünden geçtiyse buraya geldi
 
         if new_p is not None:
             s.default_prob = new_p
@@ -1882,6 +1914,7 @@ def create_app():
         db.session.commit()
         flash("Şablon güncellendi.", "success")
         return redirect(url_for("risk_identify"))
+
 
 
     @app.post("/admin/suggestions/<int:sid>/delete")
@@ -1896,13 +1929,43 @@ def create_app():
     @app.post("/admin/suggestions/create")
     @role_required("admin")
     def admin_suggestion_create():
-        text = (request.form.get("text") or "").strip()
+        text     = (request.form.get("text") or "").strip()
         category = (request.form.get("category") or "").strip()
-        risk_code = (request.form.get("risk_code") or "").strip() or None
 
-        # 🔹 Yeni alanlar: formdaki textarea isimleriyle birebir aynı
-        risk_desc = (request.form.get("risk_desc") or "").strip()
+        # risk_code ham hali
+        risk_code_raw = (request.form.get("risk_code") or "").strip()
+
+        # Yeni alanlar: formdaki textarea isimleriyle birebir aynı
+        risk_desc       = (request.form.get("risk_desc") or "").strip()
         mitigation_hint = (request.form.get("mitigation_hint") or "").strip()
+
+        # ------- Kelime limitleri -------
+        def _word_count(s: str) -> int:
+            return len(s.split()) if s else 0
+
+        MAX_MAIN_WORDS = 120      # Risk metni
+        MAX_DESC_WORDS = 200      # Risk faktörü (açıklama)
+        MAX_HINT_WORDS = 200      # Önerilen önlemler
+
+        if _word_count(text) > MAX_MAIN_WORDS:
+            flash(f"Risk metni çok uzun (en fazla {MAX_MAIN_WORDS} kelime).", "danger")
+            return redirect(url_for("risk_identify"))
+
+        if _word_count(risk_desc) > MAX_DESC_WORDS:
+            flash(f"Risk faktörü açıklaması çok uzun (en fazla {MAX_DESC_WORDS} kelime).", "danger")
+            return redirect(url_for("risk_identify"))
+
+        if _word_count(mitigation_hint) > MAX_HINT_WORDS:
+            flash(f"Önerilen önlemler çok uzun (en fazla {MAX_HINT_WORDS} kelime).", "danger")
+            return redirect(url_for("risk_identify"))
+
+        # ------- Risk kodu formatı: ABC12 -------
+        risk_code = risk_code_raw.upper() or None
+        if risk_code:
+            # ilk 3 harf, son 2 rakam
+            if not re.match(r"^[A-Z]{3}[0-9]{2}$", risk_code):
+                flash("Risk kodu formatı hatalı. Örnek: UYR02 (ilk 3 karakter harf, son 2 karakter rakam).", "danger")
+                return redirect(url_for("risk_identify"))
 
         def _toi(x):
             if x in (None, ""):
@@ -1933,7 +1996,7 @@ def create_app():
         if not rc:
             db.session.add(RiskCategory(name=category, is_active=True))
 
-        # 🔹 risk_desc boşsa text’i kopyalıyoruz, mitigation_hint boşsa None
+        # risk_desc boşsa text’i kopyalıyoruz, mitigation_hint boşsa None
         s = Suggestion(
             text=text,
             category=category,
@@ -1948,6 +2011,7 @@ def create_app():
         db.session.commit()
         flash("Yeni şablon eklendi.", "success")
         return redirect(url_for("risk_identify") + f"#cat-{category.replace(' ', '-')}")
+
 
 
 
