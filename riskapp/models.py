@@ -143,25 +143,48 @@ class Risk(db.Model):
 
     def score(self):
         """
-        Olasılık × Şiddet (1–25). P×S ortalamalarından hesaplanır.
+        Güncel skor: son değerlendirmedeki P×S.
+        risk_detail.html ile birebir aynı mantık:
+        - Son Evaluation'ı id'ye göre bul
+        - P×S hesapla
+        - Eğer yorumda 'RPN ort:' varsa, oradaki değeri parse edip onu kullan
+        Böylece liste sayfası ve detay sayfasındaki skor HER ZAMAN aynı olur.
         """
-        ap, asv = self.avg_prob(), self.avg_sev()
-        if ap is None or asv is None:
+        if not self.evaluations:
             return None
-        return round(ap * asv, 2)
+
+        # risk_detail.html'deki gibi id'ye göre son kayıt
+        last = sorted(
+            self.evaluations,
+            key=lambda e: e.id
+        )[-1]
+
+        p = last.probability or 0
+        s = last.severity or 0
+        if not p or not s:
+            return None
+
+        rpn = p * s
+
+        # Eğer AI yorumunda "RPN ort:" geçiyorsa, o değeri kullan
+        if last.comment and 'RPN ort:' in last.comment:
+            try:
+                chunk = last.comment.split('RPN ort:')[1].strip()
+                num = chunk.split(')')[0].strip()
+                rpn = float(num)
+            except Exception:
+                # Parse edemezsek P×S ile devam ediyoruz
+                pass
+
+        return rpn
 
     # ---------- GERİYE UYUMLULUK: "RPN" adları P×S'yi temsil ediyor ----------
     def last_rpn(self):
         """
-        Eski API'yi bozmamak için: son değerlendirmenin P×S değeri (Detection yok sayılır).
+        Eski API ismi ama artık score() ile aynı mantığı kullanıyor:
+        Son değerlendirme P×S (veya yorumdaki 'RPN ort' değeri).
         """
-        if not self.evaluations:
-            return None
-        last = sorted(
-            self.evaluations,
-            key=lambda e: e.created_at or datetime.min
-        )[-1]
-        return last.rpn()  # Evaluation.rpn() artık P×S döner
+        return self.score()
 
     def avg_rpn(self):
         """
