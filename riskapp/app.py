@@ -6,7 +6,7 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
-from riskapp.models import RiskSuggestion
+
 from functools import wraps
 from sqlalchemy import text, or_, func
 from collections import Counter
