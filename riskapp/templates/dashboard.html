@@ -375,24 +375,34 @@
         </div>
 
         {% for p in range(5,0,-1) %}
-          {% set score = p * s %}
-          {% set key   = p ~ "-" ~ s %}
-          {# backend: matrix = {"P-S": adet} #}
-          {% set count = matrix.get(key, 0) if matrix is defined and matrix else 0 %}
+  {% set score = p * s %}
 
-          {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
-          {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
+  {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
+  {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
 
-          <a class="rm-cell {{ lvl }}"
-             href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
-             title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{count}} adet"
-             role="gridcell"
-             aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{count}} adet"
-             tabindex="0">
-            <span class="rm-score">{{ score }}</span>
-            <span class="rm-count">{{ count }}</span>
-          </a>
-        {% endfor %}
+  {# Bu hücre için kaç risk var? Son değerlendirmeye göre sayıyoruz #}
+  {% set cell = namespace(cnt=0) %}
+  {% for r in risks or [] %}
+    {% set evals = (r.evaluations or [])|sort(attribute='id') %}
+    {% if evals %}
+      {% set last_eval = evals|last %}
+      {% if last_eval.probability == p and last_eval.severity == s %}
+        {% set cell.cnt = cell.cnt + 1 %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  <a class="rm-cell {{ lvl }}"
+     href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
+     title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{cell.cnt}} adet"
+     role="gridcell"
+     aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{cell.cnt}} adet"
+     tabindex="0">
+    <span class="rm-score">{{ score }}</span>
+    <span class="rm-count">{{ cell.cnt }}</span>
+  </a>
+{% endfor %}
+
       {% endfor %}
     </div>
 
