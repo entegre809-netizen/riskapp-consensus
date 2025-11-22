@@ -1563,14 +1563,25 @@ def create_app():
         FILL_HEAD   = PatternFill("solid", fgColor="D9D9D9")  # tablo başlık
 
         def level_for_rpn(rpn: float | None):
+            """
+            1–4  Düşük
+            5–10 Orta
+            11–15 Yüksek
+            16–25 Çok Yüksek
+            (dashboard / matris ile uyumlu)
+            """
             if rpn is None:
                 return "", None
-            # 1..25 ölçekte: 1–5 Düşük, 6–10 Orta, 11–15 Yüksek, ≥16 Çok Yüksek
             r = float(rpn)
-            if r <= 5:   return "Düşük", FILL_LOW
-            if r <= 10:  return "Orta",  FILL_MED
-            if r <= 15:  return "Yüksek", FILL_HIGH
+            if r <= 4:
+                return "Düşük", FILL_LOW
+            if r <= 10:
+                return "Orta",  FILL_MED
+            if r <= 15:
+                return "Yüksek", FILL_HIGH
             return "Çok Yüksek", FILL_VHIGH
+
+
 
         # sütun başlıkları
         HEAD = ["No", "Risk Adı", "Risk Tanımlaması", "Risk Sahibi",
@@ -4704,16 +4715,23 @@ def create_app():
             ])
 
             def level_for_rpn(rpn):
+                """
+                1–4  Düşük
+                5–10 Orta
+                11–15 Yüksek
+                16–25 Çok Yüksek
+                """
                 if rpn is None:
                     return ""
                 r = float(rpn)
-                if r <= 5:
+                if r <= 4:
                     return "Düşük"
                 if r <= 10:
                     return "Orta"
                 if r <= 15:
                     return "Yüksek"
                 return "Çok Yüksek"
+
 
             from collections import defaultdict
             counters = defaultdict(int)
