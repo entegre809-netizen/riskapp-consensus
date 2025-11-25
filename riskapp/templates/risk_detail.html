@@ -316,7 +316,11 @@
         </div>
 
         {# --- Yeni: Detaylı aksiyon listesi (Mitigation tablosu) --- #}
-        
+        <div style="grid-column:1/-1; margin-top:8px">
+          <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px">
+            <label style="margin:0">Detaylı Aksiyon Listesi</label>
+            {# + Satır Ekle butonu kaldırıldı #}
+          </div>
           <p class="muted" style="margin-bottom:6px">
             Her satır için ayrı bir aksiyon, sorumlu kişi, hedef tarih ve durum seçin.
           </p>
@@ -721,8 +725,8 @@
   // ========= Mitigation satırları: dinamik tablo =========
   (function(){
     const tbody = document.getElementById('mitBody');
-    const addBtn = document.getElementById('addMitRow');
-    if (!tbody || !addBtn) return;
+    const addBtn = document.getElementById('addMitRow'); // olmayabilir
+    if (!tbody) return;
 
     function bindRow(row){
       const delBtn = row.querySelector('.btn-mit-del');
@@ -748,22 +752,24 @@
     // Mevcut satırları bağla
     tbody.querySelectorAll('tr').forEach(bindRow);
 
-    // Yeni satır ekle
-    addBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      const template = tbody.querySelector('tr');
-      if (!template) return;
-      const clone = template.cloneNode(true);
-      clone.querySelectorAll('input,select').forEach(el => {
-        if (el.tagName === 'SELECT'){
-          el.selectedIndex = 0;
-        } else {
-          el.value = '';
-        }
+    // Yeni satır ekle butonu hâlâ destekleniyor; DOM’da yoksa çalışmaz
+    if (addBtn) {
+      addBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        const template = tbody.querySelector('tr');
+        if (!template) return;
+        const clone = template.cloneNode(true);
+        clone.querySelectorAll('input,select').forEach(el => {
+          if (el.tagName === 'SELECT'){
+            el.selectedIndex = 0;
+          } else {
+            el.value = '';
+          }
+        });
+        tbody.appendChild(clone);
+        bindRow(clone);
       });
-      tbody.appendChild(clone);
-      bindRow(clone);
-    });
+    }
   })();
 
   // ========= AI SUGGEST: fetch + reload =========
