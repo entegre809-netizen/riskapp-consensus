@@ -316,83 +316,7 @@
         </div>
 
         {# --- Yeni: Detaylı aksiyon listesi (Mitigation tablosu) --- #}
-        <div style="grid-column:1/-1; margin-top:8px">
-          <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px">
-            <label style="margin:0">Detaylı Aksiyon Listesi</label>
-            {# + Satır Ekle butonu kaldırıldı #}
-          </div>
-          <p class="muted" style="margin-bottom:6px">
-            Her satır için ayrı bir aksiyon, sorumlu kişi, hedef tarih ve durum seçin.
-          </p>
-
-          <div style="max-width:100%; overflow-x:auto;">
-            <table class="table mit-table">
-              <thead>
-                <tr>
-                  <th style="width:40%">Aksiyon</th>
-                  <th style="width:20%">Sorumlu</th>
-                  <th style="width:20%">Hedef Tarih</th>
-                  <th style="width:15%">Durum</th>
-                  <th style="width:5%" class="mit-actions">Sil</th>
-                </tr>
-              </thead>
-              <tbody id="mitBody">
-                {% if r.mitigations %}
-                  {% for m in r.mitigations %}
-                    <tr>
-                      <td>
-                        <input class="input" name="mit_text[]" value="{{ m.text or '' }}" placeholder="Aksiyon tanımı">
-                      </td>
-                      <td>
-                        <input class="input" name="mit_owner[]" value="{{ m.owner or '' }}" placeholder="Kişi / departman">
-                      </td>
-                      <td>
-                        <input class="input" type="date" name="mit_due[]" value="{{ m.due or '' }}">
-                      </td>
-                      <td>
-                        {% set st = m.status or '' %}
-                        <select class="input" name="mit_status[]">
-                          <option value=""          {% if not st %}selected{% endif %}>—</option>
-                          <option value="planned"   {% if st=='planned' %}selected{% endif %}>Planlandı</option>
-                          <option value="ongoing"   {% if st=='ongoing' %}selected{% endif %}>Devam ediyor</option>
-                          <option value="done"      {% if st=='done' %}selected{% endif %}>Tamamlandı</option>
-                          <option value="cancelled" {% if st=='cancelled' %}selected{% endif %}>İptal</option>
-                        </select>
-                      </td>
-                      <td class="mit-actions">
-                        <button type="button" class="btn btn-sm btn-danger btn-mit-del">✕</button>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td>
-                      <input class="input" name="mit_text[]" value="" placeholder="Aksiyon tanımı">
-                    </td>
-                    <td>
-                      <input class="input" name="mit_owner[]" value="" placeholder="Kişi / departman">
-                    </td>
-                    <td>
-                      <input class="input" type="date" name="mit_due[]" value="">
-                    </td>
-                    <td>
-                      <select class="input" name="mit_status[]">
-                        <option value="" selected>—</option>
-                        <option value="planned">Planlandı</option>
-                        <option value="ongoing">Devam ediyor</option>
-                        <option value="done">Tamamlandı</option>
-                        <option value="cancelled">İptal</option>
-                      </select>
-                    </td>
-                    <td class="mit-actions">
-                      <button type="button" class="btn btn-sm btn-danger btn-mit-del">✕</button>
-                    </td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        
 
         {# Tarihler #}
         <div>
@@ -725,8 +649,8 @@
   // ========= Mitigation satırları: dinamik tablo =========
   (function(){
     const tbody = document.getElementById('mitBody');
-    const addBtn = document.getElementById('addMitRow'); // olmayabilir
-    if (!tbody) return;
+    const addBtn = document.getElementById('addMitRow');
+    if (!tbody || !addBtn) return;
 
     function bindRow(row){
       const delBtn = row.querySelector('.btn-mit-del');
@@ -752,24 +676,22 @@
     // Mevcut satırları bağla
     tbody.querySelectorAll('tr').forEach(bindRow);
 
-    // Yeni satır ekle butonu hâlâ destekleniyor; DOM’da yoksa çalışmaz
-    if (addBtn) {
-      addBtn.addEventListener('click', function(e){
-        e.preventDefault();
-        const template = tbody.querySelector('tr');
-        if (!template) return;
-        const clone = template.cloneNode(true);
-        clone.querySelectorAll('input,select').forEach(el => {
-          if (el.tagName === 'SELECT'){
-            el.selectedIndex = 0;
-          } else {
-            el.value = '';
-          }
-        });
-        tbody.appendChild(clone);
-        bindRow(clone);
+    // Yeni satır ekle
+    addBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      const template = tbody.querySelector('tr');
+      if (!template) return;
+      const clone = template.cloneNode(true);
+      clone.querySelectorAll('input,select').forEach(el => {
+        if (el.tagName === 'SELECT'){
+          el.selectedIndex = 0;
+        } else {
+          el.value = '';
+        }
       });
-    }
+      tbody.appendChild(clone);
+      bindRow(clone);
+    });
   })();
 
   // ========= AI SUGGEST: fetch + reload =========
