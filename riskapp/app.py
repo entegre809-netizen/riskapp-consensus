@@ -939,7 +939,7 @@ def send_email(to_email: str, subject: str, body: str):
 # -------------------------------------------------
 def create_app():
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = "dev-secret-change-me"
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-me")
 
     # 1) DB URI önceliği
     default_sqlite_uri = "sqlite:////tmp/riskapp.db"
@@ -954,81 +954,85 @@ def create_app():
     app.config["CONSENSUS_THRESHOLD"] = 30
 
     # 2) SQLite ise: thread ayarı + dosya/klasör garantisi
-        # 2) SQLite ise: thread ayarı + dosya/klasör garantisi
     if db_uri.startswith("sqlite:"):
-        # Gunicorn/çoklu thread için
         engine_opts = app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {})
         conn_args = engine_opts.setdefault("connect_args", {})
-
-        # check_same_thread=False -> çoklu thread'de sqlite hata vermesin
         conn_args.setdefault("check_same_thread", False)
 
-        # Dosya yolu varsa klasörü oluştur (örn: sqlite:////tmp/riskapp.db)
-        if db_uri.startswith("sqlite:///"):
-            db_path = db_uri.replace("sqlite:///", "", 1)
-            db_dir = os.path.dirname(db_path)
-            if db_dir and not os.path.exists(db_dir):
-                os.makedirs(db_dir, exist_ok=True)
-
-
-        # /tmp/riskapp.db'yi önceden oluştur (permission/issues önleme)
+        # URI'den path çıkar (sqlite:////tmp/x.db -> //tmp/x.db gibi gelebilir)
         raw_path = urlparse(db_uri).path or "/tmp/riskapp.db"
         db_path = os.path.normpath(raw_path)
 
+        # Güvensiz / yazılamayan yerlere düşerse /tmp'ye kaç
         unsafe_dirs = {"", "/", "/data", "//data"}
         dir_path = os.path.dirname(db_path)
 
-        # Kök/korumalı dizinler veya yazılamayan klasörler -> /tmp fallback
-        if (not dir_path) or (dir_path in unsafe_dirs) or (not os.access(dir_path, os.W_OK)):
-            db_path = "/tmp/riskapp.db"
-            dir_path = "/tmp"
+        def _fallback_to_tmp():
+            return "/tmp/riskapp.db", "/tmp"
 
+        # root veya saçma dizinler
+        if (not dir_path) or (dir_path in unsafe_dirs):
+            db_path, dir_path = _fallback_to_tmp()
+
+        # klasörü oluşturmayı dene + dosyayı yoksa yarat
         try:
             os.makedirs(dir_path, exist_ok=True)
-            with open(db_path, "a"):
-                pass  # dosyayı yoksa yarat
+
+            # klasör var ama yazılamıyorsa fallback
+            if not os.access(dir_path, os.W_OK):
+                db_path, dir_path = _fallback_to_tmp()
+                os.makedirs(dir_path, exist_ok=True)
+
+            with open(db_path, "a", encoding="utf-8"):
+                pass
         except Exception:
-            # her durumda son çare /tmp
-            db_path = "/tmp/riskapp.db"
-            dir_path = "/tmp"
+            db_path, dir_path = _fallback_to_tmp()
             os.makedirs(dir_path, exist_ok=True)
-            with open(db_path, "a"):
+            with open(db_path, "a", encoding="utf-8"):
                 pass
 
         # SQLAlchemy URI'sini normalize edip geri yaz
         app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 
-    # 3) DB init (SQLite/Postgres fark etmeksizin burada)
+    # 3) DB init
     db.init_app(app)
 
-    # 4) Şema/seed (tek noktadan, stabil sırayla)
-    with app.app_context():
+    # 4) Şema / seed / indexler (tek noktadan, stabil sırayla)
+    def bootstrap_db():
+        uri = app.config.get("SQLALCHEMY_DATABASE_URI", "") or ""
+
+        # Tablolar
         db.create_all()
 
-        # Sadece SQLite'ta geriye dönük ALTER işlemleri
-        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite:"):
+        # SQLite için geriye dönük schema fixleri
+        if uri.startswith("sqlite:"):
             ensure_schema()
 
-        # Seed
-        # Seed (migrate/upgrade sırasında kapatılabilir)
-    if os.environ.get("SKIP_SEED") != "1":
-        try:
-            seed_if_empty()
-        except OperationalError as e:
-            print("Seed atlandı (DB şeması hazır değil):", e)
+        # Seed (istersen env ile kapat)
+        if os.environ.get("SKIP_SEED") != "1":
+            try:
+                seed_if_empty()
+            except OperationalError as e:
+                app.logger.warning("Seed atlandı (DB şeması hazır değil): %s", e)
 
-
-        # performans için yardımcı indeksler (idempotent)
+        # Performans indeksleri (idempotent)
         try:
             db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_project ON risks(project_id)"))
             db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_start   ON risks(start_month)"))
             db.session.execute(text("CREATE INDEX IF NOT EXISTS ix_risks_end     ON risks(end_month)"))
-            # Ref No benzersizliği (kolon varsa uygulanır)
+
+            # Ref No benzersizliği (kolon varsa iş görür)
             db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ux_risks_ref_code ON risks(ref_code)"))
+
             db.session.commit()
-        except Exception:
-            pass
-    def _sync_mitigations(risk: Risk) -> None:
+        except Exception as e:
+            db.session.rollback()
+            app.logger.warning("Index create atlandı: %s", e)
+
+    with app.app_context():
+        bootstrap_db()
+
+    def _sync_mitigations(risk: "Risk") -> None:
         """
         Formdan gelen mitigasyon/önlem satırlarını al,
         eski kayıtları sil, yenilerini ekle.
@@ -1037,25 +1041,28 @@ def create_app():
         # Eski mitigasyonları sil
         Mitigation.query.filter_by(risk_id=risk.id).delete()
 
-        # Formdan listeleri çek
+        # Formdan listeleri çek (hem []'li hem []'siz isimleri kabul et)
         texts   = request.form.getlist("mit_text[]")   or request.form.getlist("mit_text")
         owners  = request.form.getlist("mit_owner[]")  or request.form.getlist("mit_owner")
         dues    = request.form.getlist("mit_due[]")    or request.form.getlist("mit_due")
         status_ = request.form.getlist("mit_status[]") or request.form.getlist("mit_status")
 
-        n = max(len(texts), len(owners), len(dues), len(status_)) if any([texts, owners, dues, status_]) else 0
+        if not any([texts, owners, dues, status_]):
+            return
+
+        n = max(len(texts), len(owners), len(dues), len(status_))
 
         def _safe(lst, i, default=""):
             return lst[i] if i < len(lst) else default
 
         for i in range(n):
-            text = (_safe(texts, i) or "").strip()
-            if not text:
-                continue  # tamamen boş satırı kaydetme
+            text_val = (_safe(texts, i) or "").strip()
+            if not text_val:
+                continue
 
-            owner   = (_safe(owners, i) or "").strip()
-            status  = (_safe(status_, i) or "").strip()
-            due_raw = (_safe(dues, i) or "").strip()
+            owner_val  = (_safe(owners, i) or "").strip()
+            status_val = (_safe(status_, i) or "").strip()
+            due_raw    = (_safe(dues, i) or "").strip()
 
             due_date = None
             if due_raw:
@@ -1065,11 +1072,11 @@ def create_app():
                     due_date = None
 
             m = Mitigation(
-                risk_id = risk.id,
-                text    = text,
-                owner   = owner,      # modelinde isim farklıysa BURAYI değiştir
-                status  = status,     # modelinde isim farklıysa BURAYI değiştir
-                due_date = due_date,  # modelinde isim farklıysa BURAYI değiştir
+                risk_id=risk.id,
+                text=text_val,
+                owner=owner_val,      # model alan adın farklıysa burayı değiştir
+                status=status_val,    # model alan adın farklıysa burayı değiştir
+                due_date=due_date,    # model alan adın farklıysa burayı değiştir
             )
             db.session.add(m)
 
