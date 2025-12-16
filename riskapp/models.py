@@ -113,6 +113,15 @@ class Risk(db.Model):
         order_by="Mitigation.id.desc()"
     )
 
+    # Maliyet kalemleri (YENİ)
+    cost_items = db.relationship(
+        "CostItem",
+        backref="risk",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="CostItem.id.desc()"
+    )
+
     # ---------- Yardımcılar: Çoklu kategori ----------
     @property
     def categories_list(self):
@@ -376,8 +385,54 @@ class ProjectInfo(db.Model):
 
     account = db.relationship("Account", backref="projects")
 
+    # Maliyet kalemleri (YENİ)
+    cost_items = db.relationship(
+        "CostItem",
+        backref="project",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="CostItem.id.desc()"
+    )
+
     def __repr__(self):
         return f"<ProjectInfo id={self.id} name={self.workplace_name!r}>"
+
+
+# --------------------------------
+# CostItem (Maliyet Kalemleri) (YENİ)
+# --------------------------------
+class CostItem(db.Model):
+    """
+    Proje bazlı (zorunlu) ve opsiyonel olarak risk bazlı maliyet kalemleri.
+    costs.html ekranı için veri kaynağı.
+    """
+    __tablename__ = "cost_items"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Proje zorunlu: maliyetler genellikle proje kapsamında tutulur
+    project_id = db.Column(db.Integer, db.ForeignKey("project_info.id"), nullable=False, index=True)
+
+    # Risk opsiyonel: maliyet bir riske direkt bağlıysa ilişkilendirilebilir
+    risk_id = db.Column(db.Integer, db.ForeignKey("risks.id"), nullable=True, index=True)
+
+    title       = db.Column(db.String(160), nullable=False)
+    category    = db.Column(db.String(80), nullable=True, index=True)
+    unit        = db.Column(db.String(40), nullable=True)       # adet, saat, kg...
+    currency    = db.Column(db.String(8), nullable=False, default="TRY")  # TRY, USD, EUR...
+    frequency   = db.Column(db.String(40), nullable=True)       # tek sefer, aylık, yıllık...
+
+    qty         = db.Column(db.Numeric(14, 4), nullable=False, default=1)
+    unit_price  = db.Column(db.Numeric(14, 4), nullable=False, default=0)
+    total       = db.Column(db.Numeric(16, 4), nullable=False, default=0)
+
+    description = db.Column(db.Text, nullable=True)
+
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<CostItem id={self.id} project_id={self.project_id} risk_id={self.risk_id} title={self.title!r}>"
 
 
 # --------------------------------

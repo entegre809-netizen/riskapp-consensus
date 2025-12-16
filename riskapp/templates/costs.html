@@ -1,0 +1,499 @@
+{# templates/costs.html #}
+{% extends "base.html" %}
+
+{% block title %}Maliyetler{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h2 class="mb-1">Maliyet Yönetimi</h2>
+      <div class="text-muted">
+        Şablondan seç, maliyet gir, açıklamasını yaz, sonra da Pareto/Pareto Front ile neye odaklanacağını gör.
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- LEFT: Templates -->
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div class="fw-semibold">Maliyet Şablonları</div>
+          <small class="text-muted">Formu otomatik doldurur</small>
+        </div>
+
+        <div class="card-body">
+          <div class="row g-2">
+
+            <!-- Şablon Kartları -->
+            <div class="col-12">
+              <div class="border rounded p-3 template-card"
+                   data-title="Personel / Mesai"
+                   data-category="İş Gücü"
+                   data-unit="saat"
+                   data-currency="TRY"
+                   data-frequency="Tek Sefer"
+                   data-desc="Ek mesai, vardiya, geçici personel, fazla iş yükü için maliyet.">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Personel / Mesai</div>
+                    <div class="text-muted small">İş Gücü • saat • TRY</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">
+                  Ek mesai, geçici personel, vardiya planı gibi kalemler.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="border rounded p-3 template-card"
+                   data-title="Ekipman / Donanım"
+                   data-category="Ekipman"
+                   data-unit="adet"
+                   data-currency="TRY"
+                   data-frequency="Tek Sefer"
+                   data-desc="Donanım alımı, yedek parça, sensör, cihaz, ağ ekipmanı vb.">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Ekipman / Donanım</div>
+                    <div class="text-muted small">Ekipman • adet • TRY</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">
+                  Donanım alımı, yedek parça, cihaz.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="border rounded p-3 template-card"
+                   data-title="Yazılım Lisansı"
+                   data-category="Yazılım"
+                   data-unit="lisans"
+                   data-currency="USD"
+                   data-frequency="Aylık"
+                   data-desc="Abonelik, lisans yenileme, kullanıcı başı ücret vb.">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Yazılım Lisansı</div>
+                    <div class="text-muted small">Yazılım • lisans • USD</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">
+                  Abonelik, kullanıcı başı ücret, lisans yenileme.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="border rounded p-3 template-card"
+                   data-title="Eğitim / Sertifika"
+                   data-category="Eğitim"
+                   data-unit="kişi"
+                   data-currency="TRY"
+                   data-frequency="Tek Sefer"
+                   data-desc="Eğitim, sertifika, workshop, onboarding maliyetleri.">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Eğitim / Sertifika</div>
+                    <div class="text-muted small">Eğitim • kişi • TRY</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">
+                  Eğitim, sertifika, workshop, onboarding.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="border rounded p-3 template-card"
+                   data-title="Danışmanlık / Dış Kaynak"
+                   data-category="Hizmet"
+                   data-unit="gün"
+                   data-currency="TRY"
+                   data-frequency="Tek Sefer"
+                   data-desc="Danışmanlık günü, dış kaynak ekip, audit, test hizmetleri vb.">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Danışmanlık / Dış Kaynak</div>
+                    <div class="text-muted small">Hizmet • gün • TRY</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">
+                  Danışmanlık, audit, dış kaynak geliştirme, test.
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <hr class="my-3">
+
+          <div class="small text-muted">
+            Şablonlar “temel varsayımlar” içindir. Gerçek dünyada her şey daha karmaşık, maalesef.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Add cost form -->
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold">Maliyet Ekle</div>
+        <div class="card-body">
+
+          <form method="post" action="{{ url_for('costs') }}" id="costForm">
+            {# Eğer CSRF kullanıyorsan:
+               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            #}
+
+            <div class="row g-3">
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Başlık</label>
+                <input class="form-control" name="title" id="title" placeholder="Örn: Yazılım lisansı" required>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Kategori</label>
+                <input class="form-control" name="category" id="category" placeholder="Örn: Yazılım" required>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">Birim</label>
+                <input class="form-control" name="unit" id="unit" placeholder="adet / saat / gün / lisans" required>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">Para Birimi</label>
+                <select class="form-select" name="currency" id="currency">
+                  <option value="TRY">TRY</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label">Sıklık</label>
+                <select class="form-select" name="frequency" id="frequency">
+                  <option>Tek Sefer</option>
+                  <option>Aylık</option>
+                  <option>Yıllık</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Miktar (adet/saat/gün)</label>
+                <input class="form-control" type="number" step="0.01" min="0" name="qty" id="qty" placeholder="Örn: 10" required>
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Birim Fiyat</label>
+                <input class="form-control" type="number" step="0.01" min="0" name="unit_price" id="unit_price" placeholder="Örn: 2500" required>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">Maliyet Açıklaması</label>
+                <textarea class="form-control" rows="3" name="description" id="description"
+                          placeholder="Bu maliyet neden var, hangi riske/önleme bağlı, varsayımlar neler?"></textarea>
+              </div>
+
+              <div class="col-12 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+                <button type="button" class="btn btn-outline-secondary" id="clearForm">Formu Temizle</button>
+                <div class="ms-auto text-muted small d-flex align-items-center">
+                  Toplam (anlık): <span class="fw-semibold ms-1" id="liveTotal">0</span>
+                </div>
+              </div>
+
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- Costs list -->
+      <div class="card shadow-sm mt-3">
+        <div class="card-header fw-semibold">Mevcut Maliyetler</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Başlık</th>
+                  <th>Kategori</th>
+                  <th class="text-end">Miktar</th>
+                  <th class="text-end">Birim Fiyat</th>
+                  <th class="text-end">Toplam</th>
+                  <th class="text-end">Sıklık</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if costs and costs|length > 0 %}
+                  {% for c in costs %}
+                    <tr>
+                      <td class="fw-semibold">{{ c.title }}</td>
+                      <td>{{ c.category }}</td>
+                      <td class="text-end">{{ c.qty }}</td>
+                      <td class="text-end">{{ c.unit_price }} {{ c.currency }}</td>
+                      <td class="text-end">{{ c.total }} {{ c.currency }}</td>
+                      <td class="text-end">{{ c.frequency }}</td>
+                    </tr>
+                    {% if c.description %}
+                      <tr class="table-secondary">
+                        <td colspan="6" class="small text-muted">
+                          <span class="fw-semibold">Açıklama:</span> {{ c.description }}
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                      Henüz maliyet yok. İnsanlığın nadir huzur anlarından biri.
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Charts: Pareto + Pareto Front -->
+  <div class="row g-3 mt-2">
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold">Pareto Analizi</div>
+        <div class="card-body">
+          <div class="text-muted small mb-2">
+            En yüksek etkiyi, en düşük maliyetle yakalamaya çalışıyoruz. Dünya “kolay” olsaydı buna gerek kalmazdı.
+          </div>
+          <canvas id="paretoChart" height="140"></canvas>
+          <div id="paretoEmpty" class="text-muted small mt-2" style="display:none;">
+            Pareto verisi yok (ya da backend henüz göndermiyor).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold">Pareto Front</div>
+        <div class="card-body">
+          <div class="text-muted small mb-2">
+            Maliyet (x) ve fayda/azaltım (y) arasında “en iyi” noktalar kümesi.
+          </div>
+          <canvas id="frontChart" height="140"></canvas>
+          <div id="frontEmpty" class="text-muted small mt-2" style="display:none;">
+            Pareto front verisi yok (ya da backend henüz göndermiyor).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screenshot items: YouTube cards -->
+  <div class="card shadow-sm mt-3">
+    <div class="card-header fw-semibold">Kaynak (resimdeki linkler)</div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        <div class="col-12 col-lg-6">
+          <a class="text-decoration-none" target="_blank"
+             href="https://youtu.be/Rv5vV_PV_lg?si=lTJGKHGMMY2mrIB7">
+            <div class="border rounded p-3 h-100">
+              <div class="fw-semibold">Pareto Front Optimization in EXCEL (3 Minutes!)</div>
+              <div class="text-muted small mt-1">
+                Risk azaltım stratejisini “maliyet vs fayda” ile görselleştirme fikri.
+              </div>
+              <div class="small mt-2">YouTube’a git →</div>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <a class="text-decoration-none" target="_blank"
+             href="https://youtu.be/kMDMA3KqSl4?si=cZffA-cUFpqVR-m9">
+            <div class="border rounded p-3 h-100">
+              <div class="fw-semibold">Pareto Analysis (Risk Analysis and Management)</div>
+              <div class="text-muted small mt-1">
+                Pareto mantığı ile “önce hangi risk/önlem” kararını hızlandırma.
+              </div>
+              <div class="small mt-2">YouTube’a git →</div>
+            </div>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- JSON: güvenli gömme -->
+<script id="paretoData" type="application/json">{{ pareto_json|default(None)|tojson }}</script>
+<script id="frontData"  type="application/json">{{ front_json|default(None)|tojson }}</script>
+
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script>
+    function readJson(id) {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      try { return JSON.parse(el.textContent || "null"); }
+      catch { return null; }
+    }
+
+    function applyTemplate(card) {
+      const title = card.getAttribute('data-title') || '';
+      const category = card.getAttribute('data-category') || '';
+      const unit = card.getAttribute('data-unit') || '';
+      const currency = card.getAttribute('data-currency') || 'TRY';
+      const frequency = card.getAttribute('data-frequency') || 'Tek Sefer';
+      const desc = card.getAttribute('data-desc') || '';
+
+      document.getElementById('title').value = title;
+      document.getElementById('category').value = category;
+      document.getElementById('unit').value = unit;
+      document.getElementById('currency').value = currency;
+      document.getElementById('frequency').value = frequency;
+
+      const d = document.getElementById('description');
+      if (d && !d.value.trim()) d.value = desc;
+
+      document.getElementById('qty').focus();
+      updateLiveTotal();
+    }
+
+    function updateLiveTotal() {
+      const qty = Number(document.getElementById('qty')?.value || 0);
+      const unitPrice = Number(document.getElementById('unit_price')?.value || 0);
+      const cur = document.getElementById('currency')?.value || '';
+      const total = (qty * unitPrice);
+      const out = document.getElementById('liveTotal');
+      if (out) out.textContent = (isFinite(total) ? total.toFixed(2) : '0.00') + ' ' + cur;
+    }
+
+    document.querySelectorAll('.use-template').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const card = e.target.closest('.template-card');
+        if (card) applyTemplate(card);
+      });
+    });
+
+    document.getElementById('clearForm')?.addEventListener('click', () => {
+      ['title','category','unit','qty','unit_price','description'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      document.getElementById('currency').value = 'TRY';
+      document.getElementById('frequency').value = 'Tek Sefer';
+      updateLiveTotal();
+    });
+
+    ['qty','unit_price','currency'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', updateLiveTotal);
+      document.getElementById(id)?.addEventListener('change', updateLiveTotal);
+    });
+    updateLiveTotal();
+
+    // Charts data normalize
+    const paretoRaw = readJson('paretoData');
+    const frontRaw  = readJson('frontData');
+
+    const pareto = Array.isArray(paretoRaw)
+      ? {
+          labels: paretoRaw.map(x => x.label),
+          bars:   paretoRaw.map(x => x.value),
+          line:   paretoRaw.map(x => x.cum_pct),
+        }
+      : paretoRaw;
+
+    const front = Array.isArray(frontRaw)
+      ? { points: frontRaw }
+      : frontRaw;
+
+    (function renderPareto() {
+      const canvas = document.getElementById('paretoChart');
+      const empty = document.getElementById('paretoEmpty');
+      if (!canvas) return;
+
+      if (!pareto || !pareto.labels || !pareto.bars) {
+        if (empty) empty.style.display = 'block';
+        return;
+      }
+
+      new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: pareto.labels,
+          datasets: [
+            { type: 'bar', label: 'Skor / Etki', data: pareto.bars },
+            { type: 'line', label: 'Kümülatif %', data: pareto.line || [], yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Skor' } },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              min: 0,
+              max: 100,
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: '%' }
+            }
+          }
+        }
+      });
+    })();
+
+    (function renderFront() {
+      const canvas = document.getElementById('frontChart');
+      const empty = document.getElementById('frontEmpty');
+      if (!canvas) return;
+
+      if (!front || !front.points || !Array.isArray(front.points) || front.points.length === 0) {
+        if (empty) empty.style.display = 'block';
+        return;
+      }
+
+      new Chart(canvas, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Pareto Noktaları',
+            data: front.points.map(p => ({ x: p.x, y: p.y })),
+          }]
+        },
+        options: {
+          responsive: true,
+          parsing: false,
+          scales: {
+            x: { title: { display: true, text: 'Maliyet' } },
+            y: { title: { display: true, text: 'Fayda / Azaltım' } }
+          }
+        }
+      });
+    })();
+  </script>
+{% endblock %}

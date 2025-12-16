@@ -6,6 +6,8 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
+import os
+from sqlalchemy.exc import OperationalError
 
 from functools import wraps
 from sqlalchemy import text, or_, func
@@ -21,7 +23,7 @@ from flask import request, redirect, url_for, flash, current_app
 from .models import db, Risk, Comment
 from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
-from weasyprint import HTML
+
 import re
 from sqlalchemy.exc import IntegrityError
 from flask import request
@@ -30,7 +32,7 @@ from datetime import datetime
 from io import BytesIO
 from datetime import date
 from flask import send_file
-from weasyprint import HTML
+
 
 import json
 import os as _os, sys as _sys
@@ -56,9 +58,11 @@ import re
 from flask import Blueprint
 # --- Proje içi paket-absolute importlar ---
 from riskapp.models import (
-     db, Risk, Evaluation, Comment, Suggestion, 
-     Account, ProjectInfo, RiskCategory, RiskCategoryRef 
- )
+     db, Risk, Evaluation, Comment, Suggestion,
+     Account, ProjectInfo, RiskCategory, RiskCategoryRef,
+     CostItem
+)
+
 from riskapp.seeder import seed_if_empty
 from riskapp.ai_utils import ai_complete, ai_json, best_match
 
@@ -1006,7 +1010,13 @@ def create_app():
             ensure_schema()
 
         # Seed
-        seed_if_empty()
+        # Seed (migrate/upgrade sırasında kapatılabilir)
+    if os.environ.get("SKIP_SEED") != "1":
+        try:
+            seed_if_empty()
+        except OperationalError as e:
+            print("Seed atlandı (DB şeması hazır değil):", e)
+
 
         # performans için yardımcı indeksler (idempotent)
         try:
@@ -5080,6 +5090,106 @@ def create_app():
     def risk_template_detail(sid):
         s = Suggestion.query.get_or_404(sid)
         return render_template("risk_template_detail.html", s=s)
+    from decimal import Decimal, InvalidOperation
+
+    def _to_decimal(v, default="0"):
+        try:
+            if v is None or str(v).strip() == "":
+                return Decimal(default)
+            return Decimal(str(v).replace(",", "."))
+        except (InvalidOperation, ValueError):
+            return Decimal(default)
+
+    def _active_project_id():
+        # sende zaten project switch var: /projects/switch
+        # genelde session'da active_project_id tutulur
+        pid = session.get("active_project_id") or session.get("project_id")
+        if pid:
+            return int(pid)
+
+        # fallback: login olmuş account'un son projesi
+        acc_id = session.get("account_id")
+        if acc_id:
+            prj = (ProjectInfo.query
+                .filter_by(account_id=acc_id)
+                .order_by(ProjectInfo.id.desc())
+                .first())
+            if prj:
+                session["active_project_id"] = prj.id
+                return prj.id
+        return None
+
+    @app.route("/costs", methods=["GET", "POST"])
+    def costs():
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje bulunamadı. Önce proje seç.", "warning")
+            return redirect(url_for("dashboard"))
+
+        if request.method == "POST":
+            title = (request.form.get("title") or "").strip()
+            if not title:
+                flash("Başlık zorunlu.", "warning")
+                return redirect(url_for("costs"))
+
+            risk_id_raw = (request.form.get("risk_id") or "").strip()
+            risk_id = int(risk_id_raw) if risk_id_raw.isdigit() else None
+
+            qty = _to_decimal(request.form.get("qty"), "1")
+            unit_price = _to_decimal(request.form.get("unit_price"), "0")
+            total = qty * unit_price
+
+            item = CostItem(
+                project_id=project_id,
+                risk_id=risk_id,
+                title=title,
+                category=(request.form.get("category") or "").strip() or None,
+                unit=(request.form.get("unit") or "").strip() or None,
+                currency=(request.form.get("currency") or "TRY").strip() or "TRY",
+                frequency=(request.form.get("frequency") or "").strip() or None,
+                qty=qty,
+                unit_price=unit_price,
+                total=total,
+                description=(request.form.get("description") or "").strip() or None,
+            )
+            db.session.add(item)
+            db.session.commit()
+            flash("Maliyet kaydedildi.", "success")
+            return redirect(url_for("costs"))
+
+        costs = (CostItem.query
+                .filter_by(project_id=project_id)
+                .order_by(CostItem.id.desc())
+                .all())
+
+        sorted_costs = sorted(costs, key=lambda c: float(c.total or 0), reverse=True)
+        grand = sum(float(c.total or 0) for c in sorted_costs) or 0.0
+        run = 0.0
+        pareto = []
+        for c in sorted_costs:
+            val = float(c.total or 0)
+            run += val
+            pareto.append({
+                "label": c.title,
+                "value": val,
+                "cum_pct": (run / grand * 100.0) if grand else 0.0
+            })
+
+        front = []
+        for c in costs:
+            if c.risk_id:
+                r = Risk.query.get(c.risk_id)
+                if r:
+                    s = r.score()
+                    if s is not None:
+                        front.append({
+                            "x": float(c.total or 0),
+                            "y": float(s),
+                            "label": c.title
+                        })
+
+        return render_template("costs.html", costs=costs, pareto_json=pareto, front_json=front)
+
 
 
     # -------------------------------------------------

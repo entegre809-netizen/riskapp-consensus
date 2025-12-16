@@ -422,7 +422,6 @@
       </div>
     {% endif %}
 
-
     <button id="themeToggle" class="btn" onclick="window.__toggleTheme?.()" style="margin-left:8px">
       🌙 Koyu Tema
     </button>
@@ -466,6 +465,19 @@
           <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Geçmiş İşlem Verilerim</a>
           <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">Kategoriler</a>
           <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">Zaman Çizelgesi</a>
+
+          {# ✅ Maliyetler linki (endpoint yoksa sayfa patlamasın) #}
+          {% set _has_ep_helper = (has_endpoint is defined) %}
+          {% set _costs_ep = (
+              'costs' if (
+                (_has_ep_helper and has_endpoint('costs')) or
+                (not _has_ep_helper and ('costs' in current_app.view_functions))
+              )
+              else None
+          ) %}
+          {% if _costs_ep %}
+            <a href="{{ url_for(_costs_ep) }}" class="{{ 'active' if request.endpoint==_costs_ep }}">Maliyetler</a>
+          {% endif %}
 
           <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
 
