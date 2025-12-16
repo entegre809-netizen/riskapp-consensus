@@ -6,6 +6,27 @@
 {% block content %}
 <div class="container py-4">
 
+  <style>
+    .template-card{
+      cursor:pointer;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .template-card:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+      border-color: rgba(13,110,253,.35) !important;
+    }
+    .template-card.active{
+      border-color: rgba(13,110,253,.75) !important;
+      box-shadow: 0 .75rem 1.25rem rgba(13,110,253,.12);
+      background: rgba(13,110,253,.04);
+    }
+    #liveTotal{
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+
   <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
     <div>
       <h2 class="mb-1">Maliyet Yönetimi</h2>
@@ -152,9 +173,7 @@
         <div class="card-body">
 
           <form method="post" action="{{ url_for('costs') }}" id="costForm">
-            {# Eğer CSRF kullanıyorsan:
-               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            #}
+            {# CSRF varsa ekle #}
 
             <div class="row g-3">
 
@@ -352,148 +371,202 @@
 {% block scripts %}
   {{ super() }}
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <script>
-    function readJson(id) {
-      const el = document.getElementById(id);
-      if (!el) return null;
-      try { return JSON.parse(el.textContent || "null"); }
-      catch { return null; }
-    }
+  <script defer>
+    document.addEventListener('DOMContentLoaded', () => {
+      const $  = (sel, root=document) => root.querySelector(sel);
+      const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-    function applyTemplate(card) {
-      const title = card.getAttribute('data-title') || '';
-      const category = card.getAttribute('data-category') || '';
-      const unit = card.getAttribute('data-unit') || '';
-      const currency = card.getAttribute('data-currency') || 'TRY';
-      const frequency = card.getAttribute('data-frequency') || 'Tek Sefer';
-      const desc = card.getAttribute('data-desc') || '';
+      const nf = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      document.getElementById('title').value = title;
-      document.getElementById('category').value = category;
-      document.getElementById('unit').value = unit;
-      document.getElementById('currency').value = currency;
-      document.getElementById('frequency').value = frequency;
-
-      const d = document.getElementById('description');
-      if (d && !d.value.trim()) d.value = desc;
-
-      document.getElementById('qty').focus();
-      updateLiveTotal();
-    }
-
-    function updateLiveTotal() {
-      const qty = Number(document.getElementById('qty')?.value || 0);
-      const unitPrice = Number(document.getElementById('unit_price')?.value || 0);
-      const cur = document.getElementById('currency')?.value || '';
-      const total = (qty * unitPrice);
-      const out = document.getElementById('liveTotal');
-      if (out) out.textContent = (isFinite(total) ? total.toFixed(2) : '0.00') + ' ' + cur;
-    }
-
-    document.querySelectorAll('.use-template').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const card = e.target.closest('.template-card');
-        if (card) applyTemplate(card);
-      });
-    });
-
-    document.getElementById('clearForm')?.addEventListener('click', () => {
-      ['title','category','unit','qty','unit_price','description'].forEach(id => {
+      function readJson(id) {
         const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-      document.getElementById('currency').value = 'TRY';
-      document.getElementById('frequency').value = 'Tek Sefer';
-      updateLiveTotal();
-    });
-
-    ['qty','unit_price','currency'].forEach(id => {
-      document.getElementById(id)?.addEventListener('input', updateLiveTotal);
-      document.getElementById(id)?.addEventListener('change', updateLiveTotal);
-    });
-    updateLiveTotal();
-
-    // Charts data normalize
-    const paretoRaw = readJson('paretoData');
-    const frontRaw  = readJson('frontData');
-
-    const pareto = Array.isArray(paretoRaw)
-      ? {
-          labels: paretoRaw.map(x => x.label),
-          bars:   paretoRaw.map(x => x.value),
-          line:   paretoRaw.map(x => x.cum_pct),
-        }
-      : paretoRaw;
-
-    const front = Array.isArray(frontRaw)
-      ? { points: frontRaw }
-      : frontRaw;
-
-    (function renderPareto() {
-      const canvas = document.getElementById('paretoChart');
-      const empty = document.getElementById('paretoEmpty');
-      if (!canvas) return;
-
-      if (!pareto || !pareto.labels || !pareto.bars) {
-        if (empty) empty.style.display = 'block';
-        return;
+        if (!el) return null;
+        const txt = (el.textContent || '').trim() || 'null';
+        try { return JSON.parse(txt); } catch { return null; }
       }
 
-      new Chart(canvas, {
-        type: 'bar',
-        data: {
-          labels: pareto.labels,
-          datasets: [
-            { type: 'bar', label: 'Skor / Etki', data: pareto.bars },
-            { type: 'line', label: 'Kümülatif %', data: pareto.line || [], yAxisID: 'y1' }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'Skor' } },
-            y1: {
-              beginAtZero: true,
-              position: 'right',
-              min: 0,
-              max: 100,
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: '%' }
+      function numVal(id) {
+        const v = parseFloat($('#' + id)?.value ?? '0');
+        return Number.isFinite(v) ? v : 0;
+      }
+
+      function setVal(id, val) {
+        const el = $('#' + id);
+        if (el) el.value = val ?? '';
+      }
+
+      function markActiveTemplate(card) {
+        $$('.template-card.active').forEach(x => x.classList.remove('active'));
+        if (card) card.classList.add('active');
+      }
+
+      function updateLiveTotal() {
+        const qty = numVal('qty');
+        const unitPrice = numVal('unit_price');
+        const cur = $('#currency')?.value || '';
+        const total = qty * unitPrice;
+
+        const out = $('#liveTotal');
+        if (!out) return;
+
+        const safe = Number.isFinite(total) ? total : 0;
+        out.textContent = `${nf.format(safe)} ${cur}`;
+      }
+
+      function applyTemplate(card) {
+        const title     = card.getAttribute('data-title')     || '';
+        const category  = card.getAttribute('data-category')  || '';
+        const unit      = card.getAttribute('data-unit')      || '';
+        const currency  = card.getAttribute('data-currency')  || 'TRY';
+        const frequency = card.getAttribute('data-frequency') || 'Tek Sefer';
+        const desc      = card.getAttribute('data-desc')      || '';
+
+        setVal('title', title);
+        setVal('category', category);
+        setVal('unit', unit);
+        setVal('currency', currency);
+        setVal('frequency', frequency);
+
+        const d = $('#description');
+        if (d && !d.value.trim()) d.value = desc;
+
+        markActiveTemplate(card);
+        updateLiveTotal();
+        $('#qty')?.focus();
+      }
+
+      function clearForm() {
+        ['title','category','unit','qty','unit_price','description'].forEach(id => setVal(id, ''));
+        setVal('currency', 'TRY');
+        setVal('frequency', 'Tek Sefer');
+        markActiveTemplate(null);
+        updateLiveTotal();
+        $('#title')?.focus();
+      }
+
+      // Robust event delegation: click
+      document.addEventListener('click', (e) => {
+        const clearBtn = e.target.closest('#clearForm');
+        if (clearBtn) { e.preventDefault(); clearForm(); return; }
+
+        const applyBtn = e.target.closest('.use-template');
+        if (applyBtn) {
+          e.preventDefault();
+          const card = applyBtn.closest('.template-card');
+          if (card) applyTemplate(card);
+          return;
+        }
+
+        // Card click applies too (unless user clicks inside form controls)
+        const card = e.target.closest('.template-card');
+        if (card) {
+          const blocked = e.target.closest('button, a, input, select, textarea, label');
+          if (!blocked) applyTemplate(card);
+        }
+      });
+
+      // Live total updates
+      document.addEventListener('input', (e) => {
+        if (e.target.matches('#qty, #unit_price, #currency')) updateLiveTotal();
+      });
+      document.addEventListener('change', (e) => {
+        if (e.target.matches('#qty, #unit_price, #currency')) updateLiveTotal();
+      });
+      updateLiveTotal();
+
+      // Charts
+      const paretoRaw = readJson('paretoData');
+      const frontRaw  = readJson('frontData');
+
+      const pareto = Array.isArray(paretoRaw)
+        ? {
+            labels: paretoRaw.map(x => x.label),
+            bars:   paretoRaw.map(x => x.value),
+            line:   paretoRaw.map(x => x.cum_pct),
+          }
+        : paretoRaw;
+
+      const front = Array.isArray(frontRaw)
+        ? { points: frontRaw }
+        : frontRaw;
+
+      let paretoChartInstance = null;
+      let frontChartInstance  = null;
+
+      (function renderPareto() {
+        const canvas = $('#paretoChart');
+        const empty = $('#paretoEmpty');
+        if (!canvas) return;
+
+        if (!window.Chart) { if (empty) empty.style.display = 'block'; return; }
+        if (!pareto || !pareto.labels || !pareto.bars || pareto.labels.length === 0) {
+          if (empty) empty.style.display = 'block';
+          return;
+        }
+
+        if (paretoChartInstance) paretoChartInstance.destroy();
+
+        paretoChartInstance = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: pareto.labels,
+            datasets: [
+              { type: 'bar',  label: 'Skor / Etki',  data: pareto.bars },
+              { type: 'line', label: 'Kümülatif %',  data: pareto.line || [], yAxisID: 'y1' }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, title: { display: true, text: 'Skor' } },
+              y1: {
+                beginAtZero: true,
+                position: 'right',
+                min: 0,
+                max: 100,
+                grid: { drawOnChartArea: false },
+                title: { display: true, text: '%' }
+              }
             }
           }
+        });
+      })();
+
+      (function renderFront() {
+        const canvas = $('#frontChart');
+        const empty = $('#frontEmpty');
+        if (!canvas) return;
+
+        if (!window.Chart) { if (empty) empty.style.display = 'block'; return; }
+        if (!front || !front.points || !Array.isArray(front.points) || front.points.length === 0) {
+          if (empty) empty.style.display = 'block';
+          return;
         }
-      });
-    })();
 
-    (function renderFront() {
-      const canvas = document.getElementById('frontChart');
-      const empty = document.getElementById('frontEmpty');
-      if (!canvas) return;
+        if (frontChartInstance) frontChartInstance.destroy();
 
-      if (!front || !front.points || !Array.isArray(front.points) || front.points.length === 0) {
-        if (empty) empty.style.display = 'block';
-        return;
-      }
-
-      new Chart(canvas, {
-        type: 'scatter',
-        data: {
-          datasets: [{
-            label: 'Pareto Noktaları',
-            data: front.points.map(p => ({ x: p.x, y: p.y })),
-          }]
-        },
-        options: {
-          responsive: true,
-          parsing: false,
-          scales: {
-            x: { title: { display: true, text: 'Maliyet' } },
-            y: { title: { display: true, text: 'Fayda / Azaltım' } }
+        frontChartInstance = new Chart(canvas, {
+          type: 'scatter',
+          data: {
+            datasets: [{
+              label: 'Pareto Noktaları',
+              data: front.points.map(p => ({ x: p.x, y: p.y })),
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            parsing: false,
+            scales: {
+              x: { title: { display: true, text: 'Maliyet' } },
+              y: { title: { display: true, text: 'Fayda / Azaltım' } }
+            }
           }
-        }
-      });
-    })();
+        });
+      })();
+    });
   </script>
 {% endblock %}
