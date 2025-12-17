@@ -120,8 +120,14 @@
     <div class="col-12 col-lg-5">
       <div class="card shadow-sm">
         <div class="card-header d-flex align-items-center justify-content-between gap-2">
-          <div class="fw-semibold">Maliyet Şablonları</div>
-          <small class="text-muted">Formu otomatik doldurur</small>
+          <div>
+            <div class="fw-semibold">Maliyet Şablonları</div>
+            <small class="text-muted">Formu otomatik doldurur</small>
+          </div>
+
+          <button type="button" class="btn btn-sm btn-primary" id="tplNewBtn">
+            + Yeni Şablon
+          </button>
         </div>
 
         <div class="card-body">
@@ -135,199 +141,172 @@
             <div class="d-flex gap-2">
               <select class="form-select" id="tplCategory" style="min-width: 170px;">
                 <option value="">Tümü</option>
-                <option value="İş Gücü">İş Gücü</option>
-                <option value="Ekipman">Ekipman</option>
-                <option value="Yazılım">Yazılım</option>
-                <option value="Eğitim">Eğitim</option>
-                <option value="Hizmet">Hizmet</option>
-                <option value="Operasyon">Operasyon</option>
+                {# Kategorileri JS zaten otomatik dolduracak, bu default yeter #}
               </select>
             </div>
           </div>
 
           <div class="row g-2" id="tplGrid">
 
-            <!-- Şablon Kartları -->
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Personel / Mesai"
-                   data-category="İş Gücü"
-                   data-unit="saat"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="Ek mesai, vardiya, geçici personel, fazla iş yükü için maliyet."
-                   role="button" tabindex="0" aria-label="Şablon: Personel / Mesai">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Personel / Mesai</div>
-                    <div class="template-meta">İş Gücü • saat • TRY • Tek Sefer</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Ek mesai, vardiya, geçici personel gibi kalemler.</div>
-              </div>
-            </div>
+            {# ------------------------------
+               DB’den gelen şablonlar
+               cost_templates = list[CostTemplate]
+               ------------------------------ #}
+            {% if cost_templates is defined and cost_templates and cost_templates|length > 0 %}
+              {% for t in cost_templates %}
+                <div class="col-12">
+                  <div class="template-card"
+                       data-id="{{ t.id }}"
+                       data-title="{{ (t.title or '')|e }}"
+                       data-category="{{ (t.category or '')|e }}"
+                       data-unit="{{ (t.unit or '')|e }}"
+                       data-currency="{{ (t.currency or 'TRY')|e }}"
+                       data-frequency="{{ (t.frequency or 'Tek Sefer')|e }}"
+                       data-desc="{{ (t.description or '')|e }}"
+                       role="button" tabindex="0" aria-label="Şablon: {{ (t.title or '')|e }}">
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                      <div>
+                        <div class="fw-semibold">{{ t.title }}</div>
+                        <div class="template-meta">
+                          {{ t.category }} • {{ t.unit }} • {{ t.currency }} • {{ t.frequency }}
+                        </div>
+                      </div>
 
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Ekipman / Donanım"
-                   data-category="Ekipman"
-                   data-unit="adet"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="Donanım alımı, yedek parça, sensör, cihaz, ağ ekipmanı vb."
-                   role="button" tabindex="0" aria-label="Şablon: Ekipman / Donanım">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Ekipman / Donanım</div>
-                    <div class="template-meta">Ekipman • adet • TRY • Tek Sefer</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Donanım, yedek parça, cihaz, kurulum.</div>
-              </div>
-            </div>
+                      <div class="actions-wrap">
+                        <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
 
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Yazılım Lisansı"
-                   data-category="Yazılım"
-                   data-unit="lisans"
-                   data-currency="USD"
-                   data-frequency="Aylık"
-                   data-desc="Abonelik, lisans yenileme, kullanıcı başı ücret vb."
-                   role="button" tabindex="0" aria-label="Şablon: Yazılım Lisansı">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Yazılım Lisansı</div>
-                    <div class="template-meta">Yazılım • lisans • USD • Aylık</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Abonelik, kullanıcı başı ücret, lisans yenileme.</div>
-              </div>
-            </div>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary btn-icon tpl-edit"
+                                title="Şablonu düzenle"
+                                aria-label="Şablonu düzenle">✎</button>
 
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Eğitim / Sertifika"
-                   data-category="Eğitim"
-                   data-unit="kişi"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="Eğitim, sertifika, workshop, onboarding maliyetleri."
-                   role="button" tabindex="0" aria-label="Şablon: Eğitim / Sertifika">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Eğitim / Sertifika</div>
-                    <div class="template-meta">Eğitim • kişi • TRY • Tek Sefer</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Eğitim, sertifika, workshop, onboarding.</div>
-              </div>
-            </div>
+                        <form method="post" action="{{ url_for('costs') }}" class="d-inline"
+                              onsubmit="return confirm('Bu şablonu silmek istiyor musun?');">
+                          {# Flask-WTF kullanıyorsan aç: {{ form.csrf_token }} #}
+                          <input type="hidden" name="op" value="tpl_delete">
+                          <input type="hidden" name="tpl_id" value="{{ t.id }}">
+                          <button type="submit"
+                                  class="btn btn-sm btn-outline-danger btn-icon"
+                                  title="Şablonu sil"
+                                  aria-label="Şablonu sil">🗑</button>
+                        </form>
+                      </div>
+                    </div>
 
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Danışmanlık / Dış Kaynak"
-                   data-category="Hizmet"
-                   data-unit="gün"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="Danışmanlık günü, dış kaynak ekip, audit, test hizmetleri vb."
-                   role="button" tabindex="0" aria-label="Şablon: Danışmanlık / Dış Kaynak">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Danışmanlık / Dış Kaynak</div>
-                    <div class="template-meta">Hizmet • gün • TRY • Tek Sefer</div>
+                    {% if t.description %}
+                      <div class="small text-muted mt-2">{{ t.description }}</div>
+                    {% else %}
+                      <div class="small text-muted mt-2">—</div>
+                    {% endif %}
                   </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                 </div>
-                <div class="small text-muted mt-2">Danışmanlık, audit, dış kaynak geliştirme, test.</div>
-              </div>
-            </div>
+              {% endfor %}
 
-            <!-- Ek şablonlar -->
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Bakım / Onarım"
-                   data-category="Operasyon"
-                   data-unit="iş"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="Arıza, bakım, onarım, bakım anlaşması dışı işler."
-                   role="button" tabindex="0" aria-label="Şablon: Bakım / Onarım">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Bakım / Onarım</div>
-                    <div class="template-meta">Operasyon • iş • TRY • Tek Sefer</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Arıza, bakım, servis, parça değişimi.</div>
-              </div>
-            </div>
+            {% else %}
+              {# ------------------------------
+                 Fallback: Eski örnek şablonlar
+                 ------------------------------ #}
 
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Seyahat / Ulaşım"
-                   data-category="Operasyon"
-                   data-unit="gün"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="Saha ziyareti, yol, konaklama, harcırah vb."
-                   role="button" tabindex="0" aria-label="Şablon: Seyahat / Ulaşım">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Seyahat / Ulaşım</div>
-                    <div class="template-meta">Operasyon • gün • TRY • Tek Sefer</div>
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Personel / Mesai"
+                     data-category="İş Gücü"
+                     data-unit="saat"
+                     data-currency="TRY"
+                     data-frequency="Tek Sefer"
+                     data-desc="Ek mesai, vardiya, geçici personel, fazla iş yükü için maliyet."
+                     role="button" tabindex="0" aria-label="Şablon: Personel / Mesai">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Personel / Mesai</div>
+                      <div class="template-meta">İş Gücü • saat • TRY • Tek Sefer</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                   </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  <div class="small text-muted mt-2">Ek mesai, vardiya, geçici personel gibi kalemler.</div>
                 </div>
-                <div class="small text-muted mt-2">Saha işi, yol, konaklama, harcırah.</div>
               </div>
-            </div>
 
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Bulut / Sunucu"
-                   data-category="Yazılım"
-                   data-unit="ay"
-                   data-currency="USD"
-                   data-frequency="Aylık"
-                   data-desc="Sunucu, storage, trafik, managed servis, izleme vb."
-                   role="button" tabindex="0" aria-label="Şablon: Bulut / Sunucu">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Bulut / Sunucu</div>
-                    <div class="template-meta">Yazılım • ay • USD • Aylık</div>
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Ekipman / Donanım"
+                     data-category="Ekipman"
+                     data-unit="adet"
+                     data-currency="TRY"
+                     data-frequency="Tek Sefer"
+                     data-desc="Donanım alımı, yedek parça, sensör, cihaz, ağ ekipmanı vb."
+                     role="button" tabindex="0" aria-label="Şablon: Ekipman / Donanım">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Ekipman / Donanım</div>
+                      <div class="template-meta">Ekipman • adet • TRY • Tek Sefer</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                   </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  <div class="small text-muted mt-2">Donanım, yedek parça, cihaz, kurulum.</div>
                 </div>
-                <div class="small text-muted mt-2">Sunucu, storage, trafik, izleme, backup.</div>
               </div>
-            </div>
 
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Denetim / Uyum"
-                   data-category="Hizmet"
-                   data-unit="iş"
-                   data-currency="TRY"
-                   data-frequency="Yıllık"
-                   data-desc="ISO, KVKK, güvenlik denetimi, uyum danışmanlığı vb."
-                   role="button" tabindex="0" aria-label="Şablon: Denetim / Uyum">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Denetim / Uyum</div>
-                    <div class="template-meta">Hizmet • iş • TRY • Yıllık</div>
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Yazılım Lisansı"
+                     data-category="Yazılım"
+                     data-unit="lisans"
+                     data-currency="USD"
+                     data-frequency="Aylık"
+                     data-desc="Abonelik, lisans yenileme, kullanıcı başı ücret vb."
+                     role="button" tabindex="0" aria-label="Şablon: Yazılım Lisansı">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Yazılım Lisansı</div>
+                      <div class="template-meta">Yazılım • lisans • USD • Aylık</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                   </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  <div class="small text-muted mt-2">Abonelik, kullanıcı başı ücret, lisans yenileme.</div>
                 </div>
-                <div class="small text-muted mt-2">Denetim, sertifikasyon, uyum işleri.</div>
               </div>
-            </div>
+
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Eğitim / Sertifika"
+                     data-category="Eğitim"
+                     data-unit="kişi"
+                     data-currency="TRY"
+                     data-frequency="Tek Sefer"
+                     data-desc="Eğitim, sertifika, workshop, onboarding maliyetleri."
+                     role="button" tabindex="0" aria-label="Şablon: Eğitim / Sertifika">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Eğitim / Sertifika</div>
+                      <div class="template-meta">Eğitim • kişi • TRY • Tek Sefer</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  </div>
+                  <div class="small text-muted mt-2">Eğitim, sertifika, workshop, onboarding.</div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Danışmanlık / Dış Kaynak"
+                     data-category="Hizmet"
+                     data-unit="gün"
+                     data-currency="TRY"
+                     data-frequency="Tek Sefer"
+                     data-desc="Danışmanlık günü, dış kaynak ekip, audit, test hizmetleri vb."
+                     role="button" tabindex="0" aria-label="Şablon: Danışmanlık / Dış Kaynak">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Danışmanlık / Dış Kaynak</div>
+                      <div class="template-meta">Hizmet • gün • TRY • Tek Sefer</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  </div>
+                  <div class="small text-muted mt-2">Danışmanlık, audit, dış kaynak geliştirme, test.</div>
+                </div>
+              </div>
+            {% endif %}
 
           </div>
 
@@ -475,11 +454,13 @@
                         data-id="{{ c.id }}"
                         data-title="{{ (c.title or '')|e }}"
                         data-category="{{ (c.category or '')|e }}"
+                        data-unit="{{ (c.unit or '')|e }}"
                         data-currency="{{ (c.currency or '')|e }}"
                         data-frequency="{{ (c.frequency or '')|e }}"
                         data-qty="{{ c.qty }}"
                         data-unit_price="{{ c.unit_price }}"
-                        data-total="{{ c.total }}">
+                        data-total="{{ c.total }}"
+                        data-desc="{{ (c.description or '')|e }}">
                       <td class="fw-semibold">{{ c.title }}</td>
                       <td>{{ c.category }}</td>
                       <td class="text-end">{{ c.qty }}</td>
@@ -504,15 +485,13 @@
 
                       <td class="text-end">
                         <div class="actions-wrap">
-                          {# Düzenleme: bu route'u bir sonraki adımda ekleyeceğiz #}
-                          <a class="btn btn-outline-primary btn-sm btn-icon"
-                             href="{{ url_for('cost_edit', cost_id=c.id) }}"
-                             title="Düzenle"
-                             aria-label="Düzenle">
-                            ✎
-                          </a>
+                          {# ✅ cost_edit.html derdi bitti: edit modal #}
+                          <button type="button"
+                                  class="btn btn-outline-primary btn-sm btn-icon cost-edit"
+                                  title="Düzenle"
+                                  aria-label="Düzenle">✎</button>
 
-                          {# Silme: route'u bir sonraki adımda ekleyeceğiz #}
+                          {# Silme: sende route varsa kalabilir. Yoksa bunu da op=cost_delete yaparsın. #}
                           <form method="post"
                                 action="{{ url_for('cost_delete', cost_id=c.id) }}"
                                 class="d-inline"
@@ -520,9 +499,7 @@
                             <button type="submit"
                                     class="btn btn-outline-danger btn-sm btn-icon"
                                     title="Sil"
-                                    aria-label="Sil">
-                              🗑
-                            </button>
+                                    aria-label="Sil">🗑</button>
                           </form>
                         </div>
                       </td>
@@ -640,6 +617,158 @@
 <!-- JSON: güvenli gömme -->
 <script id="paretoData" type="application/json">{{ pareto_json|default(None)|tojson }}</script>
 <script id="frontData"  type="application/json">{{ front_json|default(None)|tojson }}</script>
+
+<!-- ==========================
+     MODAL: Template Create/Edit
+     ========================== -->
+<div class="modal fade" id="tplModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('costs') }}" id="tplForm">
+        {# Flask-WTF kullanıyorsan aç: {{ form.csrf_token }} #}
+        <input type="hidden" name="op" id="tplOp" value="tpl_save">
+        <input type="hidden" name="tpl_id" id="tpl_id" value="">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="tplModalTitle">Şablon</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Başlık</label>
+              <input class="form-control" name="tpl_title" id="tpl_title" required>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Kategori</label>
+              <input class="form-control" name="tpl_category" id="tpl_category" required>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Birim</label>
+              <input class="form-control" name="tpl_unit" id="tpl_unit" required>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Para Birimi</label>
+              <select class="form-select" name="tpl_currency" id="tpl_currency">
+                <option value="TRY">TRY</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Sıklık</label>
+              <select class="form-select" name="tpl_frequency" id="tpl_frequency">
+                <option>Tek Sefer</option>
+                <option>Aylık</option>
+                <option>Yıllık</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Açıklama</label>
+              <textarea class="form-control" rows="3" name="tpl_description" id="tpl_description"
+                        placeholder="Bu şablon ne için? Hangi varsayım?"></textarea>
+            </div>
+
+            <div class="col-12">
+              <div class="text-muted small">
+                Not: Bu form backend’de <code>op=tpl_save</code> ile yakalanmalı. <code>tpl_id</code> doluysa update, boşsa create.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================
+     MODAL: Cost Edit (inline)
+     ========================== -->
+<div class="modal fade" id="costModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('costs') }}" id="costEditForm">
+        {# Flask-WTF kullanıyorsan aç: {{ form.csrf_token }} #}
+        <input type="hidden" name="op" value="cost_update">
+        <input type="hidden" name="cost_id" id="cost_id" value="">
+
+        <div class="modal-header">
+          <h5 class="modal-title">Maliyet Düzenle</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Başlık</label>
+              <input class="form-control" name="title" id="ce_title" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Kategori</label>
+              <input class="form-control" name="category" id="ce_category" required>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Birim</label>
+              <input class="form-control" name="unit" id="ce_unit" required>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Para Birimi</label>
+              <select class="form-select" name="currency" id="ce_currency">
+                <option value="TRY">TRY</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Sıklık</label>
+              <select class="form-select" name="frequency" id="ce_frequency">
+                <option>Tek Sefer</option>
+                <option>Aylık</option>
+                <option>Yıllık</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Miktar</label>
+              <input class="form-control" type="number" step="0.01" min="0" name="qty" id="ce_qty" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Birim Fiyat</label>
+              <input class="form-control" type="number" step="0.01" min="0" name="unit_price" id="ce_unit_price" required>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Açıklama</label>
+              <textarea class="form-control" rows="3" name="description" id="ce_description"></textarea>
+            </div>
+
+            <div class="col-12">
+              <div class="text-muted small">
+                Not: Backend’de <code>op=cost_update</code> yakalanmalı ve CostItem güncellenmeli. Böylece <code>cost_edit.html</code> diye bir şeye ihtiyaç kalmaz.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 
@@ -763,6 +892,39 @@
         }
 
         /* -----------------------
+           Templates: category dropdown auto-fill
+        ------------------------*/
+        function rebuildTemplateCategoryOptions(){
+          const sel = $('#tplCategory');
+          if (!sel) return;
+
+          const keepFirst = sel.querySelector('option[value=""]');
+          sel.innerHTML = '';
+          if (keepFirst) sel.appendChild(keepFirst);
+          else {
+            const o = document.createElement('option');
+            o.value = '';
+            o.textContent = 'Tümü';
+            sel.appendChild(o);
+          }
+
+          const cats = new Set();
+          $$('.template-card', $('#tplGrid')).forEach(card => {
+            const c = (card.getAttribute('data-category') || '').trim();
+            if (c) cats.add(c);
+          });
+
+          Array.from(cats).sort((a,b) => a.localeCompare(b, 'tr', { sensitivity:'base' }))
+            .forEach(c => {
+              const opt = document.createElement('option');
+              opt.value = c;
+              opt.textContent = c;
+              sel.appendChild(opt);
+            });
+        }
+        rebuildTemplateCategoryOptions();
+
+        /* -----------------------
            Templates: filter/search
         ------------------------*/
         function normalize(s){ return (s || '').toString().toLowerCase().trim(); }
@@ -773,7 +935,7 @@
 
           $$('.template-card', $('#tplGrid')).forEach(card => {
             const t = normalize(card.getAttribute('data-title'));
-            const c = card.getAttribute('data-category') || '';
+            const c = (card.getAttribute('data-category') || '');
             const okQ = !q || t.includes(q) || normalize(card.textContent).includes(q);
             const okC = !cat || c === cat;
             const col = card.closest('.col-12');
@@ -786,12 +948,74 @@
         $('#tplClearSearch')?.addEventListener('click', () => { $('#tplSearch').value=''; filterTemplates(); });
 
         /* -----------------------
+           Bootstrap modals
+        ------------------------*/
+        const tplModalEl = document.getElementById('tplModal');
+        const costModalEl = document.getElementById('costModal');
+
+        const tplModal = (window.bootstrap && tplModalEl) ? new bootstrap.Modal(tplModalEl) : null;
+        const costModal = (window.bootstrap && costModalEl) ? new bootstrap.Modal(costModalEl) : null;
+
+        function openTplModalCreate(){
+          setVal('tpl_id', '');
+          setVal('tpl_title', '');
+          setVal('tpl_category', '');
+          setVal('tpl_unit', '');
+          setVal('tpl_currency', 'TRY');
+          setVal('tpl_frequency', 'Tek Sefer');
+          setVal('tpl_description', '');
+
+          const title = $('#tplModalTitle');
+          if (title) title.textContent = 'Yeni Şablon';
+
+          tplModal?.show();
+          setTimeout(() => $('#tpl_title')?.focus(), 150);
+        }
+
+        function openTplModalEdit(card){
+          setVal('tpl_id', card.getAttribute('data-id') || '');
+          setVal('tpl_title', card.getAttribute('data-title') || '');
+          setVal('tpl_category', card.getAttribute('data-category') || '');
+          setVal('tpl_unit', card.getAttribute('data-unit') || '');
+          setVal('tpl_currency', card.getAttribute('data-currency') || 'TRY');
+          setVal('tpl_frequency', card.getAttribute('data-frequency') || 'Tek Sefer');
+          setVal('tpl_description', card.getAttribute('data-desc') || '');
+
+          const title = $('#tplModalTitle');
+          if (title) title.textContent = 'Şablon Düzenle';
+
+          tplModal?.show();
+          setTimeout(() => $('#tpl_title')?.focus(), 150);
+        }
+
+        function openCostModalEdit(row){
+          setVal('cost_id', row.dataset.id || '');
+          setVal('ce_title', row.dataset.title || '');
+          setVal('ce_category', row.dataset.category || '');
+          setVal('ce_unit', row.dataset.unit || '');
+          setVal('ce_currency', row.dataset.currency || 'TRY');
+          setVal('ce_frequency', row.dataset.frequency || 'Tek Sefer');
+          setVal('ce_qty', row.dataset.qty || '1');
+          setVal('ce_unit_price', row.dataset.unit_price || '0');
+          setVal('ce_description', row.dataset.desc || '');
+
+          costModal?.show();
+          setTimeout(() => $('#ce_title')?.focus(), 150);
+        }
+
+        $('#tplNewBtn')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          openTplModalCreate();
+        });
+
+        /* -----------------------
            Click delegation
         ------------------------*/
         document.addEventListener('click', (e) => {
           const clearBtn = e.target.closest('#clearForm');
           if (clearBtn) { e.preventDefault(); clearForm(); return; }
 
+          // Apply template
           const applyBtn = e.target.closest('.use-template');
           if (applyBtn) {
             e.preventDefault();
@@ -800,9 +1024,28 @@
             return;
           }
 
+          // Template edit
+          const tplEdit = e.target.closest('.tpl-edit');
+          if (tplEdit) {
+            e.preventDefault();
+            const card = tplEdit.closest('.template-card');
+            if (card) openTplModalEdit(card);
+            return;
+          }
+
+          // Cost edit
+          const costEdit = e.target.closest('.cost-edit');
+          if (costEdit) {
+            e.preventDefault();
+            const row = costEdit.closest('.cost-row');
+            if (row) openCostModalEdit(row);
+            return;
+          }
+
+          // Card click applies
           const card = e.target.closest('.template-card');
           if (card) {
-            const blocked = e.target.closest('button, a, input, select, textarea, label');
+            const blocked = e.target.closest('button, a, input, select, textarea, label, form');
             if (!blocked) applyTemplate(card);
           }
         });

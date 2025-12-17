@@ -394,8 +394,48 @@ class ProjectInfo(db.Model):
         order_by="CostItem.id.desc()"
     )
 
+    # Maliyet şablonları (YENİ) ✅
+    cost_templates = db.relationship(
+        "CostTemplate",
+        backref="project",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="CostTemplate.id.desc()"
+    )
+
     def __repr__(self):
         return f"<ProjectInfo id={self.id} name={self.workplace_name!r}>"
+
+
+# --------------------------------
+# CostTemplate (Maliyet Şablonları) (YENİ) ✅
+# --------------------------------
+class CostTemplate(db.Model):
+    """
+    Proje bazlı maliyet şablonları.
+    costs.html içinde "Şablonlar" sol panelini DB'den yönetebilmek için.
+    """
+    __tablename__ = "cost_templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Proje zorunlu
+    project_id = db.Column(db.Integer, db.ForeignKey("project_info.id"), nullable=False, index=True)
+
+    title       = db.Column(db.String(160), nullable=False)
+    category    = db.Column(db.String(80), nullable=False)
+    unit        = db.Column(db.String(40), nullable=False)
+
+    currency    = db.Column(db.String(8), nullable=False, default="TRY")    # TRY, USD, EUR...
+    frequency   = db.Column(db.String(40), nullable=False, default="Tek Sefer")  # Tek Sefer, Aylık, Yıllık...
+
+    description = db.Column(db.Text, nullable=True)
+
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<CostTemplate id={self.id} project_id={self.project_id} title={self.title!r}>"
 
 
 # --------------------------------

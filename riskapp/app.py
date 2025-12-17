@@ -24,10 +24,10 @@ from flask import request, redirect, url_for, flash, current_app
 from .models import db, Risk, Comment
 from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
-from .models import CostItem
+from .models import CostItem, CostTemplate
 
 
-from riskapp.models import CostItem
+from riskapp.models import CostItem, CostTemplate
 import re
 from sqlalchemy.exc import IntegrityError
 from flask import request
@@ -5346,6 +5346,93 @@ def create_app():
         db.session.commit()
         flash("Maliyet silindi.", "success")
         return redirect(url_for("costs"))
+    
+    
+    @app.post("/cost-templates/create")
+    def cost_template_create():
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok.", "warning")
+            return redirect(url_for("dashboard"))
+
+        title = (request.form.get("title") or "").strip()
+        category = (request.form.get("category") or "").strip()
+        unit = (request.form.get("unit") or "").strip()
+        currency = (request.form.get("currency") or "TRY").strip() or "TRY"
+        frequency = (request.form.get("frequency") or "Tek Sefer").strip() or "Tek Sefer"
+        desc = (request.form.get("description") or "").strip() or None
+
+        if not title or not category or not unit:
+            flash("Şablon için başlık/kategori/birim zorunlu.", "danger")
+            return redirect(url_for("costs"))
+
+        t = CostTemplate(
+            project_id=project_id,
+            title=title,
+            category=category,
+            unit=unit,
+            currency=currency,
+            frequency=frequency,
+            description=desc,
+        )
+        db.session.add(t)
+        db.session.commit()
+        flash("Şablon eklendi.", "success")
+        return redirect(url_for("costs"))
+
+
+    @app.post("/cost-templates/<int:tpl_id>/edit")
+    def cost_template_edit_post(tpl_id):
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok.", "warning")
+            return redirect(url_for("dashboard"))
+
+        t = CostTemplate.query.filter_by(id=tpl_id, project_id=project_id).first()
+        if not t:
+            flash("Şablon bulunamadı.", "warning")
+            return redirect(url_for("costs"))
+
+        title = (request.form.get("title") or "").strip()
+        category = (request.form.get("category") or "").strip()
+        unit = (request.form.get("unit") or "").strip()
+        currency = (request.form.get("currency") or "TRY").strip() or "TRY"
+        frequency = (request.form.get("frequency") or "Tek Sefer").strip() or "Tek Sefer"
+        desc = (request.form.get("description") or "").strip() or None
+
+        if not title or not category or not unit:
+            flash("Şablon için başlık/kategori/birim zorunlu.", "danger")
+            return redirect(url_for("costs"))
+
+        t.title = title
+        t.category = category
+        t.unit = unit
+        t.currency = currency
+        t.frequency = frequency
+        t.description = desc
+
+        db.session.commit()
+        flash("Şablon güncellendi.", "success")
+        return redirect(url_for("costs"))
+
+
+    @app.post("/cost-templates/<int:tpl_id>/delete")
+    def cost_template_delete(tpl_id):
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok.", "warning")
+            return redirect(url_for("dashboard"))
+
+        t = CostTemplate.query.filter_by(id=tpl_id, project_id=project_id).first()
+        if not t:
+            flash("Şablon bulunamadı.", "warning")
+            return redirect(url_for("costs"))
+
+        db.session.delete(t)
+        db.session.commit()
+        flash("Şablon silindi.", "success")
+        return redirect(url_for("costs"))
+
 
 
     
