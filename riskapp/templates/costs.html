@@ -13,7 +13,9 @@
       align-items:flex-end; justify-content:space-between;
       margin-bottom: 1rem;
     }
-    .page-sub{ color: var(--bs-secondary-color); }
+    .page-sub{
+      color: var(--bs-secondary-color);
+    }
 
     /* --- Template cards --- */
     .template-toolbar{
@@ -44,13 +46,6 @@
       font-size:.85rem;
       color: var(--bs-secondary-color);
     }
-    .template-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:.4rem;
-      justify-content:flex-end;
-      align-items:center;
-    }
 
     /* --- Live totals --- */
     #liveTotal, #liveAnnual{
@@ -59,10 +54,18 @@
     }
 
     /* --- Table --- */
-    .table thead th{ white-space: nowrap; }
-    .cost-row{ vertical-align: middle; }
-    .cost-actions{ white-space: nowrap; }
-    .desc-row td{ background: rgba(108,117,125,.08); }
+    .table thead th{
+      white-space: nowrap;
+    }
+    .cost-row{
+      vertical-align: middle;
+    }
+    .cost-actions{
+      white-space: nowrap;
+    }
+    .desc-row td{
+      background: rgba(108,117,125,.08);
+    }
 
     /* --- Small helpers --- */
     .chip{
@@ -95,8 +98,15 @@
       justify-content:flex-end;
     }
 
-    /* --- Modal helper --- */
-    .req::after{ content:" *"; color: var(--bs-danger); font-weight: 700; }
+    /* --- Template action area (NEW) --- */
+    .tpl-actions{
+      display:flex;
+      gap:.35rem;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items:center;
+    }
+    .req::after{ content:" *"; color: var(--bs-danger); font-weight:700; }
   </style>
 
   <!-- Header -->
@@ -120,12 +130,11 @@
     <div class="col-12 col-lg-5">
       <div class="card shadow-sm">
         <div class="card-header d-flex align-items-center justify-content-between gap-2">
-          <div>
-            <div class="fw-semibold">Maliyet Şablonları</div>
-            <small class="text-muted">Formu otomatik doldurur</small>
-          </div>
+          <div class="fw-semibold">Maliyet Şablonları</div>
+          <small class="text-muted">Formu otomatik doldurur</small>
 
-          <button type="button" class="btn btn-sm btn-outline-primary" id="btnNewTemplate">
+          {# ✅ NEW BUTTON (eksilmeden eklendi) #}
+          <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="btnNewTemplate">
             + Yeni Şablon
           </button>
         </div>
@@ -153,7 +162,7 @@
 
           <div class="row g-2" id="tplGrid">
 
-            {# --------- DB Templates --------- #}
+            {# ✅ NEW: DB’den gelen şablonları da bas (varsa) #}
             {% if cost_templates and cost_templates|length > 0 %}
               {% for t in cost_templates %}
                 <div class="col-12">
@@ -174,12 +183,13 @@
                         </div>
                       </div>
 
-                      <div class="template-actions">
+                      {# ✅ NEW: Uygula + Düzenle + Sil butonları #}
+                      <div class="tpl-actions">
                         <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                        <button type="button"
-                                class="btn btn-sm btn-outline-secondary tpl-edit"
-                                data-bs-toggle="tooltip"
-                                title="Düzenle">✎</button>
+
+                        <button type="button" class="btn btn-sm btn-outline-secondary tpl-edit" title="Düzenle">
+                          ✎
+                        </button>
 
                         <form method="post"
                               action="{{ url_for('cost_template_delete', tpl_id=t.id) }}"
@@ -199,7 +209,7 @@
               <hr class="my-3">
             {% endif %}
 
-            {# --------- Default (Hard-coded) Templates --------- #}
+            <!-- Şablon Kartları (senin hard-coded olanların aynen duruyor) -->
             <div class="col-12">
               <div class="template-card"
                    data-title="Personel / Mesai"
@@ -300,6 +310,7 @@
               </div>
             </div>
 
+            <!-- Ek şablonlar -->
             <div class="col-12">
               <div class="template-card"
                    data-title="Bakım / Onarım"
@@ -558,7 +569,9 @@
                           <a class="btn btn-outline-primary btn-sm btn-icon"
                              href="{{ url_for('cost_edit', cost_id=c.id) }}"
                              title="Düzenle"
-                             aria-label="Düzenle">✎</a>
+                             aria-label="Düzenle">
+                            ✎
+                          </a>
 
                           <form method="post"
                                 action="{{ url_for('cost_delete', cost_id=c.id) }}"
@@ -567,7 +580,9 @@
                             <button type="submit"
                                     class="btn btn-outline-danger btn-sm btn-icon"
                                     title="Sil"
-                                    aria-label="Sil">🗑</button>
+                                    aria-label="Sil">
+                              🗑
+                            </button>
                           </form>
                         </div>
                       </td>
@@ -686,12 +701,13 @@
 <script id="paretoData" type="application/json">{{ pareto_json|default(None)|tojson }}</script>
 <script id="frontData"  type="application/json">{{ front_json|default(None)|tojson }}</script>
 
-<!-- ---------- TEMPLATE MODALS ---------- -->
+{# ===========================
+   ✅ NEW: Create/Edit Modals
+   =========================== #}
 <div class="modal fade" id="tplCreateModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <form method="post" action="{{ url_for('cost_template_create') }}" id="tplCreateForm" novalidate>
-        {# Flask-WTF varsa CSRF ekle: {{ csrf_token() }} / {{ form.csrf_token }} #}
         <div class="modal-header">
           <h5 class="modal-title">Yeni Maliyet Şablonu</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
@@ -705,12 +721,12 @@
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label req">Kategori</label>
-              <input class="form-control" name="category" placeholder="Örn: Yazılım" required>
+              <input class="form-control" name="category" required>
               <div class="invalid-feedback">Kategori gerekli.</div>
             </div>
             <div class="col-12 col-md-4">
               <label class="form-label req">Birim</label>
-              <input class="form-control" name="unit" placeholder="adet / saat / gün" required>
+              <input class="form-control" name="unit" required>
               <div class="invalid-feedback">Birim gerekli.</div>
             </div>
             <div class="col-12 col-md-4">
@@ -731,8 +747,7 @@
             </div>
             <div class="col-12">
               <label class="form-label">Açıklama</label>
-              <textarea class="form-control" name="description" rows="3"
-                        placeholder="Bu şablon hangi durumda kullanılır? Varsayımlar?"></textarea>
+              <textarea class="form-control" name="description" rows="3"></textarea>
             </div>
           </div>
         </div>
@@ -923,44 +938,6 @@
         }
 
         /* -----------------------
-           Templates: create/edit modals
-        ------------------------*/
-        const hasBootstrap = !!window.bootstrap;
-
-        function openModal(id){
-          const el = document.getElementById(id);
-          if (!el || !hasBootstrap) return;
-          const m = window.bootstrap.Modal.getOrCreateInstance(el);
-          m.show();
-        }
-
-        $('#btnNewTemplate')?.addEventListener('click', () => openModal('tplCreateModal'));
-
-        // Basit modal form validasyonu
-        function validateModalForm(formEl){
-          let ok = true;
-          ['title','category','unit'].forEach(name => {
-            const el = formEl.querySelector(`[name="${name}"]`);
-            if (!el) return;
-            const good = !!(el.value || '').trim();
-            el.classList.toggle('is-invalid', !good);
-            ok = ok && good;
-          });
-          return ok;
-        }
-
-        $('#tplCreateForm')?.addEventListener('submit', (e) => {
-          if (!validateModalForm(e.currentTarget)) {
-            e.preventDefault(); e.stopPropagation();
-          }
-        });
-        $('#tplEditForm')?.addEventListener('submit', (e) => {
-          if (!validateModalForm(e.currentTarget)) {
-            e.preventDefault(); e.stopPropagation();
-          }
-        });
-
-        /* -----------------------
            Templates: filter/search
         ------------------------*/
         function normalize(s){ return (s || '').toString().toLowerCase().trim(); }
@@ -984,6 +961,39 @@
         $('#tplClearSearch')?.addEventListener('click', () => { $('#tplSearch').value=''; filterTemplates(); });
 
         /* -----------------------
+           ✅ NEW: New/Edit template modal wiring
+        ------------------------*/
+        const hasBootstrap = !!window.bootstrap;
+
+        function openModal(id){
+          const el = document.getElementById(id);
+          if (!el || !hasBootstrap) return;
+          window.bootstrap.Modal.getOrCreateInstance(el).show();
+        }
+
+        $('#btnNewTemplate')?.addEventListener('click', () => openModal('tplCreateModal'));
+
+        function validateTplForm(formEl){
+          let ok = true;
+          ['title','category','unit'].forEach(name => {
+            const el = formEl.querySelector(`[name="${name}"]`);
+            if (!el) return;
+            const good = !!(el.value || '').trim();
+            el.classList.toggle('is-invalid', !good);
+            ok = ok && good;
+          });
+          return ok;
+        }
+
+        $('#tplCreateForm')?.addEventListener('submit', (e) => {
+          if (!validateTplForm(e.currentTarget)) { e.preventDefault(); e.stopPropagation(); }
+        });
+
+        $('#tplEditForm')?.addEventListener('submit', (e) => {
+          if (!validateTplForm(e.currentTarget)) { e.preventDefault(); e.stopPropagation(); }
+        });
+
+        /* -----------------------
            Click delegation
         ------------------------*/
         document.addEventListener('click', (e) => {
@@ -998,6 +1008,7 @@
             return;
           }
 
+          // ✅ NEW: template edit button
           const editBtn = e.target.closest('.tpl-edit');
           if (editBtn) {
             e.preventDefault();
@@ -1005,13 +1016,11 @@
             if (!card) return;
 
             const id = card.getAttribute('data-template-id');
-            if (!id) return; // default kartlar editlenmez
+            if (!id) return; // hard-coded kartları editletmiyoruz
 
-            // Form action set: /cost-templates/<id>/edit
             const form = document.getElementById('tplEditForm');
             if (form) form.action = `/cost-templates/${id}/edit`;
 
-            // Fill fields
             $('#tplEditTitle').value = card.getAttribute('data-title') || '';
             $('#tplEditCategory').value = card.getAttribute('data-category') || '';
             $('#tplEditUnit').value = card.getAttribute('data-unit') || '';
