@@ -1,0 +1,233 @@
+{# templates/cost_edit.html #}
+{% extends "base.html" %}
+
+{% block title %}Maliyet Düzenle{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <style>
+    .page-head{
+      display:flex; flex-wrap:wrap; gap:.75rem;
+      align-items:flex-end; justify-content:space-between;
+      margin-bottom: 1rem;
+    }
+    .page-sub{ color: var(--bs-secondary-color); }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      padding: .15rem .55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,.08);
+      background: rgba(0,0,0,.02);
+      font-size: .82rem;
+      color: var(--bs-secondary-color);
+      white-space: nowrap;
+    }
+    #liveTotal, #liveAnnual{
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+  </style>
+
+  <div class="page-head">
+    <div>
+      <h2 class="mb-1">Maliyet Düzenle</h2>
+      <div class="page-sub">
+        Kaydı güncelle, toplamı anlık gör, sonra listeye geri dön.
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <span class="chip">Anlık Toplam: <strong id="liveTotal">0</strong></span>
+      <span class="chip">Yıllıklaştırılmış: <strong id="liveAnnual">0</strong></span>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <form method="post"
+            action="{{ url_for('cost_edit_post', cost_id=c.id) }}"
+            id="editCostForm"
+            novalidate>
+        {# Flask-WTF kullanıyorsan aç: {{ form.csrf_token }} #}
+
+        <div class="row g-3">
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Başlık</label>
+            <input class="form-control" name="title" id="title"
+                   value="{{ c.title or '' }}"
+                   required>
+            <div class="invalid-feedback">Başlık gerekli.</div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Kategori</label>
+            <input class="form-control" name="category" id="category"
+                   value="{{ c.category or '' }}"
+                   required>
+            <div class="invalid-feedback">Kategori gerekli.</div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label class="form-label">Birim</label>
+            <input class="form-control" name="unit" id="unit"
+                   value="{{ c.unit or '' }}"
+                   required>
+            <div class="invalid-feedback">Birim gerekli.</div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label class="form-label">Para Birimi</label>
+            <select class="form-select" name="currency" id="currency">
+              {% set cur = (c.currency or 'TRY') %}
+              <option value="TRY" {{ 'selected' if cur=='TRY' else '' }}>TRY</option>
+              <option value="USD" {{ 'selected' if cur=='USD' else '' }}>USD</option>
+              <option value="EUR" {{ 'selected' if cur=='EUR' else '' }}>EUR</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label class="form-label">Sıklık</label>
+            <select class="form-select" name="frequency" id="frequency">
+              {% set fr = (c.frequency or 'Tek Sefer') %}
+              <option {{ 'selected' if fr=='Tek Sefer' else '' }}>Tek Sefer</option>
+              <option {{ 'selected' if fr=='Aylık' else '' }}>Aylık</option>
+              <option {{ 'selected' if fr=='Yıllık' else '' }}>Yıllık</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Miktar (adet/saat/gün)</label>
+            <input class="form-control" type="number" step="0.01" min="0"
+                   name="qty" id="qty"
+                   value="{{ c.qty if c.qty is not none else '' }}"
+                   required>
+            <div class="invalid-feedback">Miktar gerekli ve 0’dan büyük olmalı.</div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label">Birim Fiyat</label>
+            <input class="form-control" type="number" step="0.01" min="0"
+                   name="unit_price" id="unit_price"
+                   value="{{ c.unit_price if c.unit_price is not none else '' }}"
+                   required>
+            <div class="invalid-feedback">Birim fiyat gerekli ve 0’dan büyük olmalı.</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Maliyet Açıklaması</label>
+            <textarea class="form-control" rows="3" name="description" id="description"
+                      placeholder="Bu maliyet neden var, hangi riske/önleme bağlı, varsayımlar neler?">{{ c.description or '' }}</textarea>
+          </div>
+
+          <div class="col-12 d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary">Güncelle</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('costs') }}">İptal</a>
+
+            <div class="ms-auto text-muted small d-flex align-items-center gap-2">
+              <span>Anlık: <span class="fw-semibold" id="liveTotalInline">0</span></span>
+              <span class="d-none d-md-inline">•</span>
+              <span>Yıllık: <span class="fw-semibold" id="liveAnnualInline">0</span></span>
+            </div>
+          </div>
+
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+
+  <script>
+    (function(){
+      function onReady(fn){
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+        else fn();
+      }
+
+      onReady(() => {
+        const $ = (sel) => document.querySelector(sel);
+        const nf2 = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        function annualFactor(freq){
+          if (freq === 'Aylık') return 12;
+          if (freq === 'Yıllık') return 1;
+          return 1; // Tek Sefer
+        }
+
+        function numVal(id){
+          const v = parseFloat(document.getElementById(id)?.value ?? '0');
+          return Number.isFinite(v) ? v : 0;
+        }
+
+        function formatMoney(amount, cur){
+          const safe = Number.isFinite(amount) ? amount : 0;
+          return `${nf2.format(safe)} ${cur || ''}`.trim();
+        }
+
+        function updateLiveTotals(){
+          const qty = numVal('qty');
+          const unitPrice = numVal('unit_price');
+          const cur = $('#currency')?.value || '';
+          const freq = $('#frequency')?.value || 'Tek Sefer';
+
+          const total = qty * unitPrice;
+          const annual = total * annualFactor(freq);
+
+          const totalTxt = formatMoney(total, cur);
+          const annualTxt = formatMoney(annual, cur);
+
+          $('#liveTotal') && ($('#liveTotal').textContent = totalTxt);
+          $('#liveAnnual') && ($('#liveAnnual').textContent = annualTxt);
+          $('#liveTotalInline') && ($('#liveTotalInline').textContent = totalTxt);
+          $('#liveAnnualInline') && ($('#liveAnnualInline').textContent = annualTxt);
+        }
+
+        document.addEventListener('input', (e) => {
+          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) updateLiveTotals();
+        });
+        document.addEventListener('change', (e) => {
+          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) updateLiveTotals();
+        });
+        updateLiveTotals();
+
+        // Basit front-end doğrulama
+        $('#editCostForm')?.addEventListener('submit', (e) => {
+          let ok = true;
+
+          ['title','category','unit'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const good = !!el.value.trim();
+            el.classList.toggle('is-invalid', !good);
+            ok = ok && good;
+          });
+
+          ['qty','unit_price'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const v = parseFloat(el.value);
+            const good = Number.isFinite(v) && v > 0;
+            el.classList.toggle('is-invalid', !good);
+            ok = ok && good;
+          });
+
+          if (!ok) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        });
+      });
+    })();
+  </script>
+{% endblock %}

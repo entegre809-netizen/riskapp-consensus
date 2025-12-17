@@ -24,7 +24,9 @@ from flask import request, redirect, url_for, flash, current_app
 from .models import db, Risk, Comment
 from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
+from models import CostItem
 
+from riskapp.models import CostItem
 import re
 from sqlalchemy.exc import IntegrityError
 from flask import request
@@ -5255,7 +5257,99 @@ def create_app():
                     pareto_json=pareto,
                     front_json=front
                 )
+# -------------------------------------------------
+#  cost edit (GET)
+# -------------------------------------------------
+    @app.get("/costs/<int:cost_id>/edit")
+    def cost_edit(cost_id):
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok.", "warning")
+            return redirect(url_for("dashboard"))
 
+        c = CostItem.query.filter_by(id=cost_id, project_id=project_id).first()
+        if not c:
+            flash("Maliyet bulunamadı.", "warning")
+            return redirect(url_for("costs"))
+
+        # cost_edit.html içinde form alanlarını c üzerinden dolduracağız
+        return render_template("cost_edit.html", c=c)
+
+
+# -------------------------------------------------
+#  cost edit (POST)
+# -------------------------------------------------
+    @app.post("/costs/<int:cost_id>/edit")
+    def cost_edit_post(cost_id):
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok.", "warning")
+            return redirect(url_for("dashboard"))
+
+        c = CostItem.query.filter_by(id=cost_id, project_id=project_id).first()
+        if not c:
+            flash("Maliyet bulunamadı.", "warning")
+            return redirect(url_for("costs"))
+
+        # Basit doğrulama (front-end ile paralel)
+        title = (request.form.get("title") or "").strip()
+        category = (request.form.get("category") or "").strip()
+        unit = (request.form.get("unit") or "").strip()
+        currency = (request.form.get("currency") or "TRY").strip() or "TRY"
+        frequency = (request.form.get("frequency") or "Tek Sefer").strip() or "Tek Sefer"
+
+        try:
+            qty = _to_decimal(request.form.get("qty"), "0")
+            unit_price = _to_decimal(request.form.get("unit_price"), "0")
+        except Exception:
+            flash("Miktar ve birim fiyat sayısal olmalı.", "danger")
+            return redirect(url_for("cost_edit", cost_id=cost_id))
+
+        if not title or not category or not unit or qty <= 0 or unit_price <= 0:
+            flash("Zorunlu alanları doğru doldur.", "danger")
+            return redirect(url_for("cost_edit", cost_id=cost_id))
+
+        desc = (request.form.get("description") or "").strip() or None
+
+        c.title = title
+        c.category = category
+        c.unit = unit
+        c.currency = currency
+        c.frequency = frequency
+        c.qty = qty
+        c.unit_price = unit_price
+        c.total = qty * unit_price
+        c.description = desc
+
+        db.session.commit()
+        flash("Maliyet güncellendi.", "success")
+        return redirect(url_for("costs"))
+
+
+    # -------------------------------------------------
+    #  cost delete (POST)
+    # -------------------------------------------------
+    @app.post("/costs/<int:cost_id>/delete")
+    def cost_delete(cost_id):
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok.", "warning")
+            return redirect(url_for("dashboard"))
+
+        item = CostItem.query.filter_by(id=cost_id, project_id=project_id).first()
+        if not item:
+            flash("Maliyet bulunamadı.", "warning")
+            return redirect(url_for("costs"))
+
+        db.session.delete(item)
+        db.session.commit()
+        flash("Maliyet silindi.", "success")
+        return redirect(url_for("costs"))
+
+
+    
+    
+    
 
     # -------------------------------------------------
 #  Risk sepetini temizle (eski endpointi geri getir)

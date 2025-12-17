@@ -81,6 +81,22 @@
       white-space: nowrap;
     }
     .muted-hint{ color: var(--bs-secondary-color); font-size: .9rem; }
+
+    /* --- Actions buttons --- */
+    .btn-icon{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: .6rem;
+    }
+    .actions-wrap{
+      display:inline-flex;
+      gap:.35rem;
+      justify-content:flex-end;
+    }
   </style>
 
   <!-- Header -->
@@ -232,7 +248,7 @@
               </div>
             </div>
 
-            <!-- Ek şablonlar (daha gerçekçi dünya için) -->
+            <!-- Ek şablonlar -->
             <div class="col-12">
               <div class="template-card"
                    data-title="Bakım / Onarım"
@@ -448,6 +464,7 @@
                   <th class="text-end" role="button" class="sortable" data-sort="total">Toplam</th>
                   <th class="text-end" role="button" class="sortable" data-sort="frequency">Sıklık</th>
                   <th class="text-end">Detay</th>
+                  <th class="text-end">İşlem</th>
                 </tr>
               </thead>
 
@@ -455,6 +472,7 @@
                 {% if costs and costs|length > 0 %}
                   {% for c in costs %}
                     <tr class="cost-row"
+                        data-id="{{ c.id }}"
                         data-title="{{ (c.title or '')|e }}"
                         data-category="{{ (c.category or '')|e }}"
                         data-currency="{{ (c.currency or '')|e }}"
@@ -468,6 +486,7 @@
                       <td class="text-end">{{ c.unit_price }} {{ c.currency }}</td>
                       <td class="text-end fw-semibold">{{ c.total }} {{ c.currency }}</td>
                       <td class="text-end">{{ c.frequency }}</td>
+
                       <td class="text-end cost-actions">
                         {% if c.description %}
                           <button class="btn btn-sm btn-outline-secondary"
@@ -482,11 +501,36 @@
                           <span class="text-muted small">-</span>
                         {% endif %}
                       </td>
+
+                      <td class="text-end">
+                        <div class="actions-wrap">
+                          {# Düzenleme: bu route'u bir sonraki adımda ekleyeceğiz #}
+                          <a class="btn btn-outline-primary btn-sm btn-icon"
+                             href="{{ url_for('cost_edit', cost_id=c.id) }}"
+                             title="Düzenle"
+                             aria-label="Düzenle">
+                            ✎
+                          </a>
+
+                          {# Silme: route'u bir sonraki adımda ekleyeceğiz #}
+                          <form method="post"
+                                action="{{ url_for('cost_delete', cost_id=c.id) }}"
+                                class="d-inline"
+                                onsubmit="return confirm('Bu maliyeti silmek istiyor musun?');">
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-sm btn-icon"
+                                    title="Sil"
+                                    aria-label="Sil">
+                              🗑
+                            </button>
+                          </form>
+                        </div>
+                      </td>
                     </tr>
 
                     {% if c.description %}
                       <tr class="desc-row">
-                        <td colspan="7" class="p-0">
+                        <td colspan="8" class="p-0">
                           <div class="collapse" id="desc_{{ loop.index }}">
                             <div class="p-3 small">
                               <span class="fw-semibold">Açıklama:</span>
@@ -499,7 +543,7 @@
                   {% endfor %}
                 {% else %}
                   <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="8" class="text-center text-muted py-4">
                       Henüz maliyet yok.
                     </td>
                   </tr>
@@ -510,7 +554,7 @@
                 <tr>
                   <th colspan="4" class="text-end">Görünen satırların toplamı</th>
                   <th class="text-end" id="tableTotalCell">0</th>
-                  <th colspan="2"></th>
+                  <th colspan="3"></th>
                 </tr>
               </tfoot>
             </table>
@@ -656,7 +700,7 @@
         function annualFactor(freq){
           if (freq === 'Aylık') return 12;
           if (freq === 'Yıllık') return 1;
-          return 1; // Tek Sefer: yıllığa çevirmek tartışmalı, ama burada 1 bırakıyoruz
+          return 1; // Tek Sefer
         }
 
         function formatMoney(amount, cur){
@@ -787,7 +831,6 @@
            Form validation (Bootstrap-ish)
         ------------------------*/
         $('#costForm')?.addEventListener('submit', (e) => {
-          const form = e.target;
           let ok = true;
 
           ['title','category','unit'].forEach(id => {
@@ -824,14 +867,10 @@
 
         function visibleCostRows(){
           if (!tbody) return [];
-          // sadece "cost-row" olanlar (desc-row değil)
           return $$('.cost-row', tbody).filter(r => r.style.display !== 'none');
         }
 
         function recomputeTableTotal(){
-          // Birden çok para birimi olabileceği için:
-          // - tek para birimi filtrelenmişse o PB ile göster
-          // - karışıksa "—" yaz, ayrıca altına küçük bir kırılım çıkar.
           const rows = visibleCostRows();
           const sums = {};
           rows.forEach(r => {
@@ -873,10 +912,8 @@
             const okC = !cur || (r.dataset.currency === cur);
             const okF = !freq || (r.dataset.frequency === freq);
 
-            // cost-row görünürlüğü
             r.style.display = (okQ && okC && okF) ? '' : 'none';
 
-            // hemen altındaki desc-row da aynı davranmalı
             const next = r.nextElementSibling;
             if (next && next.classList.contains('desc-row')) {
               next.style.display = r.style.display;
@@ -891,7 +928,7 @@
         tableFrequency?.addEventListener('change', filterTable);
         $('#tableClearSearch')?.addEventListener('click', () => { tableSearch.value=''; filterTable(); });
 
-        let sortState = { key: null, dir: 1 }; // dir: 1 asc, -1 desc
+        let sortState = { key: null, dir: 1 };
 
         function rowKey(row, key){
           const d = row.dataset;
@@ -919,7 +956,6 @@
             return av.toString().localeCompare(bv.toString(), 'tr', { sensitivity: 'base' }) * sortState.dir;
           });
 
-          // DOM'a geri bas (desc-rowlarıyla birlikte)
           rows.forEach(r => {
             const desc = (r.nextElementSibling && r.nextElementSibling.classList.contains('desc-row'))
               ? r.nextElementSibling
@@ -929,7 +965,7 @@
             if (desc) tbody.appendChild(desc);
           });
 
-          filterTable(); // filtre + total güncellesin
+          filterTable();
         }
 
         $$('.sortable').forEach(th => {
@@ -1055,7 +1091,6 @@
             }
           });
         })();
-
       });
     })();
   </script>
