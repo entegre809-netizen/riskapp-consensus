@@ -119,9 +119,17 @@
     <!-- LEFT: Templates -->
     <div class="col-12 col-lg-5">
       <div class="card shadow-sm">
+
+        <!-- UPDATED HEADER (Yeni Şablon butonu) -->
         <div class="card-header d-flex align-items-center justify-content-between gap-2">
           <div class="fw-semibold">Maliyet Şablonları</div>
-          <small class="text-muted">Formu otomatik doldurur</small>
+          <div class="d-flex align-items-center gap-2">
+            <small class="text-muted d-none d-md-inline">Formu otomatik doldurur</small>
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal" data-bs-target="#tplCreateModal">
+              + Yeni Şablon
+            </button>
+          </div>
         </div>
 
         <div class="card-body">
@@ -147,7 +155,7 @@
 
           <div class="row g-2" id="tplGrid">
 
-            <!-- Şablon Kartları -->
+            <!-- HARD-CODED Şablon Kartları -->
             <div class="col-12">
               <div class="template-card"
                    data-title="Personel / Mesai"
@@ -329,6 +337,79 @@
               </div>
             </div>
 
+            <!-- DB Şablonları -->
+            {% if templates and templates|length > 0 %}
+              <div class="col-12 mt-2">
+                <div class="small text-muted">Kayıtlı Şablonların</div>
+              </div>
+
+              {% for t in templates %}
+                <div class="col-12">
+                  <div class="template-card"
+                       data-id="{{ t.id }}"
+                       data-title="{{ (t.title or '')|e }}"
+                       data-category="{{ (t.category or '')|e }}"
+                       data-unit="{{ (t.unit or '')|e }}"
+                       data-currency="{{ (t.currency or 'TRY')|e }}"
+                       data-frequency="{{ (t.frequency or 'Tek Sefer')|e }}"
+                       data-desc="{{ (t.description or '')|e }}"
+                       role="button" tabindex="0"
+                       aria-label="Şablon: {{ (t.title or '')|e }}">
+
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                      <div>
+                        <div class="fw-semibold">{{ t.title }}</div>
+                        <div class="template-meta">{{ t.category }} • {{ t.unit }} • {{ t.currency }} • {{ t.frequency }}</div>
+                      </div>
+
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+
+                        <div class="dropdown">
+                          <button class="btn btn-sm btn-outline-secondary" type="button"
+                                  data-bs-toggle="dropdown" aria-expanded="false">
+                            ⋮
+                          </button>
+                          <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                              <button type="button"
+                                      class="dropdown-item tpl-edit"
+                                      data-json='{{ {
+                                        "id": t.id,
+                                        "title": t.title,
+                                        "category": t.category,
+                                        "unit": t.unit,
+                                        "currency": t.currency,
+                                        "frequency": t.frequency,
+                                        "description": t.description
+                                      } | tojson }}'>
+                                Düzenle
+                              </button>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                              <form method="post"
+                                    action="{{ url_for('cost_template_delete', tpl_id=t.id) }}"
+                                    onsubmit="return confirm('Bu şablonu silmek istiyor musun?');">
+                                <button type="submit" class="dropdown-item text-danger">Sil</button>
+                              </form>
+                            </li>
+                          </ul>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {% if t.description %}
+                      <div class="small text-muted mt-2">{{ t.description }}</div>
+                    {% else %}
+                      <div class="small text-muted mt-2">Açıklama yok.</div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            {% endif %}
+
           </div>
 
           <hr class="my-3">
@@ -504,7 +585,6 @@
 
                       <td class="text-end">
                         <div class="actions-wrap">
-                          {# Düzenleme: bu route'u bir sonraki adımda ekleyeceğiz #}
                           <a class="btn btn-outline-primary btn-sm btn-icon"
                              href="{{ url_for('cost_edit', cost_id=c.id) }}"
                              title="Düzenle"
@@ -512,7 +592,6 @@
                             ✎
                           </a>
 
-                          {# Silme: route'u bir sonraki adımda ekleyeceğiz #}
                           <form method="post"
                                 action="{{ url_for('cost_delete', cost_id=c.id) }}"
                                 class="d-inline"
@@ -635,6 +714,115 @@
     </div>
   </div>
 
+</div>
+
+<!-- Create Template Modal -->
+<div class="modal fade" id="tplCreateModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="post" action="{{ url_for('cost_template_create') }}">
+      <div class="modal-header">
+        <h5 class="modal-title">Yeni Şablon</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Başlık</label>
+            <input class="form-control" name="title" required>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Kategori</label>
+            <input class="form-control" name="category" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Birim</label>
+            <input class="form-control" name="unit" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Para Birimi</label>
+            <select class="form-select" name="currency">
+              <option value="TRY">TRY</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Sıklık</label>
+            <select class="form-select" name="frequency">
+              <option>Tek Sefer</option>
+              <option>Aylık</option>
+              <option>Yıllık</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Açıklama</label>
+            <textarea class="form-control" rows="3" name="description"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Template Modal -->
+<div class="modal fade" id="tplEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" id="tplEditForm" method="post"
+          data-action-template="{{ url_for('cost_template_edit_post', tpl_id=0) }}">
+      <div class="modal-header">
+        <h5 class="modal-title">Şablonu Düzenle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Başlık</label>
+            <input class="form-control" name="title" id="tplEditTitle" required>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Kategori</label>
+            <input class="form-control" name="category" id="tplEditCategory" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Birim</label>
+            <input class="form-control" name="unit" id="tplEditUnit" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Para Birimi</label>
+            <select class="form-select" name="currency" id="tplEditCurrency">
+              <option value="TRY">TRY</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label">Sıklık</label>
+            <select class="form-select" name="frequency" id="tplEditFrequency">
+              <option>Tek Sefer</option>
+              <option>Aylık</option>
+              <option>Yıllık</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Açıklama</label>
+            <textarea class="form-control" rows="3" name="description" id="tplEditDesc"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
+        <button type="submit" class="btn btn-primary">Güncelle</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- JSON: güvenli gömme -->
@@ -802,7 +990,7 @@
 
           const card = e.target.closest('.template-card');
           if (card) {
-            const blocked = e.target.closest('button, a, input, select, textarea, label');
+            const blocked = e.target.closest('button, a, input, select, textarea, label, .dropdown, .dropdown-menu');
             if (!blocked) applyTemplate(card);
           }
         });
@@ -811,8 +999,46 @@
           const card = e.target.closest?.('.template-card');
           if (!card) return;
           if (e.key === 'Enter' || e.key === ' ') {
+            const blocked = e.target.closest?.('button, a, input, select, textarea, label, .dropdown, .dropdown-menu');
+            if (blocked) return;
             e.preventDefault();
             applyTemplate(card);
+          }
+        });
+
+        /* -----------------------
+           Template edit modal
+        ------------------------*/
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.tpl-edit');
+          if (!btn) return;
+
+          e.preventDefault();
+          const raw = btn.getAttribute('data-json') || '{}';
+          let data = {};
+          try { data = JSON.parse(raw); } catch { data = {}; }
+
+          const form = document.getElementById('tplEditForm');
+          const actionTpl = form?.getAttribute('data-action-template') || '';
+          if (form && actionTpl && data.id != null) {
+            form.action = actionTpl.replace('/0/edit', `/${data.id}/edit`);
+          }
+
+          const set = (id, v) => {
+            const el = document.getElementById(id);
+            if (el) el.value = (v ?? '');
+          };
+
+          set('tplEditTitle', data.title);
+          set('tplEditCategory', data.category);
+          set('tplEditUnit', data.unit);
+          set('tplEditCurrency', data.currency || 'TRY');
+          set('tplEditFrequency', data.frequency || 'Tek Sefer');
+          set('tplEditDesc', data.description || '');
+
+          if (window.bootstrap) {
+            const modalEl = document.getElementById('tplEditModal');
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
           }
         });
 
