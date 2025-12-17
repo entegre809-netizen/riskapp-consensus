@@ -648,6 +648,54 @@
   else { markAssessmentsPanel(); }
 })();
 </script>
+
+<!-- ✅ Modal/backdrop kilitlenme sigortası (hiçbir şeyi eksiltmeden sadece ek) -->
+<script>
+(function(){
+  function cleanupBackdrops(){
+    // Açık modal yoksa backdrop ve kilidi temizle
+    const openModal = document.querySelector('.modal.show');
+    if (!openModal){
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    }
+  }
+
+  // data-bs-dismiss tıklarını garanti kapat (bazı custom markup'larda bootstrap kaçırabiliyor)
+  document.addEventListener('click', (e) => {
+    const dismissBtn = e.target.closest('[data-bs-dismiss="modal"]');
+    if (!dismissBtn) return;
+
+    const modalEl = dismissBtn.closest('.modal');
+    if (!modalEl) { cleanupBackdrops(); return; }
+
+    try{
+      if (window.bootstrap){
+        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+      } else {
+        // Bootstrap objesi yoksa yine de sayfa kilidini kaldır
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        cleanupBackdrops();
+      }
+    }catch(_){
+      modalEl.classList.remove('show');
+      modalEl.style.display = 'none';
+      cleanupBackdrops();
+    }
+  });
+
+  // Bootstrap eventleriyle de temizle
+  document.addEventListener('hidden.bs.modal', cleanupBackdrops);
+  window.addEventListener('pageshow', cleanupBackdrops);
+
+  // ESC ile de kaçış kapısı
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape') cleanupBackdrops();
+  });
+})();
+</script>
 {% endblock %}
 
 </body>

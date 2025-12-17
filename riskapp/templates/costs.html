@@ -1341,4 +1341,12 @@
       });
     })();
   </script>
+    <script>
+    document.addEventListener('hidden.bs.modal', function () {
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+      document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    }, true);
+  </script>
+
 {% endblock %}
