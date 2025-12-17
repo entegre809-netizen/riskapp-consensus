@@ -24,7 +24,8 @@ from flask import request, redirect, url_for, flash, current_app
 from .models import db, Risk, Comment
 from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
-from models import CostItem
+from .models import CostItem
+
 
 from riskapp.models import CostItem
 import re
