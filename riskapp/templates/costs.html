@@ -7,14 +7,34 @@
 <div class="container py-4">
 
   <style>
+    /* --- Layout polish --- */
+    .page-head{
+      display:flex; flex-wrap:wrap; gap:.75rem;
+      align-items:flex-end; justify-content:space-between;
+      margin-bottom: 1rem;
+    }
+    .page-sub{
+      color: var(--bs-secondary-color);
+    }
+
+    /* --- Template cards --- */
+    .template-toolbar{
+      display:flex; flex-wrap:wrap; gap:.5rem;
+      align-items:center; justify-content:space-between;
+      margin-bottom:.75rem;
+    }
     .template-card{
       cursor:pointer;
-      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
       user-select:none;
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: .75rem;
+      padding: .85rem;
+      background: #fff;
     }
     .template-card:hover{
       transform: translateY(-1px);
-      box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+      box-shadow: 0 .55rem 1.2rem rgba(0,0,0,.08);
       border-color: rgba(13,110,253,.35) !important;
     }
     .template-card.active{
@@ -22,17 +42,59 @@
       box-shadow: 0 .75rem 1.25rem rgba(13,110,253,.12);
       background: rgba(13,110,253,.04);
     }
-    #liveTotal{
-      font-variant-numeric: tabular-nums;
+    .template-meta{
+      font-size:.85rem;
+      color: var(--bs-secondary-color);
     }
+
+    /* --- Live totals --- */
+    #liveTotal, #liveAnnual{
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* --- Table --- */
+    .table thead th{
+      white-space: nowrap;
+    }
+    .cost-row{
+      vertical-align: middle;
+    }
+    .cost-actions{
+      white-space: nowrap;
+    }
+    .desc-row td{
+      background: rgba(108,117,125,.08);
+    }
+
+    /* --- Small helpers --- */
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      padding: .15rem .55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,.08);
+      background: rgba(0,0,0,.02);
+      font-size: .82rem;
+      color: var(--bs-secondary-color);
+      white-space: nowrap;
+    }
+    .muted-hint{ color: var(--bs-secondary-color); font-size: .9rem; }
   </style>
 
-  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+  <!-- Header -->
+  <div class="page-head">
     <div>
       <h2 class="mb-1">Maliyet Yönetimi</h2>
-      <div class="text-muted">
-        Şablondan seç, maliyet gir, açıklamasını yaz, sonra da Pareto/Pareto Front ile neye odaklanacağını gör.
+      <div class="page-sub">
+        Şablondan seç, maliyet gir, açıklamasını yaz; sonra Pareto/Pareto Front ile nereye odaklanacağını gör.
       </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <span class="chip">Anlık Toplam: <strong id="liveTotal">0</strong></span>
+      <span class="chip">Yıllıklaştırılmış: <strong id="liveAnnual">0</strong></span>
     </div>
   </div>
 
@@ -41,17 +103,37 @@
     <!-- LEFT: Templates -->
     <div class="col-12 col-lg-5">
       <div class="card shadow-sm">
-        <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="card-header d-flex align-items-center justify-content-between gap-2">
           <div class="fw-semibold">Maliyet Şablonları</div>
           <small class="text-muted">Formu otomatik doldurur</small>
         </div>
 
         <div class="card-body">
-          <div class="row g-2">
+          <div class="template-toolbar">
+            <div class="input-group" style="max-width: 360px;">
+              <span class="input-group-text">Ara</span>
+              <input class="form-control" id="tplSearch" placeholder="Örn: lisans, ekipman, eğitim">
+              <button class="btn btn-outline-secondary" id="tplClearSearch" type="button">Temizle</button>
+            </div>
+
+            <div class="d-flex gap-2">
+              <select class="form-select" id="tplCategory" style="min-width: 170px;">
+                <option value="">Tümü</option>
+                <option value="İş Gücü">İş Gücü</option>
+                <option value="Ekipman">Ekipman</option>
+                <option value="Yazılım">Yazılım</option>
+                <option value="Eğitim">Eğitim</option>
+                <option value="Hizmet">Hizmet</option>
+                <option value="Operasyon">Operasyon</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-2" id="tplGrid">
 
             <!-- Şablon Kartları -->
             <div class="col-12">
-              <div class="border rounded p-3 template-card"
+              <div class="template-card"
                    data-title="Personel / Mesai"
                    data-category="İş Gücü"
                    data-unit="saat"
@@ -62,18 +144,16 @@
                 <div class="d-flex align-items-start justify-content-between gap-2">
                   <div>
                     <div class="fw-semibold">Personel / Mesai</div>
-                    <div class="text-muted small">İş Gücü • saat • TRY</div>
+                    <div class="template-meta">İş Gücü • saat • TRY • Tek Sefer</div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                 </div>
-                <div class="small text-muted mt-2">
-                  Ek mesai, geçici personel, vardiya planı gibi kalemler.
-                </div>
+                <div class="small text-muted mt-2">Ek mesai, vardiya, geçici personel gibi kalemler.</div>
               </div>
             </div>
 
             <div class="col-12">
-              <div class="border rounded p-3 template-card"
+              <div class="template-card"
                    data-title="Ekipman / Donanım"
                    data-category="Ekipman"
                    data-unit="adet"
@@ -84,18 +164,16 @@
                 <div class="d-flex align-items-start justify-content-between gap-2">
                   <div>
                     <div class="fw-semibold">Ekipman / Donanım</div>
-                    <div class="text-muted small">Ekipman • adet • TRY</div>
+                    <div class="template-meta">Ekipman • adet • TRY • Tek Sefer</div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                 </div>
-                <div class="small text-muted mt-2">
-                  Donanım alımı, yedek parça, cihaz.
-                </div>
+                <div class="small text-muted mt-2">Donanım, yedek parça, cihaz, kurulum.</div>
               </div>
             </div>
 
             <div class="col-12">
-              <div class="border rounded p-3 template-card"
+              <div class="template-card"
                    data-title="Yazılım Lisansı"
                    data-category="Yazılım"
                    data-unit="lisans"
@@ -106,18 +184,16 @@
                 <div class="d-flex align-items-start justify-content-between gap-2">
                   <div>
                     <div class="fw-semibold">Yazılım Lisansı</div>
-                    <div class="text-muted small">Yazılım • lisans • USD</div>
+                    <div class="template-meta">Yazılım • lisans • USD • Aylık</div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                 </div>
-                <div class="small text-muted mt-2">
-                  Abonelik, kullanıcı başı ücret, lisans yenileme.
-                </div>
+                <div class="small text-muted mt-2">Abonelik, kullanıcı başı ücret, lisans yenileme.</div>
               </div>
             </div>
 
             <div class="col-12">
-              <div class="border rounded p-3 template-card"
+              <div class="template-card"
                    data-title="Eğitim / Sertifika"
                    data-category="Eğitim"
                    data-unit="kişi"
@@ -128,18 +204,16 @@
                 <div class="d-flex align-items-start justify-content-between gap-2">
                   <div>
                     <div class="fw-semibold">Eğitim / Sertifika</div>
-                    <div class="text-muted small">Eğitim • kişi • TRY</div>
+                    <div class="template-meta">Eğitim • kişi • TRY • Tek Sefer</div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                 </div>
-                <div class="small text-muted mt-2">
-                  Eğitim, sertifika, workshop, onboarding.
-                </div>
+                <div class="small text-muted mt-2">Eğitim, sertifika, workshop, onboarding.</div>
               </div>
             </div>
 
             <div class="col-12">
-              <div class="border rounded p-3 template-card"
+              <div class="template-card"
                    data-title="Danışmanlık / Dış Kaynak"
                    data-category="Hizmet"
                    data-unit="gün"
@@ -150,13 +224,92 @@
                 <div class="d-flex align-items-start justify-content-between gap-2">
                   <div>
                     <div class="fw-semibold">Danışmanlık / Dış Kaynak</div>
-                    <div class="text-muted small">Hizmet • gün • TRY</div>
+                    <div class="template-meta">Hizmet • gün • TRY • Tek Sefer</div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                 </div>
-                <div class="small text-muted mt-2">
-                  Danışmanlık, audit, dış kaynak geliştirme, test.
+                <div class="small text-muted mt-2">Danışmanlık, audit, dış kaynak geliştirme, test.</div>
+              </div>
+            </div>
+
+            <!-- Ek şablonlar (daha gerçekçi dünya için) -->
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Bakım / Onarım"
+                   data-category="Operasyon"
+                   data-unit="iş"
+                   data-currency="TRY"
+                   data-frequency="Tek Sefer"
+                   data-desc="Arıza, bakım, onarım, bakım anlaşması dışı işler."
+                   role="button" tabindex="0" aria-label="Şablon: Bakım / Onarım">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Bakım / Onarım</div>
+                    <div class="template-meta">Operasyon • iş • TRY • Tek Sefer</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
                 </div>
+                <div class="small text-muted mt-2">Arıza, bakım, servis, parça değişimi.</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Seyahat / Ulaşım"
+                   data-category="Operasyon"
+                   data-unit="gün"
+                   data-currency="TRY"
+                   data-frequency="Tek Sefer"
+                   data-desc="Saha ziyareti, yol, konaklama, harcırah vb."
+                   role="button" tabindex="0" aria-label="Şablon: Seyahat / Ulaşım">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Seyahat / Ulaşım</div>
+                    <div class="template-meta">Operasyon • gün • TRY • Tek Sefer</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">Saha işi, yol, konaklama, harcırah.</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Bulut / Sunucu"
+                   data-category="Yazılım"
+                   data-unit="ay"
+                   data-currency="USD"
+                   data-frequency="Aylık"
+                   data-desc="Sunucu, storage, trafik, managed servis, izleme vb."
+                   role="button" tabindex="0" aria-label="Şablon: Bulut / Sunucu">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Bulut / Sunucu</div>
+                    <div class="template-meta">Yazılım • ay • USD • Aylık</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">Sunucu, storage, trafik, izleme, backup.</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Denetim / Uyum"
+                   data-category="Hizmet"
+                   data-unit="iş"
+                   data-currency="TRY"
+                   data-frequency="Yıllık"
+                   data-desc="ISO, KVKK, güvenlik denetimi, uyum danışmanlığı vb."
+                   role="button" tabindex="0" aria-label="Şablon: Denetim / Uyum">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Denetim / Uyum</div>
+                    <div class="template-meta">Hizmet • iş • TRY • Yıllık</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">Denetim, sertifikasyon, uyum işleri.</div>
               </div>
             </div>
 
@@ -164,8 +317,8 @@
 
           <hr class="my-3">
 
-          <div class="small text-muted">
-            Şablonlar “temel varsayımlar” içindir. Gerçek dünyada her şey daha karmaşık, maalesef.
+          <div class="muted-hint">
+            Şablonlar “temel varsayımlar” içindir. Gerçek dünyada her şey daha karmaşık.
           </div>
         </div>
       </div>
@@ -177,24 +330,27 @@
         <div class="card-header fw-semibold">Maliyet Ekle</div>
         <div class="card-body">
 
-          <form method="post" action="{{ url_for('costs') }}" id="costForm">
-            {# CSRF varsa ekle #}
+          <form method="post" action="{{ url_for('costs') }}" id="costForm" novalidate>
+            {# Flask-WTF kullanıyorsan aç: {{ form.csrf_token }} #}
 
             <div class="row g-3">
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Başlık</label>
                 <input class="form-control" name="title" id="title" placeholder="Örn: Yazılım lisansı" required>
+                <div class="invalid-feedback">Başlık gerekli.</div>
               </div>
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Kategori</label>
                 <input class="form-control" name="category" id="category" placeholder="Örn: Yazılım" required>
+                <div class="invalid-feedback">Kategori gerekli.</div>
               </div>
 
               <div class="col-12 col-md-4">
                 <label class="form-label">Birim</label>
                 <input class="form-control" name="unit" id="unit" placeholder="adet / saat / gün / lisans" required>
+                <div class="invalid-feedback">Birim gerekli.</div>
               </div>
 
               <div class="col-12 col-md-4">
@@ -218,11 +374,13 @@
               <div class="col-12 col-md-6">
                 <label class="form-label">Miktar (adet/saat/gün)</label>
                 <input class="form-control" type="number" step="0.01" min="0" name="qty" id="qty" placeholder="Örn: 10" required>
+                <div class="invalid-feedback">Miktar gerekli ve 0’dan büyük olmalı.</div>
               </div>
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Birim Fiyat</label>
                 <input class="form-control" type="number" step="0.01" min="0" name="unit_price" id="unit_price" placeholder="Örn: 2500" required>
+                <div class="invalid-feedback">Birim fiyat gerekli ve 0’dan büyük olmalı.</div>
               </div>
 
               <div class="col-12">
@@ -234,8 +392,11 @@
               <div class="col-12 d-flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-primary">Kaydet</button>
                 <button type="button" class="btn btn-outline-secondary" id="clearForm">Formu Temizle</button>
-                <div class="ms-auto text-muted small d-flex align-items-center">
-                  Toplam (anlık): <span class="fw-semibold ms-1" id="liveTotal">0</span>
+
+                <div class="ms-auto text-muted small d-flex align-items-center gap-2">
+                  <span>Anlık: <span class="fw-semibold" id="liveTotalInline">0</span></span>
+                  <span class="d-none d-md-inline">•</span>
+                  <span>Yıllık: <span class="fw-semibold" id="liveAnnualInline">0</span></span>
                 </div>
               </div>
 
@@ -247,48 +408,116 @@
 
       <!-- Costs list -->
       <div class="card shadow-sm mt-3">
-        <div class="card-header fw-semibold">Mevcut Maliyetler</div>
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="fw-semibold">Mevcut Maliyetler</div>
+
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="input-group input-group-sm" style="max-width: 260px;">
+              <span class="input-group-text">Filtre</span>
+              <input class="form-control" id="tableSearch" placeholder="Başlık / kategori">
+              <button class="btn btn-outline-secondary" id="tableClearSearch" type="button">X</button>
+            </div>
+
+            <select class="form-select form-select-sm" id="tableCurrency" style="min-width: 110px;">
+              <option value="">PB</option>
+              <option value="TRY">TRY</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+            </select>
+
+            <select class="form-select form-select-sm" id="tableFrequency" style="min-width: 120px;">
+              <option value="">Sıklık</option>
+              <option>Tek Sefer</option>
+              <option>Aylık</option>
+              <option>Yıllık</option>
+            </select>
+
+            <button class="btn btn-sm btn-outline-primary" id="exportCsv" type="button">CSV</button>
+          </div>
+        </div>
+
         <div class="card-body p-0">
           <div class="table-responsive">
-            <table class="table mb-0 align-middle">
+            <table class="table mb-0 align-middle" id="costTable">
               <thead class="table-light">
                 <tr>
-                  <th>Başlık</th>
-                  <th>Kategori</th>
-                  <th class="text-end">Miktar</th>
-                  <th class="text-end">Birim Fiyat</th>
-                  <th class="text-end">Toplam</th>
-                  <th class="text-end">Sıklık</th>
+                  <th role="button" class="sortable" data-sort="title">Başlık</th>
+                  <th role="button" class="sortable" data-sort="category">Kategori</th>
+                  <th class="text-end" role="button" class="sortable" data-sort="qty">Miktar</th>
+                  <th class="text-end" role="button" class="sortable" data-sort="unit_price">Birim Fiyat</th>
+                  <th class="text-end" role="button" class="sortable" data-sort="total">Toplam</th>
+                  <th class="text-end" role="button" class="sortable" data-sort="frequency">Sıklık</th>
+                  <th class="text-end">Detay</th>
                 </tr>
               </thead>
-              <tbody>
+
+              <tbody id="costTbody">
                 {% if costs and costs|length > 0 %}
                   {% for c in costs %}
-                    <tr>
+                    <tr class="cost-row"
+                        data-title="{{ (c.title or '')|e }}"
+                        data-category="{{ (c.category or '')|e }}"
+                        data-currency="{{ (c.currency or '')|e }}"
+                        data-frequency="{{ (c.frequency or '')|e }}"
+                        data-qty="{{ c.qty }}"
+                        data-unit_price="{{ c.unit_price }}"
+                        data-total="{{ c.total }}">
                       <td class="fw-semibold">{{ c.title }}</td>
                       <td>{{ c.category }}</td>
                       <td class="text-end">{{ c.qty }}</td>
                       <td class="text-end">{{ c.unit_price }} {{ c.currency }}</td>
-                      <td class="text-end">{{ c.total }} {{ c.currency }}</td>
+                      <td class="text-end fw-semibold">{{ c.total }} {{ c.currency }}</td>
                       <td class="text-end">{{ c.frequency }}</td>
+                      <td class="text-end cost-actions">
+                        {% if c.description %}
+                          <button class="btn btn-sm btn-outline-secondary"
+                                  type="button"
+                                  data-bs-toggle="collapse"
+                                  data-bs-target="#desc_{{ loop.index }}"
+                                  aria-expanded="false"
+                                  aria-controls="desc_{{ loop.index }}">
+                            Açıklama
+                          </button>
+                        {% else %}
+                          <span class="text-muted small">-</span>
+                        {% endif %}
+                      </td>
                     </tr>
+
                     {% if c.description %}
-                      <tr class="table-secondary">
-                        <td colspan="6" class="small text-muted">
-                          <span class="fw-semibold">Açıklama:</span> {{ c.description }}
+                      <tr class="desc-row">
+                        <td colspan="7" class="p-0">
+                          <div class="collapse" id="desc_{{ loop.index }}">
+                            <div class="p-3 small">
+                              <span class="fw-semibold">Açıklama:</span>
+                              <span class="text-muted">{{ c.description }}</span>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     {% endif %}
                   {% endfor %}
                 {% else %}
                   <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                      Henüz maliyet yok. İnsanlığın nadir huzur anlarından biri.
+                    <td colspan="7" class="text-center text-muted py-4">
+                      Henüz maliyet yok.
                     </td>
                   </tr>
                 {% endif %}
               </tbody>
+
+              <tfoot class="table-light">
+                <tr>
+                  <th colspan="4" class="text-end">Görünen satırların toplamı</th>
+                  <th class="text-end" id="tableTotalCell">0</th>
+                  <th colspan="2"></th>
+                </tr>
+              </tfoot>
             </table>
+          </div>
+
+          <div class="px-3 py-2 small text-muted" id="tableHint">
+            İpucu: Başlıklara tıklayıp sıralayabilirsin. Filtreler sadece tabloda görünenleri etkiler.
           </div>
         </div>
       </div>
@@ -303,7 +532,7 @@
         <div class="card-header fw-semibold">Pareto Analizi</div>
         <div class="card-body">
           <div class="text-muted small mb-2">
-            En yüksek etkiyi, en düşük maliyetle yakalamaya çalışıyoruz. Dünya “kolay” olsaydı buna gerek kalmazdı.
+            En yüksek etkiyi en az kaynakla yakalama denemesi. Matematik romantizmi.
           </div>
           <canvas id="paretoChart" height="140"></canvas>
           <div id="paretoEmpty" class="text-muted small mt-2" style="display:none;">
@@ -329,38 +558,35 @@
     </div>
   </div>
 
-  <!-- Screenshot items: YouTube cards -->
+  <!-- Source cards -->
   <div class="card shadow-sm mt-3">
     <div class="card-header fw-semibold">Kaynak (resimdeki linkler)</div>
     <div class="card-body">
       <div class="row g-3">
-
         <div class="col-12 col-lg-6">
           <a class="text-decoration-none" target="_blank"
              href="https://youtu.be/Rv5vV_PV_lg?si=lTJGKHGMMY2mrIB7">
             <div class="border rounded p-3 h-100">
               <div class="fw-semibold">Pareto Front Optimization in EXCEL (3 Minutes!)</div>
               <div class="text-muted small mt-1">
-                Risk azaltım stratejisini “maliyet vs fayda” ile görselleştirme fikri.
+                “Maliyet vs fayda” görselleştirme fikri.
               </div>
               <div class="small mt-2">YouTube’a git →</div>
             </div>
           </a>
         </div>
-
         <div class="col-12 col-lg-6">
           <a class="text-decoration-none" target="_blank"
              href="https://youtu.be/kMDMA3KqSl4?si=cZffA-cUFpqVR-m9">
             <div class="border rounded p-3 h-100">
               <div class="fw-semibold">Pareto Analysis (Risk Analysis and Management)</div>
               <div class="text-muted small mt-1">
-                Pareto mantığı ile “önce hangi risk/önlem” kararını hızlandırma.
+                Pareto mantığı ile “önce neye odaklanalım” kararı.
               </div>
               <div class="small mt-2">YouTube’a git →</div>
             </div>
           </a>
         </div>
-
       </div>
     </div>
   </div>
@@ -376,7 +602,7 @@
 {% block scripts %}
   {{ super() }}
 
-  <!-- Chart.js: en garantisi (altta olduğu için blocking sorun değil) -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <script>
@@ -390,19 +616,13 @@
         const $  = (sel, root=document) => root.querySelector(sel);
         const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-        const nf = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const nf2 = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        function readJson(id) {
-          const el = document.getElementById(id);
-          if (!el) return null;
-
-          const txt = (el.textContent || '').trim() || 'null';
-
-          // 1. parse dene
+        function safeParseJSON(txt){
+          const t = (txt || '').trim();
+          if (!t) return null;
           try {
-            const v = JSON.parse(txt);
-
-            // bazı backend'ler JSON'u string olarak basabiliyor: "\"[{...}]\""
+            const v = JSON.parse(t);
             if (typeof v === 'string') {
               try { return JSON.parse(v); } catch { return v; }
             }
@@ -410,6 +630,12 @@
           } catch {
             return null;
           }
+        }
+
+        function readJson(id) {
+          const el = document.getElementById(id);
+          if (!el) return null;
+          return safeParseJSON(el.textContent || 'null');
         }
 
         function numVal(id) {
@@ -427,17 +653,38 @@
           if (card) card.classList.add('active');
         }
 
-        function updateLiveTotal() {
+        function annualFactor(freq){
+          if (freq === 'Aylık') return 12;
+          if (freq === 'Yıllık') return 1;
+          return 1; // Tek Sefer: yıllığa çevirmek tartışmalı, ama burada 1 bırakıyoruz
+        }
+
+        function formatMoney(amount, cur){
+          const safe = Number.isFinite(amount) ? amount : 0;
+          return `${nf2.format(safe)} ${cur || ''}`.trim();
+        }
+
+        function updateLiveTotals() {
           const qty = numVal('qty');
           const unitPrice = numVal('unit_price');
-          const cur = document.getElementById('currency')?.value || '';
+          const cur = $('#currency')?.value || '';
+          const freq = $('#frequency')?.value || 'Tek Sefer';
+
           const total = qty * unitPrice;
+          const annual = total * annualFactor(freq);
 
-          const out = document.getElementById('liveTotal');
-          if (!out) return;
+          const t1 = $('#liveTotal');
+          const t2 = $('#liveAnnual');
+          const i1 = $('#liveTotalInline');
+          const i2 = $('#liveAnnualInline');
 
-          const safe = Number.isFinite(total) ? total : 0;
-          out.textContent = `${nf.format(safe)} ${cur}`;
+          const totalTxt = formatMoney(total, cur);
+          const annualTxt = formatMoney(annual, cur);
+
+          if (t1) t1.textContent = totalTxt;
+          if (t2) t2.textContent = annualTxt;
+          if (i1) i1.textContent = totalTxt;
+          if (i2) i2.textContent = annualTxt;
         }
 
         function applyTemplate(card) {
@@ -454,12 +701,12 @@
           setVal('currency', currency);
           setVal('frequency', frequency);
 
-          const d = document.getElementById('description');
+          const d = $('#description');
           if (d && !d.value.trim()) d.value = desc;
 
           markActiveTemplate(card);
-          updateLiveTotal();
-          document.getElementById('qty')?.focus();
+          updateLiveTotals();
+          $('#qty')?.focus();
         }
 
         function clearForm() {
@@ -467,11 +714,36 @@
           setVal('currency', 'TRY');
           setVal('frequency', 'Tek Sefer');
           markActiveTemplate(null);
-          updateLiveTotal();
-          document.getElementById('title')?.focus();
+          updateLiveTotals();
+          $('#title')?.focus();
         }
 
-        // Click delegation
+        /* -----------------------
+           Templates: filter/search
+        ------------------------*/
+        function normalize(s){ return (s || '').toString().toLowerCase().trim(); }
+
+        function filterTemplates(){
+          const q = normalize($('#tplSearch')?.value);
+          const cat = $('#tplCategory')?.value || '';
+
+          $$('.template-card', $('#tplGrid')).forEach(card => {
+            const t = normalize(card.getAttribute('data-title'));
+            const c = card.getAttribute('data-category') || '';
+            const okQ = !q || t.includes(q) || normalize(card.textContent).includes(q);
+            const okC = !cat || c === cat;
+            const col = card.closest('.col-12');
+            if (col) col.style.display = (okQ && okC) ? '' : 'none';
+          });
+        }
+
+        $('#tplSearch')?.addEventListener('input', filterTemplates);
+        $('#tplCategory')?.addEventListener('change', filterTemplates);
+        $('#tplClearSearch')?.addEventListener('click', () => { $('#tplSearch').value=''; filterTemplates(); });
+
+        /* -----------------------
+           Click delegation
+        ------------------------*/
         document.addEventListener('click', (e) => {
           const clearBtn = e.target.closest('#clearForm');
           if (clearBtn) { e.preventDefault(); clearForm(); return; }
@@ -491,7 +763,6 @@
           }
         });
 
-        // Keyboard accessibility: Enter/Space on template cards
         document.addEventListener('keydown', (e) => {
           const card = e.target.closest?.('.template-card');
           if (!card) return;
@@ -501,16 +772,208 @@
           }
         });
 
-        // Live total updates
+        /* -----------------------
+           Live total updates
+        ------------------------*/
         document.addEventListener('input', (e) => {
-          if (e.target.matches('#qty, #unit_price, #currency')) updateLiveTotal();
+          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) updateLiveTotals();
         });
         document.addEventListener('change', (e) => {
-          if (e.target.matches('#qty, #unit_price, #currency')) updateLiveTotal();
+          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) updateLiveTotals();
         });
-        updateLiveTotal();
+        updateLiveTotals();
 
-        // Charts
+        /* -----------------------
+           Form validation (Bootstrap-ish)
+        ------------------------*/
+        $('#costForm')?.addEventListener('submit', (e) => {
+          const form = e.target;
+          let ok = true;
+
+          ['title','category','unit'].forEach(id => {
+            const el = $('#' + id);
+            if (!el) return;
+            const good = !!el.value.trim();
+            el.classList.toggle('is-invalid', !good);
+            ok = ok && good;
+          });
+
+          ['qty','unit_price'].forEach(id => {
+            const el = $('#' + id);
+            if (!el) return;
+            const v = parseFloat(el.value);
+            const good = Number.isFinite(v) && v > 0;
+            el.classList.toggle('is-invalid', !good);
+            ok = ok && good;
+          });
+
+          if (!ok) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        });
+
+        /* -----------------------
+           Table: filter/sort/total/csv
+        ------------------------*/
+        const tbody = $('#costTbody');
+        const tableTotalCell = $('#tableTotalCell');
+        const tableSearch = $('#tableSearch');
+        const tableCurrency = $('#tableCurrency');
+        const tableFrequency = $('#tableFrequency');
+
+        function visibleCostRows(){
+          if (!tbody) return [];
+          // sadece "cost-row" olanlar (desc-row değil)
+          return $$('.cost-row', tbody).filter(r => r.style.display !== 'none');
+        }
+
+        function recomputeTableTotal(){
+          // Birden çok para birimi olabileceği için:
+          // - tek para birimi filtrelenmişse o PB ile göster
+          // - karışıksa "—" yaz, ayrıca altına küçük bir kırılım çıkar.
+          const rows = visibleCostRows();
+          const sums = {};
+          rows.forEach(r => {
+            const cur = r.dataset.currency || '';
+            const total = parseFloat(r.dataset.total || '0');
+            if (!Number.isFinite(total)) return;
+            sums[cur] = (sums[cur] || 0) + total;
+          });
+
+          const currencies = Object.keys(sums).filter(Boolean);
+          if (!tableTotalCell) return;
+
+          if (currencies.length === 0) {
+            tableTotalCell.textContent = '0';
+            tableTotalCell.title = '';
+            return;
+          }
+
+          if (currencies.length === 1) {
+            const cur = currencies[0];
+            tableTotalCell.textContent = formatMoney(sums[cur], cur);
+            tableTotalCell.title = '';
+            return;
+          }
+
+          tableTotalCell.textContent = '—';
+          tableTotalCell.title = currencies.map(c => `${c}: ${nf2.format(sums[c])}`).join(' | ');
+        }
+
+        function filterTable(){
+          const q = normalize(tableSearch?.value);
+          const cur = tableCurrency?.value || '';
+          const freq = tableFrequency?.value || '';
+
+          $$('.cost-row', tbody).forEach(r => {
+            const t = normalize(r.dataset.title);
+            const c = normalize(r.dataset.category);
+            const okQ = !q || t.includes(q) || c.includes(q);
+            const okC = !cur || (r.dataset.currency === cur);
+            const okF = !freq || (r.dataset.frequency === freq);
+
+            // cost-row görünürlüğü
+            r.style.display = (okQ && okC && okF) ? '' : 'none';
+
+            // hemen altındaki desc-row da aynı davranmalı
+            const next = r.nextElementSibling;
+            if (next && next.classList.contains('desc-row')) {
+              next.style.display = r.style.display;
+            }
+          });
+
+          recomputeTableTotal();
+        }
+
+        tableSearch?.addEventListener('input', filterTable);
+        tableCurrency?.addEventListener('change', filterTable);
+        tableFrequency?.addEventListener('change', filterTable);
+        $('#tableClearSearch')?.addEventListener('click', () => { tableSearch.value=''; filterTable(); });
+
+        let sortState = { key: null, dir: 1 }; // dir: 1 asc, -1 desc
+
+        function rowKey(row, key){
+          const d = row.dataset;
+          if (key === 'qty' || key === 'unit_price' || key === 'total') {
+            const v = parseFloat(d[key] || '0');
+            return Number.isFinite(v) ? v : 0;
+          }
+          if (key === 'frequency') return (d.frequency || '');
+          if (key === 'title') return (d.title || '');
+          if (key === 'category') return (d.category || '');
+          return '';
+        }
+
+        function sortTable(key){
+          if (!tbody) return;
+
+          if (sortState.key === key) sortState.dir *= -1;
+          else { sortState.key = key; sortState.dir = 1; }
+
+          const rows = $$('.cost-row', tbody);
+          rows.sort((a,b) => {
+            const av = rowKey(a, key);
+            const bv = rowKey(b, key);
+            if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sortState.dir;
+            return av.toString().localeCompare(bv.toString(), 'tr', { sensitivity: 'base' }) * sortState.dir;
+          });
+
+          // DOM'a geri bas (desc-rowlarıyla birlikte)
+          rows.forEach(r => {
+            const desc = (r.nextElementSibling && r.nextElementSibling.classList.contains('desc-row'))
+              ? r.nextElementSibling
+              : null;
+
+            tbody.appendChild(r);
+            if (desc) tbody.appendChild(desc);
+          });
+
+          filterTable(); // filtre + total güncellesin
+        }
+
+        $$('.sortable').forEach(th => {
+          th.addEventListener('click', () => {
+            const key = th.getAttribute('data-sort');
+            if (key) sortTable(key);
+          });
+        });
+
+        function exportVisibleCSV(){
+          const rows = visibleCostRows();
+          const headers = ['Başlık','Kategori','Miktar','Birim Fiyat','Toplam','Para Birimi','Sıklık'];
+          const lines = [headers.join(',')];
+
+          rows.forEach(r => {
+            const title = (r.dataset.title || '').replaceAll('"','""');
+            const cat   = (r.dataset.category || '').replaceAll('"','""');
+            const qty   = r.dataset.qty || '';
+            const up    = r.dataset.unit_price || '';
+            const tot   = r.dataset.total || '';
+            const cur   = r.dataset.currency || '';
+            const frq   = r.dataset.frequency || '';
+            lines.push(`"${title}","${cat}",${qty},${up},${tot},${cur},"${frq}"`);
+          });
+
+          const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'maliyetler.csv';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        $('#exportCsv')?.addEventListener('click', exportVisibleCSV);
+
+        // İlk hesap
+        filterTable();
+
+        /* -----------------------
+           Charts
+        ------------------------*/
         const paretoRaw = readJson('paretoData');
         const frontRaw  = readJson('frontData');
 
@@ -527,8 +990,8 @@
           : frontRaw;
 
         (function renderPareto() {
-          const canvas = document.getElementById('paretoChart');
-          const empty = document.getElementById('paretoEmpty');
+          const canvas = $('#paretoChart');
+          const empty = $('#paretoEmpty');
           if (!canvas) return;
 
           if (!window.Chart) { if (empty) empty.style.display = 'block'; return; }
@@ -564,8 +1027,8 @@
         })();
 
         (function renderFront() {
-          const canvas = document.getElementById('frontChart');
-          const empty = document.getElementById('frontEmpty');
+          const canvas = $('#frontChart');
+          const empty = $('#frontEmpty');
           if (!canvas) return;
 
           if (!window.Chart) { if (empty) empty.style.display = 'block'; return; }
@@ -592,6 +1055,7 @@
             }
           });
         })();
+
       });
     })();
   </script>

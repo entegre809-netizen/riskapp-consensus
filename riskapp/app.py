@@ -8,7 +8,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
 import os
 from sqlalchemy.exc import OperationalError
-
+from decimal import Decimal, InvalidOperation
+from sqlalchemy import desc
 from functools import wraps
 from sqlalchemy import text, or_, func
 from collections import Counter
@@ -5097,106 +5098,163 @@ def create_app():
     def risk_template_detail(sid):
         s = Suggestion.query.get_or_404(sid)
         return render_template("risk_template_detail.html", s=s)
-    from decimal import Decimal, InvalidOperation
-
+        
+        
     def _to_decimal(v, default="0"):
-        try:
-            if v is None or str(v).strip() == "":
+            try:
+                if v is None or str(v).strip() == "":
+                    return Decimal(default)
+                return Decimal(str(v).replace(",", "."))
+            except (InvalidOperation, ValueError):
                 return Decimal(default)
-            return Decimal(str(v).replace(",", "."))
-        except (InvalidOperation, ValueError):
-            return Decimal(default)
 
     def _active_project_id():
-        # sende zaten project switch var: /projects/switch
-        # genelde session'da active_project_id tutulur
-        pid = session.get("active_project_id") or session.get("project_id")
-        if pid:
-            return int(pid)
+            pid = session.get("active_project_id") or session.get("project_id")
+            if pid:
+                try:
+                    return int(pid)
+                except ValueError:
+                    return None
 
-        # fallback: login olmuş account'un son projesi
-        acc_id = session.get("account_id")
-        if acc_id:
-            prj = (ProjectInfo.query
-                .filter_by(account_id=acc_id)
-                .order_by(ProjectInfo.id.desc())
-                .first())
-            if prj:
-                session["active_project_id"] = prj.id
-                return prj.id
-        return None
+            acc_id = session.get("account_id")
+            if acc_id:
+                prj = (ProjectInfo.query
+                    .filter_by(account_id=acc_id)
+                    .order_by(ProjectInfo.id.desc())
+                    .first())
+                if prj:
+                    session["active_project_id"] = prj.id
+                    return prj.id
+            return None
+
+    def _annual_factor(freq: str) -> Decimal:
+            # Tek Sefer: 1 bırakıyorum (istersen 0 yapıp “yıllık karşılaştırma”dan çıkarabilirsin)
+            if freq == "Aylık":
+                return Decimal("12")
+            if freq == "Yıllık":
+                return Decimal("1")
+            return Decimal("1")
 
     @app.route("/costs", methods=["GET", "POST"])
     def costs():
-        project_id = _active_project_id()
-        if not project_id:
-            flash("Aktif proje bulunamadı. Önce proje seç.", "warning")
-            return redirect(url_for("dashboard"))
+            project_id = _active_project_id()
+            if not project_id:
+                flash("Aktif proje bulunamadı. Önce proje seç.", "warning")
+                return redirect(url_for("dashboard"))
 
-        if request.method == "POST":
-            title = (request.form.get("title") or "").strip()
-            if not title:
-                flash("Başlık zorunlu.", "warning")
+            if request.method == "POST":
+                title = (request.form.get("title") or "").strip()
+                if not title:
+                    flash("Başlık zorunlu.", "warning")
+                    return redirect(url_for("costs"))
+
+                category = (request.form.get("category") or "").strip() or None
+                unit = (request.form.get("unit") or "").strip() or None
+                currency = (request.form.get("currency") or "TRY").strip() or "TRY"
+                frequency = (request.form.get("frequency") or "Tek Sefer").strip() or "Tek Sefer"
+
+                qty = _to_decimal(request.form.get("qty"), "1")
+                unit_price = _to_decimal(request.form.get("unit_price"), "0")
+
+                # Sunucu tarafı sağlam dursun
+                if qty <= 0:
+                    flash("Miktar 0’dan büyük olmalı.", "warning")
+                    return redirect(url_for("costs"))
+                if unit_price < 0:
+                    flash("Birim fiyat negatif olamaz.", "warning")
+                    return redirect(url_for("costs"))
+
+                total = qty * unit_price
+
+                # risk_id: hem sayı mı, hem bu projeye mi ait?
+                risk_id = None
+                risk_id_raw = (request.form.get("risk_id") or "").strip()
+                if risk_id_raw.isdigit():
+                    cand = int(risk_id_raw)
+                    exists = (Risk.query
+                            .filter(Risk.id == cand, Risk.project_id == project_id)
+                            .first())
+                    if exists:
+                        risk_id = cand
+                    else:
+                        flash("Seçilen risk bu projeye ait değil. Risk bağlanmadı.", "warning")
+
+                item = CostItem(
+                    project_id=project_id,
+                    risk_id=risk_id,
+                    title=title,
+                    category=category,
+                    unit=unit,
+                    currency=currency,
+                    frequency=frequency,
+                    qty=qty,
+                    unit_price=unit_price,
+                    total=total,
+                    description=(request.form.get("description") or "").strip() or None,
+                )
+                db.session.add(item)
+                db.session.commit()
+                flash("Maliyet kaydedildi.", "success")
                 return redirect(url_for("costs"))
 
-            risk_id_raw = (request.form.get("risk_id") or "").strip()
-            risk_id = int(risk_id_raw) if risk_id_raw.isdigit() else None
+            costs = (CostItem.query
+                    .filter_by(project_id=project_id)
+                    .order_by(desc(CostItem.id))
+                    .all())
 
-            qty = _to_decimal(request.form.get("qty"), "1")
-            unit_price = _to_decimal(request.form.get("unit_price"), "0")
-            total = qty * unit_price
+            # Pareto: Decimal ile hesapla (float yok)
+            sorted_costs = sorted(costs, key=lambda c: (c.total or Decimal("0")), reverse=True)
+            grand = sum((c.total or Decimal("0")) for c in sorted_costs) or Decimal("0")
 
-            item = CostItem(
-                project_id=project_id,
-                risk_id=risk_id,
-                title=title,
-                category=(request.form.get("category") or "").strip() or None,
-                unit=(request.form.get("unit") or "").strip() or None,
-                currency=(request.form.get("currency") or "TRY").strip() or "TRY",
-                frequency=(request.form.get("frequency") or "").strip() or None,
-                qty=qty,
-                unit_price=unit_price,
-                total=total,
-                description=(request.form.get("description") or "").strip() or None,
-            )
-            db.session.add(item)
-            db.session.commit()
-            flash("Maliyet kaydedildi.", "success")
-            return redirect(url_for("costs"))
+            run = Decimal("0")
+            pareto = []
+            for c in sorted_costs:
+                    val = (c.total or Decimal("0"))
+                    run += val
+                    cum = (run / grand * Decimal("100")) if grand > 0 else Decimal("0")
+                    pareto.append({
+                        "label": c.title,
+                        "value": float(val),            # Chart.js için float veriyoruz
+                        "cum_pct": float(cum),
+                    })
 
-        costs = (CostItem.query
-                .filter_by(project_id=project_id)
-                .order_by(CostItem.id.desc())
-                .all())
+                # Pareto Front: riskleri tek seferde çek (N+1 yok)
+            risk_ids = sorted({c.risk_id for c in costs if c.risk_id})
+            risk_map = {}
+            if risk_ids:
+                    risks = (Risk.query
+                            .filter(Risk.project_id == project_id, Risk.id.in_(risk_ids))
+                            .all())
+                    risk_map = {r.id: r for r in risks}
 
-        sorted_costs = sorted(costs, key=lambda c: float(c.total or 0), reverse=True)
-        grand = sum(float(c.total or 0) for c in sorted_costs) or 0.0
-        run = 0.0
-        pareto = []
-        for c in sorted_costs:
-            val = float(c.total or 0)
-            run += val
-            pareto.append({
-                "label": c.title,
-                "value": val,
-                "cum_pct": (run / grand * 100.0) if grand else 0.0
-            })
+            front = []
+            for c in costs:
+                    if not c.risk_id:
+                        continue
+                    r = risk_map.get(c.risk_id)
+                    if not r:
+                        continue
 
-        front = []
-        for c in costs:
-            if c.risk_id:
-                r = Risk.query.get(c.risk_id)
-                if r:
                     s = r.score()
-                    if s is not None:
-                        front.append({
-                            "x": float(c.total or 0),
-                            "y": float(s),
-                            "label": c.title
-                        })
+                    if s is None:
+                        continue
 
-        return render_template("costs.html", costs=costs, pareto_json=pareto, front_json=front)
+                    # istersen annual_total kullan: (c.total * factor)
+                    x_total = (c.total or Decimal("0"))
+                    # annual = x_total * _annual_factor(c.frequency or "Tek Sefer")
 
+                    front.append({
+                        "x": float(x_total),
+                        "y": float(s),
+                        "label": c.title
+                    })
+
+            return render_template(
+                    "costs.html",
+                    costs=costs,
+                    pareto_json=pareto,
+                    front_json=front
+                )
 
 
     # -------------------------------------------------
