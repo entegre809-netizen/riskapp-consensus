@@ -133,7 +133,7 @@
             <small class="text-muted">Formu otomatik doldurur</small>
           </div>
 
-          <!-- ✅ Yeni Şablon butonu (ÇALIŞIR: modal açar) -->
+          <!-- ✅ Yeni Şablon butonu -->
           <button type="button"
                   class="btn btn-sm btn-outline-primary"
                   data-bs-toggle="modal"
@@ -228,7 +228,7 @@
               <hr class="my-3">
             {% endif %}
 
-            {# 2) Varsayılan şablonlar (hard-coded, sadece uygula) #}
+            {# 2) Varsayılan şablonlar #}
             <div class="col-12">
               <div class="d-flex align-items-center justify-content-between mb-1">
                 <div class="fw-semibold">Varsayılan Şablonlar</div>
@@ -854,6 +854,16 @@
 {% block scripts %}
   {{ super() }}
 
+  <!-- ✅ Kritik fix: modalları BODY altına taşı -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      ['tplCreateModal','tplEditModal'].forEach(id => {
+        const m = document.getElementById(id);
+        if (m && m.parentElement !== document.body) document.body.appendChild(m);
+      });
+    });
+  </script>
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -1341,11 +1351,15 @@
       });
     })();
   </script>
-    <script>
+
+  <!-- ✅ Güvenli cleanup: sadece açık modal kalmadıysa backdrop temizle -->
+  <script>
     document.addEventListener('hidden.bs.modal', function () {
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('padding-right');
-      document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+      if (document.querySelectorAll('.modal.show').length === 0) {
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+      }
     }, true);
   </script>
 
