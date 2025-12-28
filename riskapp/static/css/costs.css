@@ -1,0 +1,116 @@
+/* static/css/costs.css */
+
+/* --- Layout polish --- */
+.page-head{
+  display:flex; flex-wrap:wrap; gap:.75rem;
+  align-items:flex-end; justify-content:space-between;
+  margin-bottom: 1rem;
+}
+.page-sub{ color: var(--bs-secondary-color); }
+
+/* --- Template cards --- */
+.template-toolbar{
+  display:flex; flex-wrap:wrap; gap:.5rem;
+  align-items:center; justify-content:space-between;
+  margin-bottom:.75rem;
+}
+
+.template-card{
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+  user-select:none;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: .75rem;
+  padding: .85rem;
+  background: #fff;
+}
+.template-card:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 .55rem 1.2rem rgba(0,0,0,.08);
+  border-color: rgba(13,110,253,.35) !important;
+}
+.template-card.active{
+  border-color: rgba(13,110,253,.75) !important;
+  box-shadow: 0 .75rem 1.25rem rgba(13,110,253,.12);
+  background: rgba(13,110,253,.04);
+}
+.template-meta{
+  font-size:.85rem;
+  color: var(--bs-secondary-color);
+}
+
+.tpl-badge{
+  font-size:.75rem;
+  padding:.15rem .45rem;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.02);
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+}
+
+/* --- Live totals --- */
+#liveTotal, #liveAnnual, #liveTotalBase, #liveAnnualBase{
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- Table --- */
+.table thead th{ white-space: nowrap; }
+.cost-row{ vertical-align: middle; }
+.cost-actions{ white-space: nowrap; }
+.desc-row td{ background: rgba(108,117,125,.08); }
+
+/* --- Small helpers --- */
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding: .15rem .55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.02);
+  font-size: .82rem;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+}
+.muted-hint{ color: var(--bs-secondary-color); font-size: .9rem; }
+
+/* --- Actions buttons --- */
+.btn-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: .6rem;
+}
+.actions-wrap{
+  display:inline-flex;
+  gap:.35rem;
+  justify-content:flex-end;
+}
+.tpl-actions{
+  display:flex;
+  gap:.35rem;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-items:center;
+}
+
+/* --- FX panel --- */
+.fx-panel{
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: .75rem;
+  padding: .75rem;
+  background: rgba(13,110,253,.03);
+}
+.fx-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:.5rem;
+}
+@media (max-width: 992px){
+  .fx-grid{ grid-template-columns: 1fr; }
+}
