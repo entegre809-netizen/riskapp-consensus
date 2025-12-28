@@ -9,7 +9,10 @@
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-    const nf2 = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const nf2 = new Intl.NumberFormat("tr-TR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
     function safeParseJSON(txt) {
       const t = (txt || "").trim();
@@ -17,7 +20,11 @@
       try {
         const v = JSON.parse(t);
         if (typeof v === "string") {
-          try { return JSON.parse(v); } catch { return v; }
+          try {
+            return JSON.parse(v);
+          } catch {
+            return v;
+          }
         }
         return v;
       } catch {
@@ -40,8 +47,12 @@
       const el = document.getElementById(id);
       if (el) el.value = val ?? "";
     }
-
-    function normalize(s) { return (s || "").toString().toLowerCase().trim(); }
+    function normalize(s) {
+      return (s || "").toString().toLowerCase().trim();
+    }
+    function upper(s) {
+      return (s || "").toString().trim().toUpperCase();
+    }
 
     // -----------------------------
     // Settings (localStorage)
@@ -57,7 +68,6 @@
     function saveSettings(next) {
       localStorage.setItem(LS_KEY, JSON.stringify(next || {}));
     }
-
     const settings = loadSettings();
 
     // -----------------------------
@@ -71,7 +81,7 @@
     const fxUSDTRYEl = $("#fxUSDTRY");
     const fxEURTRYEl = $("#fxEURTRY");
 
-    // UI defaults
+    // init UI from saved settings
     if (baseCurrencyEl) baseCurrencyEl.value = settings.baseCurrency || "TRY";
     if (fxUSDTRYEl) fxUSDTRYEl.value = settings.usdTry ?? "";
     if (fxEURTRYEl) fxEURTRYEl.value = settings.eurTry ?? "";
@@ -82,7 +92,7 @@
       return {
         TRY: 1,
         USD: Number.isFinite(usdTry) && usdTry > 0 ? usdTry : null,
-        EUR: Number.isFinite(eurTry) && eurTry > 0 ? eurTry : null
+        EUR: Number.isFinite(eurTry) && eurTry > 0 ? eurTry : null,
       };
     }
 
@@ -90,20 +100,26 @@
       const a = Number.isFinite(amount) ? amount : 0;
       const rates = getRatesToTRY();
 
-      const from = (cur || "TRY").toUpperCase();
-      const to = (baseCur || "TRY").toUpperCase();
+      const from = upper(cur || "TRY");
+      const to = upper(baseCur || "TRY");
 
-      if (from === to) return { ok: true, value: a };
+      if (from === to) return { ok: true, value: a, reason: "" };
 
       const rFrom = rates[from];
       const rTo = rates[to];
 
-      // If missing rates, conversion fails gracefully
-      if (!rFrom || !rTo) return { ok: false, value: a };
+      // Missing rate => conversion not possible
+      if (rFrom == null || rTo == null) {
+        return {
+          ok: false,
+          value: a,
+          reason: `Kur eksik: ${from}->TRY veya ${to}->TRY`,
+        };
+      }
 
       const tryVal = a * rFrom;
       const baseVal = tryVal / rTo;
-      return { ok: true, value: baseVal };
+      return { ok: true, value: baseVal, reason: "" };
     }
 
     function formatMoney(amount, cur) {
@@ -114,11 +130,10 @@
     // -----------------------------
     // Annualization policy for Tek Sefer
     // -----------------------------
-    const oneTimePolicyEl = $("#oneTimePolicy");      // 1x | 0x | amortize
-    const amortizeYearsEl = $("#amortizeYears");      // number
-    const paretoUseAnnualEl = $("#paretoUseAnnual");  // checkbox
+    const oneTimePolicyEl = $("#oneTimePolicy"); // 1x | 0x | amortize
+    const amortizeYearsEl = $("#amortizeYears"); // number
+    const paretoUseAnnualEl = $("#paretoUseAnnual"); // checkbox
 
-    // init settings
     if (oneTimePolicyEl) oneTimePolicyEl.value = settings.oneTimePolicy || "1x";
     if (amortizeYearsEl) amortizeYearsEl.value = settings.amortizeYears || 3;
     if (paretoUseAnnualEl) paretoUseAnnualEl.checked = settings.paretoUseAnnual ?? true;
@@ -137,7 +152,6 @@
       return 1; // 1x
     }
 
-    // Save settings on change
     function syncSettings() {
       const next = {
         baseCurrency: baseCurrencyEl?.value || "TRY",
@@ -145,19 +159,20 @@
         eurTry: fxEURTRYEl?.value || "",
         oneTimePolicy: oneTimePolicyEl?.value || "1x",
         amortizeYears: amortizeYearsEl?.value || 3,
-        paretoUseAnnual: !!(paretoUseAnnualEl?.checked)
+        paretoUseAnnual: !!paretoUseAnnualEl?.checked,
       };
       saveSettings(next);
     }
 
     [baseCurrencyEl, fxUSDTRYEl, fxEURTRYEl, oneTimePolicyEl, amortizeYearsEl, paretoUseAnnualEl]
       .filter(Boolean)
-      .forEach(el => el.addEventListener("change", () => {
-        syncSettings();
-        updateLiveTotals();
-        filterTable();            // triggers totals + charts
-        renderChartsFromTable();  // update axes labels too
-      }));
+      .forEach((el) =>
+        el.addEventListener("change", () => {
+          syncSettings();
+          updateLiveTotals();
+          filterTable(); // totals + charts
+        })
+      );
 
     // -----------------------------
     // Templates: filter/search/apply/edit
@@ -168,7 +183,7 @@
     const tplClear = $("#tplClearSearch");
 
     function markActiveTemplate(card) {
-      $$(".template-card.active").forEach(x => x.classList.remove("active"));
+      $$(".template-card.active").forEach((x) => x.classList.remove("active"));
       if (card) card.classList.add("active");
     }
 
@@ -199,14 +214,14 @@
       const q = normalize(tplSearch?.value);
       const cat = tplCategory?.value || "";
 
-      $$(".template-card", tplGrid).forEach(card => {
+      $$(".template-card", tplGrid).forEach((card) => {
         const c = card.getAttribute("data-category") || "";
         const hay = normalize(card.getAttribute("data-search") || card.textContent);
         const okQ = !q || hay.includes(q);
         const okC = !cat || c === cat;
 
         const col = card.closest(".col-12");
-        if (col) col.style.display = (okQ && okC) ? "" : "none";
+        if (col) col.style.display = okQ && okC ? "" : "none";
       });
     }
 
@@ -223,29 +238,32 @@
     function updateLiveTotals() {
       const qty = Math.max(0, numVal("qty"));
       const unitPrice = Math.max(0, numVal("unit_price"));
-      const cur = $("#currency")?.value || "TRY";
+      const cur = upper($("#currency")?.value || "TRY");
       const freq = $("#frequency")?.value || "Tek Sefer";
 
       const total = qty * unitPrice;
       const annual = total * annualFactor(freq);
 
-      const baseCur = baseCurrencyEl?.value || "TRY";
+      const baseCur = upper(baseCurrencyEl?.value || "TRY");
       const totalBase = convertToBase(total, cur, baseCur);
       const annualBase = convertToBase(annual, cur, baseCur);
 
-      $("#liveTotal") && ($("#liveTotal").textContent = formatMoney(total, cur));
-      $("#liveAnnual") && ($("#liveAnnual").textContent = formatMoney(annual, cur));
-      $("#liveTotalInline") && ($("#liveTotalInline").textContent = formatMoney(total, cur));
-      $("#liveAnnualInline") && ($("#liveAnnualInline").textContent = formatMoney(annual, cur));
+      if ($("#liveTotal")) $("#liveTotal").textContent = formatMoney(total, cur);
+      if ($("#liveAnnual")) $("#liveAnnual").textContent = formatMoney(annual, cur);
+      if ($("#liveTotalInline")) $("#liveTotalInline").textContent = formatMoney(total, cur);
+      if ($("#liveAnnualInline")) $("#liveAnnualInline").textContent = formatMoney(annual, cur);
 
       const base1 = $("#liveTotalBase");
       const base2 = $("#liveAnnualBase");
       if (base1) base1.textContent = totalBase.ok ? formatMoney(totalBase.value, baseCur) : "Kur gerekli";
       if (base2) base2.textContent = annualBase.ok ? formatMoney(annualBase.value, baseCur) : "Kur gerekli";
+
+      if (base1 && !totalBase.ok) base1.title = totalBase.reason || "";
+      if (base2 && !annualBase.ok) base2.title = annualBase.reason || "";
     }
 
     function clearForm() {
-      ["title","category","unit","qty","unit_price","description"].forEach(id => setVal(id, ""));
+      ["title", "category", "unit", "qty", "unit_price", "description"].forEach((id) => setVal(id, ""));
       setVal("currency", "TRY");
       setVal("frequency", "Tek Sefer");
       markActiveTemplate(null);
@@ -253,7 +271,7 @@
       $("#title")?.focus();
     }
 
-    // input listeners
+    // input listeners for form
     document.addEventListener("input", (e) => {
       if (e.target?.matches?.("#qty, #unit_price, #currency, #frequency")) updateLiveTotals();
     });
@@ -268,7 +286,11 @@
       const target = e.target;
 
       const clearBtn = target.closest?.("#clearForm");
-      if (clearBtn) { e.preventDefault(); clearForm(); return; }
+      if (clearBtn) {
+        e.preventDefault();
+        clearForm();
+        return;
+      }
 
       const applyBtn = target.closest?.(".use-template");
       if (applyBtn) {
@@ -288,12 +310,12 @@
         if (form) form.action = editUrl;
 
         const get = (k) => card.getAttribute(k) || "";
-        $("#tplEditTitle") && ($("#tplEditTitle").value = get("data-title"));
-        $("#tplEditCategory") && ($("#tplEditCategory").value = get("data-category"));
-        $("#tplEditUnit") && ($("#tplEditUnit").value = get("data-unit"));
-        $("#tplEditCurrency") && ($("#tplEditCurrency").value = get("data-currency") || "TRY");
-        $("#tplEditFrequency") && ($("#tplEditFrequency").value = get("data-frequency") || "Tek Sefer");
-        $("#tplEditDesc") && ($("#tplEditDesc").value = get("data-desc") || "");
+        if ($("#tplEditTitle")) $("#tplEditTitle").value = get("data-title");
+        if ($("#tplEditCategory")) $("#tplEditCategory").value = get("data-category");
+        if ($("#tplEditUnit")) $("#tplEditUnit").value = get("data-unit");
+        if ($("#tplEditCurrency")) $("#tplEditCurrency").value = get("data-currency") || "TRY";
+        if ($("#tplEditFrequency")) $("#tplEditFrequency").value = get("data-frequency") || "Tek Sefer";
+        if ($("#tplEditDesc")) $("#tplEditDesc").value = get("data-desc") || "";
         return;
       }
 
@@ -328,7 +350,7 @@
 
     function visibleCostRows() {
       if (!tbody) return [];
-      return $$(".cost-row", tbody).filter(r => r.style.display !== "none");
+      return $$(".cost-row", tbody).filter((r) => r.style.display !== "none");
     }
 
     function recomputeTableTotal() {
@@ -337,11 +359,11 @@
       let sumBase = 0;
       let baseOkAll = true;
 
-      const baseCur = baseCurrencyEl?.value || "TRY";
-      const useAnnual = !!(paretoUseAnnualEl?.checked);
+      const baseCur = upper(baseCurrencyEl?.value || "TRY");
+      const useAnnual = !!paretoUseAnnualEl?.checked;
 
-      rows.forEach(r => {
-        const cur = (r.dataset.currency || "TRY").toUpperCase();
+      rows.forEach((r) => {
+        const cur = upper(r.dataset.currency || "TRY");
         const totalRaw = parseFloat(r.dataset.total || "0");
         const freq = r.dataset.frequency || "Tek Sefer";
         const factor = useAnnual ? annualFactor(freq) : 1;
@@ -354,7 +376,7 @@
         else sumBase += conv.value;
       });
 
-      // Original multi-currency cell (same as before, but annualization aware)
+      // Multi-currency total
       const currencies = Object.keys(sums).filter(Boolean);
       if (tableTotalCell) {
         if (currencies.length === 0) {
@@ -366,32 +388,38 @@
           tableTotalCell.title = "";
         } else {
           tableTotalCell.textContent = "—";
-          tableTotalCell.title = currencies.map(c => `${c}: ${nf2.format(sums[c])}`).join(" | ");
+          tableTotalCell.title = currencies.map((c) => `${c}: ${nf2.format(sums[c])}`).join(" | ");
         }
       }
 
       // Base currency total
       if (tableTotalBaseCell) {
         tableTotalBaseCell.textContent = baseOkAll ? formatMoney(sumBase, baseCur) : "Kur gerekli";
-        tableTotalBaseCell.title = baseOkAll ? "" : "USD/TRY ve EUR/TRY girmen lazım (baz dönüşüm için).";
+        tableTotalBaseCell.title = baseOkAll
+          ? ""
+          : "USD/TRY ve EUR/TRY girmen lazım (baz dönüşüm için).";
       }
     }
 
     function filterTable() {
       if (!tbody) return;
-      const q = normalize(tableSearch?.value);
-      const cur = tableCurrency?.value || "";
-      const freq = tableFrequency?.value || "";
 
-      $$(".cost-row", tbody).forEach(r => {
+      const q = normalize(tableSearch?.value);
+      const curFilter = upper(tableCurrency?.value || ""); // normalize case
+      const freqFilter = tableFrequency?.value || "";
+
+      $$(".cost-row", tbody).forEach((r) => {
         const t = normalize(r.dataset.title);
         const c = normalize(r.dataset.category);
 
-        const okQ = !q || t.includes(q) || c.includes(q);
-        const okC = !cur || (r.dataset.currency === cur);
-        const okF = !freq || (r.dataset.frequency === freq);
+        const rowCur = upper(r.dataset.currency || "");
+        const rowFreq = r.dataset.frequency || "";
 
-        r.style.display = (okQ && okC && okF) ? "" : "none";
+        const okQ = !q || t.includes(q) || c.includes(q);
+        const okC = !curFilter || rowCur === curFilter;
+        const okF = !freqFilter || rowFreq === freqFilter;
+
+        r.style.display = okQ && okC && okF ? "" : "none";
 
         const next = r.nextElementSibling;
         if (next && next.classList.contains("desc-row")) {
@@ -400,7 +428,7 @@
       });
 
       recomputeTableTotal();
-      renderChartsFromTable(); // <- live update
+      renderChartsFromTable();
     }
 
     tableSearch?.addEventListener("input", filterTable);
@@ -412,15 +440,16 @@
     });
 
     let sortState = { key: null, dir: 1 };
+
     function rowKey(row, key) {
       const d = row.dataset;
       if (key === "qty" || key === "unit_price" || key === "total") {
         const v = parseFloat(d[key] || "0");
         return Number.isFinite(v) ? v : 0;
       }
-      if (key === "frequency") return (d.frequency || "");
-      if (key === "title") return (d.title || "");
-      if (key === "category") return (d.category || "");
+      if (key === "frequency") return d.frequency || "";
+      if (key === "title") return d.title || "";
+      if (key === "category") return d.category || "";
       return "";
     }
 
@@ -428,7 +457,10 @@
       if (!tbody) return;
 
       if (sortState.key === key) sortState.dir *= -1;
-      else { sortState.key = key; sortState.dir = 1; }
+      else {
+        sortState.key = key;
+        sortState.dir = 1;
+      }
 
       const rows = $$(".cost-row", tbody);
       rows.sort((a, b) => {
@@ -438,10 +470,11 @@
         return av.toString().localeCompare(bv.toString(), "tr", { sensitivity: "base" }) * sortState.dir;
       });
 
-      rows.forEach(r => {
-        const desc = (r.nextElementSibling && r.nextElementSibling.classList.contains("desc-row"))
-          ? r.nextElementSibling
-          : null;
+      rows.forEach((r) => {
+        const desc =
+          r.nextElementSibling && r.nextElementSibling.classList.contains("desc-row")
+            ? r.nextElementSibling
+            : null;
 
         tbody.appendChild(r);
         if (desc) tbody.appendChild(desc);
@@ -450,7 +483,7 @@
       filterTable();
     }
 
-    $$(".sortable").forEach(th => {
+    $$(".sortable").forEach((th) => {
       th.addEventListener("click", () => {
         const key = th.getAttribute("data-sort");
         if (key) sortTable(key);
@@ -459,17 +492,17 @@
 
     function exportVisibleCSV() {
       const rows = visibleCostRows();
-      const headers = ["Başlık","Kategori","Miktar","Birim Fiyat","Toplam","Para Birimi","Sıklık"];
+      const headers = ["Başlık", "Kategori", "Miktar", "Birim Fiyat", "Toplam", "Para Birimi", "Sıklık"];
       const lines = [headers.join(",")];
 
-      rows.forEach(r => {
+      rows.forEach((r) => {
         const title = (r.dataset.title || "").split('"').join('""');
-        const cat   = (r.dataset.category || "").split('"').join('""');
-        const qty   = r.dataset.qty || "";
-        const up    = r.dataset.unit_price || "";
-        const tot   = r.dataset.total || "";
-        const cur   = r.dataset.currency || "";
-        const frq   = r.dataset.frequency || "";
+        const cat = (r.dataset.category || "").split('"').join('""');
+        const qty = r.dataset.qty || "";
+        const up = r.dataset.unit_price || "";
+        const tot = r.dataset.total || "";
+        const cur = r.dataset.currency || "";
+        const frq = r.dataset.frequency || "";
         lines.push(`"${title}","${cat}",${qty},${up},${tot},${cur},"${frq}"`);
       });
 
@@ -496,21 +529,20 @@
     let paretoChart = null;
     let frontChart = null;
 
-    const frontRaw = readJson("frontData"); // keep backend-provided if exists
+    const frontRaw = readJson("frontData"); // backend provided
     const front = Array.isArray(frontRaw) ? { points: frontRaw } : frontRaw;
 
     function buildParetoFromVisibleRows() {
       const rows = visibleCostRows();
-      const baseCur = baseCurrencyEl?.value || "TRY";
-      const useAnnual = !!(paretoUseAnnualEl?.checked);
+      const baseCur = upper(baseCurrencyEl?.value || "TRY");
+      const useAnnual = !!paretoUseAnnualEl?.checked;
 
-      // aggregate by title
       const map = new Map();
       let allOk = true;
 
-      rows.forEach(r => {
+      rows.forEach((r) => {
         const title = (r.dataset.title || "—").trim() || "—";
-        const cur = (r.dataset.currency || "TRY").toUpperCase();
+        const cur = upper(r.dataset.currency || "TRY");
         const totalRaw = parseFloat(r.dataset.total || "0");
         const freq = r.dataset.frequency || "Tek Sefer";
         const factor = useAnnual ? annualFactor(freq) : 1;
@@ -519,18 +551,19 @@
         const conv = convertToBase(total, cur, baseCur);
         if (!conv.ok) allOk = false;
 
-        const val = conv.ok ? conv.value : 0;
-        map.set(title, (map.get(title) || 0) + val);
+        // Kur yoksa grafiğe "0" atıp yalan söylemeyelim.
+        if (conv.ok) {
+          map.set(title, (map.get(title) || 0) + conv.value);
+        }
       });
 
       const items = Array.from(map.entries())
         .map(([label, value]) => ({ label, value }))
-        .filter(x => x.value > 0.0000001)
+        .filter((x) => x.value > 1e-9)
         .sort((a, b) => b.value - a.value);
 
-      if (items.length === 0) return { ok: allOk, items: [] };
+      if (items.length === 0) return { ok: allOk, items: [], baseCur, useAnnual };
 
-      // topN + others
       const TOP_N = 10;
       let top = items;
       if (items.length > TOP_N) {
@@ -542,11 +575,12 @@
 
       const sum = top.reduce((s, x) => s + x.value, 0) || 1;
       let cum = 0;
+
       const labels = [];
       const bars = [];
       const line = [];
 
-      top.forEach(x => {
+      top.forEach((x) => {
         cum += x.value;
         labels.push(x.label);
         bars.push(Number(x.value.toFixed(6)));
@@ -566,17 +600,32 @@
 
       const p = buildParetoFromVisibleRows();
 
-      if (!p.labels || p.labels.length === 0) {
-        if (paretoEmpty) paretoEmpty.style.display = "block";
-        if (paretoChart) { paretoChart.destroy(); paretoChart = null; }
-        return;
-      } else {
-        if (paretoEmpty) paretoEmpty.style.display = "none";
+      // Kur yoksa (USD/EUR satırı var ama kur yok), uyarı göster
+      if (!p.ok) {
+        if (paretoEmpty) {
+          paretoEmpty.style.display = "block";
+          paretoEmpty.textContent = "Pareto için baz para birimi dönüşümü lazım. USD/TRY ve EUR/TRY gir.";
+        }
+      } else if (paretoEmpty) {
+        paretoEmpty.style.display = "none";
       }
 
-      if (paretoChart) { paretoChart.destroy(); paretoChart = null; }
+      if (!p.labels || p.labels.length === 0) {
+        if (paretoChart) {
+          paretoChart.destroy();
+          paretoChart = null;
+        }
+        return;
+      }
 
-      const yLabel = p.useAnnual ? `Toplam (Yıllıklaştırılmış, ${p.baseCur})` : `Toplam (${p.baseCur})`;
+      if (paretoChart) {
+        paretoChart.destroy();
+        paretoChart = null;
+      }
+
+      const yLabel = p.useAnnual
+        ? `Toplam (Yıllıklaştırılmış, ${p.baseCur})`
+        : `Toplam (${p.baseCur})`;
 
       paretoChart = new Chart(paretoCanvas, {
         type: "bar",
@@ -584,8 +633,8 @@
           labels: p.labels,
           datasets: [
             { type: "bar", label: yLabel, data: p.bars },
-            { type: "line", label: "Kümülatif %", data: p.line, yAxisID: "y1" }
-          ]
+            { type: "line", label: "Kümülatif %", data: p.line, yAxisID: "y1" },
+          ],
         },
         options: {
           responsive: true,
@@ -597,10 +646,10 @@
               min: 0,
               max: 100,
               grid: { drawOnChartArea: false },
-              title: { display: true, text: "%" }
-            }
-          }
-        }
+              title: { display: true, text: "%" },
+            },
+          },
+        },
       });
     }
 
@@ -611,33 +660,41 @@
         if (frontEmpty) frontEmpty.style.display = "block";
         return;
       }
+
       if (!front || !front.points || !Array.isArray(front.points) || front.points.length === 0) {
         if (frontEmpty) frontEmpty.style.display = "block";
-        if (frontChart) { frontChart.destroy(); frontChart = null; }
+        if (frontChart) {
+          frontChart.destroy();
+          frontChart = null;
+        }
         return;
       }
+
       if (frontEmpty) frontEmpty.style.display = "none";
 
-      if (frontChart) { frontChart.destroy(); frontChart = null; }
-
-      const baseCur = baseCurrencyEl?.value || "TRY";
+      if (frontChart) {
+        frontChart.destroy();
+        frontChart = null;
+      }
 
       frontChart = new Chart(frontCanvas, {
         type: "scatter",
         data: {
-          datasets: [{
-            label: "Pareto Noktaları",
-            data: front.points.map(p => ({ x: p.x, y: p.y })),
-          }]
+          datasets: [
+            {
+              label: "Pareto Noktaları",
+              data: front.points.map((p) => ({ x: p.x, y: p.y })),
+            },
+          ],
         },
         options: {
           responsive: true,
           parsing: false,
           scales: {
-            x: { title: { display: true, text: `Maliyet (x)` } },
-            y: { title: { display: true, text: `Fayda / Azaltım (y)` } }
-          }
-        }
+            x: { title: { display: true, text: "Maliyet (x)" } },
+            y: { title: { display: true, text: "Fayda / Azaltım (y)" } },
+          },
+        },
       });
     }
 
@@ -649,18 +706,23 @@
     // -----------------------------
     // Modals: move to body + cleanup backdrop
     // -----------------------------
-    ["tplCreateModal","tplEditModal"].forEach(id => {
+    ["tplCreateModal", "tplEditModal"].forEach((id) => {
       const m = document.getElementById(id);
       if (m && m.parentElement !== document.body) document.body.appendChild(m);
     });
 
-    document.addEventListener("hidden.bs.modal", function () {
-      if (document.querySelectorAll(".modal.show").length === 0) {
-        document.body.classList.remove("modal-open");
-        document.body.style.removeProperty("padding-right");
-        document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
-      }
-    }, true);
+    // Backdrop cleanup (some Bootstrap setups get stuck)
+    document.addEventListener(
+      "hidden.bs.modal",
+      function () {
+        if (document.querySelectorAll(".modal.show").length === 0) {
+          document.body.classList.remove("modal-open");
+          document.body.style.removeProperty("padding-right");
+          document.querySelectorAll(".modal-backdrop").forEach((b) => b.remove());
+        }
+      },
+      true
+    );
 
     // -----------------------------
     // Form validation
@@ -668,7 +730,7 @@
     $("#costForm")?.addEventListener("submit", (e) => {
       let ok = true;
 
-      ["title","category","unit"].forEach(id => {
+      ["title", "category", "unit"].forEach((id) => {
         const el = $("#" + id);
         if (!el) return;
         const good = !!el.value.trim();
@@ -676,7 +738,7 @@
         ok = ok && good;
       });
 
-      ["qty","unit_price"].forEach(id => {
+      ["qty", "unit_price"].forEach((id) => {
         const el = $("#" + id);
         if (!el) return;
         const v = parseFloat(el.value);
@@ -685,17 +747,22 @@
         ok = ok && good;
       });
 
-      if (!ok) { e.preventDefault(); e.stopPropagation(); }
+      if (!ok) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     });
 
     // -----------------------------
     // Boot
     // -----------------------------
-    $("#clearForm")?.addEventListener("click", (e) => { e.preventDefault(); clearForm(); });
+    $("#clearForm")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      clearForm();
+    });
 
     updateLiveTotals();
     filterTemplates();
-    filterTable();
-    renderChartsFromTable();
+    filterTable(); // triggers totals + charts
   });
 })();

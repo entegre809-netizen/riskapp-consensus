@@ -37,7 +37,9 @@
             </select>
 
             <div class="d-flex align-items-center gap-2">
-              <input type="number" min="1" step="1" id="amortizeYears" class="form-control form-control-sm" style="width:90px;" value="3">
+              <input type="number" min="1" step="1" id="amortizeYears"
+                     class="form-control form-control-sm"
+                     style="width:90px;" value="3">
               <span class="small text-muted">yıl</span>
             </div>
 
@@ -55,6 +57,10 @@
             <input class="form-control form-control-sm" id="fxEURTRY" placeholder="EUR/TRY" style="width:110px;">
             <span class="small text-muted">Kaydedilir (local)</span>
           </div>
+        </div>
+
+        <div class="small text-muted mt-2">
+          Not: Baz para dönüşümü için USD/TRY ve EUR/TRY girmen gerekir (USD/EUR satırların varsa).
         </div>
       </div>
     </div>
@@ -124,7 +130,7 @@
                        data-title="{{ (t.title or '')|e }}"
                        data-category="{{ (t.category or '')|e }}"
                        data-unit="{{ (t.unit or '')|e }}"
-                       data-currency="{{ (t.currency or 'TRY')|e }}"
+                       data-currency="{{ (t.currency or 'TRY')|upper|e }}"
                        data-frequency="{{ (t.frequency or 'Tek Sefer')|e }}"
                        data-desc="{{ (t.description or '')|e }}"
                        data-edit-url="{{ url_for('cost_template_edit_post', tpl_id=t.id) }}"
@@ -135,7 +141,7 @@
                       <div>
                         <div class="fw-semibold">{{ t.title }}</div>
                         <div class="template-meta">
-                          {{ t.category }} • {{ t.unit }} • {{ t.currency }} • {{ t.frequency }}
+                          {{ t.category }} • {{ t.unit }} • {{ (t.currency or 'TRY')|upper }} • {{ t.frequency }}
                         </div>
                       </div>
 
@@ -177,7 +183,7 @@
               </div>
             </div>
 
-            <!-- Default templates (aynı içerik, sadece data-search ekli) -->
+            <!-- Default templates (data-search dahil) -->
             <div class="col-12">
               <div class="template-card"
                    data-title="Personel / Mesai"
@@ -199,8 +205,89 @@
               </div>
             </div>
 
-            <!-- (Diğer default kartların tamamını aynen bırakabilirsin, sadece data-search var) -->
-            <!-- ... (senin önceki default kartların hepsi burada devam ediyor) ... -->
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Yazılım Lisansı"
+                   data-category="Yazılım"
+                   data-unit="lisans"
+                   data-currency="USD"
+                   data-frequency="Yıllık"
+                   data-desc="Yıllık abonelik / lisans bedelleri (SaaS, güvenlik, ERP vb.)."
+                   data-search="yazılım lisansı saas abonelik yıllık usd yazılım güvenlik erp"
+                   role="button" tabindex="0">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Yazılım Lisansı</div>
+                    <div class="template-meta">Yazılım • lisans • USD • Yıllık</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">SaaS/abonelik/lisans kalemleri.</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Ekipman / Donanım"
+                   data-category="Ekipman"
+                   data-unit="adet"
+                   data-currency="EUR"
+                   data-frequency="Tek Sefer"
+                   data-desc="Cihaz, ekipman, donanım alımı (tek seferlik)."
+                   data-search="ekipman donanım cihaz adet eur tek sefer alım satın alma"
+                   role="button" tabindex="0">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Ekipman / Donanım</div>
+                    <div class="template-meta">Ekipman • adet • EUR • Tek Sefer</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">Tek seferlik donanım alımı.</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Eğitim / Sertifika"
+                   data-category="Eğitim"
+                   data-unit="kişi"
+                   data-currency="TRY"
+                   data-frequency="Tek Sefer"
+                   data-desc="İç/dış eğitim, sertifika, workshop, danışmanlık eğitimi."
+                   data-search="eğitim sertifika workshop kişi try tek sefer danışmanlık"
+                   role="button" tabindex="0">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Eğitim / Sertifika</div>
+                    <div class="template-meta">Eğitim • kişi • TRY • Tek Sefer</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">Eğitim ve sertifika maliyetleri.</div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="template-card"
+                   data-title="Operasyon / Bakım"
+                   data-category="Operasyon"
+                   data-unit="ay"
+                   data-currency="TRY"
+                   data-frequency="Aylık"
+                   data-desc="Bakım, işletme, operasyonel aylık giderler."
+                   data-search="operasyon bakım aylık gider işletme ay try"
+                   role="button" tabindex="0">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">Operasyon / Bakım</div>
+                    <div class="template-meta">Operasyon • ay • TRY • Aylık</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                </div>
+                <div class="small text-muted mt-2">Aylık operasyon/bakım masrafları.</div>
+              </div>
+            </div>
 
           </div>
 
@@ -345,16 +432,16 @@
                         data-id="{{ c.id }}"
                         data-title="{{ (c.title or '')|e }}"
                         data-category="{{ (c.category or '')|e }}"
-                        data-currency="{{ (c.currency or '')|e }}"
-                        data-frequency="{{ (c.frequency or '')|e }}"
+                        data-currency="{{ (c.currency or 'TRY')|upper|e }}"
+                        data-frequency="{{ (c.frequency or 'Tek Sefer')|e }}"
                         data-qty="{{ c.qty }}"
                         data-unit_price="{{ c.unit_price }}"
                         data-total="{{ c.total }}">
                       <td class="fw-semibold">{{ c.title }}</td>
                       <td>{{ c.category }}</td>
                       <td class="text-end">{{ c.qty }}</td>
-                      <td class="text-end">{{ c.unit_price }} {{ c.currency }}</td>
-                      <td class="text-end fw-semibold">{{ c.total }} {{ c.currency }}</td>
+                      <td class="text-end">{{ c.unit_price }} {{ (c.currency or 'TRY')|upper }}</td>
+                      <td class="text-end fw-semibold">{{ c.total }} {{ (c.currency or 'TRY')|upper }}</td>
                       <td class="text-end">{{ c.frequency }}</td>
 
                       <td class="text-end cost-actions">
@@ -415,7 +502,7 @@
                   <th colspan="4" class="text-end">Görünen satırların toplamı</th>
                   <th class="text-end" id="tableTotalCell">0</th>
                   <th class="text-end small text-muted">Baz</th>
-                  <th class="text-end" id="tableTotalBaseCell">0</th>
+                  <th class="text-end" id="tableTotalBaseCell" title="">0</th>
                   <th></th>
                 </tr>
               </tfoot>
@@ -467,9 +554,9 @@
 </div>
 
 <!-- JSON -->
-<script id="frontData"  type="application/json">{{ front_json|default(None)|tojson }}</script>
+<script id="frontData" type="application/json">{{ front_json|default(None)|tojson }}</script>
 
-<!-- Modals (aynı, dokunmadım) -->
+<!-- Modals -->
 <div class="modal fade" id="tplCreateModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
