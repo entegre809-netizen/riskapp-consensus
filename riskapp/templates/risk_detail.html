@@ -125,17 +125,43 @@
   /* ✅ Costs mini table */
   .cost-mini td, .cost-mini th{ font-size:.88rem; }
   .cost-mini .sumrow td{ font-weight:600; }
+
+  /* ✅ Risk Pareto card */
+  .pareto-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+    align-items:end;
+  }
+  @media (max-width: 920px){ .pareto-grid{ grid-template-columns:1fr; } }
+  .field{
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .field label{ font-size:.85rem; opacity:.85; }
+  .field .input{ width:100%; }
+  .hint{
+    font-size:.82rem;
+    opacity:.8;
+    margin-top:6px;
+  }
+  .chart-box{
+    margin-top:10px;
+    padding:10px;
+    border:1px solid var(--line,#e5e7eb);
+    border-radius:12px;
+    background: color-mix(in oklab, var(--card, #fff) 96%, transparent);
+  }
+  [data-theme="dark"] .chart-box{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  }
 </style>
 
 <div class="page">
 
   {# ========= TÜM SAYFADA KULLANILACAK SON DEĞERLENDİRME ========= #}
   {% set evals = (r.evaluations or [])|sort(attribute='id') %}
-  {% if evals %}
-    {% set last_eval = evals|last %}
-  {% else %}
-    {% set last_eval = None %}
-  {% endif %}
+  {% set last_eval = (evals|last) if evals else None %}
 
   {% if last_eval %}
     {% set last_rpn = (last_eval.probability or 0) * (last_eval.severity or 0) %}
@@ -299,8 +325,7 @@
           </p>
         </div>
 
-        {# --- Yeni: Detaylı aksiyon listesi (Mitigation tablosu) --- #}
-        {# (Senin projende bu tablo varsa buraya koyacaksın. JS zaten aşağıda.) #}
+        {# Mitigation tablon varsa buraya koy. JS aşağıda mitBody/addMitRow arıyor. #}
 
         <div>
           <label>Başlangıç Tarihi</label>
@@ -349,6 +374,7 @@
         </div>
       </div>
 
+      {# ✅ rr undefined fix: burada rr yok, o yüzden r.id kullanıyoruz #}
       {% if ps_reco and (ps_reco.p or ps_reco.s) %}
         <div class="card" style="margin-bottom:10px">
           <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
@@ -362,7 +388,8 @@
                 <span class="pill">S: {{ ps_reco.s or '—' }}</span>
               </div>
             </div>
-            <form method="post" action="{{ url_for('add_eval', risk_id=rr.id if bulk_risks and bulk_risks|length else r.id) }}"
+
+            <form method="post" action="{{ url_for('add_eval', risk_id=r.id) }}"
                   class="right" style="min-width:260px">
               <input type="hidden" name="probability" value="{{ ps_reco.p or '' }}">
               <input type="hidden" name="severity"    value="{{ ps_reco.s or '' }}">
@@ -447,7 +474,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for e in r.evaluations|sort(attribute='id', reverse=True) %}
+              {% for e in (r.evaluations or [])|sort(attribute='id', reverse=True) %}
                 <tr>
                   <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '-' }}</td>
                   <td>{{ e.evaluator or '-' }}</td>
@@ -478,8 +505,8 @@
       </details>
 
       {# ===========================
-         ✅ EKLENDİ: Bu riske bağlı maliyetler
-         Route -> risk_costs, cost_totals gönderiyor
+         ✅ Bu riske bağlı maliyetler
+         Backend -> risk_costs, cost_totals
          =========================== #}
       <div class="card" style="margin-top:12px">
         <div class="row" style="justify-content:space-between; align-items:center;">
@@ -489,8 +516,7 @@
           </div>
 
           <div class="btnbar">
-            {# NOT: costs endpoint'in parametre kabul etmiyorsa bunu düzelt #}
-            <a class="btn btn-primary" href="{{ url_for('costs', risk_id=r.id) }}">
+            <a class="btn btn-primary" href="{{ url_for('costs') }}?risk_id={{ r.id }}">
               ➕ Bu riske maliyet ekle
             </a>
           </div>
@@ -514,9 +540,7 @@
                   <tr>
                     <td>{{ c.title or '—' }}</td>
                     <td>{{ c.category or '—' }}</td>
-                    <td class="nowrap">
-                      {{ '%.2f'|format(c.total or 0) }}
-                    </td>
+                    <td class="nowrap">{{ '%.2f'|format((c.total or 0)|float) }}</td>
                     <td class="nowrap">{{ c.frequency or 'Tek Sefer' }}</td>
                     <td class="nowrap">{{ c.currency or 'TRY' }}</td>
                     <td class="nowrap">
@@ -530,7 +554,9 @@
                     <td colspan="6">
                       Toplam:
                       {% for cur, val in cost_totals.items() %}
-                        <span class="pill" style="margin-left:6px">{{ '%.2f'|format(val) }} {{ cur }}</span>
+                        <span class="pill" style="margin-left:6px">
+                          {{ '%.2f'|format((val or 0)|float) }} {{ cur }}
+                        </span>
                       {% endfor %}
                     </td>
                   </tr>
@@ -538,6 +564,82 @@
               </tbody>
             </table>
           </div>
+
+          {# ===========================
+             ✅ Risk içi mini Pareto
+             =========================== #}
+          <div class="card" style="margin-top:12px">
+            <div class="row" style="justify-content:space-between; align-items:flex-start;">
+              <div class="grow">
+                <h3 style="margin:0">Risk Pareto Analizi</h3>
+                <div class="muted">
+                  Bu risk’e bağlı maliyetlerin baz para biriminde dağılımı (Top-10 + Diğer).
+                </div>
+              </div>
+              <span class="pill" title="Bu riskteki maliyet sayısı">📌 {{ risk_costs|length }} kalem</span>
+            </div>
+
+            <div class="pareto-grid" style="margin-top:10px">
+              <div class="field">
+                <label>Baz para birimi</label>
+                <select class="input" id="rdBaseCurrency">
+                  <option value="TRY">TRY</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Gruplama</label>
+                <select class="input" id="rdGroupBy">
+                  <option value="category">Kategoriye göre</option>
+                  <option value="title">Başlığa göre</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>USD/TRY</label>
+                <input class="input" id="rdFxUSDTRY" inputmode="decimal" placeholder="örn: 35.20">
+              </div>
+
+              <div class="field">
+                <label>EUR/TRY</label>
+                <input class="input" id="rdFxEURTRY" inputmode="decimal" placeholder="örn: 38.10">
+              </div>
+
+              <div class="field">
+                <label>Tek Sefer yıllıklaştırma</label>
+                <select class="input" id="rdOneTimePolicy">
+                  <option value="1x">1x (yıl içine aynen yaz)</option>
+                  <option value="0x">0x (yıllıkta yok say)</option>
+                  <option value="amortize">Amortize et</option>
+                </select>
+                <div class="row" style="gap:8px; margin-top:6px">
+                  <span class="muted nowrap">Yıl:</span>
+                  <input class="input" id="rdAmortizeYears" type="number" min="1" value="3" style="max-width:120px">
+                  <span class="muted">amortize seçilirse</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Yıllıklaştır</label>
+                <div class="row" style="align-items:center; gap:10px">
+                  <input type="checkbox" id="rdUseAnnual" checked>
+                  <span class="muted">Aylık=12, Yıllık=1, TekSefer=policy</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hint">
+              Kur yoksa çoklu para biriminde grafik üretmez. Çünkü “0 yazıp yalan söylemek” insan işi.
+            </div>
+
+            <div class="chart-box">
+              <div id="rdParetoEmpty" class="muted" style="display:none"></div>
+              <canvas id="rdParetoChart" height="120"></canvas>
+            </div>
+          </div>
+
         {% else %}
           <div class="muted" style="margin-top:10px">
             Bu risk’e bağlı maliyet yok. “Bu riske maliyet ekle” ile bağlayabilirsin.
@@ -555,7 +657,7 @@
       </div>
 
       <div class="grid">
-        {% for c in r.comments|sort(attribute='id', reverse=True) %}
+        {% for c in (r.comments or [])|sort(attribute='id', reverse=True) %}
           <div class="comment {% if c.is_system %}system{% endif %}">
             <div class="row meta" style="justify-content:space-between">
               <strong>{% if c.is_system %}Sistem{% else %}Kullanıcı{% endif %}</strong>
@@ -601,7 +703,27 @@
   </div>
 </div>
 
+{# ✅ Risk cost data: JS için JSON #}
+<script id="riskCostsData" type="application/json">
+[
+{% if risk_costs and risk_costs|length %}
+  {% for c in risk_costs %}
+    {
+      "title": {{ (c.title or '—')|tojson }},
+      "category": {{ (c.category or '—')|tojson }},
+      "total": {{ ((c.total or 0)|float) }},
+      "currency": {{ ((c.currency or 'TRY')|upper)|tojson }},
+      "frequency": {{ (c.frequency or 'Tek Sefer')|tojson }}
+    }{{ "," if not loop.last else "" }}
+  {% endfor %}
+{% endif %}
+]
+</script>
+
 <script>
+  // =============================
+  // Konsensüs P/S
+  // =============================
   function applyConsensus(p, s) {
     try {
       const block = document.querySelector('.eval-block');
@@ -650,6 +772,9 @@
     });
   });
 
+  // =============================
+  // Tarih alanları → YYYY-MM
+  // =============================
   (function(){
     const startDate = document.getElementById('start_date');
     const endDate   = document.getElementById('end_date');
@@ -675,6 +800,7 @@
     });
   })();
 
+  // Ctrl/Cmd+S -> form kaydet
   document.addEventListener('keydown', (e)=>{
     if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
       e.preventDefault();
@@ -682,6 +808,7 @@
     }
   });
 
+  // Mitigation satırları: dinamik tablo (varsa)
   (function(){
     const tbody = document.getElementById('mitBody');
     const addBtn = document.getElementById('addMitRow');
@@ -720,6 +847,7 @@
     });
   })();
 
+  // AI suggest form varsa: fetch + reload
   document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('aiSuggestForm');
     const btn  = document.getElementById('btn-ai-suggest');
@@ -746,6 +874,252 @@
       });
     });
   });
+
+  // ============================================================
+  // ✅ RISK DETAIL MINI PARETO (costs_settings_v1 ile ortak)
+  // ============================================================
+  (function(){
+    const LS_KEY = "costs_settings_v1";
+
+    const baseEl = document.getElementById("rdBaseCurrency");
+    const usdEl  = document.getElementById("rdFxUSDTRY");
+    const eurEl  = document.getElementById("rdFxEURTRY");
+    const polEl  = document.getElementById("rdOneTimePolicy");
+    const yrsEl  = document.getElementById("rdAmortizeYears");
+    const annEl  = document.getElementById("rdUseAnnual");
+    const grpEl  = document.getElementById("rdGroupBy");
+
+    const canvas = document.getElementById("rdParetoChart");
+    const empty  = document.getElementById("rdParetoEmpty");
+
+    if (!canvas || !empty) return; // maliyet yoksa chart da yok
+
+    const nf2 = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function loadSettings(){
+      try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}") || {}; }
+      catch { return {}; }
+    }
+    function saveSettings(next){
+      localStorage.setItem(LS_KEY, JSON.stringify(next || {}));
+    }
+
+    function upper(s){ return (s||"").toString().trim().toUpperCase(); }
+
+    function getRatesToTRY(){
+      const s = loadSettings();
+      const usdTry = parseFloat(usdEl?.value || s.usdTry || "");
+      const eurTry = parseFloat(eurEl?.value || s.eurTry || "");
+      return {
+        TRY: 1,
+        USD: Number.isFinite(usdTry) && usdTry > 0 ? usdTry : null,
+        EUR: Number.isFinite(eurTry) && eurTry > 0 ? eurTry : null,
+      };
+    }
+
+    function convertToBase(amount, cur, baseCur){
+      const a = Number.isFinite(amount) ? amount : 0;
+      const from = upper(cur || "TRY");
+      const to = upper(baseCur || "TRY");
+      if (from === to) return { ok:true, value:a, reason:"" };
+
+      const rates = getRatesToTRY();
+      const rFrom = rates[from];
+      const rTo   = rates[to];
+      if (rFrom == null || rTo == null){
+        return { ok:false, value:a, reason:`Kur eksik: ${from}->TRY veya ${to}->TRY` };
+      }
+      const tryVal  = a * rFrom;
+      const baseVal = tryVal / rTo;
+      return { ok:true, value:baseVal, reason:"" };
+    }
+
+    function annualFactor(freq){
+      if (freq === "Aylık") return 12;
+      if (freq === "Yıllık") return 1;
+
+      const s = loadSettings();
+      const pol = polEl?.value || s.oneTimePolicy || "1x";
+      if (pol === "0x") return 0;
+      if (pol === "amortize"){
+        const y = Math.max(1, parseInt(yrsEl?.value || s.amortizeYears || 3, 10));
+        return 1 / y;
+      }
+      return 1; // 1x
+    }
+
+    function formatMoney(a, cur){
+      const safe = Number.isFinite(a) ? a : 0;
+      return `${nf2.format(safe)} ${cur||""}`.trim();
+    }
+
+    function readRiskCosts(){
+      const el = document.getElementById("riskCostsData");
+      if (!el) return [];
+      try{
+        const v = JSON.parse(el.textContent || "[]");
+        return Array.isArray(v) ? v : [];
+      }catch{
+        return [];
+      }
+    }
+
+    function syncSettings(){
+      const s = loadSettings();
+      const next = {
+        ...s,
+        baseCurrency: baseEl?.value || s.baseCurrency || "TRY",
+        usdTry: usdEl?.value || s.usdTry || "",
+        eurTry: eurEl?.value || s.eurTry || "",
+        oneTimePolicy: polEl?.value || s.oneTimePolicy || "1x",
+        amortizeYears: yrsEl?.value || s.amortizeYears || 3,
+        paretoUseAnnual: !!annEl?.checked
+      };
+      saveSettings(next);
+    }
+
+    // init UI from shared settings
+    (function init(){
+      const s = loadSettings();
+      if (baseEl) baseEl.value = s.baseCurrency || "TRY";
+      if (usdEl) usdEl.value = s.usdTry ?? "";
+      if (eurEl) eurEl.value = s.eurTry ?? "";
+      if (polEl) polEl.value = s.oneTimePolicy || "1x";
+      if (yrsEl) yrsEl.value = s.amortizeYears || 3;
+      if (annEl) annEl.checked = (s.paretoUseAnnual ?? true);
+    })();
+
+    let chart = null;
+
+    function buildPareto(){
+      const rows = readRiskCosts();
+      const baseCur = upper(baseEl?.value || "TRY");
+      const useAnnual = !!annEl?.checked;
+      const groupBy = grpEl?.value || "category";
+
+      const map = new Map();
+      let allOk = true;
+
+      rows.forEach(r => {
+        const cur = upper(r.currency || "TRY");
+        const freq = r.frequency || "Tek Sefer";
+        const factor = useAnnual ? annualFactor(freq) : 1;
+
+        const totalRaw = parseFloat(r.total || "0");
+        const total = (Number.isFinite(totalRaw) ? totalRaw : 0) * factor;
+
+        const label = (groupBy === "title")
+          ? ((r.title || "—").trim() || "—")
+          : ((r.category || "—").trim() || "—");
+
+        const conv = convertToBase(total, cur, baseCur);
+        if (!conv.ok) allOk = false;
+        if (conv.ok){
+          map.set(label, (map.get(label) || 0) + conv.value);
+        }
+      });
+
+      const items = Array.from(map.entries())
+        .map(([label, value]) => ({ label, value }))
+        .filter(x => x.value > 1e-9)
+        .sort((a,b) => b.value - a.value);
+
+      const TOP_N = 10;
+      let top = items;
+      if (items.length > TOP_N){
+        const head = items.slice(0, TOP_N);
+        const tail = items.slice(TOP_N);
+        const otherSum = tail.reduce((s,x)=>s+x.value,0);
+        top = [...head, { label:"Diğer", value: otherSum }];
+      }
+
+      const sum = top.reduce((s,x)=>s+x.value,0) || 1;
+      let cum = 0;
+
+      const labels = [];
+      const bars = [];
+      const line = [];
+      top.forEach(x => {
+        cum += x.value;
+        labels.push(x.label);
+        bars.push(Number(x.value.toFixed(6)));
+        line.push(Number(((cum / sum) * 100).toFixed(2)));
+      });
+
+      return { ok: allOk, labels, bars, line, baseCur, useAnnual };
+    }
+
+    function render(){
+      if (!window.Chart){
+        empty.style.display = "block";
+        empty.textContent = "Chart.js yüklenmemiş. (base.html tarafında Chart.js script’i yok.)";
+        if (chart){ chart.destroy(); chart = null; }
+        return;
+      }
+
+      const p = buildPareto();
+
+      if (!p.ok){
+        empty.style.display = "block";
+        empty.textContent = "Pareto için baz dönüşüm lazım. USD/TRY ve EUR/TRY gir (çoklu para birimi varsa).";
+      } else {
+        empty.style.display = "none";
+      }
+
+      if (!p.labels || p.labels.length === 0){
+        empty.style.display = "block";
+        empty.textContent = "Pareto için yeterli veri yok.";
+        if (chart){ chart.destroy(); chart = null; }
+        return;
+      }
+
+      if (chart){ chart.destroy(); chart = null; }
+
+      const yLabel = p.useAnnual
+        ? `Toplam (Yıllıklaştırılmış, ${p.baseCur})`
+        : `Toplam (${p.baseCur})`;
+
+      chart = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: p.labels,
+          datasets: [
+            { type:"bar", label: yLabel, data: p.bars },
+            { type:"line", label: "Kümülatif %", data: p.line, yAxisID:"y1" }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y:  { beginAtZero:true, title:{ display:true, text:yLabel } },
+            y1: {
+              beginAtZero:true, position:"right",
+              min:0, max:100,
+              grid:{ drawOnChartArea:false },
+              title:{ display:true, text:"%" }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(ctx){
+                  if (ctx.dataset.type === "line") return ` ${ctx.dataset.label}: ${ctx.parsed.y}%`;
+                  return ` ${ctx.dataset.label}: ${formatMoney(ctx.parsed.y, p.baseCur)}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    [baseEl, usdEl, eurEl, polEl, yrsEl, annEl, grpEl].filter(Boolean).forEach(el => {
+      el.addEventListener("change", ()=>{ syncSettings(); render(); });
+      el.addEventListener("input", ()=>{ syncSettings(); render(); });
+    });
+
+    render();
+  })();
 </script>
 
 {% endblock %}

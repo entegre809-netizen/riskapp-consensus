@@ -2535,7 +2535,7 @@ def create_app():
         # ========= TOPLU DEĞERLENDİRME (bulk) =========
         # /risks/3?bulk=3,4,5 gibi bir URL'den geliyorsa
         bulk_risks = None
-        bulk_raw = request.args.get("bulk", "").strip()
+        bulk_raw = (request.args.get("bulk", "") or "").strip()
         if bulk_raw:
             try:
                 id_list = sorted({int(x) for x in bulk_raw.split(",") if x.strip()})
@@ -2646,7 +2646,7 @@ def create_app():
                 .join(Risk, Risk.id == Evaluation.risk_id)
                 .outerjoin(RiskCategoryRef, RiskCategoryRef.risk_id == Risk.id)
                 .filter(
-                    Risk.project_id == project_id,   # ✅ projeye kilitle
+                    Risk.project_id == project_id,  # ✅ projeye kilitle
                     or_(
                         RiskCategoryRef.name.in_(cats_sel),
                         Risk.category.in_(cats_sel)
@@ -2672,16 +2672,20 @@ def create_app():
             .all()
         )
 
-        # (opsiyonel) para birimine göre toplam (template’te rozet basmak için)
+        # (opsiyonel) para birimine göre toplam
         cost_totals = {}
-        for c in risk_costs:
+        for c in (risk_costs or []):
             cur = (c.currency or "TRY").upper()
-            # c.total Decimal ise float'a çeviriyoruz (UI kolay)
             val = c.total if c.total is not None else Decimal("0")
+
+            # güvenli Decimal dönüşümü
             try:
-                cost_totals[cur] = float(Decimal(str(cost_totals.get(cur, 0))) + Decimal(val))
+                val_dec = val if isinstance(val, Decimal) else Decimal(str(val))
             except Exception:
-                cost_totals[cur] = cost_totals.get(cur, 0) + float(val or 0)
+                val_dec = Decimal("0")
+
+            prev = cost_totals.get(cur, Decimal("0"))
+            cost_totals[cur] = prev + val_dec
 
         return render_template(
             "risk_detail.html",
