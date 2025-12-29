@@ -1,6 +1,9 @@
 # riskapp/models.py
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
+
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event  # ✅ eklendi
 
 db = SQLAlchemy()
 
@@ -15,6 +18,24 @@ db = SQLAlchemy()
 PS_CRITICAL_MIN  = 20
 PS_MODERATE_MIN  = 12
 PS_LOW_MIN       = 6
+
+
+# -------------------------------------------------
+# ✅ Decimal-safe yardımcı (CostItem için)
+# -------------------------------------------------
+def _to_decimal(v, default="0"):
+    """
+    Numeric/float/int/str -> Decimal
+    SQLAlchemy Numeric alanlarla güvenli çarpma için.
+    """
+    if v is None:
+        return Decimal(default)
+    if isinstance(v, Decimal):
+        return v
+    try:
+        return Decimal(str(v))
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal(default)
 
 
 # --------------------------------
@@ -471,8 +492,31 @@ class CostItem(db.Model):
     created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    # ✅ eklendi: total'ı hep doğru tut
+    def recompute_total(self):
+        q = _to_decimal(self.qty, "0")
+        up = _to_decimal(self.unit_price, "0")
+        self.total = q * up
+
     def __repr__(self) -> str:
         return f"<CostItem id={self.id} project_id={self.project_id} risk_id={self.risk_id} title={self.title!r}>"
+
+
+# ✅ eklendi: DB’ye kaydetmeden önce total hesapla
+@event.listens_for(CostItem, "before_insert")
+def _costitem_before_insert(mapper, connection, target):
+    try:
+        target.recompute_total()
+    except Exception:
+        pass
+
+
+@event.listens_for(CostItem, "before_update")
+def _costitem_before_update(mapper, connection, target):
+    try:
+        target.recompute_total()
+    except Exception:
+        pass
 
 
 # --------------------------------

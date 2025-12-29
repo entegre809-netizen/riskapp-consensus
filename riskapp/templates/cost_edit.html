@@ -101,6 +101,33 @@
             </select>
           </div>
 
+          {# ✅ EKLENDİ: risk dropdown (opsiyonel) #}
+          <div class="col-12">
+            <label class="form-label">
+              Riski Bağla (opsiyonel)
+              <span class="text-muted small ms-1">Pareto Front için</span>
+            </label>
+
+            {% set selected_risk = c.risk_id %}
+            <select class="form-select" name="risk_id" id="risk_id">
+              <option value="" {{ 'selected' if not selected_risk else '' }}>
+                — Risk seçme (boş bırak) —
+              </option>
+
+              {% if risks and risks|length > 0 %}
+                {% for r in risks %}
+                  <option value="{{ r.id }}" {{ 'selected' if selected_risk==r.id else '' }}>
+                    #{{ r.id }} • {{ r.title }}{% if r.category %} • {{ r.category }}{% endif %}
+                  </option>
+                {% endfor %}
+              {% endif %}
+            </select>
+
+            <div class="form-text text-muted">
+              Risk seçersen, bu maliyet risk skoruyla (P×S) eşleşir. Boş bırakırsan maliyet “genel” kalır.
+            </div>
+          </div>
+
           <div class="col-12 col-md-6">
             <label class="form-label">Miktar (adet/saat/gün)</label>
             <input class="form-control" type="number" step="0.01" min="0"

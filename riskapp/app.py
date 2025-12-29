@@ -5138,129 +5138,174 @@ def create_app():
                 return Decimal("1")
             return Decimal("1")
 
+    # -------------------------------------------------
+# Helpers
+# -------------------------------------------------
+    def _active_project_id():
+        """
+        Senin projede zaten vardır.
+        Burada sadece placeholder: aktif proje id’sini döndürmeli.
+        """
+        # örn: return session.get("active_project_id")
+        raise NotImplementedError
+
+
+    # -------------------------------------------------
+    # COSTS (GET + POST)
+    # -------------------------------------------------
     @app.route("/costs", methods=["GET", "POST"])
     def costs():
-            project_id = _active_project_id()
-            if not project_id:
-                flash("Aktif proje bulunamadı. Önce proje seç.", "warning")
-                return redirect(url_for("dashboard"))
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje bulunamadı. Önce proje seç.", "warning")
+            return redirect(url_for("dashboard"))
 
-            if request.method == "POST":
-                title = (request.form.get("title") or "").strip()
-                if not title:
-                    flash("Başlık zorunlu.", "warning")
-                    return redirect(url_for("costs"))
-
-                category = (request.form.get("category") or "").strip() or None
-                unit = (request.form.get("unit") or "").strip() or None
-                currency = (request.form.get("currency") or "TRY").strip() or "TRY"
-                frequency = (request.form.get("frequency") or "Tek Sefer").strip() or "Tek Sefer"
-
-                qty = _to_decimal(request.form.get("qty"), "1")
-                unit_price = _to_decimal(request.form.get("unit_price"), "0")
-
-                # Sunucu tarafı sağlam dursun
-                if qty <= 0:
-                    flash("Miktar 0’dan büyük olmalı.", "warning")
-                    return redirect(url_for("costs"))
-                if unit_price < 0:
-                    flash("Birim fiyat negatif olamaz.", "warning")
-                    return redirect(url_for("costs"))
-
-                total = qty * unit_price
-
-                # risk_id: hem sayı mı, hem bu projeye mi ait?
-                risk_id = None
-                risk_id_raw = (request.form.get("risk_id") or "").strip()
-                if risk_id_raw.isdigit():
-                    cand = int(risk_id_raw)
-                    exists = (Risk.query
-                            .filter(Risk.id == cand, Risk.project_id == project_id)
-                            .first())
-                    if exists:
-                        risk_id = cand
-                    else:
-                        flash("Seçilen risk bu projeye ait değil. Risk bağlanmadı.", "warning")
-
-                item = CostItem(
-                    project_id=project_id,
-                    risk_id=risk_id,
-                    title=title,
-                    category=category,
-                    unit=unit,
-                    currency=currency,
-                    frequency=frequency,
-                    qty=qty,
-                    unit_price=unit_price,
-                    total=total,
-                    description=(request.form.get("description") or "").strip() or None,
-                )
-                db.session.add(item)
-                db.session.commit()
-                flash("Maliyet kaydedildi.", "success")
+        if request.method == "POST":
+            title = (request.form.get("title") or "").strip()
+            if not title:
+                flash("Başlık zorunlu.", "warning")
                 return redirect(url_for("costs"))
 
-            costs = (CostItem.query
-                    .filter_by(project_id=project_id)
-                    .order_by(desc(CostItem.id))
-                    .all())
+            category = (request.form.get("category") or "").strip() or None
+            unit = (request.form.get("unit") or "").strip() or None
+            currency = (request.form.get("currency") or "TRY").strip() or "TRY"
+            frequency = (request.form.get("frequency") or "Tek Sefer").strip() or "Tek Sefer"
 
-            # Pareto: Decimal ile hesapla (float yok)
-            sorted_costs = sorted(costs, key=lambda c: (c.total or Decimal("0")), reverse=True)
-            grand = sum((c.total or Decimal("0")) for c in sorted_costs) or Decimal("0")
+            qty = _to_decimal(request.form.get("qty"), "1")
+            unit_price = _to_decimal(request.form.get("unit_price"), "0")
 
-            run = Decimal("0")
-            pareto = []
-            for c in sorted_costs:
-                    val = (c.total or Decimal("0"))
-                    run += val
-                    cum = (run / grand * Decimal("100")) if grand > 0 else Decimal("0")
-                    pareto.append({
-                        "label": c.title,
-                        "value": float(val),            # Chart.js için float veriyoruz
-                        "cum_pct": float(cum),
-                    })
+            # Sunucu tarafı sağlam dursun
+            if qty <= 0:
+                flash("Miktar 0’dan büyük olmalı.", "warning")
+                return redirect(url_for("costs"))
+            if unit_price < 0:
+                flash("Birim fiyat negatif olamaz.", "warning")
+                return redirect(url_for("costs"))
 
-                # Pareto Front: riskleri tek seferde çek (N+1 yok)
-            risk_ids = sorted({c.risk_id for c in costs if c.risk_id})
-            risk_map = {}
-            if risk_ids:
-                    risks = (Risk.query
-                            .filter(Risk.project_id == project_id, Risk.id.in_(risk_ids))
-                            .all())
-                    risk_map = {r.id: r for r in risks}
-
-            front = []
-            for c in costs:
-                    if not c.risk_id:
-                        continue
-                    r = risk_map.get(c.risk_id)
-                    if not r:
-                        continue
-
-                    s = r.score()
-                    if s is None:
-                        continue
-
-                    # istersen annual_total kullan: (c.total * factor)
-                    x_total = (c.total or Decimal("0"))
-                    # annual = x_total * _annual_factor(c.frequency or "Tek Sefer")
-
-                    front.append({
-                        "x": float(x_total),
-                        "y": float(s),
-                        "label": c.title
-                    })
-
-            return render_template(
-                    "costs.html",
-                    costs=costs,
-                    pareto_json=pareto,
-                    front_json=front
+            # risk_id: hem sayı mı, hem bu projeye mi ait?
+            risk_id = None
+            risk_id_raw = (request.form.get("risk_id") or "").strip()
+            if risk_id_raw.isdigit():
+                cand = int(risk_id_raw)
+                exists = (
+                    Risk.query
+                    .filter(Risk.id == cand, Risk.project_id == project_id)
+                    .first()
                 )
-# -------------------------------------------------
-#  cost edit (GET)
-# -------------------------------------------------
+                if exists:
+                    risk_id = cand
+                else:
+                    flash("Seçilen risk bu projeye ait değil. Risk bağlanmadı.", "warning")
+
+            item = CostItem(
+                project_id=project_id,
+                risk_id=risk_id,
+                title=title,
+                category=category,
+                unit=unit,
+                currency=currency,
+                frequency=frequency,
+                qty=qty,
+                unit_price=unit_price,
+                description=(request.form.get("description") or "").strip() or None,
+            )
+
+            # total hesap (istersen model event’in varsa bunu yazmasan da olur)
+            try:
+                item.total = (qty * unit_price)
+            except Exception:
+                item.total = Decimal("0")
+
+            db.session.add(item)
+            db.session.commit()
+
+            flash("Maliyet kaydedildi.", "success")
+            return redirect(url_for("costs"))
+
+        # -------------------------
+        # GET
+        # -------------------------
+        costs = (
+            CostItem.query
+            .filter_by(project_id=project_id)
+            .order_by(CostItem.id.desc())
+            .all()
+        )
+
+        cost_templates = (
+            CostTemplate.query
+            .filter_by(project_id=project_id)
+            .order_by(CostTemplate.id.desc())
+            .all()
+        )
+
+        # ✅ EKLENDİ: projeye ait riskleri template’e gönder
+        # (dropdown vs için)
+        risks = (
+            Risk.query
+            .filter(Risk.project_id == project_id)
+            .order_by(Risk.id.desc())
+            .all()
+        )
+
+        # Pareto (Decimal hesap)
+        sorted_costs = sorted(costs, key=lambda c: (c.total or Decimal("0")), reverse=True)
+        grand = sum((c.total or Decimal("0")) for c in sorted_costs) or Decimal("0")
+
+        run = Decimal("0")
+        pareto = []
+        for c in sorted_costs:
+            val = (c.total or Decimal("0"))
+            run += val
+            cum = (run / grand * Decimal("100")) if grand > 0 else Decimal("0")
+            pareto.append({
+                "label": c.title,
+                "value": float(val),     # Chart.js seviyor
+                "cum_pct": float(cum),
+            })
+
+        # Pareto Front: riskleri tek seferde çek (N+1 yok)
+        risk_ids = sorted({c.risk_id for c in costs if c.risk_id})
+        risk_map = {}
+        if risk_ids:
+            risks_for_front = (
+                Risk.query
+                .filter(Risk.project_id == project_id, Risk.id.in_(risk_ids))
+                .all()
+            )
+            risk_map = {r.id: r for r in risks_for_front}
+
+        front = []
+        for c in costs:
+            if not c.risk_id:
+                continue
+            r = risk_map.get(c.risk_id)
+            if not r:
+                continue
+
+            s = r.score()
+            if s is None:
+                continue
+
+            x_total = (c.total or Decimal("0"))
+            front.append({
+                "x": float(x_total),
+                "y": float(s),
+                "label": c.title
+            })
+
+        return render_template(
+            "costs.html",
+            costs=costs,
+            cost_templates=cost_templates,
+            risks=risks,                 # ✅ EKLENDİ
+            pareto_json=pareto,
+            front_json=front,
+        )
+
+    # -------------------------------------------------
+    # COST EDIT (GET)
+    # -------------------------------------------------
     @app.get("/costs/<int:cost_id>/edit")
     def cost_edit(cost_id):
         project_id = _active_project_id()
@@ -5273,13 +5318,12 @@ def create_app():
             flash("Maliyet bulunamadı.", "warning")
             return redirect(url_for("costs"))
 
-        # cost_edit.html içinde form alanlarını c üzerinden dolduracağız
         return render_template("cost_edit.html", c=c)
 
 
-# -------------------------------------------------
-#  cost edit (POST)
-# -------------------------------------------------
+    # -------------------------------------------------
+    # COST EDIT (POST)
+    # -------------------------------------------------
     @app.post("/costs/<int:cost_id>/edit")
     def cost_edit_post(cost_id):
         project_id = _active_project_id()
@@ -5312,6 +5356,22 @@ def create_app():
 
         desc = (request.form.get("description") or "").strip() or None
 
+        # ✅ EKLENDİ: risk_id güncelle (bu projeye ait mi kontrol et)
+        risk_id = None
+        risk_id_raw = (request.form.get("risk_id") or "").strip()
+        if risk_id_raw.isdigit():
+            cand = int(risk_id_raw)
+            exists = (
+                Risk.query
+                .filter(Risk.id == cand, Risk.project_id == project_id)
+                .first()
+            )
+            if exists:
+                risk_id = cand
+            else:
+                flash("Seçilen risk bu projeye ait değil. Risk bağlanmadı.", "warning")
+
+        # Alanları güncelle
         c.title = title
         c.category = category
         c.unit = unit
@@ -5322,13 +5382,16 @@ def create_app():
         c.total = qty * unit_price
         c.description = desc
 
+        # ✅ burası: commit'ten önce risk'i yaz
+        c.risk_id = risk_id
+
         db.session.commit()
         flash("Maliyet güncellendi.", "success")
         return redirect(url_for("costs"))
 
 
     # -------------------------------------------------
-    #  cost delete (POST)
+    # COST DELETE (POST)
     # -------------------------------------------------
     @app.post("/costs/<int:cost_id>/delete")
     def cost_delete(cost_id):
@@ -5346,8 +5409,11 @@ def create_app():
         db.session.commit()
         flash("Maliyet silindi.", "success")
         return redirect(url_for("costs"))
-    
-    
+
+
+    # -------------------------------------------------
+    # COST TEMPLATE CREATE (POST)
+    # -------------------------------------------------
     @app.post("/cost-templates/create")
     def cost_template_create():
         project_id = _active_project_id()
@@ -5381,6 +5447,9 @@ def create_app():
         return redirect(url_for("costs"))
 
 
+    # -------------------------------------------------
+    # COST TEMPLATE EDIT (POST)
+    # -------------------------------------------------
     @app.post("/cost-templates/<int:tpl_id>/edit")
     def cost_template_edit_post(tpl_id):
         project_id = _active_project_id()
@@ -5416,6 +5485,9 @@ def create_app():
         return redirect(url_for("costs"))
 
 
+    # -------------------------------------------------
+    # COST TEMPLATE DELETE (POST)
+    # -------------------------------------------------
     @app.post("/cost-templates/<int:tpl_id>/delete")
     def cost_template_delete(tpl_id):
         project_id = _active_project_id()
@@ -5432,11 +5504,7 @@ def create_app():
         db.session.commit()
         flash("Şablon silindi.", "success")
         return redirect(url_for("costs"))
-
-
-
-    
-    
+        
     
 
     # -------------------------------------------------
