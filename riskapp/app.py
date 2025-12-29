@@ -1528,6 +1528,7 @@ def create_app():
     # -------------------------------------------------
     # === XLSX Risk Analizi (biçimli) ===
     # === XLSX Risk Analizi (biçimli) ===
+    # === XLSX Risk Analizi (biçimli) ===
     @app.route("/risks/export.xlsx")
     def risks_export_xlsx():
         try:
@@ -1537,6 +1538,9 @@ def create_app():
         except Exception:
             flash("Excel dışa aktarmak için 'openpyxl' gerekli.", "danger")
             return redirect(url_for("risk_select"))
+
+        # SQLAlchemy func lazımsa (çoğu projede zaten global import ediliyor ama garanti olsun)
+        from sqlalchemy import func
 
         pid    = _get_active_project_id()
         q      = (request.args.get("q") or "").strip()
@@ -1558,6 +1562,31 @@ def create_app():
 
         # kategori -> kayıtlar
         risks = query.order_by(Risk.category.asc().nullsfirst(), Risk.id.asc()).all()
+
+        # ---------------------------------------------------------
+        # ✅ MALİYET TOPLAMLARI (tek sorgu)
+        # ---------------------------------------------------------
+        risk_ids = [r.id for r in risks]
+        cost_map = {}  # {risk_id: {"TRY": 123, "USD": 0, "EUR": 0}}
+
+        if risk_ids:
+            rows = (
+                db.session.query(
+                    CostItem.risk_id,
+                    func.coalesce(CostItem.currency, "TRY").label("cur"),
+                    func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
+                )
+                .filter(CostItem.risk_id.in_(risk_ids))
+                .group_by(CostItem.risk_id, "cur")
+                .all()
+            )
+
+            for rid, cur, total in rows:
+                cur = (cur or "TRY").upper()
+                cost_map.setdefault(rid, {})
+                cost_map[rid][cur] = float(total or 0)
+
+        # kategori bucket
         buckets: dict[str, list[Risk]] = {}
         for r in risks:
             buckets.setdefault((r.category or "GENEL RİSKLER").strip(), []).append(r)
@@ -1596,14 +1625,22 @@ def create_app():
                 return "Yüksek", FILL_HIGH
             return "Çok Yüksek", FILL_VHIGH
 
+        # ✅ HEAD’e maliyet kolonlarını ekledik
         HEAD = [
             "No", "Risk Adı", "Risk Tanımlaması", "Risk Sahibi",
-            "P", "S", "D", "Risk Seviyesi", "Karşı Önlemler"
+            "P", "S", "D", "Risk Seviyesi", "Karşı Önlemler",
+            "Maliyet (TRY)", "Maliyet (USD)", "Maliyet (EUR)"
         ]
 
-        widths = [5, 22, 48, 18, 6, 6, 6, 16, 42]
+        # ✅ genişlikler güncellendi
+        widths = [5, 22, 48, 18, 6, 6, 6, 16, 42, 14, 14, 14]
         for i, w in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(i)].width = w
+
+        # maliyet kolon indexleri (Excel format için)
+        COL_COST_TRY = HEAD.index("Maliyet (TRY)") + 1
+        COL_COST_USD = HEAD.index("Maliyet (USD)") + 1
+        COL_COST_EUR = HEAD.index("Maliyet (EUR)") + 1
 
         row = 1
         # büyük başlık
@@ -1613,9 +1650,8 @@ def create_app():
         cell.alignment = AC
         row += 2
 
-        # ===== Legend (sağ üst, TEK SATIRDA YATAY) =====
+        # ===== Legend (sağ üst, yatay) =====
         base_col = len(HEAD) + 2
-
         ws.cell(row=1, column=base_col, value="Legend").font = H
 
         legend = [
@@ -1683,6 +1719,12 @@ def create_app():
 
                 lvl_txt, lvl_fill = level_for_rpn(sc)
 
+                # ✅ maliyetler
+                cm = cost_map.get(r.id, {})
+                c_try = float(cm.get("TRY", 0) or 0)
+                c_usd = float(cm.get("USD", 0) or 0)
+                c_eur = float(cm.get("EUR", 0) or 0)
+
                 values = [
                     idx,
                     (r.title or ""),
@@ -1693,14 +1735,23 @@ def create_app():
                     "",  # D kullanılmıyor
                     lvl_txt,
                     (r.mitigation or ""),
+                    c_try,
+                    c_usd,
+                    c_eur,
                 ]
 
                 for col_idx, val in enumerate(values, 1):
                     c = ws.cell(row=row, column=col_idx, value=val)
                     c.alignment = AL if col_idx in (2, 3, 9) else AC
                     c.border = border
+
                     if col_idx == 8 and lvl_fill:
                         c.fill = lvl_fill
+
+                    # ✅ maliyet kolonları sayı formatı
+                    if col_idx in (COL_COST_TRY, COL_COST_USD, COL_COST_EUR):
+                        c.number_format = '#,##0.00'
+
                 row += 1
 
             row += 1  # kategori sonrası boş satır
