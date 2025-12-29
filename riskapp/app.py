@@ -2512,7 +2512,17 @@ def create_app():
 # -------------------------------------------------
     @app.route("/risks/<int:risk_id>", methods=["GET", "POST"])
     def risk_detail(risk_id):
-        r = Risk.query.get_or_404(risk_id)
+        # ✅ Aktif proje zorunlu
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok. Önce proje seç.", "warning")
+            return redirect(url_for("dashboard"))
+
+        # ✅ Risk mutlaka bu projeye ait olmalı
+        r = Risk.query.filter_by(id=risk_id, project_id=project_id).first()
+        if not r:
+            flash("Risk bulunamadı (ya da bu projeye ait değil).", "warning")
+            return redirect(url_for("index"))
 
         # Formda göstermek için aktif kategori adları (liste)
         cats = [
@@ -2531,10 +2541,12 @@ def create_app():
                 id_list = sorted({int(x) for x in bulk_raw.split(",") if x.strip()})
             except ValueError:
                 id_list = []
+
             if id_list:
+                # ✅ bulk riskler de aynı projeden olmalı
                 bulk_risks = (
                     Risk.query
-                    .filter(Risk.id.in_(id_list))
+                    .filter(Risk.project_id == project_id, Risk.id.in_(id_list))
                     .order_by(Risk.id.asc())
                     .all()
                 )
@@ -2557,7 +2569,7 @@ def create_app():
 
             # Özel kategori alanı: "A, B, C" gibi virgüllü
             custom_raw = request.form.get("category_custom", "")
-            custom = [x.strip() for x in custom_raw.split(",") if x.strip()]
+            custom = [x.strip() for x in (custom_raw or "").split(",") if x.strip()]
 
             # Listede "__custom__" sentineli seçilmişse onu at; custom listesini ekle
             cats_final = [c for c in selected if c != "__custom__"] + custom
@@ -2565,9 +2577,8 @@ def create_app():
             # Risk objesine set et (ilkini geri uyumluluk için r.category'ye de yazar)
             r.set_categories(cats_final)
 
-            # 🔹 YENİ: Mitigation satırlarını (Mitigation tablosu) senkronize et
-            # Bu fonksiyon create_app içinde yukarıda TANIMLI olmalı:
-            # def _sync_mitigations(risk: Risk): ...
+            # ✅ Mitigation satırlarını senkronize et
+            # (_sync_mitigations fonksiyonun create_app içinde tanımlı olmalı)
             _sync_mitigations(r)
 
             # Sistem notu (aynı transaction içinde)
@@ -2577,7 +2588,6 @@ def create_app():
                 is_system=True
             ))
 
-            # Tek commit yeter
             db.session.commit()
 
             flash("Değişiklikler kaydedildi.", "success")
@@ -2593,7 +2603,7 @@ def create_app():
         # ========= Konsensüs =========
         threshold = int(current_app.config.get("CONSENSUS_THRESHOLD", 30))
         pair_counts = {}
-        for e in r.evaluations:
+        for e in (r.evaluations or []):
             pair = (e.probability, e.severity)
             pair_counts[pair] = pair_counts.get(pair, 0) + 1
 
@@ -2605,9 +2615,9 @@ def create_app():
 
         # ========= Geçmiş değerlendirmeler / ortalama =========
         eval_history = sorted(
-            list(r.evaluations),
+            list(r.evaluations or []),
             key=lambda ev: ev.created_at
-        ) if r.evaluations else []
+        )
 
         avg_p = avg_s = None
         last_p = last_s = None
@@ -2636,6 +2646,7 @@ def create_app():
                 .join(Risk, Risk.id == Evaluation.risk_id)
                 .outerjoin(RiskCategoryRef, RiskCategoryRef.risk_id == Risk.id)
                 .filter(
+                    Risk.project_id == project_id,   # ✅ projeye kilitle
                     or_(
                         RiskCategoryRef.name.in_(cats_sel),
                         Risk.category.in_(cats_sel)
@@ -2653,6 +2664,25 @@ def create_app():
                     "s": s_mode[0][0] if s_mode else None
                 }
 
+        # ========= ✅ Bu riske bağlı maliyetler =========
+        risk_costs = (
+            CostItem.query
+            .filter_by(project_id=project_id, risk_id=r.id)
+            .order_by(CostItem.id.desc())
+            .all()
+        )
+
+        # (opsiyonel) para birimine göre toplam (template’te rozet basmak için)
+        cost_totals = {}
+        for c in risk_costs:
+            cur = (c.currency or "TRY").upper()
+            # c.total Decimal ise float'a çeviriyoruz (UI kolay)
+            val = c.total if c.total is not None else Decimal("0")
+            try:
+                cost_totals[cur] = float(Decimal(str(cost_totals.get(cur, 0))) + Decimal(val))
+            except Exception:
+                cost_totals[cur] = cost_totals.get(cur, 0) + float(val or 0)
+
         return render_template(
             "risk_detail.html",
             r=r,
@@ -2668,8 +2698,11 @@ def create_app():
             last_s=last_s,
             use_avg=use_avg,
             bulk_risks=bulk_risks,
-        )
 
+            # ✅ maliyet blokları (risk detail’de göstermek için)
+            risk_costs=risk_costs,
+            cost_totals=cost_totals,
+        )
 
 
     # -------------------------------------------------

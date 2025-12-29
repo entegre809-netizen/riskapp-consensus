@@ -14,6 +14,12 @@
       maximumFractionDigits: 2,
     });
 
+    // -----------------------------
+    // URL params (risk preselect)
+    // -----------------------------
+    const urlParams = new URLSearchParams(window.location.search || "");
+    const urlRiskId = (urlParams.get("risk_id") || "").trim();
+
     function safeParseJSON(txt) {
       const t = (txt || "").trim();
       if (!t) return null;
@@ -45,13 +51,45 @@
     }
     function setVal(id, val) {
       const el = document.getElementById(id);
-      if (el) el.value = val ?? "";
+      if (!el) return;
+
+      // select / input fark etmez
+      el.value = val ?? "";
+
+      // select ise UI güncellemesi için event
+      try {
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      } catch {}
     }
     function normalize(s) {
       return (s || "").toString().toLowerCase().trim();
     }
     function upper(s) {
       return (s || "").toString().trim().toUpperCase();
+    }
+
+    function applyRiskFromUrl() {
+      const el = document.getElementById("risk_id");
+      if (!el) return;
+      if (!urlRiskId) return;
+
+      // select ise option var mı kontrol et
+      if (el.tagName === "SELECT") {
+        const has = Array.from(el.options || []).some((o) => o.value === urlRiskId);
+        if (has) {
+          el.value = urlRiskId;
+        } else {
+          // option yoksa yine de value set etme, boş kalsın
+          // (bazı tarayıcılar select.value'yu olmayan option’a set edince boş yapıyor)
+          return;
+        }
+      } else {
+        el.value = urlRiskId;
+      }
+
+      try {
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      } catch {}
     }
 
     // -----------------------------
@@ -145,10 +183,7 @@
       const pol = oneTimePolicyEl?.value || settings.oneTimePolicy || "1x";
       if (pol === "0x") return 0;
       if (pol === "amortize") {
-        const y = Math.max(
-          1,
-          parseInt(amortizeYearsEl?.value || settings.amortizeYears || 3, 10)
-        );
+        const y = Math.max(1, parseInt(amortizeYearsEl?.value || settings.amortizeYears || 3, 10));
         return 1 / y;
       }
       return 1; // 1x
@@ -265,8 +300,13 @@
     }
 
     function clearForm() {
-      // NOT: risk_id opsiyonel, temizlemenin "mantıklı" hali: boşla.
-      ["title", "category", "unit", "qty", "unit_price", "description", "risk_id"].forEach((id) => setVal(id, ""));
+      // risk_id: URL'den geldiyse silmeyelim (insan gibi UX)
+      const keepRisk = !!urlRiskId;
+
+      ["title", "category", "unit", "qty", "unit_price", "description"].forEach((id) => setVal(id, ""));
+      if (!keepRisk) setVal("risk_id", "");
+      else applyRiskFromUrl();
+
       setVal("currency", "TRY");
       setVal("frequency", "Tek Sefer");
       markActiveTemplate(null);
@@ -552,7 +592,6 @@
         const conv = convertToBase(total, cur, baseCur);
         if (!conv.ok) allOk = false;
 
-        // Kur yoksa grafiğe "0" atıp yalan söylemeyelim.
         if (conv.ok) {
           map.set(title, (map.get(title) || 0) + conv.value);
         }
@@ -759,6 +798,9 @@
       e.preventDefault();
       clearForm();
     });
+
+    // ✅ risk_detail -> costs?risk_id=... ile gelince otomatik seç
+    applyRiskFromUrl();
 
     updateLiveTotals();
     filterTemplates();

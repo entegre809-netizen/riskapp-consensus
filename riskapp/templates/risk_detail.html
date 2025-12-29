@@ -119,14 +119,12 @@
     line-height:1.45;
     white-space:pre-wrap;
   }
-  html[data-theme="light"] .comment pre{
-    background:#0b1120;
-    color:#e5e7eb;
-  }
-  html[data-theme="dark"] .comment pre{
-    background:#020617;
-    color:#e5e7eb;
-  }
+  html[data-theme="light"] .comment pre{ background:#0b1120; color:#e5e7eb; }
+  html[data-theme="dark"] .comment pre{ background:#020617; color:#e5e7eb; }
+
+  /* ✅ Costs mini table */
+  .cost-mini td, .cost-mini th{ font-size:.88rem; }
+  .cost-mini .sumrow td{ font-weight:600; }
 </style>
 
 <div class="page">
@@ -172,11 +170,9 @@
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
       <div class="grow">
 
-        {# --- başlık + pill'ler --- #}
         <div class="row" style="gap:10px; flex-wrap:wrap">
           <h2 style="margin:0">{{ r.title }}</h2>
 
-          {# Çoklu kategori; yoksa tekil category'yi kullan #}
           {% set __cats = [] %}
           {% if r.categories_list %}
             {% set __cats = r.categories_list %}
@@ -214,23 +210,12 @@
         {% endif %}
       </div>
 
-      {# --- sağ taraftaki aksiyon butonları --- #}
       <div class="btnbar noprint">
-        <a class="btn" href="{{ url_for('risk_identify') }}"
-           title="Tanımlı risk kütüphanesine git">
-          📚 Şablon Kütüphanesi
-        </a>
-
-        <a class="btn" href="{{ url_for('risk_new') }}"
-           title="Şablondan yeni risk oluştur">
-          ➕ Yeni Risk
-        </a>
+        <a class="btn" href="{{ url_for('risk_identify') }}" title="Tanımlı risk kütüphanesine git">📚 Şablon Kütüphanesi</a>
+        <a class="btn" href="{{ url_for('risk_new') }}" title="Şablondan yeni risk oluştur">➕ Yeni Risk</a>
 
         <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
-          <button class="btn btn-primary" type="submit"
-                  title="Sayısal özet + RACI + KPI">
-            AI Yorum
-          </button>
+          <button class="btn btn-primary" type="submit" title="Sayısal özet + RACI + KPI">AI Yorum</button>
         </form>
 
         <a class="btn" href="{{ url_for('index') }}">← Risk Listesine Dön</a>
@@ -302,7 +287,6 @@
                     placeholder="Riskin bağlamını yazın">{{ r.description or '' }}</textarea>
         </div>
 
-        {# --- Eski text alanı: genel önlemler notu --- #}
         <div style="grid-column:1/-1">
           <label>Önlemler (Mitigation) – genel açıklama</label>
           <textarea class="input"
@@ -316,9 +300,8 @@
         </div>
 
         {# --- Yeni: Detaylı aksiyon listesi (Mitigation tablosu) --- #}
-        
+        {# (Senin projende bu tablo varsa buraya koyacaksın. JS zaten aşağıda.) #}
 
-        {# Tarihler #}
         <div>
           <label>Başlangıç Tarihi</label>
           <input class="input" type="date" id="start_date"
@@ -341,7 +324,7 @@
       </form>
     </div>
 
-    {# ========= SAĞ: DEĞERLENDİRMELER ========= #}
+    {# ========= SAĞ: DEĞERLENDİRMELER + COST BLOĞU ========= #}
     <div class="card">
       <h3 style="margin-top:0">Geçmiş İşlem Verileri</h3>
 
@@ -366,7 +349,6 @@
         </div>
       </div>
 
-      {# Sistem önerisi (ps_reco yoksa sessizce geç) #}
       {% if ps_reco and (ps_reco.p or ps_reco.s) %}
         <div class="card" style="margin-bottom:10px">
           <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
@@ -384,17 +366,13 @@
                   class="right" style="min-width:260px">
               <input type="hidden" name="probability" value="{{ ps_reco.p or '' }}">
               <input type="hidden" name="severity"    value="{{ ps_reco.s or '' }}">
-              <input class="input grow" type="text" name="comment"
-                     placeholder="Yorum (opsiyonel)">
-              <button class="btn btn-success" type="submit">
-                Bu P/S ile değerlendir
-              </button>
+              <input class="input grow" type="text" name="comment" placeholder="Yorum (opsiyonel)">
+              <button class="btn btn-success" type="submit">Bu P/S ile değerlendir</button>
             </form>
           </div>
         </div>
       {% endif %}
 
-      {# ========= ÇOKLU RİSK İÇİN DEĞERLENDİRME FORMLARI ========= #}
       {% if bulk_risks is defined and bulk_risks %}
         {% set eval_targets = bulk_risks %}
       {% else %}
@@ -410,9 +388,7 @@
             </div>
           {% endif %}
 
-          <form method="post"
-                action="{{ url_for('add_eval', risk_id=rr.id) }}"
-                class="grid">
+          <form method="post" action="{{ url_for('add_eval', risk_id=rr.id) }}" class="grid">
             <div class="grid grid-2">
               <div>
                 <label>Olasılık (P)</label>
@@ -443,8 +419,7 @@
             </div>
 
             <div class="row">
-              <input class="input grow" name="evaluator"
-                     placeholder="Değerlendiren (opsiyonel)">
+              <input class="input grow" name="evaluator" placeholder="Değerlendiren (opsiyonel)">
               <span class="pill nowrap liveRpn">RPN: 1×1 = 1</span>
             </div>
             <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
@@ -455,7 +430,6 @@
         </div>
       {% endfor %}
 
-      {# ========= GEÇMİŞ KAYIT TABLOSU — VARSAYILAN GİZLİ ========= #}
       <details class="history-details" style="margin-top:10px">
         <summary class="muted" style="cursor:pointer; padding:.35rem .1rem;">
           Geçmiş değerlendirmeleri göster/gizle
@@ -502,6 +476,75 @@
           </table>
         </div>
       </details>
+
+      {# ===========================
+         ✅ EKLENDİ: Bu riske bağlı maliyetler
+         Route -> risk_costs, cost_totals gönderiyor
+         =========================== #}
+      <div class="card" style="margin-top:12px">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="margin:0">Bu Riske Bağlı Maliyetler</h3>
+            <div class="muted">Risk_id = {{ r.id }} ile bağlı CostItem’lar.</div>
+          </div>
+
+          <div class="btnbar">
+            {# NOT: costs endpoint'in parametre kabul etmiyorsa bunu düzelt #}
+            <a class="btn btn-primary" href="{{ url_for('costs', risk_id=r.id) }}">
+              ➕ Bu riske maliyet ekle
+            </a>
+          </div>
+        </div>
+
+        {% if risk_costs and risk_costs|length > 0 %}
+          <div style="margin-top:10px; max-height:280px; overflow:auto;">
+            <table class="table cost-mini">
+              <thead>
+                <tr>
+                  <th>Başlık</th>
+                  <th>Kategori</th>
+                  <th class="nowrap">Toplam</th>
+                  <th class="nowrap">Sıklık</th>
+                  <th class="nowrap">Para</th>
+                  <th class="nowrap">İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in risk_costs %}
+                  <tr>
+                    <td>{{ c.title or '—' }}</td>
+                    <td>{{ c.category or '—' }}</td>
+                    <td class="nowrap">
+                      {{ '%.2f'|format(c.total or 0) }}
+                    </td>
+                    <td class="nowrap">{{ c.frequency or 'Tek Sefer' }}</td>
+                    <td class="nowrap">{{ c.currency or 'TRY' }}</td>
+                    <td class="nowrap">
+                      <a class="btn btn-sm" href="{{ url_for('cost_edit', cost_id=c.id) }}">Düzenle</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+
+                {% if cost_totals %}
+                  <tr class="sumrow">
+                    <td colspan="6">
+                      Toplam:
+                      {% for cur, val in cost_totals.items() %}
+                        <span class="pill" style="margin-left:6px">{{ '%.2f'|format(val) }} {{ cur }}</span>
+                      {% endfor %}
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="muted" style="margin-top:10px">
+            Bu risk’e bağlı maliyet yok. “Bu riske maliyet ekle” ile bağlayabilirsin.
+          </div>
+        {% endif %}
+      </div>
+
     </div>
 
     {# ========= ALT: YORUMLAR ========= #}
@@ -539,11 +582,9 @@
       </div>
 
       {% if session.get('role') == 'admin' %}
-        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}"
-              style="margin-top:12px">
+        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}" style="margin-top:12px">
           <label>Yeni Yorum</label>
-          <textarea class="input" name="text" rows="2"
-                    placeholder="Güncelleme veya not girin"></textarea>
+          <textarea class="input" name="text" rows="2" placeholder="Güncelleme veya not girin"></textarea>
           <div class="right" style="margin-top:8px">
             <button class="btn">Yorum Ekle</button>
           </div>
@@ -561,7 +602,6 @@
 </div>
 
 <script>
-  // Konsensüs P/S'yi ilk değerlendirme bloğuna bas
   function applyConsensus(p, s) {
     try {
       const block = document.querySelector('.eval-block');
@@ -575,7 +615,6 @@
     } catch(e){ console.error(e); }
   }
 
-  // Belirli bir eval-block için canlı RPN güncelle
   function updateLiveRpnBlock(block){
     const pSel = block.querySelector('.probSel');
     const sSel = block.querySelector('.sevSel');
@@ -586,7 +625,6 @@
     if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
   }
 
-  // Tüm eval-block'ları başlat
   document.addEventListener('DOMContentLoaded', ()=>{
     document.querySelectorAll('.eval-block').forEach(block=>{
       const pSel = block.querySelector('.probSel');
@@ -612,7 +650,6 @@
     });
   });
 
-  // Tarih alanları → YYYY-MM
   (function(){
     const startDate = document.getElementById('start_date');
     const endDate   = document.getElementById('end_date');
@@ -638,7 +675,6 @@
     });
   })();
 
-  // Ctrl/Cmd+S -> form kaydet
   document.addEventListener('keydown', (e)=>{
     if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
       e.preventDefault();
@@ -646,7 +682,6 @@
     }
   });
 
-  // ========= Mitigation satırları: dinamik tablo =========
   (function(){
     const tbody = document.getElementById('mitBody');
     const addBtn = document.getElementById('addMitRow');
@@ -659,13 +694,9 @@
         e.preventDefault();
         const rows = tbody.querySelectorAll('tr');
         if (rows.length <= 1){
-          // Son satırı tamamen silme, sadece temizle
           row.querySelectorAll('input,select').forEach(el => {
-            if (el.tagName === 'SELECT'){
-              el.selectedIndex = 0;
-            } else {
-              el.value = '';
-            }
+            if (el.tagName === 'SELECT'){ el.selectedIndex = 0; }
+            else { el.value = ''; }
           });
         } else {
           row.remove();
@@ -673,32 +704,25 @@
       });
     }
 
-    // Mevcut satırları bağla
     tbody.querySelectorAll('tr').forEach(bindRow);
 
-    // Yeni satır ekle
     addBtn.addEventListener('click', function(e){
       e.preventDefault();
       const template = tbody.querySelector('tr');
       if (!template) return;
       const clone = template.cloneNode(true);
       clone.querySelectorAll('input,select').forEach(el => {
-        if (el.tagName === 'SELECT'){
-          el.selectedIndex = 0;
-        } else {
-          el.value = '';
-        }
+        if (el.tagName === 'SELECT'){ el.selectedIndex = 0; }
+        else { el.value = ''; }
       });
       tbody.appendChild(clone);
       bindRow(clone);
     });
   })();
 
-  // ========= AI SUGGEST: fetch + reload =========
   document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('aiSuggestForm');
     const btn  = document.getElementById('btn-ai-suggest');
-
     if (!form || !btn) return;
 
     form.addEventListener('submit', function (ev) {
@@ -708,19 +732,12 @@
       btn.disabled = true;
       btn.innerText = '🤖 Çalışıyor...';
 
-      fetch(form.action, {
-        method: "POST",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest"
-        }
-      })
+      fetch(form.action, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } })
       .then(resp => {
         if (!resp.ok) throw new Error("AI isteği başarısız");
         return resp.text();
       })
-      .then(() => {
-        window.location.reload();
-      })
+      .then(() => window.location.reload())
       .catch(err => {
         console.error(err);
         alert("AI çağrısında hata oluştu.");
