@@ -67,9 +67,20 @@
 
           <div class="col-12 col-md-6">
             <label class="form-label">Kategori</label>
-            <input class="form-control" name="category" id="category"
-                   value="{{ c.category or '' }}"
-                   required>
+
+            {# ✅ input yerine dropdown #}
+            {% set current_cat = (c.category or '') %}
+            {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
+
+            <select class="form-select" name="category" id="category" required>
+              <option value="">— Seç —</option>
+              {% for cat in cats %}
+                <option value="{{ cat }}" {{ 'selected' if current_cat==cat else '' }}>
+                  {{ cat }}
+                </option>
+              {% endfor %}
+            </select>
+
             <div class="invalid-feedback">Kategori gerekli.</div>
           </div>
 
@@ -101,7 +112,7 @@
             </select>
           </div>
 
-          {# ✅ EKLENDİ: risk dropdown (opsiyonel) #}
+          {# ✅ risk dropdown (opsiyonel) #}
           <div class="col-12">
             <label class="form-label">
               Riski Bağla (opsiyonel)
@@ -235,7 +246,7 @@
           ['title','category','unit'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            const good = !!el.value.trim();
+            const good = !!String(el.value || '').trim();
             el.classList.toggle('is-invalid', !good);
             ok = ok && good;
           });

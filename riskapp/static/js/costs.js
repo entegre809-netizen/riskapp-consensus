@@ -108,7 +108,6 @@
       const rFrom = rates[from];
       const rTo = rates[to];
 
-      // Missing rate => conversion not possible
       if (rFrom == null || rTo == null) {
         return {
           ok: false,
@@ -146,7 +145,10 @@
       const pol = oneTimePolicyEl?.value || settings.oneTimePolicy || "1x";
       if (pol === "0x") return 0;
       if (pol === "amortize") {
-        const y = Math.max(1, parseInt(amortizeYearsEl?.value || settings.amortizeYears || 3, 10));
+        const y = Math.max(
+          1,
+          parseInt(amortizeYearsEl?.value || settings.amortizeYears || 3, 10)
+        );
         return 1 / y;
       }
       return 1; // 1x
@@ -263,7 +265,8 @@
     }
 
     function clearForm() {
-      ["title", "category", "unit", "qty", "unit_price", "description"].forEach((id) => setVal(id, ""));
+      // NOT: risk_id opsiyonel, temizlemenin "mantıklı" hali: boşla.
+      ["title", "category", "unit", "qty", "unit_price", "description", "risk_id"].forEach((id) => setVal(id, ""));
       setVal("currency", "TRY");
       setVal("frequency", "Tek Sefer");
       markActiveTemplate(null);
@@ -271,12 +274,11 @@
       $("#title")?.focus();
     }
 
-    // input listeners for form
     document.addEventListener("input", (e) => {
-      if (e.target?.matches?.("#qty, #unit_price, #currency, #frequency")) updateLiveTotals();
+      if (e?.target?.matches?.("#qty, #unit_price, #currency, #frequency")) updateLiveTotals();
     });
     document.addEventListener("change", (e) => {
-      if (e.target?.matches?.("#qty, #unit_price, #currency, #frequency")) updateLiveTotals();
+      if (e?.target?.matches?.("#qty, #unit_price, #currency, #frequency")) updateLiveTotals();
     });
 
     // -----------------------------
@@ -284,6 +286,7 @@
     // -----------------------------
     document.addEventListener("click", (e) => {
       const target = e.target;
+      if (!target) return;
 
       const clearBtn = target.closest?.("#clearForm");
       if (clearBtn) {
@@ -327,10 +330,12 @@
     });
 
     document.addEventListener("keydown", (e) => {
-      const card = e.target.closest?.(".template-card");
+      const t = e.target;
+      if (!t) return;
+      const card = t.closest?.(".template-card");
       if (!card) return;
       if (e.key === "Enter" || e.key === " ") {
-        const blocked = e.target.closest?.("button, a, input, select, textarea, label, form");
+        const blocked = t.closest?.("button, a, input, select, textarea, label, form");
         if (blocked) return;
         e.preventDefault();
         applyTemplate(card);
@@ -376,7 +381,6 @@
         else sumBase += conv.value;
       });
 
-      // Multi-currency total
       const currencies = Object.keys(sums).filter(Boolean);
       if (tableTotalCell) {
         if (currencies.length === 0) {
@@ -392,12 +396,9 @@
         }
       }
 
-      // Base currency total
       if (tableTotalBaseCell) {
         tableTotalBaseCell.textContent = baseOkAll ? formatMoney(sumBase, baseCur) : "Kur gerekli";
-        tableTotalBaseCell.title = baseOkAll
-          ? ""
-          : "USD/TRY ve EUR/TRY girmen lazım (baz dönüşüm için).";
+        tableTotalBaseCell.title = baseOkAll ? "" : "USD/TRY ve EUR/TRY girmen lazım (baz dönüşüm için).";
       }
     }
 
@@ -405,7 +406,7 @@
       if (!tbody) return;
 
       const q = normalize(tableSearch?.value);
-      const curFilter = upper(tableCurrency?.value || ""); // normalize case
+      const curFilter = upper(tableCurrency?.value || "");
       const freqFilter = tableFrequency?.value || "";
 
       $$(".cost-row", tbody).forEach((r) => {
@@ -600,7 +601,6 @@
 
       const p = buildParetoFromVisibleRows();
 
-      // Kur yoksa (USD/EUR satırı var ama kur yok), uyarı göster
       if (!p.ok) {
         if (paretoEmpty) {
           paretoEmpty.style.display = "block";
@@ -711,7 +711,6 @@
       if (m && m.parentElement !== document.body) document.body.appendChild(m);
     });
 
-    // Backdrop cleanup (some Bootstrap setups get stuck)
     document.addEventListener(
       "hidden.bs.modal",
       function () {

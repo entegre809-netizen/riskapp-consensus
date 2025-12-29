@@ -316,7 +316,14 @@
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Kategori</label>
-                <input class="form-control" name="category" id="category" placeholder="Örn: Yazılım" required>
+                {# ✅ input yerine dropdown #}
+                <select class="form-select" name="category" id="category" required>
+                  <option value="">— Seç —</option>
+                  {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
+                  {% for cat in cats %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                  {% endfor %}
+                </select>
                 <div class="invalid-feedback">Kategori gerekli.</div>
               </div>
 
@@ -344,7 +351,7 @@
                 </select>
               </div>
 
-              {# ✅ EKLENDİ: risk dropdown (opsiyonel) #}
+              {# ✅ risk dropdown (opsiyonel) #}
               <div class="col-12">
                 <label class="form-label">
                   Riski Bağla (opsiyonel)
@@ -593,9 +600,17 @@
               <label class="form-label">Başlık</label>
               <input class="form-control" name="title" required>
             </div>
+
             <div class="col-12 col-md-6">
               <label class="form-label">Kategori</label>
-              <input class="form-control" name="category" required>
+              {# ✅ input yerine dropdown #}
+              <select class="form-select" name="category" required>
+                <option value="">— Seç —</option>
+                {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
+                {% for cat in cats %}
+                  <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
             </div>
 
             <div class="col-12 col-md-4">
@@ -657,9 +672,17 @@
               <label class="form-label">Başlık</label>
               <input class="form-control" name="title" id="tplEditTitle" required>
             </div>
+
             <div class="col-12 col-md-6">
               <label class="form-label">Kategori</label>
-              <input class="form-control" name="category" id="tplEditCategory" required>
+              {# ✅ input yerine dropdown #}
+              <select class="form-select" name="category" id="tplEditCategory" required>
+                <option value="">— Seç —</option>
+                {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
+                {% for cat in cats %}
+                  <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
             </div>
 
             <div class="col-12 col-md-4">

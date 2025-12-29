@@ -99,7 +99,7 @@ _REF_PATTERN = _re.compile(r"^R-[A-Z0-9]{2,10}-\d{4}-\d{3,6}$")
 
 from random import choices
 import string
-
+COST_CATEGORIES = ["İş Gücü", "Ekipman", "Yazılım", "Eğitim", "Hizmet", "Operasyon"]
 
 def _parse_ym(s):
     """'YYYY-MM' ya da 'YYYY-MM-DD' -> (y, m) | None"""
@@ -5151,6 +5151,10 @@ def create_app():
     # -------------------------------------------------
     # COSTS (GET + POST)
     # -------------------------------------------------
+    
+
+
+
     @app.route("/costs", methods=["GET", "POST"])
     def costs():
         project_id = _active_project_id()
@@ -5158,16 +5162,27 @@ def create_app():
             flash("Aktif proje bulunamadı. Önce proje seç.", "warning")
             return redirect(url_for("dashboard"))
 
+        # -------------------------
+        # POST
+        # -------------------------
         if request.method == "POST":
             title = (request.form.get("title") or "").strip()
             if not title:
                 flash("Başlık zorunlu.", "warning")
                 return redirect(url_for("costs"))
 
-            category = (request.form.get("category") or "").strip() or None
-            unit = (request.form.get("unit") or "").strip() or None
+            category = (request.form.get("category") or "").strip()
+            unit = (request.form.get("unit") or "").strip()
             currency = (request.form.get("currency") or "TRY").strip() or "TRY"
             frequency = (request.form.get("frequency") or "Tek Sefer").strip() or "Tek Sefer"
+
+            # Dropdown boş seçildiyse DB'ye None basmasın diye
+            if not category:
+                flash("Kategori zorunlu.", "warning")
+                return redirect(url_for("costs"))
+            if not unit:
+                flash("Birim zorunlu.", "warning")
+                return redirect(url_for("costs"))
 
             qty = _to_decimal(request.form.get("qty"), "1")
             unit_price = _to_decimal(request.form.get("unit_price"), "0")
@@ -5199,8 +5214,8 @@ def create_app():
                 project_id=project_id,
                 risk_id=risk_id,
                 title=title,
-                category=category,
-                unit=unit,
+                category=category,   # ✅ artık zorunlu
+                unit=unit,           # ✅ artık zorunlu
                 currency=currency,
                 frequency=frequency,
                 qty=qty,
@@ -5208,9 +5223,9 @@ def create_app():
                 description=(request.form.get("description") or "").strip() or None,
             )
 
-            # total hesap (istersen model event’in varsa bunu yazmasan da olur)
+            # total hesap
             try:
-                item.total = (qty * unit_price)
+                item.total = qty * unit_price
             except Exception:
                 item.total = Decimal("0")
 
@@ -5237,8 +5252,7 @@ def create_app():
             .all()
         )
 
-        # ✅ EKLENDİ: projeye ait riskleri template’e gönder
-        # (dropdown vs için)
+        # ✅ projeye ait riskleri template’e gönder (dropdown için)
         risks = (
             Risk.query
             .filter(Risk.project_id == project_id)
@@ -5258,7 +5272,7 @@ def create_app():
             cum = (run / grand * Decimal("100")) if grand > 0 else Decimal("0")
             pareto.append({
                 "label": c.title,
-                "value": float(val),     # Chart.js seviyor
+                "value": float(val),     # Chart.js float ister
                 "cum_pct": float(cum),
             })
 
@@ -5296,7 +5310,8 @@ def create_app():
             "costs.html",
             costs=costs,
             cost_templates=cost_templates,
-            risks=risks,                 # ✅ EKLENDİ
+            risks=risks,                      # ✅ eklendi
+            cost_categories=COST_CATEGORIES,  # ✅ eklendi (kategori dropdown için)
             pareto_json=pareto,
             front_json=front,
         )
@@ -5316,7 +5331,24 @@ def create_app():
             flash("Maliyet bulunamadı.", "warning")
             return redirect(url_for("costs"))
 
-        return render_template("cost_edit.html", c=c)
+        # ✅ projeye ait riskleri dropdown için gönder
+        risks = (
+            Risk.query
+            .filter(Risk.project_id == project_id)
+            .order_by(Risk.id.desc())
+            .all()
+        )
+
+        # ✅ kategori dropdown listesi (cost_edit.html bunu kullanacak)
+        cost_categories = ["İş Gücü", "Ekipman", "Yazılım", "Eğitim", "Hizmet", "Operasyon"]
+
+        return render_template(
+            "cost_edit.html",
+            c=c,
+            risks=risks,
+            cost_categories=cost_categories,
+        )
+
 
 
     # -------------------------------------------------
