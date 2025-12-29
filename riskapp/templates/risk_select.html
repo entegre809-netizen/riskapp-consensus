@@ -35,6 +35,17 @@
   .empty{ border:1px dashed var(--line); border-radius:12px; padding:28px; text-align:center; color:var(--muted) }
 
   .danger{ background:#ef4444; border-color:transparent; color:#fff; }
+
+  /* ✅ yeni: maliyet badge */
+  .cost-badge{
+    display:inline-flex; align-items:center; justify-content:flex-end;
+    padding:.22rem .55rem;
+    border-radius:999px;
+    font-weight:900;
+    background: color-mix(in oklab, var(--success) 12%, transparent);
+    border:1px solid color-mix(in oklab, var(--success) 28%, transparent);
+    white-space:nowrap;
+  }
 </style>
 
 <div class="card">
@@ -150,6 +161,10 @@
             <th>Başlık</th>
             <th style="width:200px">Kategori</th>
             <th style="width:100px; text-align:center">Skor</th>
+
+            <!-- ✅ YENİ SÜTUN -->
+            <th style="width:160px; text-align:right">Maliyet (TRY)</th>
+
             <th style="width:160px">Güncel</th>
             <th style="width:150px; text-align:right">İşlem</th>
           </tr>
@@ -186,6 +201,19 @@
                 —
               {% endif %}
             </td>
+
+            <!-- ✅ MALİYET HÜCRESİ -->
+            <td style="text-align:right">
+              {% set v = (cost_map.get(r.id) if cost_map is defined else None) %}
+              {% if v and v > 0 %}
+                <span class="cost-badge" title="Bu riske bağlı TRY maliyet toplamı">
+                  {{ "{:,.2f}".format(v).replace(",", "X").replace(".", ",").replace("X", ".") }} ₺
+                </span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
             <td>
               {% if r.updated_at %}
                 {{ r.updated_at.strftime("%Y-%m-%d %H:%M") }}

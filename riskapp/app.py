@@ -26,7 +26,7 @@ from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
 from .models import CostItem, CostTemplate
 from flask import session
-
+from riskapp.models import db, Risk, Evaluation, CostItem
 from riskapp.models import CostItem, CostTemplate
 import re
 from sqlalchemy.exc import IntegrityError
@@ -2442,9 +2442,7 @@ def create_app():
                 (Risk.description.ilike(like))
             )
 
-        # Hücreye tıklama filtresi:
-        # *** ARTIK ORTALAMA YOK ***
-        # Her risk için SON değerlendirmedeki P/S değerine göre filtreliyoruz.
+        # Hücreye tıklama filtresi: SON değerlendirmedeki P/S
         if p and s:
             latest_eval_sub = (
                 db.session.query(
@@ -2466,7 +2464,33 @@ def create_app():
             )
 
         risks = query.order_by(Risk.updated_at.desc()).all()
-        return render_template("risk_select.html", risks=risks, q=q)
+
+        # ==========================================================
+        # ✅ YENİ: Risk başına TRY maliyet toplamı
+        # ==========================================================
+        risk_ids = [r.id for r in risks]
+        cost_map = {}
+
+        if risk_ids:
+            rows = (
+                db.session.query(
+                    CostItem.risk_id,
+                    func.coalesce(func.sum(CostItem.total), 0).label("total_try")
+                )
+                .filter(CostItem.risk_id.in_(risk_ids))
+                .filter(CostItem.currency == "TRY")          # listede TRY gösteriyoruz
+                .filter(CostItem.risk_id.isnot(None))
+            )
+
+            if pid:
+                rows = rows.filter(CostItem.project_id == pid)
+
+            rows = rows.group_by(CostItem.risk_id).all()
+
+            # Decimal -> float (template'te rahat formatlamak için)
+            cost_map = {rid: float(total) for (rid, total) in rows}
+
+        return render_template("risk_select.html", risks=risks, q=q, cost_map=cost_map)
 
     # -------------------------------------------------
     #  Risk Sil (Admin)
