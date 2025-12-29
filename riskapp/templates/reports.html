@@ -1,20 +1,70 @@
 {% extends "base.html" %}
 {% block title %}Raporlar · Risk Yönetim{% endblock %}
 {% block content %}
+
+<style>
+  .tag{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:2px 10px; border-radius:999px;
+    border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    background:#fff;
+    font-size:12px; font-weight:700; white-space:nowrap;
+  }
+  .cost-wrap{
+    display:flex; flex-wrap:wrap; gap:.35rem; justify-content:flex-start;
+  }
+  .muted{ color:var(--muted) }
+</style>
+
 <div class="card">
   <h3>Raporlar</h3>
+
   <table class="table">
-    <thead><tr><th>Risk</th><th>Kategori</th><th>Skor</th><th></th></tr></thead>
+    <thead>
+      <tr>
+        <th>Risk</th>
+        <th>Kategori</th>
+        <th style="width:90px; text-align:center;">Skor</th>
+        <th style="width:240px;">Maliyet</th>
+        <th style="width:120px;"></th>
+      </tr>
+    </thead>
+
     <tbody>
       {% for r in risks %}
       <tr>
         <td>{{ r.title }}</td>
         <td>{{ r.category or "-" }}</td>
-        <td>{% if r.score() %}{{ r.score() }}{% else %}—{% endif %}</td>
-        <td><a class="btn" href="{{ url_for('report_view', risk_id=r.id) }}">Görüntüle</a></td>
+
+        <td style="text-align:center;">
+          {% set sc = r.score() %}
+          {% if sc %}
+            {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+
+        <td>
+          {% set totals = (cost_map.get(r.id, []) if cost_map is defined else []) %}
+          {% if totals and totals|length > 0 %}
+            <div class="cost-wrap">
+              {% for cur, total in totals %}
+                <span class="tag">{{ cur or "TRY" }} {{ "%.2f"|format(total or 0) }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+
+        <td style="text-align:right;">
+          <a class="btn" href="{{ url_for('report_view', risk_id=r.id) }}">Görüntüle</a>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+
 {% endblock %}

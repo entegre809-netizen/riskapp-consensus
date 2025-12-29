@@ -2800,11 +2800,39 @@ def create_app():
     @app.route("/reports")
     def reports():
         pid = _get_active_project_id()
+
         query = Risk.query
         if pid:
             query = query.filter(Risk.project_id == pid)
+
         risks = query.order_by(Risk.updated_at.desc()).all()
-        return render_template("reports.html", risks=risks)
+
+        # ✅ reports listesinde göstermek için risklerin maliyet toplamları (risk_id + currency bazında)
+        cost_map = {}
+        if risks:
+            risk_ids = [r.id for r in risks]
+
+            rows = (
+                db.session.query(
+                    CostItem.risk_id,
+                    func.coalesce(CostItem.currency, "TRY").label("currency"),
+                    func.coalesce(func.sum(CostItem.total), 0).label("total"),
+                )
+                .filter(CostItem.risk_id.in_(risk_ids))
+                .group_by(CostItem.risk_id, "currency")
+                .all()
+            )
+
+            for rid, cur, total in rows:
+                cost_map.setdefault(rid, []).append((cur, float(total or 0)))
+
+            # (opsiyonel) her riskte para birimlerini sabit sıraya sokalım
+            order = {"TRY": 0, "USD": 1, "EUR": 2}
+            for rid in cost_map:
+                cost_map[rid].sort(key=lambda x: order.get(x[0], 99))
+
+        return render_template("reports.html", risks=risks, cost_map=cost_map)
+
 
     @app.route("/reports/<int:risk_id>")
     def report_view(risk_id):
