@@ -4806,8 +4806,36 @@ def create_app():
     def risk_report_pdf(risk_id: int):
         risk = Risk.query.get_or_404(risk_id)
 
-        # Aynı HTML şablonunu kullanıyoruz (print-friendly CSS zaten içinde)
-        html_str = render_template("report_view.html", r=risk)
+        # ✅ Bu risk’e bağlı maliyet kalemleri
+        cost_items = (
+            CostItem.query
+            .filter(CostItem.risk_id == risk.id)
+            .order_by(CostItem.id.desc())
+            .all()
+        )
+
+        # ✅ Para birimine göre toplamlar (TRY/USD/EUR ayrı ayrı)
+        cost_totals = (
+            db.session.query(
+                CostItem.currency,
+                func.coalesce(func.sum(CostItem.total), 0)
+            )
+            .filter(CostItem.risk_id == risk.id)
+            .group_by(CostItem.currency)
+            .all()
+        )
+
+        # (opsiyonel) suggestion’ları da aynı template kullanıyorsan ver
+        suggestions = Suggestion.query.filter(Suggestion.category == (risk.category or "")).all()
+
+        # ✅ Aynı HTML şablonunu kullanıyoruz (print-friendly CSS zaten içinde)
+        html_str = render_template(
+            "report_view.html",
+            r=risk,
+            cost_items=cost_items,
+            cost_totals=cost_totals,
+            suggestions=suggestions,
+        )
 
         # --- 1) WeasyPrint dene (varsa ve çalışabiliyorsa) ---
         if HTML and CSS:
@@ -4826,7 +4854,6 @@ def create_app():
                     headers={"Content-Disposition": f'inline; filename="risk_{risk_id}.pdf"'}
                 )
             except Exception as e:
-                # Windows'ta GTK/Pango/Cairo eksikse buraya düşeriz → pdfkit'e geç
                 print("WeasyPrint çalışmadı, pdfkit'e geçiliyor:", e)
 
         # --- 2) pdfkit (wkhtmltopdf) fallback ---
@@ -4849,7 +4876,7 @@ def create_app():
                     "margin-bottom": "12mm",
                     "margin-left": "12mm",
                     "encoding": "UTF-8",
-                    "enable-local-file-access": None,  # CSS/asset erişimi için önemli
+                    "enable-local-file-access": None,
                 },
             )
             return Response(
@@ -4858,7 +4885,6 @@ def create_app():
                 headers={"Content-Disposition": f'inline; filename="risk_{risk_id}.pdf"'}
             )
 
-        # --- 3) İkisi de yoksa açık hata ver ---
         return Response(
             "PDF üretimi için uygun backend bulunamadı. WeasyPrint için GTK/Pango/Cairo, "
             "ya da wkhtmltopdf kurulumu gerekir.",
