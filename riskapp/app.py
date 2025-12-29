@@ -2809,9 +2809,37 @@ def create_app():
     @app.route("/reports/<int:risk_id>")
     def report_view(risk_id):
         r = Risk.query.get_or_404(risk_id)
+
+        # ✅ Bu risk’e bağlı maliyet kalemleri
+        cost_items = (
+            CostItem.query
+            .filter(CostItem.risk_id == r.id)
+            .order_by(CostItem.id.desc())
+            .all()
+        )
+
+        # ✅ Para birimine göre toplamlar (TRY/USD/EUR ayrı ayrı)
+        cost_totals = (
+            db.session.query(
+                CostItem.currency,
+                func.coalesce(func.sum(CostItem.total), 0)
+            )
+            .filter(CostItem.risk_id == r.id)
+            .group_by(CostItem.currency)
+            .all()
+        )
+
+        # mevcut suggestions aynı kalsın
         suggestions = Suggestion.query.filter(Suggestion.category == (r.category or "")).all()
-        return render_template("report_view.html", r=r, suggestions=suggestions)
-    
+
+        return render_template(
+            "report_view.html",
+            r=r,
+            suggestions=suggestions,
+            cost_items=cost_items,
+            cost_totals=cost_totals,
+        )
+        
 # -------------------------------------------------
 #  Ortak context: Zaman Çizelgesi verisi
 # -------------------------------------------------

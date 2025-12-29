@@ -216,7 +216,6 @@
             <tr><th>Sorumlu</th><td>{{ r.responsible or "-" }}</td></tr>
             <tr><th>Risk Kodu</th>
               <td>
-                {# Risk modelinde risk_code varsa göster, yoksa "—" #}
                 {% if r is not none and r.__dict__.get('risk_code') %}
                   {{ r.risk_code or "—" }}
                 {% else %}
@@ -253,6 +252,53 @@
           </table>
         </div>
       </div>
+    </section>
+
+    <!-- ✅✅ MALİYETLER (EKLENDİ) -->
+    <section class="card" role="region" aria-label="Maliyetler">
+      <h2>Maliyetler</h2>
+
+      {% set _totals = (cost_totals if cost_totals is defined and cost_totals else []) %}
+      {% set _items  = (cost_items  if cost_items  is defined and cost_items  else []) %}
+
+      {% if _totals and _totals|length > 0 %}
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 10px">
+          {% for cur, total in _totals %}
+            <span class="tag">{{ cur or "TRY" }}: {{ "%.2f"|format(total or 0) }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted">Bu risk için kayıtlı maliyet kalemi yok.</div>
+      {% endif %}
+
+      {% if _items and _items|length > 0 %}
+        <table style="margin-top:10px">
+          <thead>
+            <tr>
+              <th>Kalem</th>
+              <th>Kategori</th>
+              <th class="center">Miktar</th>
+              <th class="center">Birim</th>
+              <th class="center">Birim Fiyat</th>
+              <th class="center">Toplam</th>
+              <th>Periyot</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in _items %}
+              <tr>
+                <td>{{ c.title or "-" }}</td>
+                <td>{{ c.category or "-" }}</td>
+                <td class="center">{{ "%.2f"|format(c.qty or 0) }}</td>
+                <td class="center">{{ c.unit or "-" }}</td>
+                <td class="center">{{ "%.2f"|format(c.unit_price or 0) }} {{ c.currency or "TRY" }}</td>
+                <td class="center mono">{{ "%.2f"|format(c.total or 0) }} {{ c.currency or "TRY" }}</td>
+                <td>{{ c.frequency or "-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
     </section>
 
     <!-- AÇIKLAMA -->
@@ -407,7 +453,7 @@
 
         <div class="sign-card">
           <div>
-            <div class="label">Hazırlayan</div>
+            <div class="label">Güncelleme</div>
             <div class="line"></div>
             <div class="label">{{ p.get('name','') }} {{ p.get('title','') }}</div>
           </div>
