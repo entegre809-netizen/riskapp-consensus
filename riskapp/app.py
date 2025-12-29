@@ -25,7 +25,7 @@ from .models import db, Risk, Comment
 from .ai_local.commenter import make_ai_risk_comment, _propose_actions
 from io import BytesIO
 from .models import CostItem, CostTemplate
-
+from flask import session
 
 from riskapp.models import CostItem, CostTemplate
 import re
@@ -5112,43 +5112,41 @@ def create_app():
                 return Decimal(default)
 
     def _active_project_id():
-            pid = session.get("active_project_id") or session.get("project_id")
-            if pid:
-                try:
-                    return int(pid)
-                except ValueError:
-                    return None
+        pid = session.get("active_project_id") or session.get("project_id")
+        if pid is not None:
+            try:
+                return int(pid)
+            except (TypeError, ValueError):
+                # bozuk değer olursa temizleyebilirsin
+                session.pop("active_project_id", None)
+                return None
 
-            acc_id = session.get("account_id")
-            if acc_id:
-                prj = (ProjectInfo.query
-                    .filter_by(account_id=acc_id)
-                    .order_by(ProjectInfo.id.desc())
-                    .first())
-                if prj:
-                    session["active_project_id"] = prj.id
-                    return prj.id
-            return None
+        acc_id = session.get("account_id")
+        if acc_id:
+            prj = (
+                ProjectInfo.query
+                .filter_by(account_id=acc_id)
+                .order_by(ProjectInfo.id.desc())
+                .first()
+            )
+            if prj:
+                session["active_project_id"] = prj.id
+                return prj.id
+
+        return None
+
 
     def _annual_factor(freq: str) -> Decimal:
-            # Tek Sefer: 1 bırakıyorum (istersen 0 yapıp “yıllık karşılaştırma”dan çıkarabilirsin)
-            if freq == "Aylık":
-                return Decimal("12")
-            if freq == "Yıllık":
-                return Decimal("1")
+        # Tek Sefer: 1 bırakıyorum (istersen 0 yapıp “yıllık karşılaştırma”dan çıkarabilirsin)
+        if freq == "Aylık":
+            return Decimal("12")
+        if freq == "Yıllık":
             return Decimal("1")
-
+        return Decimal("1")
     # -------------------------------------------------
 # Helpers
 # -------------------------------------------------
-    def _active_project_id():
-        """
-        Senin projede zaten vardır.
-        Burada sadece placeholder: aktif proje id’sini döndürmeli.
-        """
-        # örn: return session.get("active_project_id")
-        raise NotImplementedError
-
+    
 
     # -------------------------------------------------
     # COSTS (GET + POST)
