@@ -92,6 +92,20 @@
     border:1px solid rgba(15,23,42,.10);
     background: rgba(255,255,255,.65);
   }
+
+  /* ✅ NEW: highlight + pulse */
+  .ai-hl{
+    outline: 2px solid rgba(245,158,11,.55);
+    box-shadow: 0 0 0 6px rgba(245,158,11,.12);
+    transform: translateY(-1px);
+  }
+  @keyframes pulseHL{
+    0% { box-shadow: 0 0 0 0 rgba(245,158,11,.18); }
+    100% { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
+  }
+  .ai-hl-pulse{
+    animation: pulseHL .65s ease-out 1;
+  }
 </style>
 
 <div class="card pareto-wrap">
@@ -212,7 +226,7 @@
       <h4 style="margin:12px 0 8px 0">Önerilen Aksiyonlar</h4>
       <div id="aiActions" style="display:grid; gap:10px;"></div>
 
-      <!-- ✅ NEW: Top risks -->
+      <!-- ✅ Top risks -->
       <h4 style="margin:12px 0 8px 0">Top Riskler (AI)</h4>
       <div id="aiTopRisks" style="display:grid; gap:10px;"></div>
 
@@ -256,6 +270,7 @@
 
   let raw = null;
   let viewItems = [];
+  let lastFocusedRiskId = ""; // ✅ NEW: keep highlight after AI reload
 
   function fmt(n){
     const x = Number(n);
@@ -367,6 +382,17 @@
       if (!onlyTop80.checked && top80 > 0 && idx <= top80){
         tr.style.background = "rgba(255, 215, 0, .10)";
       }
+
+      /* ✅ NEW: row click -> focus AI top risk card */
+      tr.dataset.riskId = String(rid || "");
+      tr.style.cursor = "pointer";
+      tr.title = "AI tarafında bu riski vurgula";
+      tr.addEventListener("click", (ev) => {
+        const a = ev.target.closest("a");
+        if (a) return; // link tıklanınca rapora gitsin
+        focusAiRisk(rid);
+      });
+
       frag.appendChild(tr);
     });
 
@@ -651,6 +677,29 @@ ${risks || "- (yok)"}`
     return wrap;
   }
 
+  /* ✅ NEW: Focus AI Top Risk card by risk id */
+  function focusAiRisk(rid){
+    const id = String(rid || "");
+    if (!id) return;
+
+    lastFocusedRiskId = id;
+
+    // clear previous highlights
+    aiTopRisks.querySelectorAll(".ai-hl").forEach(el => {
+      el.classList.remove("ai-hl","ai-hl-pulse");
+    });
+
+    const card = aiTopRisks.querySelector(`[data-risk-id="${CSS.escape(id)}"]`);
+    if (!card){
+      aiTopRisks.scrollIntoView({behavior:"smooth", block:"start"});
+      return;
+    }
+
+    card.classList.add("ai-hl", "ai-hl-pulse");
+    card.scrollIntoView({behavior:"smooth", block:"center"});
+    setTimeout(() => card.classList.remove("ai-hl-pulse"), 800);
+  }
+
   // ✅ NEW: Top risk mini card
   function riskMiniCard(r){
     const wrap = document.createElement("div");
@@ -663,6 +712,9 @@ ${risks || "- (yok)"}`
     const value = Number(r?.value || 0);
     const pct = Number(r?.pct || 0);
     const url = r?.url || (id != null ? `/reports/${encodeURIComponent(id)}` : "#");
+
+    // ✅ dataset for focus/highlight
+    wrap.dataset.riskId = String(id ?? "");
 
     const ci = r?.cost_items || {};
     const nItems = Number(ci?.n_items || 0);
@@ -793,12 +845,17 @@ ${risks || "- (yok)"}`
         aiActions.appendChild(card("Aksiyon", "Aksiyon önerisi yok."));
       }
 
-      // ✅ NEW: Top risks render
+      // ✅ Top risks render
       const trs = Array.isArray(ai.top_risks) ? ai.top_risks : [];
       if (trs.length){
         trs.forEach(r => aiTopRisks.appendChild(riskMiniCard(r)));
       } else {
         aiTopRisks.appendChild(card("Top Riskler", "AI top_risks dönmedi. Endpoint çıktısını kontrol et."));
+      }
+
+      // ✅ re-apply highlight after reload
+      if (lastFocusedRiskId){
+        setTimeout(() => focusAiRisk(lastFocusedRiskId), 50);
       }
 
     } catch(e){
