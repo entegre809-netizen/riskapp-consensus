@@ -92,7 +92,6 @@
     border:1px solid rgba(15,23,42,.10);
     background: rgba(255,255,255,.65);
   }
-  .ai-actions{ margin:0; padding-left:18px; color:#334155; }
 </style>
 
 <div class="card pareto-wrap">
@@ -136,6 +135,19 @@
       <span>Yalnız Top 80%</span>
     </label>
 
+    <!-- Scenario controls (sep öncesi) -->
+    <select id="scope" class="input" title="Senaryo kapsamı">
+      <option value="top3">Senaryo: Top 3</option>
+      <option value="top80">Senaryo: Top 80</option>
+      <option value="topcat">Senaryo: Top Kategori</option>
+    </select>
+
+    <label class="chip" style="gap:10px;">
+      <span>Cut</span>
+      <input id="cut" type="range" min="0" max="30" value="10" style="width:140px;" />
+      <small><span id="cutVal" class="mono">10</span>%</small>
+    </label>
+
     <div class="sep"></div>
 
     <button id="btnCsv" class="btn" type="button">CSV indir</button>
@@ -156,13 +168,11 @@
       </div>
 
       <div class="chart-card" style="margin-top:10px;">
-        <div class="chart-row">
-          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
-            <span class="badge">Pareto Grafiği (Bar + Kümülatif %)</span>
-            <span id="chartHint" class="muted" style="font-size:12px;">İlk 25 risk çizilir (performans için).</span>
-          </div>
-          <canvas id="paretoChart" width="900" height="260"></canvas>
+        <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
+          <span class="badge">Pareto Grafiği (Bar + Kümülatif %)</span>
+          <span id="chartHint" class="muted" style="font-size:12px;">İlk 25 risk çizilir (performans için).</span>
         </div>
+        <canvas id="paretoChart" width="900" height="260"></canvas>
       </div>
 
       <div class="table-wrap" style="margin-top:10px;">
@@ -177,9 +187,7 @@
               <th style="text-align:right;">Kümülatif %</th>
             </tr>
           </thead>
-          <tbody>
-            <!-- JS -->
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
 
@@ -189,14 +197,24 @@
     <!-- RIGHT -->
     <div class="card" style="margin:0">
       <h4 style="margin:0 0 10px 0">AI Özet</h4>
+
+      <div id="aiBadges" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
+
       <div id="aiSummary" class="ai-box" style="color:#0f172a; line-height:1.5;">
         <div class="skeleton" style="width: 92%;"></div>
         <div class="skeleton" style="width: 78%; margin-top:8px;"></div>
         <div class="skeleton" style="width: 66%; margin-top:8px;"></div>
       </div>
 
+      <h4 style="margin:12px 0 8px 0">İçgörüler</h4>
+      <div id="aiInsights" style="display:grid; gap:10px;"></div>
+
       <h4 style="margin:12px 0 8px 0">Önerilen Aksiyonlar</h4>
-      <ul id="aiActions" class="ai-actions"></ul>
+      <div id="aiActions" style="display:grid; gap:10px;"></div>
+
+      <!-- ✅ NEW: Top risks -->
+      <h4 style="margin:12px 0 8px 0">Top Riskler (AI)</h4>
+      <div id="aiTopRisks" style="display:grid; gap:10px;"></div>
 
       <div id="aiErr" style="display:none; margin-top:10px;" class="err"></div>
     </div>
@@ -212,12 +230,19 @@
   const errBox = document.getElementById("err");
 
   const aiSummary = document.getElementById("aiSummary");
+  const aiInsights = document.getElementById("aiInsights");
   const aiActions = document.getElementById("aiActions");
+  const aiBadges = document.getElementById("aiBadges");
+  const aiTopRisks = document.getElementById("aiTopRisks");
   const aiErr = document.getElementById("aiErr");
 
   const q = document.getElementById("q");
   const sortSel = document.getElementById("sort");
   const onlyTop80 = document.getElementById("onlyTop80");
+
+  const scopeSel = document.getElementById("scope");
+  const cutRange = document.getElementById("cut");
+  const cutVal = document.getElementById("cutVal");
 
   const btnCsv = document.getElementById("btnCsv");
   const btnCopyAI = document.getElementById("btnCopyAI");
@@ -229,8 +254,8 @@
   const canvas = document.getElementById("paretoChart");
   const ctx = canvas.getContext("2d");
 
-  let raw = null;          // API raw response
-  let viewItems = [];      // filtered + sorted items
+  let raw = null;
+  let viewItems = [];
 
   function fmt(n){
     const x = Number(n);
@@ -258,7 +283,6 @@
   }
 
   function computePctIfMissing(items, total){
-    // API pct/cum_pct yoksa da ekranda patlamasın
     let cum = 0;
     return items.map(it => {
       const value = Number(it.value || 0);
@@ -274,10 +298,8 @@
     const total = Number(raw?.total || 0);
     const top80 = Number(raw?.top_80_count || 0);
 
-    // 1) normalize
     let list = computePctIfMissing(items, total);
 
-    // 2) filter
     const term = safeText(q.value).trim().toLowerCase();
     if (term){
       list = list.filter(it => {
@@ -291,7 +313,6 @@
       list = list.slice(0, top80);
     }
 
-    // 3) sort
     const key = sortSel.value;
     const byStr = (a,b,dir=1) => (safeText(a).localeCompare(safeText(b), undefined, {sensitivity:"base"})) * dir;
     list.sort((a,b) => {
@@ -309,16 +330,13 @@
 
     viewItems = list;
 
-    // counts
     allCount.textContent = String(items.length);
     shownCount.textContent = String(viewItems.length);
 
-    // table render
     renderTable(viewItems, top80);
     renderTopCats(items, top80);
     renderChart(items, top80);
 
-    // meta
     meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80} · Son güncelleme: ${new Date().toLocaleString()}`;
   }
 
@@ -346,7 +364,6 @@
         <td class="mono" style="text-align:right;">%${fmt(it.cum_pct)}</td>
       `;
 
-      // top80 highlight only when showing full list (so it doesn't become weird in filtered views)
       if (!onlyTop80.checked && top80 > 0 && idx <= top80){
         tr.style.background = "rgba(255, 215, 0, .10)";
       }
@@ -385,23 +402,18 @@
     clearCanvas();
     if (!items?.length) return;
 
-    // draw first N items for readability
     const N = Math.min(25, items.length);
     const total = Number(raw?.total || 0) || 1;
-
     const list = computePctIfMissing(items.slice(0, N), total);
 
-    // chart box
     const W = canvas.width, H = canvas.height;
     const padL = 46, padR = 14, padT = 14, padB = 34;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
-    // scales
     const maxVal = Math.max(...list.map(x => Number(x.value||0)), 1);
     const barW = plotW / N;
 
-    // axes
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.lineWidth = 1;
@@ -413,8 +425,6 @@
     ctx.lineTo(padL + plotW, padT + plotH);
     ctx.stroke();
 
-    // y grid (value)
-    ctx.fillStyle = "rgba(15,23,42,.65)";
     ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     const steps = 4;
     for (let s=0; s<=steps; s++){
@@ -430,7 +440,6 @@
       ctx.fillText(fmt(val), 6, y + 4);
     }
 
-    // bars + cumulative line
     let cum = 0;
     const points = [];
 
@@ -444,17 +453,14 @@
       const barH = (v / maxVal) * plotH;
       const y = padT + plotH - barH;
 
-      // bar
       ctx.fillStyle = (top80 > 0 && (i+1) <= top80) ? "rgba(245, 158, 11, .55)" : "rgba(99, 102, 241, .40)";
       ctx.fillRect(x + 3, y, Math.max(2, barW - 6), barH);
 
-      // cumulative point (0..100)
       const cx = x + barW/2;
       const cy = padT + plotH - (Math.min(100, cum)/100) * plotH;
       points.push([cx, cy]);
     }
 
-    // cumulative line
     ctx.strokeStyle = "rgba(15,23,42,.65)";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -464,7 +470,6 @@
     });
     ctx.stroke();
 
-    // 80% line
     ctx.strokeStyle = "rgba(239,68,68,.55)";
     ctx.setLineDash([6,4]);
     const y80 = padT + plotH - 0.8 * plotH;
@@ -477,7 +482,6 @@
     ctx.fillStyle = "rgba(239,68,68,.85)";
     ctx.fillText("80%", padL + plotW - 26, y80 - 6);
 
-    // x labels (sparse)
     ctx.fillStyle = "rgba(15,23,42,.45)";
     ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
     const every = N > 12 ? 2 : 1;
@@ -498,7 +502,6 @@
     const total = Number(raw.total || 0);
     const list = computePctIfMissing(raw.items, total);
 
-    // export current view if filtered, otherwise full
     const exportList = (viewItems?.length ? viewItems : list);
     exportList.forEach((it, idx) => {
       const row = [
@@ -526,9 +529,283 @@
 
   function copyAI(){
     const summary = safeText(aiSummary.textContent).trim();
-    const acts = Array.from(aiActions.querySelectorAll("li")).map(li => "- " + li.textContent.trim()).join("\n");
-    const txt = `AI Özet (${currency})\n\n${summary}\n\nAksiyonlar:\n${acts || "- (yok)"}`;
+
+    let acts = "";
+    const cards = Array.from(document.querySelectorAll("#aiActions .ai-box"));
+    if (cards.length){
+      acts = cards.map(c => "- " + (c.querySelector("div")?.textContent || "Aksiyon")).join("\n");
+    }
+
+    let risks = "";
+    const rCards = Array.from(document.querySelectorAll("#aiTopRisks .ai-box"));
+    if (rCards.length){
+      risks = rCards.map(c => "- " + (c.querySelector("a")?.textContent?.trim() || "Risk")).join("\n");
+    }
+
+    const cut = Number(cutRange.value || 10);
+    const scope = scopeSel.value || "top3";
+
+    const txt =
+`AI Özet (${currency})
+Scope=${scope} Cut=${cut}%
+
+${summary}
+
+Aksiyonlar:
+${acts || "- (yok)"}
+
+Top Riskler:
+${risks || "- (yok)"}`
+    ;
     navigator.clipboard?.writeText(txt);
+  }
+
+  // UI helpers for AI section
+  function badge(text){
+    const el = document.createElement("span");
+    el.className = "badge";
+    el.textContent = text;
+    return el;
+  }
+
+  function card(title, text){
+    const wrap = document.createElement("div");
+    wrap.className = "ai-box";
+    wrap.style.background = "rgba(255,255,255,.75)";
+    wrap.innerHTML = `
+      <div style="font-weight:800; color:#0f172a;">${title || ""}</div>
+      <div style="margin-top:6px; color:#334155; line-height:1.45;">${text || ""}</div>
+    `;
+    return wrap;
+  }
+
+  function priorityPill(p){
+    const el = document.createElement("span");
+    el.className = "badge";
+    const pr = (p || "low").toLowerCase();
+    el.textContent = pr === "high" ? "Yüksek" : pr === "medium" ? "Orta" : "Düşük";
+    el.style.borderColor = pr === "high" ? "rgba(239,68,68,.25)" : pr === "medium" ? "rgba(245,158,11,.25)" : "rgba(15,23,42,.10)";
+    el.style.background = pr === "high" ? "rgba(239,68,68,.08)" : pr === "medium" ? "rgba(245,158,11,.10)" : "rgba(15,23,42,.04)";
+    el.style.color = pr === "high" ? "#991b1b" : pr === "medium" ? "#92400e" : "#0f172a";
+    return el;
+  }
+
+  function actionCard(a){
+    const wrap = document.createElement("div");
+    wrap.className = "ai-box";
+    wrap.style.background = "rgba(255,255,255,.75)";
+
+    const title = a?.title || "Aksiyon";
+    const details = a?.details || "";
+    const kpi = a?.kpi || "";
+    const url = a?.url;
+
+    const topRow = document.createElement("div");
+    topRow.style.display = "flex";
+    topRow.style.justifyContent = "space-between";
+    topRow.style.gap = "10px";
+    topRow.style.alignItems = "flex-start";
+
+    const left = document.createElement("div");
+    left.style.fontWeight = "800";
+    left.style.color = "#0f172a";
+    left.textContent = title;
+
+    const right = document.createElement("div");
+    right.style.display = "flex";
+    right.style.gap = "8px";
+    right.style.flexWrap = "wrap";
+    right.appendChild(priorityPill(a?.priority));
+    if (a?.type) right.appendChild(badge(String(a.type)));
+
+    topRow.appendChild(left);
+    topRow.appendChild(right);
+
+    const body = document.createElement("div");
+    body.style.marginTop = "8px";
+    body.style.color = "#334155";
+    body.style.lineHeight = "1.45";
+    body.textContent = details;
+
+    wrap.appendChild(topRow);
+    wrap.appendChild(body);
+
+    if (kpi){
+      const k = document.createElement("div");
+      k.style.marginTop = "8px";
+      k.className = "muted";
+      k.innerHTML = `<span class="badge">KPI</span> <span class="mono" style="margin-left:6px;">${kpi}</span>`;
+      wrap.appendChild(k);
+    }
+
+    if (url){
+      const link = document.createElement("a");
+      link.href = url;
+      link.className = "btn";
+      link.style.marginTop = "10px";
+      link.style.display = "inline-flex";
+      link.textContent = "Riske git";
+      wrap.appendChild(link);
+    }
+
+    return wrap;
+  }
+
+  // ✅ NEW: Top risk mini card
+  function riskMiniCard(r){
+    const wrap = document.createElement("div");
+    wrap.className = "ai-box";
+    wrap.style.background = "rgba(255,255,255,.75)";
+
+    const id = r?.id ?? r?.risk_id;
+    const title = r?.title || (id != null ? `Risk #${id}` : "Risk");
+    const category = r?.category || "GENEL";
+    const value = Number(r?.value || 0);
+    const pct = Number(r?.pct || 0);
+    const url = r?.url || (id != null ? `/reports/${encodeURIComponent(id)}` : "#");
+
+    const ci = r?.cost_items || {};
+    const nItems = Number(ci?.n_items || 0);
+    const sumTotal = Number(ci?.sum_total || 0);
+    const topItems = Array.isArray(ci?.top_cost_items) ? ci.top_cost_items : [];
+    const freqBreak = ci?.freq_breakdown || {};
+
+    const head = document.createElement("div");
+    head.style.display = "flex";
+    head.style.justifyContent = "space-between";
+    head.style.gap = "10px";
+    head.style.alignItems = "flex-start";
+
+    const left = document.createElement("div");
+    left.innerHTML = `
+      <a href="${url}" style="font-weight:900; color:#0f172a; text-decoration:none;">
+        ${title}
+      </a>
+      <div class="muted" style="font-size:12px; margin-top:2px;">
+        ID: <span class="mono">${id ?? "-"}</span> · Kategori: <span style="font-weight:700;">${category}</span>
+      </div>
+    `;
+
+    const right = document.createElement("div");
+    right.style.display = "flex";
+    right.style.gap = "8px";
+    right.style.flexWrap = "wrap";
+    right.appendChild(badge(`%${isFinite(pct) ? pct.toFixed(1) : "0.0"}`));
+    right.appendChild(badge(`${fmt(value)} ${currency}`));
+    if (nItems) right.appendChild(badge(`${nItems} kalem`));
+
+    head.appendChild(left);
+    head.appendChild(right);
+    wrap.appendChild(head);
+
+    if (nItems || sumTotal){
+      const s = document.createElement("div");
+      s.className = "muted";
+      s.style.marginTop = "8px";
+      s.innerHTML = `CostItem toplamı: <span class="mono">${fmt(sumTotal)} ${currency}</span>`;
+      wrap.appendChild(s);
+    }
+
+    if (topItems.length){
+      const box = document.createElement("div");
+      box.style.marginTop = "10px";
+      box.innerHTML = `<div style="font-weight:800; color:#0f172a; font-size:12px;">En pahalı kalemler</div>`;
+      const ul = document.createElement("ul");
+      ul.style.margin = "6px 0 0 16px";
+      ul.style.color = "#334155";
+      ul.style.fontSize = "13px";
+
+      topItems.slice(0,3).forEach(ci => {
+        const li = document.createElement("li");
+        const nm = (ci?.name || "Kalem").toString();
+        const tv = fmt(Number(ci?.total || 0));
+        const fq = (ci?.frequency || "belirsiz").toString();
+        li.textContent = `${nm} · ${tv} ${currency} · ${fq}`;
+        ul.appendChild(li);
+      });
+
+      box.appendChild(ul);
+      wrap.appendChild(box);
+    }
+
+    const freqKeys = freqBreak ? Object.keys(freqBreak) : [];
+    if (freqKeys.length){
+      const topF = freqKeys
+        .map(k => [k, Number(freqBreak[k] || 0)])
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,2);
+
+      const f = document.createElement("div");
+      f.className = "muted";
+      f.style.marginTop = "8px";
+      f.textContent = "Periyot: " + topF.map(([k,v]) => `${k} (${fmt(v)} ${currency})`).join(" · ");
+      wrap.appendChild(f);
+    }
+
+    return wrap;
+  }
+
+  async function loadAI(){
+    aiErr.style.display = "none";
+    aiBadges.innerHTML = "";
+    aiInsights.innerHTML = "";
+    aiActions.innerHTML = "";
+    aiTopRisks.innerHTML = "";
+
+    cutVal.textContent = String(cutRange.value || 10);
+
+    aiSummary.innerHTML = `
+      <div class="skeleton" style="width: 92%;"></div>
+      <div class="skeleton" style="width: 78%; margin-top:8px;"></div>
+      <div class="skeleton" style="width: 66%; margin-top:8px;"></div>
+    `;
+
+    const cut = Number(cutRange.value || 10) / 100;
+    const scope = scopeSel.value || "top3";
+
+    try{
+      const ai = await fetchJson(`/analytics/pareto/ai?currency=${encodeURIComponent(currency)}&top_n=10&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`);
+
+      aiSummary.textContent = ai.summary || "Özet yok.";
+
+      const m = ai.meta || {};
+      if (m.top_80_count != null) aiBadges.appendChild(badge(`Top80: ${m.top_80_count}`));
+      if (m.scope_label) aiBadges.appendChild(badge(`Scope: ${m.scope_label}`));
+      else if (m.scope) aiBadges.appendChild(badge(`Scope: ${m.scope}`));
+      if (m.scenario_saving != null) aiBadges.appendChild(badge(`Tasarruf: ${fmt(m.scenario_saving)} ${currency}`));
+      if (m.cat_hhi != null) aiBadges.appendChild(badge(`Cat HHI: ${Number(m.cat_hhi).toFixed(3)}`));
+      if (m.risk_hhi != null) aiBadges.appendChild(badge(`Risk HHI: ${Number(m.risk_hhi).toFixed(3)}`));
+
+      (ai.insights || []).forEach(ins => {
+        aiInsights.appendChild(card(ins.title || ins.type || "İçgörü", ins.text || ""));
+      });
+      if (!(ai.insights || []).length){
+        aiInsights.appendChild(card("İçgörü", "İçgörü yok."));
+      }
+
+      if (Array.isArray(ai.actions) && ai.actions.length){
+        if (typeof ai.actions[0] === "string"){
+          ai.actions.forEach(s => aiActions.appendChild(card("Aksiyon", s)));
+        } else {
+          ai.actions.forEach(a => aiActions.appendChild(actionCard(a)));
+        }
+      } else {
+        aiActions.appendChild(card("Aksiyon", "Aksiyon önerisi yok."));
+      }
+
+      // ✅ NEW: Top risks render
+      const trs = Array.isArray(ai.top_risks) ? ai.top_risks : [];
+      if (trs.length){
+        trs.forEach(r => aiTopRisks.appendChild(riskMiniCard(r)));
+      } else {
+        aiTopRisks.appendChild(card("Top Riskler", "AI top_risks dönmedi. Endpoint çıktısını kontrol et."));
+      }
+
+    } catch(e){
+      aiErr.style.display = "block";
+      aiErr.textContent = "AI kısmı patladı. " + (e?.message || e);
+      aiSummary.textContent = "Özet yok.";
+    }
   }
 
   // events
@@ -537,6 +814,10 @@
   onlyTop80.addEventListener("change", () => applyView());
   btnCsv.addEventListener("click", downloadCsv);
   btnCopyAI.addEventListener("click", copyAI);
+
+  scopeSel.addEventListener("change", loadAI);
+  cutRange.addEventListener("input", () => { cutVal.textContent = cutRange.value; });
+  cutRange.addEventListener("change", loadAI);
 
   // 1) Pareto data
   try {
@@ -554,29 +835,9 @@
     meta.textContent = "Veri yok.";
   }
 
-  // 2) AI summary
-  try {
-    aiErr.style.display = "none";
-    const ai = await fetchJson(`/analytics/pareto/ai?currency=${encodeURIComponent(currency)}`);
+  // 2) AI load
+  await loadAI();
 
-    aiSummary.textContent = ai.summary || "Özet yok.";
-    aiActions.innerHTML = "";
-    (ai.actions || []).forEach(a => {
-      const li = document.createElement("li");
-      li.textContent = a;
-      aiActions.appendChild(li);
-    });
-
-    if (!(ai.actions || []).length){
-      const li = document.createElement("li");
-      li.textContent = "Aksiyon önerisi yok.";
-      aiActions.appendChild(li);
-    }
-  } catch (e){
-    aiErr.style.display = "block";
-    aiErr.textContent = "AI özeti alınamadı (çok da şaşırmadık). " + (e?.message || e);
-    aiSummary.textContent = "Özet yok.";
-  }
 })();
 </script>
 {% endblock %}
