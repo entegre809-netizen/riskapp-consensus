@@ -5744,6 +5744,131 @@ def create_app():
 
         # Tekrar şablon seçme ekranına dön
         return redirect(url_for("risk_identify"))
+    
+# -------------------------------------------------
+#  Risk sepetini temizle (eski endpointi geri getir)
+# -------------------------------------------------
+
+    @app.get("/analytics/pareto")
+    def pareto_cost():
+        pid = _get_active_project_id()
+        currency = (request.args.get("currency") or "TRY").upper()
+        limit = int(request.args.get("limit") or 50)
+
+        # Risk filtresi (aktif proje)
+        rq = Risk.query
+        if pid:
+            rq = rq.filter(Risk.project_id == pid)
+
+        risk_ids = [r.id for r in rq.with_entities(Risk.id).all()]
+        if not risk_ids:
+            return jsonify({"currency": currency, "items": [], "total": 0, "note": "No risks in scope"})
+
+        # Risk bazlı toplam maliyet
+        rows = (
+            db.session.query(
+                CostItem.risk_id,
+                func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
+            )
+            .filter(CostItem.risk_id.in_(risk_ids))
+            .filter(func.coalesce(CostItem.currency, "TRY") == currency)
+            .group_by(CostItem.risk_id)
+            .order_by(func.coalesce(func.sum(CostItem.total), 0).desc())
+            .limit(limit)
+            .all()
+        )
+
+        if not rows:
+            return jsonify({"currency": currency, "items": [], "total": 0, "note": "No cost items for this currency"})
+
+        # Risk bilgilerini tek seferde çek
+        rid_list = [rid for rid, _ in rows]
+        risk_map = {r.id: r for r in Risk.query.filter(Risk.id.in_(rid_list)).all()}
+
+        total = sum(float(t or 0) for _, t in rows) or 0.0
+        running = 0.0
+
+        items = []
+        for rid, t in rows:
+            v = float(t or 0)
+            running += v
+            r = risk_map.get(rid)
+
+            pct = (v / total) * 100 if total else 0
+            cum = (running / total) * 100 if total else 0
+
+            items.append({
+                "risk_id": rid,
+                "title": (r.title if r else f"Risk #{rid}"),
+                "category": (r.category if r else None),
+                "owner": (r.responsible if r else None),
+                "value": round(v, 2),
+                "pct": round(pct, 2),
+                "cum_pct": round(cum, 2),
+            })
+
+        # 80% cutoff
+        cutoff_index = next((i for i, it in enumerate(items) if it["cum_pct"] >= 80), len(items)-1)
+        top_80 = items[:cutoff_index+1]
+
+        return jsonify({
+            "currency": currency,
+            "total": round(total, 2),
+            "top_80_count": len(top_80),
+            "items": items,
+        })
+    
+    @app.get("/analytics/pareto/ai")
+    def pareto_cost_ai():
+        currency = (request.args.get("currency") or "TRY").upper()
+
+        # pareto verisini içeriden çağır (HTTP değil, fonksiyon mantığı)
+        resp = pareto_cost()
+        data = resp.get_json()
+
+        items = data.get("items", [])
+        total = data.get("total", 0)
+        top_80_count = data.get("top_80_count", 0)
+
+        if not items:
+            return jsonify({"currency": currency, "summary": "Bu para birimi için maliyet verisi yok.", "actions": []})
+
+        top = items[:min(top_80_count, 10)]
+        cats = {}
+        for it in items[:top_80_count]:
+            c = (it.get("category") or "GENEL")
+            cats[c] = cats.get(c, 0) + it["value"]
+
+        top_cats = sorted(cats.items(), key=lambda x: x[1], reverse=True)[:3]
+
+        # ---- Rule-based özet (her türlü çalışır) ----
+        summary = (
+            f"Toplam {total:,.2f} {currency} maliyetin %80’ini yaklaşık {top_80_count} risk oluşturuyor. "
+            f"En büyük katkıyı yapan ilk risk: '{top[0]['title']}' ({top[0]['value']:,.2f} {currency}, %{top[0]['pct']} pay). "
+            f"İlk 3 kategori katkısı: " +
+            ", ".join([f"{k} ({v:,.2f} {currency})" for k, v in top_cats]) +
+            "."
+        )
+
+        actions = [
+            "İlk 3 riske kök neden analizi yap (neden bu kadar maliyet üretiyor?).",
+            "Bu risklerin maliyet kalemlerini (CostItem) periyot ve kategoriye göre ayır, gereksiz tekrarları temizle.",
+            "Top 80% riskler için mitigation planını maliyet azaltma hedefiyle güncelle (örn. %10 düşüş).",
+        ]
+
+        return jsonify({
+            "currency": currency,
+            "summary": summary,
+            "top_risks": top,
+            "actions": actions
+        })
+    
+    @app.get("/analytics/pareto/view")
+    def pareto_view():
+        currency = (request.args.get("currency") or "TRY").upper()
+        return render_template("pareto_view.html", currency=currency)
+
+
 
 
     

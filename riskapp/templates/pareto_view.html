@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Pareto Analizi · Risk Yönetim{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
+    <h3 style="margin:0">Pareto Analizi (Maliyet)</h3>
+
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <form method="get" action="{{ url_for('pareto_view') }}" style="display:flex; gap:8px; align-items:center;">
+        <label style="font-weight:600;">Para Birimi</label>
+        <select name="currency" class="input" onchange="this.form.submit()">
+          {% for c in ["TRY","USD","EUR"] %}
+            <option value="{{c}}" {% if currency==c %}selected{% endif %}>{{c}}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <a class="btn" href="{{ url_for('pareto_view') }}?currency={{currency}}">Yenile</a>
+    </div>
+  </div>
+
+  <div id="meta" style="margin-top:10px; color:#64748b;">Yükleniyor…</div>
+
+  <div style="display:grid; grid-template-columns: 1.2fr .8fr; gap:12px; margin-top:12px;">
+    <div class="card" style="margin:0">
+      <h4 style="margin:0 0 10px 0">Top Riskler (80/20)</h4>
+      <div style="overflow:auto;">
+        <table class="table" id="tbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Risk</th>
+              <th>Kategori</th>
+              <th style="text-align:right;">Tutar</th>
+              <th style="text-align:right;">%</th>
+              <th style="text-align:right;">Kümülatif %</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin:0">
+      <h4 style="margin:0 0 10px 0">AI Özet</h4>
+      <div id="aiSummary" style="color:#0f172a; line-height:1.5;">Yükleniyor…</div>
+      <h4 style="margin:12px 0 8px 0">Önerilen Aksiyonlar</h4>
+      <ul id="aiActions" style="margin:0; padding-left:18px; color:#334155;"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(async function(){
+  const currency = "{{ currency }}";
+
+  const meta = document.getElementById("meta");
+  const tbody = document.querySelector("#tbl tbody");
+  const aiSummary = document.getElementById("aiSummary");
+  const aiActions = document.getElementById("aiActions");
+
+  function fmt(n){
+    try { return Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}); }
+    catch(e){ return n; }
+  }
+
+  // 1) Pareto data
+  const res = await fetch(`/analytics/pareto?currency=${encodeURIComponent(currency)}`);
+  const data = await res.json();
+
+  const total = data.total || 0;
+  const top80 = data.top_80_count || 0;
+  meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80}`;
+
+  tbody.innerHTML = "";
+  (data.items || []).forEach((it, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td><a href="/reports/${it.risk_id}">${it.title || ("Risk #" + it.risk_id)}</a></td>
+      <td>${it.category || "-"}</td>
+      <td style="text-align:right;">${fmt(it.value)} ${currency}</td>
+      <td style="text-align:right;">%${fmt(it.pct)}</td>
+      <td style="text-align:right;">%${fmt(it.cum_pct)}</td>
+    `;
+    // 80% bandını hafif vurgula
+    if (i < top80) tr.style.background = "rgba(255, 215, 0, .10)";
+    tbody.appendChild(tr);
+  });
+
+  // 2) AI summary
+  const res2 = await fetch(`/analytics/pareto/ai?currency=${encodeURIComponent(currency)}`);
+  const ai = await res2.json();
+
+  aiSummary.textContent = ai.summary || "Özet yok.";
+  aiActions.innerHTML = "";
+  (ai.actions || []).forEach(a => {
+    const li = document.createElement("li");
+    li.textContent = a;
+    aiActions.appendChild(li);
+  });
+})();
+</script>
+{% endblock %}

@@ -482,6 +482,18 @@
 
           <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
 
+          {# ✅✅ Pareto Analizi (endpoint varsa göster) #}
+          {% set _pareto_ep = (
+              'pareto_view' if (
+                (_has_ep_helper and has_endpoint('pareto_view')) or
+                (not _has_ep_helper and ('pareto_view' in current_app.view_functions))
+              )
+              else None
+          ) %}
+          {% if _pareto_ep %}
+            <a href="{{ url_for(_pareto_ep) }}" class="{{ 'active' if request.endpoint==_pareto_ep }}">Pareto Analizi</a>
+          {% endif %}
+
           {% if r is defined %}
             {# Risk detayındayken ekstra linkler koyacaksan buraya #}
           {% endif %}
@@ -557,7 +569,6 @@
 
 <!-- ✅ Chart.js (Pareto grafikleri için) -->
 <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
-
 
 <!-- Tema toggle + sidebar + panel auto-mark -->
 <script>
