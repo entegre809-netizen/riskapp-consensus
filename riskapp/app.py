@@ -1086,7 +1086,7 @@ def create_app():
 
     # 🔼🔼🔼 BURADA BİTİYOR, SONRA ROUTE’LAR BAŞLIYOR 🔼🔼🔼
 
-   
+    
 
    
     def _build_suggestions_by_category(category_rows):
@@ -5818,55 +5818,226 @@ def create_app():
             "items": items,
         })
     
-    @app.get("/analytics/pareto/ai")
-    def pareto_cost_ai():
-        currency = (request.args.get("currency") or "TRY").upper()
-
-        # pareto verisini içeriden çağır (HTTP değil, fonksiyon mantığı)
-        resp = pareto_cost()
-        data = resp.get_json()
-
-        items = data.get("items", [])
-        total = data.get("total", 0)
-        top_80_count = data.get("top_80_count", 0)
-
-        if not items:
-            return jsonify({"currency": currency, "summary": "Bu para birimi için maliyet verisi yok.", "actions": []})
-
-        top = items[:min(top_80_count, 10)]
-        cats = {}
-        for it in items[:top_80_count]:
-            c = (it.get("category") or "GENEL")
-            cats[c] = cats.get(c, 0) + it["value"]
-
-        top_cats = sorted(cats.items(), key=lambda x: x[1], reverse=True)[:3]
-
-        # ---- Rule-based özet (her türlü çalışır) ----
-        summary = (
-            f"Toplam {total:,.2f} {currency} maliyetin %80’ini yaklaşık {top_80_count} risk oluşturuyor. "
-            f"En büyük katkıyı yapan ilk risk: '{top[0]['title']}' ({top[0]['value']:,.2f} {currency}, %{top[0]['pct']} pay). "
-            f"İlk 3 kategori katkısı: " +
-            ", ".join([f"{k} ({v:,.2f} {currency})" for k, v in top_cats]) +
-            "."
-        )
-
-        actions = [
-            "İlk 3 riske kök neden analizi yap (neden bu kadar maliyet üretiyor?).",
-            "Bu risklerin maliyet kalemlerini (CostItem) periyot ve kategoriye göre ayır, gereksiz tekrarları temizle.",
-            "Top 80% riskler için mitigation planını maliyet azaltma hedefiyle güncelle (örn. %10 düşüş).",
-        ]
-
-        return jsonify({
-            "currency": currency,
-            "summary": summary,
-            "top_risks": top,
-            "actions": actions
-        })
     
     @app.get("/analytics/pareto/view")
     def pareto_view():
         currency = (request.args.get("currency") or "TRY").upper()
         return render_template("pareto_view.html", currency=currency)
+    
+    @app.get("/analytics/pareto/ai")
+    def pareto_cost_ai():
+        currency = (request.args.get("currency") or "TRY").upper()
+        top_n = int(request.args.get("top_n") or 10)          # UI için
+        scenario_cut = float(request.args.get("cut") or 0.10) # %10 tasarruf senaryosu
+
+        # -------------------------------------------------
+        # Pareto verisini içeriden al
+        # -------------------------------------------------
+        resp = pareto_cost()  # senin mevcut endpoint/fonksiyonun
+        try:
+            data = resp.get_json() if hasattr(resp, "get_json") else (resp or {})
+        except Exception:
+            data = {}
+
+        items = data.get("items", []) or []
+        total = float(data.get("total") or 0)
+        top_80_count = int(data.get("top_80_count") or 0)
+
+        if not items or total <= 0:
+            return jsonify({
+                "currency": currency,
+                "summary": "Bu para birimi için maliyet verisi yok (veya toplam 0).",
+                "insights": [],
+                "top_risks": [],
+                "actions": []
+            })
+
+        # top_80_count bazen 0 gelebilir: güvenli fallback
+        if top_80_count <= 0:
+            # %80 cutoff’u hesaplayamayınca en azından ilk 5’i al
+            top_80_count = min(len(items), 5)
+
+        top_risks = items[:min(top_80_count, top_n)]
+        top_80_items = items[:top_80_count]
+
+        # -------------------------------------------------
+        # Kategori katkıları (top80 içinde)
+        # -------------------------------------------------
+        cats = defaultdict(float)
+        for it in top_80_items:
+            c = (it.get("category") or "GENEL").strip() or "GENEL"
+            cats[c] += float(it.get("value") or 0)
+
+        top_cats = sorted(cats.items(), key=lambda x: x[1], reverse=True)
+        top_cats3 = top_cats[:3]
+
+        # kategori yoğunlaşma oranı
+        top_cat_ratio = (top_cats[0][1] / sum(cats.values())) if cats else 0.0
+
+        # -------------------------------------------------
+        # CostItem içgörüleri (Quick wins / periyot / kalem sayısı)
+        # -------------------------------------------------
+        # Top risk id’lerini çıkar (pareto_cost() item’larında id varsa)
+        top_ids = [it.get("id") for it in top_80_items if it.get("id") is not None]
+        top_ids = [int(x) for x in top_ids if str(x).isdigit()]
+
+        # costitem istatistikleri: risk bazında adet + toplam
+        cost_stats = {}
+        freq_stats = defaultdict(float)
+
+        if top_ids:
+            rows = (
+                db.session.query(
+                    CostItem.risk_id,
+                    func.count(CostItem.id).label("n_items"),
+                    func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
+                )
+                .filter(CostItem.risk_id.in_(top_ids))
+                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
+                .group_by(CostItem.risk_id)
+                .all()
+            )
+            cost_stats = {rid: {"n_items": int(n), "sum_total": float(s)} for rid, n, s in rows}
+
+            # Periyot dağılımı (monthly/weekly/once vs)
+            freq_rows = (
+                db.session.query(
+                    func.lower(func.coalesce(CostItem.frequency, "belirsiz")).label("freq"),
+                    func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
+                )
+                .filter(CostItem.risk_id.in_(top_ids))
+                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
+                .group_by("freq")
+                .all()
+            )
+            for f, s in freq_rows:
+                freq_stats[f] += float(s)
+
+        # quick win: çok kalemli riskler
+        quick_win_candidates = []
+        for it in top_risks:
+            rid = it.get("id")
+            if rid is None: 
+                continue
+            st = cost_stats.get(int(rid))
+            if st and st["n_items"] >= 5:  # eşik: 5+ kalem
+                quick_win_candidates.append({
+                    "id": int(rid),
+                    "title": it.get("title") or f"Risk #{rid}",
+                    "n_items": st["n_items"],
+                    "sum_total": st["sum_total"],
+                })
+
+        quick_win_candidates = sorted(quick_win_candidates, key=lambda x: x["n_items"], reverse=True)[:3]
+
+        # -------------------------------------------------
+        # Basit tasarruf senaryosu (top3 riskte %10 azaltım)
+        # -------------------------------------------------
+        top3 = top_80_items[:3]
+        top3_total = sum(float(x.get("value") or 0) for x in top3)
+        scenario_saving = top3_total * scenario_cut
+        scenario_after = total - scenario_saving
+
+        # -------------------------------------------------
+        # Insights listesi (UI’de kart olarak gösterilebilir)
+        # -------------------------------------------------
+        insights = []
+
+        insights.append({
+            "type": "pareto",
+            "text": f"Toplam {total:,.2f} {currency} maliyetin %80’ini yaklaşık {top_80_count} risk üretiyor."
+        })
+
+        if top_risks:
+            t0 = top_risks[0]
+            insights.append({
+                "type": "top",
+                "text": f"En büyük katkı: “{t0.get('title','-')}” ({float(t0.get('value') or 0):,.2f} {currency}, %{t0.get('pct')})."
+            })
+
+        if top_cats3:
+            insights.append({
+                "type": "category",
+                "text": "İlk 3 kategori katkısı: " + ", ".join([f"{k} ({v:,.2f} {currency})" for k, v in top_cats3]) + "."
+            })
+
+        if top_cat_ratio >= 0.60 and top_cats:
+            insights.append({
+                "type": "concentration",
+                "text": f"Kategori yoğunlaşması yüksek: {top_cats[0][0]} tek başına top-80 maliyetinin ~%{int(top_cat_ratio*100)}’ini taşıyor. (Tek noktadan bağımlılık riski)"
+            })
+
+        if freq_stats:
+            # en çok para giden periyot
+            f_top = sorted(freq_stats.items(), key=lambda x: x[1], reverse=True)[:2]
+            insights.append({
+                "type": "frequency",
+                "text": "Maliyet periyodu yoğunluğu: " + ", ".join([f"{k} ({v:,.2f} {currency})" for k, v in f_top]) + "."
+            })
+
+        if quick_win_candidates:
+            insights.append({
+                "type": "quickwin",
+                "text": "Quick win adayları (çok kalemli maliyet): " +
+                        ", ".join([f"{x['title']} ({x['n_items']} kalem)" for x in quick_win_candidates]) + "."
+            })
+
+        insights.append({
+            "type": "scenario",
+            "text": f"Senaryo: Top 3 risk maliyetini %{int(scenario_cut*100)} düşürürsen ~{scenario_saving:,.2f} {currency} tasarruf, yeni toplam ~{scenario_after:,.2f} {currency}."
+        })
+
+        # -------------------------------------------------
+        # Actions (risk bazlı ve daha spesifik)
+        # -------------------------------------------------
+        actions = []
+
+        # 1) Top risk için kök neden + kalem temizlik
+        if top_risks:
+            t0 = top_risks[0]
+            actions.append(
+                f"“{t0.get('title','-')}” için 30 dk kök-neden mini çalıştayı yap: "
+                "en büyük 2 CostItem kalemini bul, gerekli mi tekrar ediyor mu kontrol et."
+            )
+
+        # 2) Quick win: çok kalemli risklerde konsolidasyon
+        for x in quick_win_candidates:
+            actions.append(
+                f"“{x['title']}” ({x['n_items']} kalem): CostItem’ları kategori+periyot bazında grupla, "
+                "aynı şeyi tekrarlayan kalemleri birleştir veya standardize et."
+            )
+
+        # 3) Kategori yoğunlaşması varsa
+        if top_cat_ratio >= 0.60 and top_cats:
+            actions.append(
+                f"{top_cats[0][0]} kategorisinde maliyet sürücüleri için kontrol listesi çıkar: "
+                "tavsiye edilen satınalma/işçilik/ekipman kalemlerinde üst limit veya onay akışı ekle."
+            )
+
+        # 4) Mitigation hedefi: sayısal
+        actions.append(
+            f"Top-80 riskler için mitigation planına ölçülebilir hedef ekle: "
+            f"‘{currency} maliyeti 90 günde %{int(scenario_cut*100)} azalt’ ve takip metriklerini yaz."
+        )
+
+        # summary string (tek paragraf)
+        summary = " ".join([i["text"] for i in insights[:3]])
+
+        return jsonify({
+            "currency": currency,
+            "summary": summary,
+            "insights": insights,
+            "top_risks": top_risks,
+            "actions": actions,
+            "meta": {
+                "total": total,
+                "top_80_count": top_80_count,
+                "scenario_cut": scenario_cut,
+            }
+        })
+    
+
+    
 
 
 
