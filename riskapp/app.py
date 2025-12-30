@@ -5899,15 +5899,14 @@ def create_app():
 
         def hhi(shares_0_1):
             # Herfindahl-Hirschman Index (0..1)
-            # örn: tek oyuncu=1.0, dağılım geniş=küçük
             return sum((s * s) for s in shares_0_1 if s > 0)
 
         # ----------------------------
         # params
         # ----------------------------
         currency = norm_currency(request.args.get("currency"))
-        top_n = clamp_int(request.args.get("top_n"), 3, 50, 10)          # UI için
-        scenario_cut = clamp_float(request.args.get("cut"), 0.0, 0.9, 0.10)
+        top_n = clamp_int(request.args.get("top_n"), 3, 50, 10)               # UI için
+        scenario_cut = clamp_float(request.args.get("cut"), 0.0, 0.9, 0.10)   # 0.10 = %10
         scenario_scope = (request.args.get("scope") or "top3").strip().lower()  # top3 | top80 | topcat
 
         # Cache key
@@ -5951,7 +5950,7 @@ def create_app():
         top_80_items = items[:top_80_count]
         top_risks_raw = items[:min(top_80_count, top_n)]
 
-        # items içindeki id alanı bazen id bazen risk_id olabiliyor (senin kodlar karışık)
+        # items içindeki id alanı bazen id bazen risk_id olabiliyor
         def item_rid(it):
             rid = it.get("id")
             if rid is None:
@@ -6075,7 +6074,6 @@ def create_app():
             st = cost_stats.get(rid)
             if not st:
                 continue
-            # eşik: 5+ kalem veya “kalem başına ortalama düşük” (konsolidasyon fırsatı)
             avg = (st["sum_total"] / max(st["n_items"], 1))
             if st["n_items"] >= 5 or (st["n_items"] >= 3 and avg <= (0.05 * total)):
                 quick_win_candidates.append({
@@ -6190,7 +6188,6 @@ def create_app():
             "text": f"Senaryo ({scope_label}): maliyeti %{int(scenario_cut*100)} düşürürsen ~{scenario_saving:,.2f} {currency} tasarruf, yeni toplam ~{scenario_after:,.2f} {currency}."
         })
 
-        # Konsantrasyon sayısal metrikler (UI’da küçük rozet gibi)
         insights.append({
             "type": "metric",
             "title": "Yoğunlaşma Metrikleri",
@@ -6201,49 +6198,200 @@ def create_app():
         summary = " ".join([i["text"] for i in insights[:3]])
 
         # ----------------------------
-        # Actions (structured)
+        # Actions (structured) - EXPANDED
         # ----------------------------
         actions = []
+        _seen = set()
 
+        def add_action(a: dict):
+            """Dedup by title, keep order."""
+            t = (a.get("title") or "").strip().lower()
+            if not t:
+                return
+            if t in _seen:
+                return
+            _seen.add(t)
+            actions.append(a)
+
+        def cut_pct_label(cut):
+            try:
+                return int(float(cut) * 100)
+            except Exception:
+                return 10
+
+        cut_pct = cut_pct_label(scenario_cut)
+
+        # 0) Always: first 48h playbook
+        add_action({
+            "type": "triage",
+            "priority": "high",
+            "title": "İlk 48 saat: Top maliyet sürücülerini kilitle",
+            "details": "Top 10 CostItem kalemini çıkar: owner, neden, tekrar sıklığı, onay noktası. 'Bugün durdurulabilir mi?' filtresi uygula.",
+            "kpi": "48 saatte Top 10 kalem sahipliği %100",
+            "url": None
+        })
+
+        # 1) Top risks: deep dive first 1-3
         if top_risks:
             t0 = top_risks[0]
-            actions.append({
+            add_action({
                 "type": "workshop",
                 "priority": "high",
                 "title": f"{t0['title']} için kök neden + en pahalı kalem temizliği",
                 "details": "30 dk mini çalıştay: en pahalı 2-3 CostItem kalemini incele, tekrar edenleri konsolide et, gereksizleri kaldır.",
-                "kpi": f"{currency} maliyeti 30 günde %{int(scenario_cut*100)} azalt",
+                "kpi": f"{currency} maliyeti 30 günde -%{cut_pct}",
                 "url": t0.get("url")
             })
 
-        for x in quick_win_candidates:
-            actions.append({
+            for t in top_risks[1:3]:
+                add_action({
+                    "type": "workshop",
+                    "priority": "high",
+                    "title": f"{t.get('title','Risk')} için Stop/Start/Continue maliyet kararı",
+                    "details": "Riskin maliyet kalemlerini Stop/Start/Continue etiketle. Stop olanlar için 7 gün içinde kapatma planı yaz.",
+                    "kpi": "7 günde Stop kalemlerin %80'i kapatıldı",
+                    "url": t.get("url")
+                })
+
+        # 2) Quick wins (up to 8)
+        for x in (quick_win_candidates or [])[:8]:
+            add_action({
                 "type": "consolidate",
                 "priority": "medium",
                 "title": f"{x['title']} kalem konsolidasyonu ({x['n_items']} kalem)",
                 "details": "CostItem’ları kategori+periyot bazında grupla. Aynı işi yapan kalemleri standardize et ve birleştir.",
-                "kpi": f"Kalem sayısı -%20, toplam maliyet -%{int(scenario_cut*100)}",
+                "kpi": f"Kalem sayısı -%20, toplam maliyet -%{cut_pct}",
                 "url": f"/reports/{x['id']}"
             })
 
+        # 3) Category controls if concentrated
         if top_cat_ratio >= 0.60 and top_cats:
-            actions.append({
+            add_action({
                 "type": "controls",
+                "priority": "high",
+                "title": f"{top_cat} kategorisine kontrol listesi + 2. onay",
+                "details": "Üst limit, ikinci onay, teklif karşılaştırma ve standart kalem şablonu ekle. Serbest kalem açmayı kısıtla.",
+                "kpi": f"{top_cat} maliyeti 90 günde -%{cut_pct}",
+                "url": None
+            })
+            add_action({
+                "type": "standardize",
                 "priority": "medium",
-                "title": f"{top_cat} kategorisine kontrol listesi + onay akışı",
-                "details": "Satınalma/işçilik/ekipman sürücülerine üst limit, ikinci onay, teklif karşılaştırma ve standart kalem şablonu ekle.",
-                "kpi": f"{top_cat} maliyeti 90 günde -%{int(scenario_cut*100)}",
+                "title": f"{top_cat} için standart CostItem kataloğu",
+                "details": "En sık geçen kalemleri (isim, birim, periyot, açıklama) standardize et. Duplicate isimleri temizle.",
+                "kpi": "Yeni kalem açma oranı -%50",
                 "url": None
             })
 
-        actions.append({
+        # 4) HHI-based governance
+        if (cat_hhi is not None) and (cat_hhi >= 0.25):
+            add_action({
+                "type": "portfolio",
+                "priority": "medium",
+                "title": "Kategori yoğunlaşması yüksek: portföy dengeleme",
+                "details": "Tek kategoriye yığılma varsa sürücü bazlı alternatif mitigasyonlar ve maliyet dağıtım planı oluştur.",
+                "kpi": "Cat HHI 60 günde -%10",
+                "url": None
+            })
+
+        if (risk_hhi is not None) and (risk_hhi >= 0.18):
+            add_action({
+                "type": "portfolio",
+                "priority": "medium",
+                "title": "Risk yoğunlaşması yüksek: ilk 5 riske owner + haftalık review",
+                "details": "İlk 5 risk için sorumlu ata. Haftalık 15 dk review: gerçekleşen maliyet, plan, sapma nedeni.",
+                "kpi": "İlk 5 riskte haftalık sapma raporu %100",
+                "url": None
+            })
+
+        # 5) Frequency-based actions from enriched top_risks
+        def add_freq_actions(r):
+            ci = (r or {}).get("cost_items") or {}
+            fb = ci.get("freq_breakdown") or {}
+            if not isinstance(fb, dict) or not fb:
+                return
+
+            pairs = sorted([(k, float(v or 0)) for k, v in fb.items()], key=lambda x: x[1], reverse=True)[:2]
+            for freq, v in pairs:
+                if v <= 0:
+                    continue
+                f = str(freq).lower()
+                ttl = r.get("title") or "Risk"
+                url = r.get("url")
+
+                if "daily" in f or "gün" in f:
+                    add_action({
+                        "type": "cadence",
+                        "priority": "high",
+                        "title": f"{ttl}: günlük kalemlere limit + anomali uyarısı",
+                        "details": "Günlük tekrarlayan kalemler için limit/uyarı kur. % artış olursa ikinci onaya düşsün.",
+                        "kpi": "Günlük anomalileri yakalama %90",
+                        "url": url
+                    })
+                elif "weekly" in f or "hafta" in f:
+                    add_action({
+                        "type": "cadence",
+                        "priority": "medium",
+                        "title": f"{ttl}: haftalık kalemlerde birleştirme/planlama optimizasyonu",
+                        "details": "Haftalık kalemleri tek güne/küme teslimata topla. Aynı işi yapanları konsolide et.",
+                        "kpi": f"Haftalık kalem maliyeti 30 günde -%{min(cut_pct, 15)}",
+                        "url": url
+                    })
+                else:
+                    add_action({
+                        "type": "cadence",
+                        "priority": "low",
+                        "title": f"{ttl}: periyot standardizasyonu ({freq})",
+                        "details": "Periyot tanımlarını sadeleştir. Raporlama için standarda çek.",
+                        "kpi": "Periyot çeşitliliği -%30",
+                        "url": url
+                    })
+
+        for r in (top_risks or [])[:5]:
+            add_freq_actions(r)
+
+        # 6) Data quality + alerts
+        add_action({
+            "type": "data",
+            "priority": "medium",
+            "title": "CostItem isimleri: duplicate/benzer isim temizliği",
+            "details": "Benzer isimli kalemleri tek standarda indir (örn. 'Nakliye', 'Nakliye bedeli'). Tag sistemi ekle.",
+            "kpi": "Duplicate isim oranı -%60",
+            "url": None
+        })
+
+        add_action({
+            "type": "alerts",
+            "priority": "medium",
+            "title": "Eşik bazlı uyarı: % artış / bütçe sapması",
+            "details": "Kalem bazında %10+ artış veya bütçe sapması olunca uyarı üret ve owner onayına düşür.",
+            "kpi": "Sapma yakalama: haftalık %100",
+            "url": None
+        })
+
+        # 7) Long-tail hygiene if top80 exists
+        if top_80_count and top_80_count > 0:
+            add_action({
+                "type": "hygiene",
+                "priority": "low",
+                "title": "Uzun kuyruk: Top-80 dışını paket yaklaşımıyla yönet",
+                "details": "Top-80 dışındaki küçük riskleri kategori/periyot altında paketleyip birleşik metriklerle takip et.",
+                "kpi": "Top-80 dışı rapor zamanı -%30",
+                "url": None
+            })
+
+        # 8) Keep your mitigation baseline (always)
+        add_action({
             "type": "mitigation",
             "priority": "low",
             "title": "Top-80 riskler için ölçülebilir mitigation hedefi",
-            "details": f"Mitigation planına metrik koy: ‘{currency} maliyeti 90 günde %{int(scenario_cut*100)} azalt’. Haftalık takip metriklerini yaz.",
+            "details": f"Mitigation planına metrik koy: ‘{currency} maliyeti 90 günde %{cut_pct} azalt’. Haftalık takip metriklerini yaz.",
             "kpi": "Haftalık takip: gerçekleşen tasarruf / plan",
             "url": None
         })
+
+        # UI’yi boğma diye (sonsuz aksiyon üretmek kolay)
+        actions = actions[:14]
 
         payload = {
             "currency": currency,
