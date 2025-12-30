@@ -43,7 +43,6 @@
     border:1px solid rgba(15,23,42,.10);
     background: rgba(255,255,255,.92);
   }
-  .chart-row{ display:grid; grid-template-columns: 1fr; gap:10px; }
 
   canvas{ width:100%; height:260px; display:block; }
 
@@ -93,7 +92,7 @@
     background: rgba(255,255,255,.65);
   }
 
-  /* ✅ NEW: highlight + pulse */
+  /* ✅ highlight + pulse (AI cards) */
   .ai-hl{
     outline: 2px solid rgba(245,158,11,.55);
     box-shadow: 0 0 0 6px rgba(245,158,11,.12);
@@ -103,8 +102,19 @@
     0% { box-shadow: 0 0 0 0 rgba(245,158,11,.18); }
     100% { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
   }
-  .ai-hl-pulse{
-    animation: pulseHL .65s ease-out 1;
+  .ai-hl-pulse{ animation: pulseHL .65s ease-out 1; }
+
+  /* ✅ NEW: table row selected */
+  #tbl tbody tr{
+    transition: background-color .15s ease, box-shadow .15s ease;
+  }
+  #tbl tbody tr.row-selected{
+    background: rgba(99,102,241,.10) !important; /* indigo haze */
+    box-shadow: inset 0 0 0 2px rgba(99,102,241,.22);
+  }
+  /* hover biraz kibar olsun */
+  #tbl tbody tr:hover{
+    background: rgba(15,23,42,.03);
   }
 </style>
 
@@ -149,7 +159,6 @@
       <span>Yalnız Top 80%</span>
     </label>
 
-    <!-- Scenario controls (sep öncesi) -->
     <select id="scope" class="input" title="Senaryo kapsamı">
       <option value="top3">Senaryo: Top 3</option>
       <option value="top80">Senaryo: Top 80</option>
@@ -226,7 +235,6 @@
       <h4 style="margin:12px 0 8px 0">Önerilen Aksiyonlar</h4>
       <div id="aiActions" style="display:grid; gap:10px;"></div>
 
-      <!-- ✅ Top risks -->
       <h4 style="margin:12px 0 8px 0">Top Riskler (AI)</h4>
       <div id="aiTopRisks" style="display:grid; gap:10px;"></div>
 
@@ -270,7 +278,9 @@
 
   let raw = null;
   let viewItems = [];
-  let lastFocusedRiskId = ""; // ✅ NEW: keep highlight after AI reload
+
+  let lastFocusedRiskId = "";     // AI highlight
+  let selectedRowRiskId = "";     // ✅ NEW: table selected row
 
   function fmt(n){
     const x = Number(n);
@@ -306,6 +316,33 @@
       const cum_pct = isFinite(Number(it.cum_pct)) ? Number(it.cum_pct) : cum;
       return { ...it, value, pct, cum_pct };
     });
+  }
+
+  /* ✅ NEW: manage selected row visuals */
+  function clearSelectedRow(){
+    selectedRowRiskId = "";
+    tbody.querySelectorAll("tr.row-selected").forEach(tr => tr.classList.remove("row-selected"));
+  }
+
+  function selectRowByRiskId(rid){
+    const id = String(rid || "");
+    if (!id){ clearSelectedRow(); return; }
+    selectedRowRiskId = id;
+
+    tbody.querySelectorAll("tr.row-selected").forEach(tr => tr.classList.remove("row-selected"));
+    const tr = tbody.querySelector(`tr[data-risk-id="${CSS.escape(id)}"]`);
+    if (tr) tr.classList.add("row-selected");
+  }
+
+  function ensureSelectionStillValid(){
+    if (!selectedRowRiskId) return;
+    const tr = tbody.querySelector(`tr[data-risk-id="${CSS.escape(selectedRowRiskId)}"]`);
+    if (!tr){
+      // filtre/sort sonrası görünmüyor
+      selectedRowRiskId = "";
+    } else {
+      tr.classList.add("row-selected");
+    }
   }
 
   function applyView(){
@@ -352,6 +389,9 @@
     renderTopCats(items, top80);
     renderChart(items, top80);
 
+    // ✅ keep selection if still visible
+    ensureSelectionStillValid();
+
     meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80} · Son güncelleme: ${new Date().toLocaleString()}`;
   }
 
@@ -366,6 +406,10 @@
       const title = safeText(it.title) || ("Risk #" + safeText(it.risk_id));
       const cat = safeText(it.category) || "-";
       const rid = safeText(it.risk_id);
+
+      tr.dataset.riskId = String(rid || "");
+      tr.style.cursor = "pointer";
+      tr.title = "Seç ve AI tarafında vurgula";
 
       tr.innerHTML = `
         <td class="mono">${idx}</td>
@@ -383,13 +427,10 @@
         tr.style.background = "rgba(255, 215, 0, .10)";
       }
 
-      /* ✅ NEW: row click -> focus AI top risk card */
-      tr.dataset.riskId = String(rid || "");
-      tr.style.cursor = "pointer";
-      tr.title = "AI tarafında bu riski vurgula";
       tr.addEventListener("click", (ev) => {
         const a = ev.target.closest("a");
         if (a) return; // link tıklanınca rapora gitsin
+        selectRowByRiskId(rid);
         focusAiRisk(rid);
       });
 
@@ -402,6 +443,7 @@
       const tr = document.createElement("tr");
       tr.innerHTML = `<td colspan="6" class="muted" style="padding:14px;">Kayıt yok. Filtre çok acımasız olabilir.</td>`;
       tbody.appendChild(tr);
+      clearSelectedRow();
     }
   }
 
@@ -677,14 +719,13 @@ ${risks || "- (yok)"}`
     return wrap;
   }
 
-  /* ✅ NEW: Focus AI Top Risk card by risk id */
+  /* Focus AI Top Risk card by risk id */
   function focusAiRisk(rid){
     const id = String(rid || "");
     if (!id) return;
 
     lastFocusedRiskId = id;
 
-    // clear previous highlights
     aiTopRisks.querySelectorAll(".ai-hl").forEach(el => {
       el.classList.remove("ai-hl","ai-hl-pulse");
     });
@@ -700,7 +741,7 @@ ${risks || "- (yok)"}`
     setTimeout(() => card.classList.remove("ai-hl-pulse"), 800);
   }
 
-  // ✅ NEW: Top risk mini card
+  // Top risk mini card
   function riskMiniCard(r){
     const wrap = document.createElement("div");
     wrap.className = "ai-box";
@@ -713,7 +754,6 @@ ${risks || "- (yok)"}`
     const pct = Number(r?.pct || 0);
     const url = r?.url || (id != null ? `/reports/${encodeURIComponent(id)}` : "#");
 
-    // ✅ dataset for focus/highlight
     wrap.dataset.riskId = String(id ?? "");
 
     const ci = r?.cost_items || {};
@@ -845,7 +885,6 @@ ${risks || "- (yok)"}`
         aiActions.appendChild(card("Aksiyon", "Aksiyon önerisi yok."));
       }
 
-      // ✅ Top risks render
       const trs = Array.isArray(ai.top_risks) ? ai.top_risks : [];
       if (trs.length){
         trs.forEach(r => aiTopRisks.appendChild(riskMiniCard(r)));
@@ -853,7 +892,7 @@ ${risks || "- (yok)"}`
         aiTopRisks.appendChild(card("Top Riskler", "AI top_risks dönmedi. Endpoint çıktısını kontrol et."));
       }
 
-      // ✅ re-apply highlight after reload
+      // ✅ keep AI highlight if any
       if (lastFocusedRiskId){
         setTimeout(() => focusAiRisk(lastFocusedRiskId), 50);
       }
