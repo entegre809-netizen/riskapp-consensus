@@ -2,11 +2,109 @@
 {% block title %}Pareto Analizi · Risk Yönetim{% endblock %}
 
 {% block content %}
-<div class="card">
-  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
-    <h3 style="margin:0">Pareto Analizi (Maliyet)</h3>
+<style>
+  /* Page-local polish (base.html'e dokunmadan modern görünüm) */
+  .pareto-wrap{ display:flex; flex-direction:column; gap:12px; }
+  .pareto-topbar{
+    display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;
+  }
+  .pareto-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+  .chip{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:8px 10px; border-radius:999px;
+    border:1px solid rgba(15,23,42,.10);
+    background: rgba(255,255,255,.75);
+    backdrop-filter: blur(8px);
+    color:#0f172a; font-weight:600;
+  }
+  .chip small{ font-weight:500; color:#64748b; }
+
+  .toolbar{
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    padding:10px; border-radius:14px;
+    border:1px solid rgba(15,23,42,.10);
+    background: rgba(255,255,255,.72);
+    backdrop-filter: blur(10px);
+  }
+  .toolbar .input{ min-width: 190px; }
+  .toolbar .btn{ white-space:nowrap; }
+  .toolbar .sep{ width:1px; height:28px; background: rgba(15,23,42,.10); margin:0 4px; }
+
+  .grid-2{
+    display:grid; grid-template-columns: 1.2fr .8fr; gap:12px;
+  }
+  @media (max-width: 980px){
+    .grid-2{ grid-template-columns: 1fr; }
+  }
+
+  .chart-card{
+    margin:0; padding:12px; border-radius:16px;
+    border:1px solid rgba(15,23,42,.10);
+    background: rgba(255,255,255,.92);
+  }
+  .chart-row{ display:grid; grid-template-columns: 1fr; gap:10px; }
+
+  canvas{ width:100%; height:260px; display:block; }
+
+  /* Table improvements */
+  .table-wrap{ overflow:auto; border-radius:14px; border:1px solid rgba(15,23,42,.10); }
+  table.table{ margin:0; }
+  table.table thead th{
+    position: sticky; top: 0;
+    background: #fff;
+    z-index: 1;
+    box-shadow: 0 1px 0 rgba(15,23,42,.08);
+  }
+  .muted{ color:#64748b; }
+  .mono{ font-variant-numeric: tabular-nums; }
+
+  .badge{
+    display:inline-flex; align-items:center;
+    padding:4px 8px; border-radius:999px;
+    border:1px solid rgba(15,23,42,.10);
+    background: rgba(15,23,42,.04);
+    color:#0f172a;
+    font-size:12px; font-weight:600;
+  }
+
+  .skeleton{
+    background: linear-gradient(90deg, rgba(15,23,42,.05), rgba(15,23,42,.10), rgba(15,23,42,.05));
+    background-size: 200% 100%;
+    animation: sk 1.2s infinite linear;
+    border-radius: 10px;
+    height: 14px;
+  }
+  @keyframes sk{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .err{
+    border:1px solid rgba(239,68,68,.25);
+    background: rgba(239,68,68,.06);
+    color:#991b1b;
+    padding:10px 12px;
+    border-radius:14px;
+    font-weight:600;
+  }
+
+  .ai-box{
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(15,23,42,.10);
+    background: rgba(255,255,255,.65);
+  }
+  .ai-actions{ margin:0; padding-left:18px; color:#334155; }
+</style>
+
+<div class="card pareto-wrap">
+  <div class="pareto-topbar">
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <h3 style="margin:0">Pareto Analizi (Maliyet)</h3>
+      <div id="meta" class="muted">
+        <div class="skeleton" style="width: 420px;"></div>
+      </div>
+    </div>
+
+    <div class="pareto-actions">
       <form method="get" action="{{ url_for('pareto_view') }}" style="display:flex; gap:8px; align-items:center;">
         <label style="font-weight:600;">Para Birimi</label>
         <select name="currency" class="input" onchange="this.form.submit()">
@@ -20,16 +118,58 @@
     </div>
   </div>
 
-  <div id="meta" style="margin-top:10px; color:#64748b;">Yükleniyor…</div>
+  <!-- Controls -->
+  <div class="toolbar">
+    <input id="q" class="input" type="search" placeholder="Risk / kategori ara…" />
+    <select id="sort" class="input" title="Sıralama">
+      <option value="value_desc">Tutar (Azalan)</option>
+      <option value="value_asc">Tutar (Artan)</option>
+      <option value="pct_desc">% (Azalan)</option>
+      <option value="pct_asc">% (Artan)</option>
+      <option value="title_az">Başlık (A→Z)</option>
+      <option value="title_za">Başlık (Z→A)</option>
+      <option value="cat_az">Kategori (A→Z)</option>
+    </select>
 
-  <div style="display:grid; grid-template-columns: 1.2fr .8fr; gap:12px; margin-top:12px;">
+    <label class="chip" style="cursor:pointer;">
+      <input id="onlyTop80" type="checkbox" style="accent-color:#f59e0b;" />
+      <span>Yalnız Top 80%</span>
+    </label>
+
+    <div class="sep"></div>
+
+    <button id="btnCsv" class="btn" type="button">CSV indir</button>
+    <button id="btnCopyAI" class="btn" type="button">AI kopyala</button>
+
+    <span id="countChip" class="chip" style="margin-left:auto;">
+      <span>Gösterilen</span>
+      <small><span id="shownCount" class="mono">0</span>/<span id="allCount" class="mono">0</span></small>
+    </span>
+  </div>
+
+  <div class="grid-2">
+    <!-- LEFT -->
     <div class="card" style="margin:0">
-      <h4 style="margin:0 0 10px 0">Top Riskler (80/20)</h4>
-      <div style="overflow:auto;">
+      <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
+        <h4 style="margin:0">Top Riskler (80/20)</h4>
+        <span id="topCats" class="muted"></span>
+      </div>
+
+      <div class="chart-card" style="margin-top:10px;">
+        <div class="chart-row">
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
+            <span class="badge">Pareto Grafiği (Bar + Kümülatif %)</span>
+            <span id="chartHint" class="muted" style="font-size:12px;">İlk 25 risk çizilir (performans için).</span>
+          </div>
+          <canvas id="paretoChart" width="900" height="260"></canvas>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:10px;">
         <table class="table" id="tbl">
           <thead>
             <tr>
-              <th>#</th>
+              <th style="width:52px;">#</th>
               <th>Risk</th>
               <th>Kategori</th>
               <th style="text-align:right;">Tutar</th>
@@ -37,16 +177,28 @@
               <th style="text-align:right;">Kümülatif %</th>
             </tr>
           </thead>
-          <tbody></tbody>
+          <tbody>
+            <!-- JS -->
+          </tbody>
         </table>
       </div>
+
+      <div id="err" style="display:none; margin-top:10px;" class="err"></div>
     </div>
 
+    <!-- RIGHT -->
     <div class="card" style="margin:0">
       <h4 style="margin:0 0 10px 0">AI Özet</h4>
-      <div id="aiSummary" style="color:#0f172a; line-height:1.5;">Yükleniyor…</div>
+      <div id="aiSummary" class="ai-box" style="color:#0f172a; line-height:1.5;">
+        <div class="skeleton" style="width: 92%;"></div>
+        <div class="skeleton" style="width: 78%; margin-top:8px;"></div>
+        <div class="skeleton" style="width: 66%; margin-top:8px;"></div>
+      </div>
+
       <h4 style="margin:12px 0 8px 0">Önerilen Aksiyonlar</h4>
-      <ul id="aiActions" style="margin:0; padding-left:18px; color:#334155;"></ul>
+      <ul id="aiActions" class="ai-actions"></ul>
+
+      <div id="aiErr" style="display:none; margin-top:10px;" class="err"></div>
     </div>
   </div>
 </div>
@@ -57,49 +209,374 @@
 
   const meta = document.getElementById("meta");
   const tbody = document.querySelector("#tbl tbody");
+  const errBox = document.getElementById("err");
+
   const aiSummary = document.getElementById("aiSummary");
   const aiActions = document.getElementById("aiActions");
+  const aiErr = document.getElementById("aiErr");
+
+  const q = document.getElementById("q");
+  const sortSel = document.getElementById("sort");
+  const onlyTop80 = document.getElementById("onlyTop80");
+
+  const btnCsv = document.getElementById("btnCsv");
+  const btnCopyAI = document.getElementById("btnCopyAI");
+
+  const shownCount = document.getElementById("shownCount");
+  const allCount = document.getElementById("allCount");
+  const topCatsEl = document.getElementById("topCats");
+
+  const canvas = document.getElementById("paretoChart");
+  const ctx = canvas.getContext("2d");
+
+  let raw = null;          // API raw response
+  let viewItems = [];      // filtered + sorted items
 
   function fmt(n){
-    try { return Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}); }
-    catch(e){ return n; }
+    const x = Number(n);
+    if (!isFinite(x)) return n;
+    return x.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
   }
 
+  function safeText(s){
+    return (s ?? "").toString();
+  }
+
+  function showErr(msg){
+    errBox.style.display = "block";
+    errBox.textContent = msg;
+  }
+  function hideErr(){
+    errBox.style.display = "none";
+    errBox.textContent = "";
+  }
+
+  async function fetchJson(url){
+    const r = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!r.ok) throw new Error(`HTTP ${r.status} · ${url}`);
+    return await r.json();
+  }
+
+  function computePctIfMissing(items, total){
+    // API pct/cum_pct yoksa da ekranda patlamasın
+    let cum = 0;
+    return items.map(it => {
+      const value = Number(it.value || 0);
+      const pct = isFinite(Number(it.pct)) ? Number(it.pct) : (total ? (value / total * 100) : 0);
+      cum += pct;
+      const cum_pct = isFinite(Number(it.cum_pct)) ? Number(it.cum_pct) : cum;
+      return { ...it, value, pct, cum_pct };
+    });
+  }
+
+  function applyView(){
+    const items = (raw?.items || []);
+    const total = Number(raw?.total || 0);
+    const top80 = Number(raw?.top_80_count || 0);
+
+    // 1) normalize
+    let list = computePctIfMissing(items, total);
+
+    // 2) filter
+    const term = safeText(q.value).trim().toLowerCase();
+    if (term){
+      list = list.filter(it => {
+        const t = safeText(it.title).toLowerCase();
+        const c = safeText(it.category).toLowerCase();
+        const id = safeText(it.risk_id);
+        return t.includes(term) || c.includes(term) || id.includes(term);
+      });
+    }
+    if (onlyTop80.checked && top80 > 0){
+      list = list.slice(0, top80);
+    }
+
+    // 3) sort
+    const key = sortSel.value;
+    const byStr = (a,b,dir=1) => (safeText(a).localeCompare(safeText(b), undefined, {sensitivity:"base"})) * dir;
+    list.sort((a,b) => {
+      switch(key){
+        case "value_desc": return (b.value - a.value);
+        case "value_asc":  return (a.value - b.value);
+        case "pct_desc":   return (b.pct - a.pct);
+        case "pct_asc":    return (a.pct - b.pct);
+        case "title_az":   return byStr(a.title, b.title, 1);
+        case "title_za":   return byStr(a.title, b.title, -1);
+        case "cat_az":     return byStr(a.category, b.category, 1);
+        default: return 0;
+      }
+    });
+
+    viewItems = list;
+
+    // counts
+    allCount.textContent = String(items.length);
+    shownCount.textContent = String(viewItems.length);
+
+    // table render
+    renderTable(viewItems, top80);
+    renderTopCats(items, top80);
+    renderChart(items, top80);
+
+    // meta
+    meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80} · Son güncelleme: ${new Date().toLocaleString()}`;
+  }
+
+  function renderTable(list, top80){
+    tbody.innerHTML = "";
+    const frag = document.createDocumentFragment();
+
+    list.forEach((it, i) => {
+      const tr = document.createElement("tr");
+      const idx = i + 1;
+
+      const title = safeText(it.title) || ("Risk #" + safeText(it.risk_id));
+      const cat = safeText(it.category) || "-";
+      const rid = safeText(it.risk_id);
+
+      tr.innerHTML = `
+        <td class="mono">${idx}</td>
+        <td>
+          <a href="/reports/${encodeURIComponent(rid)}">${title}</a>
+          <div class="muted" style="font-size:12px;">ID: <span class="mono">${rid}</span></div>
+        </td>
+        <td>${cat}</td>
+        <td class="mono" style="text-align:right;">${fmt(it.value)} ${currency}</td>
+        <td class="mono" style="text-align:right;">%${fmt(it.pct)}</td>
+        <td class="mono" style="text-align:right;">%${fmt(it.cum_pct)}</td>
+      `;
+
+      // top80 highlight only when showing full list (so it doesn't become weird in filtered views)
+      if (!onlyTop80.checked && top80 > 0 && idx <= top80){
+        tr.style.background = "rgba(255, 215, 0, .10)";
+      }
+      frag.appendChild(tr);
+    });
+
+    tbody.appendChild(frag);
+
+    if (!list.length){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="6" class="muted" style="padding:14px;">Kayıt yok. Filtre çok acımasız olabilir.</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderTopCats(items, top80){
+    if (!items?.length){ topCatsEl.textContent = ""; return; }
+    const slice = items.slice(0, Math.max(0, top80));
+    const map = {};
+    for (const it of slice){
+      const c = safeText(it.category) || "GENEL";
+      map[c] = (map[c] || 0) + Number(it.value || 0);
+    }
+    const top = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    if (!top.length){ topCatsEl.textContent = ""; return; }
+
+    const txt = top.map(([c,v]) => `${c}: ${fmt(v)} ${currency}`).join(" · ");
+    topCatsEl.textContent = `Top kategori yükü: ${txt}`;
+  }
+
+  function clearCanvas(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+  }
+
+  function renderChart(items, top80){
+    clearCanvas();
+    if (!items?.length) return;
+
+    // draw first N items for readability
+    const N = Math.min(25, items.length);
+    const total = Number(raw?.total || 0) || 1;
+
+    const list = computePctIfMissing(items.slice(0, N), total);
+
+    // chart box
+    const W = canvas.width, H = canvas.height;
+    const padL = 46, padR = 14, padT = 14, padB = 34;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    // scales
+    const maxVal = Math.max(...list.map(x => Number(x.value||0)), 1);
+    const barW = plotW / N;
+
+    // axes
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1;
+
+    ctx.strokeStyle = "rgba(15,23,42,.18)";
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+
+    // y grid (value)
+    ctx.fillStyle = "rgba(15,23,42,.65)";
+    ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    const steps = 4;
+    for (let s=0; s<=steps; s++){
+      const y = padT + plotH - (plotH * s/steps);
+      ctx.strokeStyle = "rgba(15,23,42,.08)";
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.stroke();
+
+      const val = maxVal * s/steps;
+      ctx.fillStyle = "rgba(15,23,42,.55)";
+      ctx.fillText(fmt(val), 6, y + 4);
+    }
+
+    // bars + cumulative line
+    let cum = 0;
+    const points = [];
+
+    for (let i=0; i<N; i++){
+      const it = list[i];
+      const v = Number(it.value||0);
+      const pct = total ? (v/total*100) : 0;
+      cum += pct;
+
+      const x = padL + i * barW;
+      const barH = (v / maxVal) * plotH;
+      const y = padT + plotH - barH;
+
+      // bar
+      ctx.fillStyle = (top80 > 0 && (i+1) <= top80) ? "rgba(245, 158, 11, .55)" : "rgba(99, 102, 241, .40)";
+      ctx.fillRect(x + 3, y, Math.max(2, barW - 6), barH);
+
+      // cumulative point (0..100)
+      const cx = x + barW/2;
+      const cy = padT + plotH - (Math.min(100, cum)/100) * plotH;
+      points.push([cx, cy]);
+    }
+
+    // cumulative line
+    ctx.strokeStyle = "rgba(15,23,42,.65)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    points.forEach((p, idx) => {
+      if (idx === 0) ctx.moveTo(p[0], p[1]);
+      else ctx.lineTo(p[0], p[1]);
+    });
+    ctx.stroke();
+
+    // 80% line
+    ctx.strokeStyle = "rgba(239,68,68,.55)";
+    ctx.setLineDash([6,4]);
+    const y80 = padT + plotH - 0.8 * plotH;
+    ctx.beginPath();
+    ctx.moveTo(padL, y80);
+    ctx.lineTo(padL + plotW, y80);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = "rgba(239,68,68,.85)";
+    ctx.fillText("80%", padL + plotW - 26, y80 - 6);
+
+    // x labels (sparse)
+    ctx.fillStyle = "rgba(15,23,42,.45)";
+    ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    const every = N > 12 ? 2 : 1;
+    for (let i=0; i<N; i+=every){
+      const x = padL + i*barW + 3;
+      ctx.fillText(String(i+1), x, padT + plotH + 18);
+    }
+
+    ctx.restore();
+  }
+
+  function downloadCsv(){
+    if (!raw?.items?.length) return;
+
+    const rows = [];
+    rows.push(["index","risk_id","title","category","value","pct","cum_pct","currency"].join(","));
+
+    const total = Number(raw.total || 0);
+    const list = computePctIfMissing(raw.items, total);
+
+    // export current view if filtered, otherwise full
+    const exportList = (viewItems?.length ? viewItems : list);
+    exportList.forEach((it, idx) => {
+      const row = [
+        idx+1,
+        `"${String(it.risk_id ?? "").replaceAll('"','""')}"`,
+        `"${String(it.title ?? "").replaceAll('"','""')}"`,
+        `"${String(it.category ?? "").replaceAll('"','""')}"`,
+        Number(it.value || 0),
+        Number(it.pct || 0),
+        Number(it.cum_pct || 0),
+        currency
+      ];
+      rows.push(row.join(","));
+    });
+
+    const blob = new Blob([rows.join("\n")], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `pareto_${currency}_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+  }
+
+  function copyAI(){
+    const summary = safeText(aiSummary.textContent).trim();
+    const acts = Array.from(aiActions.querySelectorAll("li")).map(li => "- " + li.textContent.trim()).join("\n");
+    const txt = `AI Özet (${currency})\n\n${summary}\n\nAksiyonlar:\n${acts || "- (yok)"}`;
+    navigator.clipboard?.writeText(txt);
+  }
+
+  // events
+  q.addEventListener("input", () => applyView());
+  sortSel.addEventListener("change", () => applyView());
+  onlyTop80.addEventListener("change", () => applyView());
+  btnCsv.addEventListener("click", downloadCsv);
+  btnCopyAI.addEventListener("click", copyAI);
+
   // 1) Pareto data
-  const res = await fetch(`/analytics/pareto?currency=${encodeURIComponent(currency)}`);
-  const data = await res.json();
+  try {
+    hideErr();
+    const data = await fetchJson(`/analytics/pareto?currency=${encodeURIComponent(currency)}`);
+    raw = data;
 
-  const total = data.total || 0;
-  const top80 = data.top_80_count || 0;
-  meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80}`;
+    const total = Number(data.total || 0);
+    const top80 = Number(data.top_80_count || 0);
+    meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80}`;
 
-  tbody.innerHTML = "";
-  (data.items || []).forEach((it, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td><a href="/reports/${it.risk_id}">${it.title || ("Risk #" + it.risk_id)}</a></td>
-      <td>${it.category || "-"}</td>
-      <td style="text-align:right;">${fmt(it.value)} ${currency}</td>
-      <td style="text-align:right;">%${fmt(it.pct)}</td>
-      <td style="text-align:right;">%${fmt(it.cum_pct)}</td>
-    `;
-    // 80% bandını hafif vurgula
-    if (i < top80) tr.style.background = "rgba(255, 215, 0, .10)";
-    tbody.appendChild(tr);
-  });
+    applyView();
+  } catch (e){
+    showErr("Pareto verisi alınamadı. Sunucu veya endpoint gitti mi kontrol et: " + (e?.message || e));
+    meta.textContent = "Veri yok.";
+  }
 
   // 2) AI summary
-  const res2 = await fetch(`/analytics/pareto/ai?currency=${encodeURIComponent(currency)}`);
-  const ai = await res2.json();
+  try {
+    aiErr.style.display = "none";
+    const ai = await fetchJson(`/analytics/pareto/ai?currency=${encodeURIComponent(currency)}`);
 
-  aiSummary.textContent = ai.summary || "Özet yok.";
-  aiActions.innerHTML = "";
-  (ai.actions || []).forEach(a => {
-    const li = document.createElement("li");
-    li.textContent = a;
-    aiActions.appendChild(li);
-  });
+    aiSummary.textContent = ai.summary || "Özet yok.";
+    aiActions.innerHTML = "";
+    (ai.actions || []).forEach(a => {
+      const li = document.createElement("li");
+      li.textContent = a;
+      aiActions.appendChild(li);
+    });
+
+    if (!(ai.actions || []).length){
+      const li = document.createElement("li");
+      li.textContent = "Aksiyon önerisi yok.";
+      aiActions.appendChild(li);
+    }
+  } catch (e){
+    aiErr.style.display = "block";
+    aiErr.textContent = "AI özeti alınamadı (çok da şaşırmadık). " + (e?.message || e);
+    aiSummary.textContent = "Özet yok.";
+  }
 })();
 </script>
 {% endblock %}
