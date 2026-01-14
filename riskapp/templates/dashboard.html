@@ -4,620 +4,791 @@
 
 <style>
   /* ================================
-     DASHBOARD — RiskApp (2026)
-     (base.html token’larıyla uyumlu)
+     RiskApp Dashboard — Tailwind-look
+     (SIFIR feature kaybı: aynı Jinja/JS)
      ================================ */
 
-  /* ----- Top mini header (dashboard içi) ----- */
-  .dash-head{
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+  /* Bu sayfa özel tipografi */
+  .dash-scope{
+    font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
+  }
+
+  /* --- Bu sayfada buton/rozetleri tailwind gibi yap (base’i bozma) --- */
+  .dash-scope .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    padding: .72rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(148,163,184,.35);
+    background: rgba(255,255,255,.85);
+    color: #0f172a;
+    text-decoration:none;
+    font-weight: 700;
+    font-size: .92rem;
+    box-shadow: 0 10px 30px -18px rgba(15,23,42,.25);
+    backdrop-filter: blur(10px);
+    transition: transform .08s ease, filter .18s ease, border-color .18s ease;
+  }
+  [data-theme="dark"] .dash-scope .btn{
+    background: rgba(30,33,38,.75);
+    color: #e5e7eb;
+    border-color: rgba(148,163,184,.18);
+  }
+  .dash-scope .btn:hover{ transform: translateY(-1px); filter: brightness(1.02); border-color: rgba(40,102,189,.35); }
+
+  .dash-scope .btn.btn-primary{
+    background: #2866bd;
+    border-color: #2866bd;
+    color: #fff;
+    box-shadow: 0 14px 36px -18px rgba(40,102,189,.65);
+  }
+  .dash-scope .btn.btn-primary:hover{ filter: brightness(1.03); }
+
+  .dash-scope .badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: .22rem .55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,.35);
+    font-weight: 900;
+    font-size: .85rem;
+    line-height: 1;
+  }
+
+  /* Base’teki score-low/mid/high varsa yine çalışır, yoksa fallback */
+  .dash-scope .score-low { background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.35); color: #166534; }
+  .dash-scope .score-mid { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.38); color: #854d0e; }
+  .dash-scope .score-high{ background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.35); color: #7f1d1d; }
+  [data-theme="dark"] .dash-scope .score-low { color:#86efac; }
+  [data-theme="dark"] .dash-scope .score-mid { color:#fde68a; }
+  [data-theme="dark"] .dash-scope .score-high{ color:#fecaca; }
+
+  /* --- Dashboard Topbar (Tailwind örneği gibi) --- */
+  .dash-topbar{
     position: sticky;
     top: 0;
-    z-index: 5;
-    margin: -6px 0 14px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: color-mix(in oklab, var(--surface) 86%, transparent);
-    border: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    backdrop-filter: blur(10px);
+    z-index: 20;
+    margin: -10px 0 16px;
+    padding: 14px 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.78);
+    border: 1px solid rgba(226,232,240,.9);
+    box-shadow: 0 14px 40px -22px rgba(15,23,42,.28);
+    backdrop-filter: blur(12px);
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:10px;
+    gap:12px;
     flex-wrap:wrap;
   }
-  [data-theme="dark"] .dash-head{ border:1px solid rgba(255,255,255,.10); }
-  .dash-brand{
-    display:flex; align-items:center; gap:10px; min-width: 220px;
+  [data-theme="dark"] .dash-topbar{
+    background: rgba(18,24,32,.72);
+    border-color: rgba(51,65,85,.55);
   }
-  .dash-logo{
-    width:36px; height:36px;
+
+  .brand{
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand-badge{
+    width: 38px; height: 38px;
     border-radius: 12px;
+    background: #2866bd;
     display:grid; place-items:center;
-    background: color-mix(in oklab, var(--primary) 18%, transparent);
-    border:1px solid color-mix(in oklab, var(--primary) 28%, transparent);
-    color: var(--primary);
+    color:#fff;
     font-weight: 900;
   }
-  .dash-title{
-    display:flex; flex-direction:column; line-height:1.1;
+  .brand-title{
+    display:flex; flex-direction:column; line-height:1.05;
   }
-  .dash-title b{ font-size: 1.05rem; }
-  .dash-title span{ color: var(--text-dim); font-size: .86rem; }
+  .brand-title b{ font-size: 1.05rem; letter-spacing:-.02em; }
+  .brand-title span{ font-size: .85rem; color:#64748b; }
+  [data-theme="dark"] .brand-title span{ color:#94a3b8; }
 
-  .dash-actions{
-    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  .dash-search{
+    flex: 1;
+    min-width: 260px;
+    max-width: 520px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(248,250,252,.85);
   }
+  [data-theme="dark"] .dash-search{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(30,33,38,.55);
+  }
+  .dash-search input{
+    width:100%;
+    border:none;
+    outline:none;
+    background: transparent;
+    font-size: .95rem;
+    color: inherit;
+  }
+  .dash-search .icon{ opacity:.55; font-weight: 900; }
 
-  /* ----- KPI’ler ----- */
+  .dash-nav{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .dash-nav a{
+    text-decoration:none;
+    font-weight: 800;
+    font-size: .92rem;
+    color: #475569;
+    padding: .35rem .5rem;
+    border-radius: 10px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .dash-nav a:hover{ background: rgba(148,163,184,.18); color:#0f172a; }
+  [data-theme="dark"] .dash-nav a{ color:#94a3b8; }
+  [data-theme="dark"] .dash-nav a:hover{ background: rgba(148,163,184,.12); color:#e5e7eb; }
+  .dash-nav a.active{ color:#2866bd; }
+
+  .dash-right{
+    display:flex; align-items:center; gap:10px;
+  }
+  .icon-btn{
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.7);
+    display:grid; place-items:center;
+    cursor:pointer;
+    transition: filter .15s ease, transform .08s ease;
+  }
+  .icon-btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+  [data-theme="dark"] .icon-btn{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(30,33,38,.55);
+    color:#e5e7eb;
+  }
+  .avatar{
+    width: 40px; height: 40px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,255,255,.9);
+    background: linear-gradient(135deg, rgba(148,163,184,.4), rgba(148,163,184,.15));
+  }
+  [data-theme="dark"] .avatar{ border-color: rgba(18,24,32,.9); }
+
+  /* --- KPI’ler (Tailwind kart ölçülerine yakın) --- */
   .kpis{
-    display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:14px;
+    display:grid;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+    gap: 12px;
+    margin-bottom: 14px;
   }
   @media (max-width: 1200px){ .kpis{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-  @media (max-width: 980px){  .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  @media (max-width: 540px){  .kpis{ grid-template-columns: 1fr; } }
+  @media (max-width: 860px){  .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 520px){  .kpis{ grid-template-columns: 1fr; } }
 
   .kpi{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:14px 16px; border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:14px;
-    background: var(--card);
-    box-shadow: var(--elev-card);
-    backdrop-filter: var(--glass-blur);
-    transition: transform .08s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease;
-    min-height: 52px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 14px 40px -26px rgba(15,23,42,.22);
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    min-height: 88px;
   }
-  .kpi:hover{ transform: translateY(-1px); filter:brightness(1.02); }
-  [data-theme="dark"] .kpi{ border:1px solid rgba(255,255,255,.10); }
+  [data-theme="dark"] .kpi{
+    background: rgba(30,33,38,.72);
+    border-color: rgba(51,65,85,.55);
+  }
+  .kpi .label{
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: #64748b;
+    font-weight: 900;
+  }
+  [data-theme="dark"] .kpi .label{ color:#94a3b8; }
+  .kpi .value{
+    font-size: 1.65rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    display:flex; align-items:center; justify-content:space-between;
+  }
 
-  .kpi .left{ display:flex; flex-direction:column; gap:2px; }
-  .kpi .label{ font-weight:900; letter-spacing:.02em; color:var(--text-dim); font-size:.86rem }
-  .kpi .hint{ color: var(--text-dim); font-size:.78rem; opacity:.9; }
-  .kpi .value{ font-weight:900; font-size:1.28rem; display:flex; align-items:center; gap:6px }
+  .kpi.primary{
+    background: #2866bd;
+    border-color: #2866bd;
+    color: #fff;
+    box-shadow: 0 18px 50px -28px rgba(40,102,189,.75);
+  }
+  .kpi.primary .label{ color: rgba(255,255,255,.55); }
+  .kpi.primary .value{ color:#fff; }
 
-  /* ----- Genel kartlar ----- */
+  /* --- Ana kartlar (table + matrix) --- */
   .card{
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:14px; background:var(--card); box-shadow: var(--elev-card);
-    padding:16px; backdrop-filter: var(--glass-blur);
+    border-radius: 16px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 14px 40px -26px rgba(15,23,42,.22);
+    padding: 16px;
     min-width: 0;
   }
-  [data-theme="dark"] .card{ border:1px solid rgba(255,255,255,.10); }
+  [data-theme="dark"] .card{
+    background: rgba(30,33,38,.72);
+    border-color: rgba(51,65,85,.55);
+  }
 
-  .grid{ display:grid; gap:14px }
-  .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)) }
-  @media (max-width: 980px){ .grid-2{ grid-template-columns: 1fr } }
+  .grid{ display:grid; gap: 12px; }
+  .grid-2{ grid-template-columns: 1.7fr 1fr; }
+  @media (max-width: 980px){ .grid-2{ grid-template-columns: 1fr; } }
 
   .card-head{
     display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
-    margin-bottom: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(226,232,240,.75);
+    margin-bottom: 12px;
   }
+  [data-theme="dark"] .card-head{ border-color: rgba(51,65,85,.45); }
+
   .card-title{
-    display:flex; align-items:center; gap:10px;
     margin:0;
-  }
-  .icon-pill{
-    width:34px; height:34px; border-radius: 12px;
-    display:grid; place-items:center;
-    background: color-mix(in oklab, var(--primary) 14%, transparent);
-    border:1px solid color-mix(in oklab, var(--primary) 22%, transparent);
-    color: var(--primary);
+    display:flex; align-items:center; gap:10px;
     font-weight: 900;
-    user-select:none;
+    font-size: 1.05rem;
+  }
+  .pill{
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    display:grid; place-items:center;
+    background: rgba(40,102,189,.14);
+    border: 1px solid rgba(40,102,189,.22);
+    color:#2866bd;
+    font-weight: 900;
   }
 
-  .legend{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
-  .legend .badge{ font-weight:900 }
-
-  .empty{
-    border:2px dashed color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:14px; padding:24px; text-align:center; color:var(--text-dim);
-    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+  /* --- Tablo tailwindvari --- */
+  .table-wrap{ overflow:auto; border-radius: 14px; }
+  .table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 720px;
   }
+  .table thead th{
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: rgba(248,250,252,.92);
+    color:#64748b;
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 900;
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(226,232,240,.9);
+  }
+  [data-theme="dark"] .table thead th{
+    background: rgba(18,24,32,.68);
+    color:#94a3b8;
+    border-color: rgba(51,65,85,.55);
+  }
+  .table td{
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(226,232,240,.75);
+    vertical-align: top;
+    font-size: .95rem;
+  }
+  [data-theme="dark"] .table td{ border-color: rgba(51,65,85,.45); }
+  .table tbody tr:hover td{ background: rgba(40,102,189,.04); }
+  [data-theme="dark"] .table tbody tr:hover td{ background: rgba(40,102,189,.08); }
 
-  /* ===========================
-     RISK MATRIX — 5×5 ısı haritası
-     Eşikler: 1–4 yeşil / 5–10 sarı / 11–15 turuncu / 16–25 kırmızı
-     =========================== */
-
+  /* --- Risk matrix (senin mantık aynen) --- */
   .risk-matrix{
-    --label-w: 150px;
-    --cell-size: 64px;
+    --label-w: 140px;
+    --cell-size: 60px;
     display:grid;
     grid-template-columns: var(--label-w) repeat(5, var(--cell-size));
     grid-auto-rows: var(--cell-size);
     gap: 8px;
     margin-top: 10px;
   }
-  @media (max-width: 980px){
-    .risk-matrix{ --label-w: 130px; --cell-size: 58px; }
-  }
-  @media (max-width: 640px){
-    .risk-matrix{ --label-w: 120px; --cell-size: 52px; }
-  }
+  @media (max-width: 980px){ .risk-matrix{ --label-w: 120px; --cell-size: 56px; } }
+  @media (max-width: 640px){ .risk-matrix{ --label-w: 112px; --cell-size: 52px; } }
 
-  .rm-corner{
-    display:grid; place-items:center;
-    color:var(--text-dim); font-weight:900; text-transform:uppercase; letter-spacing:.08em;
-  }
+  .rm-corner{ display:grid; place-items:center; color:#94a3b8; font-weight:900; }
+  .rm-corner::after{ content:"Olasılık →"; }
 
   .rm-colhead,.rm-rowhead{
-    position:relative; display:flex; gap:6px; padding:8px 10px;
-    border:1px dashed color-mix(in oklab, var(--line) 70%, transparent);
-    border-radius:10px; background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-    font-weight:800;
-    min-width:0;
+    border-radius: 14px;
+    padding: 10px 10px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(248,250,252,.85);
+    display:flex;
+    justify-content:space-between;
+    gap: 8px;
     align-items:flex-start;
-    white-space: normal;
+  }
+  [data-theme="dark"] .rm-colhead, [data-theme="dark"] .rm-rowhead{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(18,24,32,.55);
   }
   .rm-colhead{ flex-direction:column; }
-  .rm-coltitle,.rm-rowtitle{ font-weight:900; max-width: 100%; }
-  .rm-colnum,.rm-rownum{ font: 900 .9rem var(--mono); opacity:.75; flex-shrink:0; }
+  .rm-coltitle,.rm-rowtitle{ font-weight: 900; font-size: .86rem; }
+  .rm-colnum,.rm-rownum{ font-weight: 900; opacity:.6; }
+
+  .risk-matrix .rm-rowhead:first-of-type::before{
+    content:"↑ Şiddet";
+    position:absolute;
+    transform: rotate(-90deg) translate(-40%, -120%);
+    transform-origin:left top;
+    color: #94a3b8;
+    font-weight: 900;
+  }
 
   .rm-cell{
-    position:relative; display:grid; align-content:center; justify-items:center;
-    border-radius: 10px; border: 1.5px solid rgba(0,0,0,.06);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.6);
-    cursor: pointer; padding: 4px;
-    transition: transform .06s ease, box-shadow .15s ease, filter .15s ease, outline-color .15s ease;
-    text-decoration: none; color: inherit; user-select:none;
+    position:relative;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    text-decoration:none;
+    font-weight: 900;
+    border: 1px solid rgba(0,0,0,.06);
+    transition: transform .08s ease, filter .16s ease;
   }
   .rm-cell:hover{ transform: translateY(-1px); filter: brightness(1.02); }
-  .rm-cell:focus-visible{
-    outline: 4px solid color-mix(in oklab, var(--ring) 35%, transparent);
-    outline-offset: 1px;
-  }
+  .rm-cell:focus-visible{ outline: 4px solid rgba(40,102,189,.22); outline-offset: 2px; }
 
-  .rm-score{ font: 900 1rem/1 var(--mono); }
+  .rm-score{ font: 900 1.02rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono"; }
   .rm-count{
-    position:absolute; right:6px; bottom:5px;
-    font-weight:800; font-size:.78rem; opacity:.92;
-    padding:.12rem .45rem; border-radius:999px;
-    border:1px solid rgba(0,0,0,.12);
-    background: rgba(255,255,255,.66);
-    white-space: nowrap;
+    position:absolute;
+    right: 8px;
+    bottom: 8px;
+    font-weight: 900;
+    font-size: .8rem;
+    padding: .14rem .48rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,.72);
+    border: 1px solid rgba(0,0,0,.10);
   }
-  [data-theme="dark"] .rm-count{ background: rgba(0,0,0,.25); border-color: rgba(255,255,255,.18); }
+  [data-theme="dark"] .rm-count{
+    background: rgba(0,0,0,.22);
+    border-color: rgba(255,255,255,.14);
+  }
 
-  /* renkler */
-  .rm-cell.low  { background: #0f2f18; border-color:#1d5d3a; color:#bff5d3; }
-  .rm-cell.mid  { background: #3a2e05; border-color:#7a5c0b; color:#ffe6a6; }
-  .rm-cell.hi   { background: #4b2400; border-color:#a24e0a; color:#ffd7b5; }
-  .rm-cell.crit { background: #3b0b0b; border-color:#7f1d1d; color:#ffd0d0; }
-
+  /* renk eşikleri */
   html[data-theme="light"] .rm-cell.low  { background:#d1fae5; border-color:#9fe3c9; color:#0d3a2c; }
   html[data-theme="light"] .rm-cell.mid  { background:#fde68a; border-color:#f3c24f; color:#5a3f00; }
   html[data-theme="light"] .rm-cell.hi   { background:#fdba74; border-color:#f59e0b; color:#4a2500; }
   html[data-theme="light"] .rm-cell.crit { background:#fecaca; border-color:#f87171; color:#5a1010; }
 
-  .risk-matrix .rm-corner::after{
-    content:"Olasılık →"; font-weight:900; color:var(--text-dim);
-  }
-  .risk-matrix .rm-rowhead:first-of-type::before{
-    content:"↑ Şiddet"; position:absolute; transform:rotate(-90deg) translate(-40%, -120%);
-    transform-origin:left top; color:var(--text-dim); font-weight:900;
-  }
+  [data-theme="dark"] .rm-cell.low  { background:#0f2f18; border-color:#1d5d3a; color:#bff5d3; }
+  [data-theme="dark"] .rm-cell.mid  { background:#3a2e05; border-color:#7a5c0b; color:#ffe6a6; }
+  [data-theme="dark"] .rm-cell.hi   { background:#4b2400; border-color:#a24e0a; color:#ffd7b5; }
+  [data-theme="dark"] .rm-cell.crit { background:#3b0b0b; border-color:#7f1d1d; color:#ffd0d0; }
 
-  /* ----- Donut’lar ----- */
-  .donut-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:12px; }
-  @media (max-width:980px){ .donut-grid{ grid-template-columns:1fr; } }
+  /* Donut alanları */
+  .donut-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  @media (max-width: 980px){ .donut-grid{ grid-template-columns: 1fr; } }
   .donut-card{
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:14px; padding:12px; background:var(--card);
-    min-width:0;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.92);
+    border-radius: 16px;
+    padding: 14px;
   }
-  [data-theme="dark"] .donut-card{ border:1px solid rgba(255,255,255,.10); }
-  .donut-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:10px; flex-wrap:wrap }
-  .donut-title{ font-weight:900; }
-  .legend-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
+  [data-theme="dark"] .donut-card{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(18,24,32,.55);
+  }
+  .donut-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom: 8px; }
+  .donut-title{ font-weight: 900; }
+
+  .legend-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
   .legend-chip{
     display:inline-flex; align-items:center; gap:6px;
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:999px; padding:2px 8px; font-weight:800;
+    border:1px solid rgba(226,232,240,.9);
+    background: rgba(248,250,252,.65);
+    border-radius:999px;
+    padding: 4px 10px;
+    font-weight: 900;
+    font-size: .86rem;
   }
-  [data-theme="dark"] .legend-chip{ border:1px solid rgba(255,255,255,.14); }
-  .chip-dot{ width:10px; height:10px; border-radius:999px; display:inline-block }
+  [data-theme="dark"] .legend-chip{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(30,33,38,.45);
+  }
+  .chip-dot{ width:10px; height:10px; border-radius:999px; }
 
-  /* ----- Tablo ----- */
-  .table-wrap{ overflow:auto; border-radius:14px; scrollbar-gutter: stable both-edges; }
-  .table{ width:100%; border-collapse:separate; border-spacing:0; min-width:720px }
-  .table th,.table td{
-    padding:.72rem .9rem; border-bottom:1px solid color-mix(in oklab, var(--line) 84%, transparent);
-    text-align:left; font-size:.95rem; vertical-align:top;
-  }
-  .table thead th{
-    white-space: nowrap;
-    font-size:.80rem; text-transform:uppercase; letter-spacing:.09em;
-    color:var(--text-dim);
-    position:sticky; top:0; z-index:1;
-    background: color-mix(in oklab, var(--surface) 84%, transparent);
-    backdrop-filter: blur(6px);
-    border-bottom:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    font-weight:900;
-  }
-  .table tbody tr:hover td{ background: color-mix(in oklab, var(--primary) 6%, transparent) }
+  .small{ color:#64748b; }
+  [data-theme="dark"] .small{ color:#94a3b8; }
 
-  .quick-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap }
-  .quick-actions .btns{ display:flex; flex-wrap:wrap; gap:8px }
-
-  /* =========================================================
-     Layout Stabilization Kit — cihazlar arası kaymaları azaltır
-     ========================================================= */
-  *, *::before, *::after { box-sizing: border-box; }
-  :root{
-    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
-    --base-font-px: 14.5px;
+  .empty{
+    border: 2px dashed rgba(226,232,240,.9);
+    border-radius: 16px;
+    padding: 22px;
+    text-align:center;
+    background: rgba(248,250,252,.65);
+    color:#64748b;
   }
-  html, body{ font-family: var(--font-sans); line-height: 1.25; }
-  html { font-size: var(--base-font-px); }
-  @media (max-width: 1280px){ html{ font-size: 14px; } }
-  @media (max-width: 980px){  html{ font-size: 13.5px; } }
-  @media (max-width: 540px){  html{ font-size: 13px; } }
-
-  @supports not (color: color-mix(in oklab, white 50%, black)) {
-    .kpi, .card, .legend-chip, .table th, .table td { border-color: var(--line); }
+  [data-theme="dark"] .empty{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(18,24,32,.55);
+    color:#94a3b8;
   }
+
+  .quick-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .quick-actions .btns{ display:flex; gap:8px; flex-wrap:wrap; }
 </style>
 
-{# ===== Mini Dashboard Header (Tailwind dashboard hissi) ===== #}
-<div class="dash-head" role="region" aria-label="Dashboard üst bar">
-  <div class="dash-brand">
-    <div class="dash-logo" aria-hidden="true">🛡️</div>
-    <div class="dash-title">
-      <b>RiskApp · Dashboard</b>
-      <span>Risk envanteri, matris ve dağılımlar</span>
-    </div>
-  </div>
+<div class="dash-scope">
 
-  <div class="dash-actions">
-    <a class="btn" href="{{ url_for('risk_select') }}">Risk Inventory</a>
-    <a class="btn" href="{{ url_for('risks_export_csv') }}">Export CSV</a>
-    <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Define Risk</a>
-  </div>
-</div>
-
-{# ==== KPI hesap: her risk için Risk.score() (detaydakiyle aynı) ==== #}
-{% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
-{% for r in risks or [] %}
-  {% set sc = r.score() %}
-  {% if sc is not none %}
-    {% set ns.sum  = ns.sum + sc %}
-    {% set ns.have = ns.have + 1 %}
-    {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
-    {% if sc <= 4 %}
-      {% set ns.low = ns.low + 1 %}
-    {% elif sc <= 10 %}
-      {% set ns.mid = ns.mid + 1 %}
-    {% elif sc <= 15 %}
-      {% set ns.high = ns.high + 1 %}
-    {% else %}
-      {% set ns.crit = ns.crit + 1 %}
-    {% endif %}
-  {% endif %}
-  {% set ns.total = ns.total + 1 %}
-{% endfor %}
-{% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
-
-<!-- ===== KPIs ===== -->
-<div class="kpis" role="list" aria-label="Özet göstergeler">
-  <div class="kpi" role="listitem">
-    <div class="left">
-      <div class="label">Toplam Risk</div>
-      <div class="hint">Envanter</div>
-    </div>
-    <div class="value">{{ ns.total }}</div>
-  </div>
-
-  <div class="kpi" role="listitem">
-    <div class="left">
-      <div class="label">Çok Yüksek</div>
-      <div class="hint">16–25</div>
-    </div>
-    <div class="value"><span class="badge score-high">{{ ns.crit }}</span></div>
-  </div>
-
-  <div class="kpi" role="listitem">
-    <div class="left">
-      <div class="label">Yüksek</div>
-      <div class="hint">11–15</div>
-    </div>
-    <div class="value"><span class="badge score-high">{{ ns.high }}</span></div>
-  </div>
-
-  <div class="kpi" role="listitem">
-    <div class="left">
-      <div class="label">Orta</div>
-      <div class="hint">5–10</div>
-    </div>
-    <div class="value"><span class="badge score-mid">{{ ns.mid }}</span></div>
-  </div>
-
-  <div class="kpi" role="listitem">
-    <div class="left">
-      <div class="label">Düşük</div>
-      <div class="hint">1–4</div>
-    </div>
-    <div class="value"><span class="badge score-low">{{ ns.low }}</span></div>
-  </div>
-
-  <div class="kpi" role="listitem">
-    <div class="left">
-      <div class="label">Ortalama Skor</div>
-      <div class="hint">P×S</div>
-    </div>
-    <div class="value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
-  </div>
-</div>
-
-<!-- ===== ÜST İKİLİ: Genel Görünüm + Risk Matrisi ===== -->
-<div class="grid grid-2">
-  <!-- Sol: Genel Görünüm -->
-  <div class="card" aria-labelledby="genelTitle">
-    <div class="card-head">
-      <h3 id="genelTitle" class="card-title">
-        <span class="icon-pill" aria-hidden="true">≡</span>
-        Genel Görünüm
-      </h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn" href="{{ url_for('risk_select') }}">Riskler</a>
-        {% if session.get('role') == 'admin' %}
-          <a class="btn" href="{{ url_for('categories_index') }}">Kategori Yönetimi</a>
-        {% endif %}
-        <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+  <!-- ===== TOP NAV (dashboard görünümü) ===== -->
+  <div class="dash-topbar" role="region" aria-label="Dashboard üst menü">
+    <div class="brand">
+      <div class="brand-badge">🛡️</div>
+      <div class="brand-title">
+        <b>RiskApp</b>
+        <span>Integrated Risk Management</span>
       </div>
     </div>
 
-    {% if risks and risks|length > 0 %}
-      <div class="table-wrap" style="overflow-x:auto;margin-top:8px">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Başlık</th>
-              <th style="width:200px">Kategori</th>
-              <th style="width:120px; text-align:center">Skor</th>
-              <th style="width:160px">Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in risks[:8] %}
-            {% set sc = r.score() %}
-            <tr>
-              <td>
-                <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
-                {% if r.description %}
-                  <div class="small" style="margin-top:2px; max-width:72ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                    {{ r.description }}
-                  </div>
-                {% endif %}
-              </td>
-              <td>{{ r.category or "-" }}</td>
-              <td style="text-align:center">
-                {% if sc is not none %}
-                  {# Tablo rozetinde 3 renk: Düşük / Orta / (Yüksek+Çok Yüksek) #}
-                  <span class="badge
-                              {% if sc<=4 %}score-low
-                              {% elif sc<=10 %}score-mid
-                              {% else %}score-high{% endif %}"
-                        title="Skor: {{ '%.2f'|format(sc) }}">
-                    {{ '%.2f'|format(sc) }}
-                  </span>
-                {% else %}
-                  <span class="badge">—</span>
-                {% endif %}
-              </td>
-              <td>{{ r.status or '—' }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="small" style="margin-top:6px">
-        Son güncellenen 8 risk gösteriliyor. Tümü için “Riskler” sayfasına gidin.
-      </div>
-    {% else %}
-      <div class="empty" role="note" aria-live="polite">
-        <h4 style="margin:0 0 .3rem">Henüz risk yok</h4>
-        <div class="small">Hızlı başlamak için bir şablon seçin veya yeni bir risk oluşturun.</div>
-        <div style="margin-top:.6rem; display:flex; gap:8px; justify-content:center; flex-wrap:wrap">
-          <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
-          <a class="btn" href="{{ url_for('risk_identify') }}">📋 Şablondan Seç</a>
-        </div>
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- Sağ: Risk Matrisi -->
-  <div class="card" aria-labelledby="matrixTitle">
-    <div class="card-head">
-      <h3 id="matrixTitle" class="card-title">
-        <span class="icon-pill" aria-hidden="true">▦</span>
-        Risk Matrisi
-      </h3>
-      <div class="legend" aria-label="Seviye açıklamaları">
-        <span class="badge score-low">1–4 Düşük</span>
-        <span class="badge score-mid">5–10 Orta</span>
-        <span class="badge" style="background:rgba(253,186,116,.25);color:#4a2500;border-color:#f59e0b">11–15 Yüksek</span>
-        <span class="badge" style="background:rgba(239,68,68,.20);color:#7a1e1e;border-color:#ef4444">16–25 Çok Yüksek</span>
-      </div>
+    <div class="dash-search" role="search" aria-label="Risk arama">
+      <span class="icon">⌕</span>
+      <input type="text" placeholder="Search risks, metrics..." aria-label="Search risks, metrics">
     </div>
 
-    {% set prob_labels = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
-    {% set sev_labels  = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
-
-    <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
-      <div class="rm-corner" aria-hidden="true"></div>
-
-      {# Olasılık: 5 → 1 (Çok Yüksek → Çok Düşük) #}
-      {% for p in range(5,0,-1) %}
-        <div class="rm-colhead" role="columnheader" aria-label="Olasılık {{p}}: {{ prob_labels[p-1] }}">
-          <div class="rm-coltitle">{{ prob_labels[p-1] }}</div>
-          <div class="rm-colnum">{{ p }}</div>
-        </div>
-      {% endfor %}
-
-      {# Satırlar: Şiddet 5 → 1 #}
-      {% for s in range(5,0,-1) %}
-        <div class="rm-rowhead" role="rowheader" aria-label="Şiddet {{s}}: {{ sev_labels[s-1] }}">
-          <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
-          <div class="rm-rownum">{{ s }}</div>
-        </div>
-
-        {% for p in range(5,0,-1) %}
-          {% set score = p * s %}
-
-          {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
-          {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
-
-          {# Bu hücre için kaç risk var? Son değerlendirmeye göre sayıyoruz #}
-          {% set cell = namespace(cnt=0) %}
-          {% for r in risks or [] %}
-            {% set evals = (r.evaluations or [])|sort(attribute='id') %}
-            {% if evals %}
-              {% set last_eval = evals|last %}
-              {% if last_eval.probability == p and last_eval.severity == s %}
-                {% set cell.cnt = cell.cnt + 1 %}
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-
-          <a class="rm-cell {{ lvl }}"
-             href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
-             title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{cell.cnt}} adet"
-             role="gridcell"
-             aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{cell.cnt}} adet"
-             tabindex="0">
-            <span class="rm-score">{{ score }}</span>
-            <span class="rm-count">{{ cell.cnt }}</span>
-          </a>
-        {% endfor %}
-      {% endfor %}
-    </div>
-
-    <div class="small" style="margin-top:8px">
-      Hücrelerde büyük sayı <strong>skor (P×S)</strong>, sağ altta <strong>adet</strong> gösterilir.
-    </div>
-  </div>
-</div>
-
-<!-- ===== 2 Donut: Kategori Dağılımı + Risk Seviyeleri ===== -->
-<div class="card" style="margin-top:12px" aria-labelledby="donutTitle">
-  <div class="card-head">
-    <h3 id="donutTitle" class="card-title">
-      <span class="icon-pill" aria-hidden="true">◎</span>
-      Kategori & Risk Dağılımı (Donut)
-    </h3>
-    <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
-  </div>
-
-  {% if category_stats and category_stats|length > 0 %}
-    <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
-
-    <div class="donut-grid">
-      <div class="donut-card">
-        <div class="donut-head">
-          <div class="donut-title">1- Kategori Bazında Dağılım</div>
-          <div class="small" id="catTotal"></div>
-        </div>
-        <canvas id="donut-categories" height="220" aria-label="Kategori dağılım donut" role="img"></canvas>
-        <div class="legend-row" id="legend-cats"></div>
-      </div>
-
-      <div class="donut-card">
-        <div class="donut-head">
-          <div class="donut-title">2- Risk Seviyeleri (Toplam)</div>
-        </div>
-        <canvas id="donut-levels" height="220" aria-label="Seviye dağılım donut" role="img"></canvas>
-        <div class="legend-row" id="legend-levels"></div>
-      </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-      (function(){
-        const raw = document.getElementById('categoryStats');
-        const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
-        const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
-
-        const PALETTE = ['#60a5fa','#34d399','#f59e0b','#ef4444','#a78bfa','#f472b6','#22d3ee','#84cc16','#fb7185','#f97316'];
-        const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
-
-        // --- 1) Kategori Donut ---
-        const catLabels = rows.map(r => r.cat);
-        const catCounts = rows.map(r => Number(r.total)||0);
-        const catColors = catLabels.map((_,i)=> PALETTE[i % PALETTE.length]);
-
-        new Chart(document.getElementById('donut-categories').getContext('2d'), {
-          type: 'doughnut',
-          data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors, borderWidth: 0 }]},
-          options: {
-            cutout: '65%',
-            plugins: {
-              legend: { display:false },
-              tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
-            }
-          }
-        });
-
-        const totalCat = catCounts.reduce((a,b)=>a+b,0);
-        const catTotalEl = document.getElementById('catTotal');
-        if (catTotalEl) catTotalEl.textContent = `${totalCat} adet`;
-
-        const legendCats = document.getElementById('legend-cats');
-        catLabels.forEach((lbl, i) => {
-          const n = catCounts[i]||0;
-          const el = document.createElement('span');
-          el.className = 'legend-chip';
-          el.innerHTML = `<span class="chip-dot" style="background:${catColors[i]}"></span>${lbl} (${n})`;
-          legendCats.appendChild(el);
-        });
-
-        // --- 2) Seviye Donut ---
-        const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
-        const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
-        const lvlKeys   = ['low','mid','high','vhigh'];
-        const lvlData   = lvlKeys.map(k => sum(k));
-        const lvlColors = lvlKeys.map(k => LEVEL_COLORS[k]);
-
-        new Chart(document.getElementById('donut-levels').getContext('2d'), {
-          type: 'doughnut',
-          data: { labels: lvlLabels, datasets: [{ data: lvlData, backgroundColor: lvlColors, borderWidth: 0 }]},
-          options: {
-            cutout: '65%',
-            plugins: {
-              legend: { display:false },
-              tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
-            }
-          }
-        });
-
-        const legendLvls = document.getElementById('legend-levels');
-        lvlLabels.forEach((lbl, i) => {
-          const el = document.createElement('span');
-          el.className = 'legend-chip';
-          el.innerHTML = `<span class="chip-dot" style="background:${lvlColors[i]}"></span>${lbl} (${lvlData[i]})`;
-          legendLvls.appendChild(el);
-        });
-      })();
-    </script>
-  {% else %}
-    <div class="empty">Grafik oluşturmak için yeterli veri yok.</div>
-  {% endif %}
-</div>
-
-<!-- ===== Alt: Hızlı İşlemler ===== -->
-<div class="card" style="margin-top:12px">
-  <div class="quick-actions">
-    <h3 style="margin:0">Hızlı İşlemler</h3>
-    <div class="btns">
-      <a class="btn" href="{{ url_for('risk_identify') }}">📋 Risk Tanımla</a>
+    <div class="dash-nav" aria-label="Kısayol menü">
+      <a class="active" href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('risk_select') }}">Risk Inventory</a>
       {% if session.get('role') == 'admin' %}
-        <a class="btn" href="{{ url_for('categories_index') }}">🗂️ Kategori Yönetimi</a>
-        <a class="btn" href="{{ url_for('import_suggestions') }}">⬆️ CSV İçe Aktar</a>
+        <a href="{{ url_for('categories_index') }}">Compliance</a>
       {% endif %}
-      <a class="btn" href="{{ url_for('risks_export_csv') }}">⬇️ CSV Dışa Aktar</a>
-      <a class="btn" href="{{ url_for('settings_account') }}">⚙️ Hesap Ayarları</a>
-      <a class="btn" href="{{ url_for('settings_project') }}">🏷️ Proje Bilgileri</a>
+      <a href="{{ url_for('settings_account') }}">Settings</a>
+    </div>
+
+    <div class="dash-right">
+      <button class="icon-btn" type="button" aria-label="Bildirimler">🔔</button>
+      <div class="avatar" aria-label="User avatar"></div>
     </div>
   </div>
+
+  {# ==== KPI hesap: her risk için Risk.score() (detaydakiyle aynı) ==== #}
+  {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
+  {% for r in risks or [] %}
+    {% set sc = r.score() %}
+    {% if sc is not none %}
+      {% set ns.sum  = ns.sum + sc %}
+      {% set ns.have = ns.have + 1 %}
+      {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
+      {% if sc <= 4 %}
+        {% set ns.low = ns.low + 1 %}
+      {% elif sc <= 10 %}
+        {% set ns.mid = ns.mid + 1 %}
+      {% elif sc <= 15 %}
+        {% set ns.high = ns.high + 1 %}
+      {% else %}
+        {% set ns.crit = ns.crit + 1 %}
+      {% endif %}
+    {% endif %}
+    {% set ns.total = ns.total + 1 %}
+  {% endfor %}
+  {% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
+
+  <!-- ===== KPIs (Tailwind kartları gibi) ===== -->
+  <div class="kpis" role="list" aria-label="Özet göstergeler">
+    <div class="kpi" role="listitem">
+      <div class="label">Total Risk</div>
+      <div class="value">{{ ns.total }}</div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">Critical</div>
+      <div class="value"><span class="badge score-high">{{ ns.crit }}</span></div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">High</div>
+      <div class="value"><span class="badge score-high">{{ ns.high }}</span></div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">Medium</div>
+      <div class="value"><span class="badge score-mid">{{ ns.mid }}</span></div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">Low</div>
+      <div class="value"><span class="badge score-low">{{ ns.low }}</span></div>
+    </div>
+
+    <div class="kpi primary" role="listitem">
+      <div class="label">Avg Score</div>
+      <div class="value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
+    </div>
+  </div>
+
+  <!-- ===== ÜST İKİLİ: Genel Görünüm + Risk Matrisi ===== -->
+  <div class="grid grid-2">
+    <!-- Sol: Genel Görünüm -->
+    <div class="card" aria-labelledby="genelTitle">
+      <div class="card-head">
+        <h3 id="genelTitle" class="card-title"><span class="pill">≡</span>General Overview</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn" href="{{ url_for('risk_select') }}">View All Risks</a>
+          {% if session.get('role') == 'admin' %}
+            <a class="btn" href="{{ url_for('categories_index') }}">Category Management</a>
+          {% endif %}
+          <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Define Risk</a>
+        </div>
+      </div>
+
+      {% if risks and risks|length > 0 %}
+        <div class="table-wrap" style="margin-top:8px">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Risk Title</th>
+                <th style="width:200px">Category</th>
+                <th style="width:120px; text-align:center">Impact</th>
+                <th style="width:160px">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in risks[:8] %}
+              {% set sc = r.score() %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                  {% if r.description %}
+                    <div class="small" style="margin-top:4px; max-width:72ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                      {{ r.description }}
+                    </div>
+                  {% endif %}
+                </td>
+                <td>{{ r.category or "-" }}</td>
+                <td style="text-align:center">
+                  {% if sc is not none %}
+                    <span class="badge
+                                {% if sc<=4 %}score-low
+                                {% elif sc<=10 %}score-mid
+                                {% else %}score-high{% endif %}"
+                          title="Skor: {{ '%.2f'|format(sc) }}">
+                      {{ '%.2f'|format(sc) }}
+                    </span>
+                  {% else %}
+                    <span class="badge">—</span>
+                  {% endif %}
+                </td>
+                <td>{{ r.status or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="small" style="margin-top:10px">
+          Son güncellenen 8 risk gösteriliyor. Tümü için “Riskler” sayfasına gidin.
+        </div>
+      {% else %}
+        <div class="empty" role="note" aria-live="polite">
+          <h4 style="margin:0 0 .3rem; font-weight:900;">Henüz risk yok</h4>
+          <div class="small">Hızlı başlamak için bir şablon seçin veya yeni bir risk oluşturun.</div>
+          <div style="margin-top:.8rem; display:flex; gap:8px; justify-content:center; flex-wrap:wrap">
+            <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+            <a class="btn" href="{{ url_for('risk_identify') }}">📋 Şablondan Seç</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Sağ: Risk Matrisi -->
+    <div class="card" aria-labelledby="matrixTitle">
+      <div class="card-head">
+        <h3 id="matrixTitle" class="card-title"><span class="pill">▦</span>Risk Matrix</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <span class="badge score-low">1–4</span>
+          <span class="badge score-mid">5–10</span>
+          <span class="badge" style="background:rgba(253,186,116,.25);color:#4a2500;border-color:#f59e0b">11–15</span>
+          <span class="badge" style="background:rgba(239,68,68,.20);color:#7a1e1e;border-color:#ef4444">16–25</span>
+        </div>
+      </div>
+
+      {% set prob_labels = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
+      {% set sev_labels  = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
+
+      <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
+        <div class="rm-corner" aria-hidden="true"></div>
+
+        {# Olasılık: 5 → 1 (Çok Yüksek → Çok Düşük) #}
+        {% for p in range(5,0,-1) %}
+          <div class="rm-colhead" role="columnheader" aria-label="Olasılık {{p}}: {{ prob_labels[p-1] }}">
+            <div class="rm-coltitle">{{ prob_labels[p-1] }}</div>
+            <div class="rm-colnum">{{ p }}</div>
+          </div>
+        {% endfor %}
+
+        {# Satırlar: Şiddet 5 → 1 #}
+        {% for s in range(5,0,-1) %}
+          <div class="rm-rowhead" role="rowheader" aria-label="Şiddet {{s}}: {{ sev_labels[s-1] }}" style="position:relative">
+            <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
+            <div class="rm-rownum">{{ s }}</div>
+          </div>
+
+          {% for p in range(5,0,-1) %}
+            {% set score = p * s %}
+            {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
+
+            {% set cell = namespace(cnt=0) %}
+            {% for r in risks or [] %}
+              {% set evals = (r.evaluations or [])|sort(attribute='id') %}
+              {% if evals %}
+                {% set last_eval = evals|last %}
+                {% if last_eval.probability == p and last_eval.severity == s %}
+                  {% set cell.cnt = cell.cnt + 1 %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+
+            <a class="rm-cell {{ lvl }}"
+               href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
+               title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{cell.cnt}} adet"
+               role="gridcell"
+               aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{cell.cnt}} adet"
+               tabindex="0">
+              <span class="rm-score">{{ score }}</span>
+              <span class="rm-count">{{ cell.cnt }}</span>
+            </a>
+          {% endfor %}
+        {% endfor %}
+      </div>
+
+      <div class="small" style="margin-top:10px">
+        Hücrelerde büyük sayı <strong>skor (P×S)</strong>, sağ altta <strong>adet</strong> gösterilir.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Donut’lar ===== -->
+  <div class="card" style="margin-top:12px" aria-labelledby="donutTitle">
+    <div class="card-head">
+      <h3 id="donutTitle" class="card-title"><span class="pill">◎</span>Category & Risk Distribution</h3>
+      <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
+    </div>
+
+    {% if category_stats and category_stats|length > 0 %}
+      <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
+
+      <div class="donut-grid">
+        <div class="donut-card">
+          <div class="donut-head">
+            <div class="donut-title">1- Kategori Bazında Dağılım</div>
+            <div class="small" id="catTotal"></div>
+          </div>
+          <canvas id="donut-categories" height="220" aria-label="Kategori dağılım donut" role="img"></canvas>
+          <div class="legend-row" id="legend-cats"></div>
+        </div>
+
+        <div class="donut-card">
+          <div class="donut-head">
+            <div class="donut-title">2- Risk Seviyeleri (Toplam)</div>
+          </div>
+          <canvas id="donut-levels" height="220" aria-label="Seviye dağılım donut" role="img"></canvas>
+          <div class="legend-row" id="legend-levels"></div>
+        </div>
+      </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        (function(){
+          const raw = document.getElementById('categoryStats');
+          const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
+          const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
+
+          const PALETTE = ['#60a5fa','#34d399','#f59e0b','#ef4444','#a78bfa','#f472b6','#22d3ee','#84cc16','#fb7185','#f97316'];
+          const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
+
+          // 1) Kategori Donut
+          const catLabels = rows.map(r => r.cat);
+          const catCounts = rows.map(r => Number(r.total)||0);
+          const catColors = catLabels.map((_,i)=> PALETTE[i % PALETTE.length]);
+
+          new Chart(document.getElementById('donut-categories').getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors, borderWidth: 0 }]},
+            options: {
+              cutout: '65%',
+              plugins: {
+                legend: { display:false },
+                tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+              }
+            }
+          });
+
+          const totalCat = catCounts.reduce((a,b)=>a+b,0);
+          const catTotalEl = document.getElementById('catTotal');
+          if (catTotalEl) catTotalEl.textContent = `${totalCat} adet`;
+
+          const legendCats = document.getElementById('legend-cats');
+          catLabels.forEach((lbl, i) => {
+            const n = catCounts[i]||0;
+            const el = document.createElement('span');
+            el.className = 'legend-chip';
+            el.innerHTML = `<span class="chip-dot" style="background:${catColors[i]}"></span>${lbl} (${n})`;
+            legendCats.appendChild(el);
+          });
+
+          // 2) Seviye Donut
+          const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
+          const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
+          const lvlKeys   = ['low','mid','high','vhigh'];
+          const lvlData   = lvlKeys.map(k => sum(k));
+          const lvlColors = lvlKeys.map(k => LEVEL_COLORS[k]);
+
+          new Chart(document.getElementById('donut-levels').getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: lvlLabels, datasets: [{ data: lvlData, backgroundColor: lvlColors, borderWidth: 0 }]},
+            options: {
+              cutout: '65%',
+              plugins: {
+                legend: { display:false },
+                tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+              }
+            }
+          });
+
+          const legendLvls = document.getElementById('legend-levels');
+          lvlLabels.forEach((lbl, i) => {
+            const el = document.createElement('span');
+            el.className = 'legend-chip';
+            el.innerHTML = `<span class="chip-dot" style="background:${lvlColors[i]}"></span>${lbl} (${lvlData[i]})`;
+            legendLvls.appendChild(el);
+          });
+        })();
+      </script>
+    {% else %}
+      <div class="empty">Grafik oluşturmak için yeterli veri yok.</div>
+    {% endif %}
+  </div>
+
+  <!-- ===== Hızlı İşlemler ===== -->
+  <div class="card" style="margin-top:12px">
+    <div class="quick-actions">
+      <h3 style="margin:0; font-weight:900;">Quick Actions</h3>
+      <div class="btns">
+        <a class="btn" href="{{ url_for('risk_identify') }}">📋 Risk Tanımla</a>
+        {% if session.get('role') == 'admin' %}
+          <a class="btn" href="{{ url_for('categories_index') }}">🗂️ Kategori Yönetimi</a>
+          <a class="btn" href="{{ url_for('import_suggestions') }}">⬆️ CSV İçe Aktar</a>
+        {% endif %}
+        <a class="btn" href="{{ url_for('risks_export_csv') }}">⬇️ CSV Dışa Aktar</a>
+        <a class="btn" href="{{ url_for('settings_account') }}">⚙️ Hesap Ayarları</a>
+        <a class="btn" href="{{ url_for('settings_project') }}">🏷️ Proje Bilgileri</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 {% endblock %}
