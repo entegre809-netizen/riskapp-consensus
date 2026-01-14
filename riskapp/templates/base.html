@@ -1,717 +1,794 @@
-<!DOCTYPE html>
-<html lang="tr" data-theme="light">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>{% block title %}Entegre Risk Yönetimi{% endblock %}</title>
+{% extends "base.html" %}
+{% block title %}Dashboard · Risk Yönetim{% endblock %}
+{% block content %}
 
-  <!-- Harici CSS'in kalabilir; bu sayfa kendi stillerini de içeriyor -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+  /* ================================
+     RiskApp Dashboard — Tailwind-look
+     (SIFIR feature kaybı: aynı Jinja/JS)
+     ================================ */
 
-  <style>
-    /* ==========================================================
-       RiskApp · 2026 Modern UI — Base Template
-       - Işık/Koyu tema (manuel + sistem tercihi)
-       - Mobilde üst bar + açılır sidebar
-       - Erişilebilir odak halkaları, sticky table head
-       - Hafif animasyonlar, yumuşak geçişler
-       ========================================================== */
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
-    /* Sistem tercihine saygı */
-    @media (prefers-color-scheme: dark){ :root{ color-scheme:dark } }
-    @media (prefers-color-scheme: light){ :root{ color-scheme:light } }
+  /* Bu sayfa özel tipografi */
+  .dash-scope{
+    font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
+  }
 
-    /* ====================
-       Tema Tokenları (Koyu)
-       ==================== */
-    :root,
-    [data-theme="dark"]{
-      --bg: #0b1020;
-      --bg-soft: #0f1630;
-      --surface: #0d152c;
+  /* --- Bu sayfada buton/rozetleri tailwind gibi yap (base’i bozma) --- */
+  .dash-scope .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    padding: .72rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(148,163,184,.35);
+    background: rgba(255,255,255,.85);
+    color: #0f172a;
+    text-decoration:none;
+    font-weight: 700;
+    font-size: .92rem;
+    box-shadow: 0 10px 30px -18px rgba(15,23,42,.25);
+    backdrop-filter: blur(10px);
+    transition: transform .08s ease, filter .18s ease, border-color .18s ease;
+  }
+  [data-theme="dark"] .dash-scope .btn{
+    background: rgba(30,33,38,.75);
+    color: #e5e7eb;
+    border-color: rgba(148,163,184,.18);
+  }
+  .dash-scope .btn:hover{ transform: translateY(-1px); filter: brightness(1.02); border-color: rgba(40,102,189,.35); }
 
-      --card: #121a38cc;  /* hafif cam efekti */
-      --card-solid:#121a38;
+  .dash-scope .btn.btn-primary{
+    background: #2866bd;
+    border-color: #2866bd;
+    color: #fff;
+    box-shadow: 0 14px 36px -18px rgba(40,102,189,.65);
+  }
+  .dash-scope .btn.btn-primary:hover{ filter: brightness(1.03); }
 
-      --text: #e8ecff;
-      --text-dim:#a5b1d6;
+  .dash-scope .badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: .22rem .55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,.35);
+    font-weight: 900;
+    font-size: .85rem;
+    line-height: 1;
+  }
 
-      --line: #243055;
+  /* Base’teki score-low/mid/high varsa yine çalışır, yoksa fallback */
+  .dash-scope .score-low { background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.35); color: #166534; }
+  .dash-scope .score-mid { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.38); color: #854d0e; }
+  .dash-scope .score-high{ background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.35); color: #7f1d1d; }
+  [data-theme="dark"] .dash-scope .score-low { color:#86efac; }
+  [data-theme="dark"] .dash-scope .score-mid { color:#fde68a; }
+  [data-theme="dark"] .dash-scope .score-high{ color:#fecaca; }
 
-      --brand:   #0a0f25;
-      --brand-2: #0f1736;
-      --primary: #6ea8ff;
-      --primary-2:#8fb9ff;
-      --success: #39d98a;
-      --warning: #f59e0b;
-      --danger:  #ef4444;
+  /* --- Dashboard Topbar (Tailwind örneği gibi) --- */
+  .dash-topbar{
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: -10px 0 16px;
+    padding: 14px 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.78);
+    border: 1px solid rgba(226,232,240,.9);
+    box-shadow: 0 14px 40px -22px rgba(15,23,42,.28);
+    backdrop-filter: blur(12px);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  [data-theme="dark"] .dash-topbar{
+    background: rgba(18,24,32,.72);
+    border-color: rgba(51,65,85,.55);
+  }
 
-      --low:#34d399;
-      --mid:#f59e0b;
-      --high:#ef4444;
+  .brand{
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand-badge{
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: #2866bd;
+    display:grid; place-items:center;
+    color:#fff;
+    font-weight: 900;
+  }
+  .brand-title{
+    display:flex; flex-direction:column; line-height:1.05;
+  }
+  .brand-title b{ font-size: 1.05rem; letter-spacing:-.02em; }
+  .brand-title span{ font-size: .85rem; color:#64748b; }
+  [data-theme="dark"] .brand-title span{ color:#94a3b8; }
 
-      --ring: #6ea8ff;
+  .dash-search{
+    flex: 1;
+    min-width: 260px;
+    max-width: 520px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(248,250,252,.85);
+  }
+  [data-theme="dark"] .dash-search{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(30,33,38,.55);
+  }
+  .dash-search input{
+    width:100%;
+    border:none;
+    outline:none;
+    background: transparent;
+    font-size: .95rem;
+    color: inherit;
+  }
+  .dash-search .icon{ opacity:.55; font-weight: 900; }
 
-      --elev: 0 6px 18px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.04);
-      --elev-card: 0 16px 36px rgba(8,15,40,.36);
-      --glass-blur: saturate(140%) blur(6px);
+  .dash-nav{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .dash-nav a{
+    text-decoration:none;
+    font-weight: 800;
+    font-size: .92rem;
+    color: #475569;
+    padding: .35rem .5rem;
+    border-radius: 10px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .dash-nav a:hover{ background: rgba(148,163,184,.18); color:#0f172a; }
+  [data-theme="dark"] .dash-nav a{ color:#94a3b8; }
+  [data-theme="dark"] .dash-nav a:hover{ background: rgba(148,163,184,.12); color:#e5e7eb; }
+  .dash-nav a.active{ color:#2866bd; }
 
-      --radius-2xl: 18px;
-      --radius: 14px;
-      --radius-sm: 10px;
-      --pad: 14px;
+  .dash-right{
+    display:flex; align-items:center; gap:10px;
+  }
+  .icon-btn{
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.7);
+    display:grid; place-items:center;
+    cursor:pointer;
+    transition: filter .15s ease, transform .08s ease;
+  }
+  .icon-btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+  [data-theme="dark"] .icon-btn{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(30,33,38,.55);
+    color:#e5e7eb;
+  }
+  .avatar{
+    width: 40px; height: 40px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,255,255,.9);
+    background: linear-gradient(135deg, rgba(148,163,184,.4), rgba(148,163,184,.15));
+  }
+  [data-theme="dark"] .avatar{ border-color: rgba(18,24,32,.9); }
 
-      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  /* --- KPI’ler (Tailwind kart ölçülerine yakın) --- */
+  .kpis{
+    display:grid;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 1200px){ .kpis{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+  @media (max-width: 860px){  .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 520px){  .kpis{ grid-template-columns: 1fr; } }
 
-      --ease: cubic-bezier(.22,1,.36,1);
-    }
+  .kpi{
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 14px 40px -26px rgba(15,23,42,.22);
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    min-height: 88px;
+  }
+  [data-theme="dark"] .kpi{
+    background: rgba(30,33,38,.72);
+    border-color: rgba(51,65,85,.55);
+  }
+  .kpi .label{
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: #64748b;
+    font-weight: 900;
+  }
+  [data-theme="dark"] .kpi .label{ color:#94a3b8; }
+  .kpi .value{
+    font-size: 1.65rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    display:flex; align-items:center; justify-content:space-between;
+  }
 
-    /* =====================
-       Tema Tokenları (Açık)
-       ===================== */
-    [data-theme="light"]{
-      --bg: #f7faff;
-      --bg-soft: #ffffff;
-      --surface: #f7f9ff;
+  .kpi.primary{
+    background: #2866bd;
+    border-color: #2866bd;
+    color: #fff;
+    box-shadow: 0 18px 50px -28px rgba(40,102,189,.75);
+  }
+  .kpi.primary .label{ color: rgba(255,255,255,.55); }
+  .kpi.primary .value{ color:#fff; }
 
-      --card: #ffffffee;
-      --card-solid:#ffffff;
+  /* --- Ana kartlar (table + matrix) --- */
+  .card{
+    border-radius: 16px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 14px 40px -26px rgba(15,23,42,.22);
+    padding: 16px;
+    min-width: 0;
+  }
+  [data-theme="dark"] .card{
+    background: rgba(30,33,38,.72);
+    border-color: rgba(51,65,85,.55);
+  }
 
-      --text: #0a1328;
-      --text-dim:#556384;
+  .grid{ display:grid; gap: 12px; }
+  .grid-2{ grid-template-columns: 1.7fr 1fr; }
+  @media (max-width: 980px){ .grid-2{ grid-template-columns: 1fr; } }
 
-      --line: #e6ebf4;
+  .card-head{
+    display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(226,232,240,.75);
+    margin-bottom: 12px;
+  }
+  [data-theme="dark"] .card-head{ border-color: rgba(51,65,85,.45); }
 
-      --brand:   #fff0b8;
-      --brand-2: #fff7d8;
-      --primary: #ffd24d;
-      --primary-2:#ffe07a;
-      --success: #16a34a;
-      --warning: #f59e0b;
-      --danger:  #e05656;
+  .card-title{
+    margin:0;
+    display:flex; align-items:center; gap:10px;
+    font-weight: 900;
+    font-size: 1.05rem;
+  }
+  .pill{
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    display:grid; place-items:center;
+    background: rgba(40,102,189,.14);
+    border: 1px solid rgba(40,102,189,.22);
+    color:#2866bd;
+    font-weight: 900;
+  }
 
-      --ring: #ffd65a;
+  /* --- Tablo tailwindvari --- */
+  .table-wrap{ overflow:auto; border-radius: 14px; }
+  .table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 720px;
+  }
+  .table thead th{
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: rgba(248,250,252,.92);
+    color:#64748b;
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 900;
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(226,232,240,.9);
+  }
+  [data-theme="dark"] .table thead th{
+    background: rgba(18,24,32,.68);
+    color:#94a3b8;
+    border-color: rgba(51,65,85,.55);
+  }
+  .table td{
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(226,232,240,.75);
+    vertical-align: top;
+    font-size: .95rem;
+  }
+  [data-theme="dark"] .table td{ border-color: rgba(51,65,85,.45); }
+  .table tbody tr:hover td{ background: rgba(40,102,189,.04); }
+  [data-theme="dark"] .table tbody tr:hover td{ background: rgba(40,102,189,.08); }
 
-      --elev: 0 8px 18px rgba(15,23,42,.08), inset 0 0 0 1px rgba(15,23,42,.03);
-      --elev-card: 0 14px 28px rgba(15,23,42,.10);
-      --glass-blur: saturate(118%) blur(5px);
+  /* --- Risk matrix (senin mantık aynen) --- */
+  .risk-matrix{
+    --label-w: 140px;
+    --cell-size: 60px;
+    display:grid;
+    grid-template-columns: var(--label-w) repeat(5, var(--cell-size));
+    grid-auto-rows: var(--cell-size);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  @media (max-width: 980px){ .risk-matrix{ --label-w: 120px; --cell-size: 56px; } }
+  @media (max-width: 640px){ .risk-matrix{ --label-w: 112px; --cell-size: 52px; } }
 
-      --radius-2xl: 18px;
-      --radius: 14px;
-      --radius-sm: 10px;
-      --pad: 14px;
+  .rm-corner{ display:grid; place-items:center; color:#94a3b8; font-weight:900; }
+  .rm-corner::after{ content:"Olasılık →"; }
 
-      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
+  .rm-colhead,.rm-rowhead{
+    border-radius: 14px;
+    padding: 10px 10px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(248,250,252,.85);
+    display:flex;
+    justify-content:space-between;
+    gap: 8px;
+    align-items:flex-start;
+  }
+  [data-theme="dark"] .rm-colhead, [data-theme="dark"] .rm-rowhead{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(18,24,32,.55);
+  }
+  .rm-colhead{ flex-direction:column; }
+  .rm-coltitle,.rm-rowtitle{ font-weight: 900; font-size: .86rem; }
+  .rm-colnum,.rm-rownum{ font-weight: 900; opacity:.6; }
 
-    /* ========== Reset/Global ========== */
-    *{ box-sizing:border-box }
-    html,body{
-      margin:0; padding:0;
-      font-family:var(--font);
-      color:var(--text);
-      background:
-        radial-gradient(1000px 700px at 0% 0%, color-mix(in oklab, var(--brand-2) 46%, transparent) 0%, transparent 60%),
-        radial-gradient(1000px 700px at 100% 0%, color-mix(in oklab, var(--brand) 36%, transparent) 0%, transparent 60%),
-        linear-gradient(180deg, var(--bg) 0%, color-mix(in oklab, var(--bg) 92%, #ffffff 8%) 100%);
-      min-height:100dvh;
-      -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
-      transition: background .25s ease, color .25s ease;
-    }
-    @media (prefers-reduced-motion: reduce){
-      *{ animation:none !important; transition:none !important; }
-    }
-    a{ color:#1247ff; text-decoration:none; font-weight:700 }
-    [data-theme="dark"] a{ color:#9fc0ff }
-    a:hover{ text-decoration:underline }
+  .risk-matrix .rm-rowhead:first-of-type::before{
+    content:"↑ Şiddet";
+    position:absolute;
+    transform: rotate(-90deg) translate(-40%, -120%);
+    transform-origin:left top;
+    color: #94a3b8;
+    font-weight: 900;
+  }
 
-    h1,h2,h3{ line-height:1.2; margin:.2rem 0 .7rem; letter-spacing:.01em }
-    h1{ font-size: clamp(1.45rem, 2.1vw, 1.9rem); font-weight:900 }
-    h2{ font-size: clamp(1.25rem, 1.8vw, 1.55rem); font-weight:850 }
-    h3{ font-size: clamp(1.08rem, 1.5vw, 1.25rem); font-weight:800 }
+  .rm-cell{
+    position:relative;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    text-decoration:none;
+    font-weight: 900;
+    border: 1px solid rgba(0,0,0,.06);
+    transition: transform .08s ease, filter .16s ease;
+  }
+  .rm-cell:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+  .rm-cell:focus-visible{ outline: 4px solid rgba(40,102,189,.22); outline-offset: 2px; }
 
-    img{ max-width:100%; height:auto; border-radius: 10px }
+  .rm-score{ font: 900 1.02rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono"; }
+  .rm-count{
+    position:absolute;
+    right: 8px;
+    bottom: 8px;
+    font-weight: 900;
+    font-size: .8rem;
+    padding: .14rem .48rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,.72);
+    border: 1px solid rgba(0,0,0,.10);
+  }
+  [data-theme="dark"] .rm-count{
+    background: rgba(0,0,0,.22);
+    border-color: rgba(255,255,255,.14);
+  }
 
-    /* ========== Yerleşim ========== */
-    .shell{
-      display:grid;
-      grid-template-rows: auto 1fr;
-      min-height:100dvh;
-    }
+  /* renk eşikleri */
+  html[data-theme="light"] .rm-cell.low  { background:#d1fae5; border-color:#9fe3c9; color:#0d3a2c; }
+  html[data-theme="light"] .rm-cell.mid  { background:#fde68a; border-color:#f3c24f; color:#5a3f00; }
+  html[data-theme="light"] .rm-cell.hi   { background:#fdba74; border-color:#f59e0b; color:#4a2500; }
+  html[data-theme="light"] .rm-cell.crit { background:#fecaca; border-color:#f87171; color:#5a1010; }
 
-    /* Üst bar (mobil ve masaüstü) */
-    .topbar{
-      position:sticky; top:0; z-index:5;
-      display:flex; align-items:center; gap:10px;
-      padding:10px 12px;
-      background: color-mix(in oklab, var(--bg) 86%, transparent);
-      backdrop-filter: blur(6px);
-      border-bottom:1px solid var(--line);
-    }
-    .topbar .brand{
-      display:flex; align-items:center; gap:10px; font-weight:900;
-      padding:6px 10px; border-radius:12px;
-      background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 22%, transparent), transparent);
-      color: color-mix(in oklab, var(--text) 88%, #000 12%);
-    }
-    .topbar .spacer{ flex:1 }
-    .topbar .btn-icon{
-      display:inline-grid; place-items:center;
-      width:40px; height:40px; border-radius:12px;
-      border:1px solid color-mix(in oklab, var(--text) 10%, transparent);
-      background: color-mix(in oklab, var(--bg-soft) 76%, transparent);
-      cursor:pointer; transition: filter .15s ease;
-    }
-    .topbar .btn-icon:hover{ filter:brightness(1.06) }
+  [data-theme="dark"] .rm-cell.low  { background:#0f2f18; border-color:#1d5d3a; color:#bff5d3; }
+  [data-theme="dark"] .rm-cell.mid  { background:#3a2e05; border-color:#7a5c0b; color:#ffe6a6; }
+  [data-theme="dark"] .rm-cell.hi   { background:#4b2400; border-color:#a24e0a; color:#ffd7b5; }
+  [data-theme="dark"] .rm-cell.crit { background:#3b0b0b; border-color:#7f1d1d; color:#ffd0d0; }
 
-    /* Ana layout: sol menü + içerik */
-    .layout{
-      display:grid; grid-template-columns: 280px 1fr; gap:0;
-      min-height: calc(100dvh - 62px);
-    }
-    @media (max-width: 980px){
-      .layout{ grid-template-columns: 1fr }
-    }
+  /* Donut alanları */
+  .donut-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  @media (max-width: 980px){ .donut-grid{ grid-template-columns: 1fr; } }
+  .donut-card{
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.92);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  [data-theme="dark"] .donut-card{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(18,24,32,.55);
+  }
+  .donut-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom: 8px; }
+  .donut-title{ font-weight: 900; }
 
-    /* Desktop: hamburger ile sidebar'ı tamamen gizle */
-    @media (min-width: 981px){
-      body.sidebar-collapsed .layout{
-        grid-template-columns: 1fr;
-      }
-      body.sidebar-collapsed .sidebar{
-        display:none;
-      }
-    }
+  .legend-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
+  .legend-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid rgba(226,232,240,.9);
+    background: rgba(248,250,252,.65);
+    border-radius:999px;
+    padding: 4px 10px;
+    font-weight: 900;
+    font-size: .86rem;
+  }
+  [data-theme="dark"] .legend-chip{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(30,33,38,.45);
+  }
+  .chip-dot{ width:10px; height:10px; border-radius:999px; }
 
-    /* Sidebar */
-    .sidebar{
-      position:sticky; top:62px; align-self:start;
-      height: calc(100dvh - 62px);
-      overflow:auto;
-      background:linear-gradient(180deg, var(--brand) 0%, var(--brand-2) 100%);
-      color:#1b2338; padding:16px 0; border-right:1px solid color-mix(in oklab, var(--line) 70%, transparent);
-      box-shadow: var(--elev);
-      transform: translateX(0); transition: transform .28s var(--ease);
-    }
-    [data-theme="dark"] .sidebar{
-      color:#dbe5ff; border-right:1px solid rgba(255,255,255,.08);
-    }
-    /* Mobilde kapalı başlasın */
-    @media (max-width: 980px){
-      .sidebar{ position:fixed; inset:62px auto 0 0; width:min(78vw, 300px); transform: translateX(-102%); z-index:6 }
-      .sidebar.open{ transform:none }
-    }
+  .small{ color:#64748b; }
+  [data-theme="dark"] .small{ color:#94a3b8; }
 
-    .menu-section{ margin:10px 0 16px }
-    .menu-title{
-      margin:.3rem 0 .4rem 1rem; font-size:.78rem; text-transform:uppercase;
-      letter-spacing:.09em; color:#616b86; font-weight:900; opacity:.9;
-    }
-    [data-theme="dark"] .menu-title{ color:#9fb3ff }
+  .empty{
+    border: 2px dashed rgba(226,232,240,.9);
+    border-radius: 16px;
+    padding: 22px;
+    text-align:center;
+    background: rgba(248,250,252,.65);
+    color:#64748b;
+  }
+  [data-theme="dark"] .empty{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(18,24,32,.55);
+    color:#94a3b8;
+  }
 
-    .menu a{
-      display:flex; align-items:center; gap:.55rem;
-      padding:.64rem 1.1rem; color:#253052; text-decoration:none;
-      border-left:3px solid transparent; border-radius:0 var(--radius-sm) var(--radius-sm) 0;
-      transition: background .18s ease, color .18s ease, border-color .18s ease;
-      font-weight:700;
-    }
-    .menu a:hover{ background:rgba(0,0,0,.05); color:#0e172c }
-    .menu a.active,[aria-current="page"]{
-      background:linear-gradient(90deg, color-mix(in oklab, var(--primary) 28%, transparent), transparent);
-      color:#0e172c; border-left-color: var(--primary);
-      box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 24%, transparent);
-    }
-    [data-theme="dark"] .menu a{ color:#cfe0ff }
-    [data-theme="dark"] .menu a:hover{ background:rgba(255,255,255,.06); color:#fff }
-    [data-theme="dark"] .menu a.active,
-    [data-theme="dark"] .menu a[aria-current="page"]{
-      background:linear-gradient(90deg, rgba(110,168,255,.16), rgba(110,168,255,0));
-      color:#fff; border-left-color: var(--primary);
-      box-shadow: inset 0 0 0 1px rgba(110,168,255,.14);
-    }
-    .submenu{ margin-left:.25rem; border-left:2px dashed rgba(0,0,0,.06) }
-    [data-theme="dark"] .submenu{ border-left-color: rgba(255,255,255,.08) }
-    .submenu a{ padding-left:1.2rem; font-size:.98rem }
+  .quick-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .quick-actions .btns{ display:flex; gap:8px; flex-wrap:wrap; }
+</style>
 
-    /* Ana içerik paneli */
-    .main{
-      padding: 20px min(4vw, 36px) 40px;
-    }
-    .panel{
-      background: var(--card);
-      border:1px solid var(--line);
-      border-radius: var(--radius-2xl);
-      padding: clamp(16px, 2vw, 22px);
-      box-shadow: var(--elev-card);
-      backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-      transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
-    }
+<div class="dash-scope">
 
-    /* Grid yardımcıları */
-    .grid{ display:grid; gap:14px }
-    .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)) }
-    .grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)) }
-    @media (max-width: 980px){
-      .grid-2, .grid-3{ grid-template-columns: 1fr }
-    }
-
-    /* Formlar */
-    label{ display:block; font-size:.86rem; color:var(--text-dim); margin-bottom:.45rem; font-weight:850 }
-    .input, select.input, textarea.input{
-      width:100%; padding:.78rem .85rem; border-radius:12px;
-      border:1px solid color-mix(in oklab, var(--line) 88%, transparent);
-      background: linear-gradient(180deg, #ffffff, #f7faff);
-      color:#0a1328; outline:none; font-weight:600;
-      transition:.2s border-color, .2s box-shadow, .2s background, .2s color;
-    }
-    .input::placeholder{ color:#8691a9; opacity:.95 }
-    .input:focus{
-      border-color: color-mix(in oklab, var(--ring) 60%, transparent);
-      box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 35%, transparent), inset 0 0 0 1px rgba(0,0,0,.04);
-      background:#ffffff;
-    }
-    [data-theme="dark"] .input, [data-theme="dark"] select.input, [data-theme="dark"] textarea.input{
-      border:1px solid rgba(150,170,220,.35);
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-      color:#f6f8ff; font-weight:600; color-scheme: dark;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
-    }
-    [data-theme="dark"] .input::placeholder{ color:#aebbff; opacity:.9 }
-    [data-theme="dark"] .input:focus{
-      border-color: rgba(110,168,255,.85);
-      box-shadow: 0 0 0 4px rgba(110,168,255,.22), inset 0 0 0 1px rgba(110,168,255,.35);
-      background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
-      color:#ffffff;
-    }
-    /* Select oku */
-    select.input{ appearance:none; -webkit-appearance:none; padding-right:2.1rem;
-      background-position: right .65rem center; background-repeat:no-repeat;
-      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2310182d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-    }
-    [data-theme="dark"] select.input{
-      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23e8ecff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-    }
-
-    /* Butonlar */
-    .btn{
-      display:inline-flex; align-items:center; gap:.55rem;
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      background: linear-gradient(180deg, #ffffff, #f4f7ff);
-      color:#0f182d; padding:.66rem 1rem; border-radius:12px; cursor:pointer;
-      transition: transform .08s ease, filter .15s ease, box-shadow .2s ease, background .25s ease, color .25s ease, border-color .25s ease;
-      box-shadow: 0 8px 16px rgba(13,19,33,.08), inset 0 0 0 1px rgba(255,255,255,.95);
-      font-weight:900; text-decoration:none; line-height:1;
-    }
-    .btn:hover{ filter:brightness(1.03); box-shadow: 0 12px 22px rgba(13,19,33,.12), inset 0 0 0 1px rgba(255,255,255,1) }
-    .btn:active{ transform: translateY(1px) }
-    .btn[disabled]{ opacity:.6; cursor:not-allowed }
-    .btn-primary{
-      background: linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary) 78%, #000 22%));
-      color:#0a1228; border-color: transparent; text-shadow: 0 1px 0 rgba(255,255,255,.35);
-      box-shadow: 0 8px 18px rgba(255,210,77,.22);
-    }
-    .btn-success{ background: linear-gradient(180deg, #3de097, #18c578); color:#06141d; border-color: transparent; font-weight:800 }
-    [data-theme="dark"] .btn{
-      border:1px solid rgba(255,255,255,.12);
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-      color:#eaf0ff;
-      box-shadow: 0 6px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
-    }
-
-    /* Odak halkası (tüm etkileşimliler) */
-    :where(a, button, .btn, .input, textarea.input, select.input):focus-visible{
-      outline: none;
-      box-shadow:
-        0 0 0 4px color-mix(in oklab, var(--ring) 40%, transparent),
-        0 2px 16px color-mix(in oklab, var(--ring) 18%, transparent),
-        inset 0 0 0 1px color-mix(in oklab, var(--ring) 50%, transparent);
-      border-color: color-mix(in oklab, var(--ring) 65%, transparent);
-    }
-
-    /* Tablo */
-    .table-wrap{ overflow:auto; border-radius:14px }
-    .table{ width:100%; border-collapse:separate; border-spacing:0; min-width:720px }
-    .table th,.table td{
-      padding:.78rem .9rem; border-bottom:1px solid var(--line);
-      text-align:left; font-size:.96rem; vertical-align:top;
-    }
-    .table thead th{
-      font-size:.82rem; text-transform:uppercase; letter-spacing:.09em;
-      color:var(--text-dim);
-      position:sticky; top:0; z-index:1;
-      background: color-mix(in oklab, var(--surface) 84%, transparent);
-      backdrop-filter: blur(4px);
-      border-bottom:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      font-weight:900;
-    }
-    .table tbody tr:hover td{ background: color-mix(in oklab, var(--primary) 6%, transparent) }
-
-    /* Flash/Badge */
-    .flash{
-      margin:.7rem 0; padding:.85rem 1rem; border-radius:12px; font-size:.98rem;
-      border:1px solid #ffe3a1; background: linear-gradient(180deg, #fff7df, #fff1c9);
-      color:#3a2c0e; box-shadow: inset 0 0 0 1px rgba(255,255,255,.85); font-weight:800;
-    }
-    .flash.success{ background:linear-gradient(180deg, #eafff4, #d8ffee); color:#073a2a; border-color:#baffdf }
-    .flash.danger{  background:linear-gradient(180deg, #ffefef, #ffe3e3); color:#5a1c1c; border-color:#ffc9c9 }
-    .flash.info{    background:linear-gradient(180deg, #f5f9ff, #eef4ff); color:#17223a; border-color:#dbe6ff }
-    [data-theme="dark"] .flash{
-      border-color: rgba(255,255,255,.15);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.06));
-      color:#f3f6ff;
-    }
-
-    .badge{
-      display:inline-block; padding:.28rem .6rem; border-radius:999px; font-size:.86rem;
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      background: #fffdf5; color:#4b3a0f; font-weight:800;
-    }
-    [data-theme="dark"] .badge{
-      border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.08); color:#eaeef7;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
-    }
-    .score-low{ background:rgba(16,185,129,.18); color:#116b4f; border-color:rgba(16,185,129,.28) }
-    .score-mid{ background:rgba(245,158,11,.18); color:#6f4b00;   border-color:rgba(245,158,11,.28) }
-    .score-high{background:rgba(239,68,68,.18);  color:#7a1e1e;   border-color:rgba(239,68,68,.28) }
-
-    .small{ font-size:.86rem; color:var(--text-dim); font-weight:600 }
-    .footer{ margin-top:32px; color:var(--text-dim); font-size:.9rem }
-
-    /* Yazdırma */
-    @media print{
-      .noprint{ display:none !important }
-      body{ background:#fff; color:#111 }
-      .topbar, .sidebar{ display:none }
-      .main{ padding:0 }
-      .panel{ box-shadow:none; border:1px solid #ddd; background:#fff; color:#111 }
-      .table th,.table td{ border-color:#eee }
-    }
-
-    /* Yüksek Kontrast */
-    @media (prefers-contrast: more){
-      .btn, .input, select.input, textarea.input, .panel, .menu a{ border-width:2px }
-      .menu a.active{ outline: 3px solid color-mix(in oklab, var(--ring) 40%, transparent) }
-    }
-
-    /* ===========================
-       AUTH/HIDE_NAV (login/register veya menüsüz sayfa)
-       =========================== */
-    .layout.auth{ grid-template-columns:1fr !important; }
-    .auth .sidebar{ display:none !important; }
-    .auth #sidebarToggle{ display:none !important; } /* Üst bardaki ☰ de gizlensin */
-  </style>
-</head>
-<body class="{% block body_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
-
-<div class="shell">
-  <!-- ÜST BAR -->
-  <header class="topbar noprint">
-    {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
-      <button class="btn-icon" id="sidebarToggle" aria-label="Menüyü Aç/Kapat">☰</button>
-    {% endif %}
-    <div class="brand">⚠️ Risk Yönetimi</div>
-    <div class="spacer"></div>
-
-    {% if session.get('username') and request.endpoint != 'welcome' %}
-      <div class="small">
-        👋 {{ session.get('username') }}
-        {% if session.get('role') %} · {{ session.get('role')|capitalize }}{% endif %}
+  <!-- ===== TOP NAV (dashboard görünümü) ===== -->
+  <div class="dash-topbar" role="region" aria-label="Dashboard üst menü">
+    <div class="brand">
+      <div class="brand-badge">🛡️</div>
+      <div class="brand-title">
+        <b>RiskApp</b>
+        <span>Integrated Risk Management</span>
       </div>
-    {% endif %}
+    </div>
 
-    <button id="themeToggle" class="btn" onclick="window.__toggleTheme?.()" style="margin-left:8px">
-      🌙 Koyu Tema
-    </button>
-  </header>
+    <div class="dash-search" role="search" aria-label="Risk arama">
+      <span class="icon">⌕</span>
+      <input type="text" placeholder="Search risks, metrics..." aria-label="Search risks, metrics">
+    </div>
 
-  <div class="layout {% block layout_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
-    <!-- SOL MENÜ -->
-    {% block sidebar %}
-    {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
-    <aside class="sidebar" id="sidebar">
-      <!-- Proje Seçici (varsa) -->
-      {% if session.get('account_id') %}
-        {% set _acc_id = session.get('account_id') %}
-        {% set _projects = ProjectInfo.query.filter_by(account_id=_acc_id).order_by(ProjectInfo.created_at.desc()).all() %}
-        {% if _projects and _projects|length > 1 %}
-          <form method="post" action="{{ url_for('switch_project') }}" class="small" style="padding:0 1rem .75rem">
-            <label for="project_id" style="display:block;margin-bottom:6px;font-weight:900">Aktif Proje</label>
-            <select class="input" id="project_id" name="project_id" onchange="this.form.submit()">
-              {% set _pid = session.get('project_id') %}
-              {% for p in _projects %}
-                <option value="{{ p.id }}" {{ 'selected' if _pid==p.id }}>{{ p.workplace_name }}</option>
-              {% endfor %}
-            </select>
-          </form>
-        {% endif %}
+    <div class="dash-nav" aria-label="Kısayol menü">
+      <a class="active" href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('risk_select') }}">Risk Inventory</a>
+      {% if session.get('role') == 'admin' %}
+        <a href="{{ url_for('categories_index') }}">Compliance</a>
       {% endif %}
+      <a href="{{ url_for('settings_account') }}">Settings</a>
+    </div>
 
-      <div class="menu-section">
-        <div class="menu-title">Dashboard</div>
-        <nav class="menu">
-          <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">Genel Görünüm</a>
-        </nav>
-      </div>
-
-      <!-- RİSK MENÜSÜ -->
-      <div class="menu-section">
-        <div class="menu-title">Risk</div>
-        <nav class="menu submenu">
-          <a href="{{ url_for('risk_identify') }}" class="{{ 'active' if request.endpoint=='risk_identify' }}">Risk / Kategorisi Görüntüleme</a>
-          <a href="{{ url_for('risk_new') }}" class="{{ 'active' if request.endpoint=='risk_new' }}">Yeni Risk Tanımlama</a>
-          <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Geçmiş İşlem Verilerim</a>
-          <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">Kategoriler</a>
-          <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">Zaman Çizelgesi</a>
-
-          {# ✅ Maliyetler linki (endpoint yoksa sayfa patlamasın) #}
-          {% set _has_ep_helper = (has_endpoint is defined) %}
-          {% set _costs_ep = (
-              'costs' if (
-                (_has_ep_helper and has_endpoint('costs')) or
-                (not _has_ep_helper and ('costs' in current_app.view_functions))
-              )
-              else None
-          ) %}
-          {% if _costs_ep %}
-            <a href="{{ url_for(_costs_ep) }}" class="{{ 'active' if request.endpoint==_costs_ep }}">Maliyetler</a>
-          {% endif %}
-
-          <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
-
-          {# ✅✅ Pareto Analizi (endpoint varsa göster) #}
-          {% set _pareto_ep = (
-              'pareto_view' if (
-                (_has_ep_helper and has_endpoint('pareto_view')) or
-                (not _has_ep_helper and ('pareto_view' in current_app.view_functions))
-              )
-              else None
-          ) %}
-          {% if _pareto_ep %}
-            <a href="{{ url_for(_pareto_ep) }}" class="{{ 'active' if request.endpoint==_pareto_ep }}">Pareto Analizi</a>
-          {% endif %}
-
-          {% if r is defined %}
-            {# Risk detayındayken ekstra linkler koyacaksan buraya #}
-          {% endif %}
-
-          {% if session.get('role') == 'admin' %}
-            <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">Risk ve Kategori Aktarma (CSV,Excel)</a>
-          {% endif %}
-
-          <a href="{{ url_for('responsibles') }}" class="{{ 'active' if request.endpoint=='responsibles' }}">Sorumlu Özeti</a>
-          <a href="{{ url_for('risks_export_xlsx', title='DENİZ YAPILARI İNŞAAT PROJESİ RİSK ANALİZİ') }}">Excel (Biçimli) Dışa Aktar</a>
-        </nav>
-      </div>
-
-      <div class="menu-section">
-        <div class="menu-title">Ayarlar</div>
-        <nav class="menu submenu">
-          {# ---- Güvenli admin linki: önce endpoint var mı bakıyoruz ---- #}
-          {% set _has_ep_helper = (has_endpoint is defined) %}
-          {% set _admin_ep = (
-              'admin.admin_users' if (
-                (_has_ep_helper and has_endpoint('admin.admin_users')) or
-                (not _has_ep_helper and ('admin.admin_users' in current_app.view_functions))
-              )
-              else (
-                'admin_users' if (
-                  (_has_ep_helper and has_endpoint('admin_users')) or
-                  (not _has_ep_helper and ('admin_users' in current_app.view_functions))
-                )
-                else None
-              )
-          ) %}
-          {% if _admin_ep %}
-            <a href="{{ url_for(_admin_ep) }}"
-               class="{{ 'active' if request.endpoint == _admin_ep }}">Kullanıcı Yönetimi</a>
-          {% endif %}
-
-          <a href="{{ url_for('settings_account') }}" class="{{ 'active' if request.endpoint=='settings_account' }}">Hesap Bilgileri</a>
-          <a href="{{ url_for('settings_project') }}" class="{{ 'active' if request.endpoint=='settings_project' }}">Proje Bilgileri</a>
-        </nav>
-      </div>
-
-      <div class="menu-section">
-        <div class="menu-title">Hesap</div>
-        <nav class="menu">
-          <a href="{{ url_for('logout') }}">Oturumu Kapat</a>
-        </nav>
-      </div>
-    </aside>
-    {% endif %}
-    {% endblock %}
-
-    <!-- ANA İÇERİK -->
-    <main class="main">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for cat, msg in messages %}
-            <div class="flash {{cat}}">{{ msg }}</div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <section class="panel">
-        {% block content %}{% endblock %}
-      </section>
-
-      <p class="footer">© {{ 2025 }} Entegre Risk Yönetimi · <span class="small">v1</span></p>
-    </main>
+    <div class="dash-right">
+      <button class="icon-btn" type="button" aria-label="Bildirimler">🔔</button>
+      <div class="avatar" aria-label="User avatar"></div>
+    </div>
   </div>
+
+  {# ==== KPI hesap: her risk için Risk.score() (detaydakiyle aynı) ==== #}
+  {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
+  {% for r in risks or [] %}
+    {% set sc = r.score() %}
+    {% if sc is not none %}
+      {% set ns.sum  = ns.sum + sc %}
+      {% set ns.have = ns.have + 1 %}
+      {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
+      {% if sc <= 4 %}
+        {% set ns.low = ns.low + 1 %}
+      {% elif sc <= 10 %}
+        {% set ns.mid = ns.mid + 1 %}
+      {% elif sc <= 15 %}
+        {% set ns.high = ns.high + 1 %}
+      {% else %}
+        {% set ns.crit = ns.crit + 1 %}
+      {% endif %}
+    {% endif %}
+    {% set ns.total = ns.total + 1 %}
+  {% endfor %}
+  {% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
+
+  <!-- ===== KPIs (Tailwind kartları gibi) ===== -->
+  <div class="kpis" role="list" aria-label="Özet göstergeler">
+    <div class="kpi" role="listitem">
+      <div class="label">Total Risk</div>
+      <div class="value">{{ ns.total }}</div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">Critical</div>
+      <div class="value"><span class="badge score-high">{{ ns.crit }}</span></div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">High</div>
+      <div class="value"><span class="badge score-high">{{ ns.high }}</span></div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">Medium</div>
+      <div class="value"><span class="badge score-mid">{{ ns.mid }}</span></div>
+    </div>
+
+    <div class="kpi" role="listitem">
+      <div class="label">Low</div>
+      <div class="value"><span class="badge score-low">{{ ns.low }}</span></div>
+    </div>
+
+    <div class="kpi primary" role="listitem">
+      <div class="label">Avg Score</div>
+      <div class="value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
+    </div>
+  </div>
+
+  <!-- ===== ÜST İKİLİ: Genel Görünüm + Risk Matrisi ===== -->
+  <div class="grid grid-2">
+    <!-- Sol: Genel Görünüm -->
+    <div class="card" aria-labelledby="genelTitle">
+      <div class="card-head">
+        <h3 id="genelTitle" class="card-title"><span class="pill">≡</span>General Overview</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn" href="{{ url_for('risk_select') }}">View All Risks</a>
+          {% if session.get('role') == 'admin' %}
+            <a class="btn" href="{{ url_for('categories_index') }}">Category Management</a>
+          {% endif %}
+          <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Define Risk</a>
+        </div>
+      </div>
+
+      {% if risks and risks|length > 0 %}
+        <div class="table-wrap" style="margin-top:8px">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Risk Title</th>
+                <th style="width:200px">Category</th>
+                <th style="width:120px; text-align:center">Impact</th>
+                <th style="width:160px">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in risks[:8] %}
+              {% set sc = r.score() %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                  {% if r.description %}
+                    <div class="small" style="margin-top:4px; max-width:72ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                      {{ r.description }}
+                    </div>
+                  {% endif %}
+                </td>
+                <td>{{ r.category or "-" }}</td>
+                <td style="text-align:center">
+                  {% if sc is not none %}
+                    <span class="badge
+                                {% if sc<=4 %}score-low
+                                {% elif sc<=10 %}score-mid
+                                {% else %}score-high{% endif %}"
+                          title="Skor: {{ '%.2f'|format(sc) }}">
+                      {{ '%.2f'|format(sc) }}
+                    </span>
+                  {% else %}
+                    <span class="badge">—</span>
+                  {% endif %}
+                </td>
+                <td>{{ r.status or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="small" style="margin-top:10px">
+          Son güncellenen 8 risk gösteriliyor. Tümü için “Riskler” sayfasına gidin.
+        </div>
+      {% else %}
+        <div class="empty" role="note" aria-live="polite">
+          <h4 style="margin:0 0 .3rem; font-weight:900;">Henüz risk yok</h4>
+          <div class="small">Hızlı başlamak için bir şablon seçin veya yeni bir risk oluşturun.</div>
+          <div style="margin-top:.8rem; display:flex; gap:8px; justify-content:center; flex-wrap:wrap">
+            <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+            <a class="btn" href="{{ url_for('risk_identify') }}">📋 Şablondan Seç</a>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Sağ: Risk Matrisi -->
+    <div class="card" aria-labelledby="matrixTitle">
+      <div class="card-head">
+        <h3 id="matrixTitle" class="card-title"><span class="pill">▦</span>Risk Matrix</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <span class="badge score-low">1–4</span>
+          <span class="badge score-mid">5–10</span>
+          <span class="badge" style="background:rgba(253,186,116,.25);color:#4a2500;border-color:#f59e0b">11–15</span>
+          <span class="badge" style="background:rgba(239,68,68,.20);color:#7a1e1e;border-color:#ef4444">16–25</span>
+        </div>
+      </div>
+
+      {% set prob_labels = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
+      {% set sev_labels  = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
+
+      <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
+        <div class="rm-corner" aria-hidden="true"></div>
+
+        {# Olasılık: 5 → 1 (Çok Yüksek → Çok Düşük) #}
+        {% for p in range(5,0,-1) %}
+          <div class="rm-colhead" role="columnheader" aria-label="Olasılık {{p}}: {{ prob_labels[p-1] }}">
+            <div class="rm-coltitle">{{ prob_labels[p-1] }}</div>
+            <div class="rm-colnum">{{ p }}</div>
+          </div>
+        {% endfor %}
+
+        {# Satırlar: Şiddet 5 → 1 #}
+        {% for s in range(5,0,-1) %}
+          <div class="rm-rowhead" role="rowheader" aria-label="Şiddet {{s}}: {{ sev_labels[s-1] }}" style="position:relative">
+            <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
+            <div class="rm-rownum">{{ s }}</div>
+          </div>
+
+          {% for p in range(5,0,-1) %}
+            {% set score = p * s %}
+            {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
+
+            {% set cell = namespace(cnt=0) %}
+            {% for r in risks or [] %}
+              {% set evals = (r.evaluations or [])|sort(attribute='id') %}
+              {% if evals %}
+                {% set last_eval = evals|last %}
+                {% if last_eval.probability == p and last_eval.severity == s %}
+                  {% set cell.cnt = cell.cnt + 1 %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+
+            <a class="rm-cell {{ lvl }}"
+               href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
+               title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{cell.cnt}} adet"
+               role="gridcell"
+               aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{cell.cnt}} adet"
+               tabindex="0">
+              <span class="rm-score">{{ score }}</span>
+              <span class="rm-count">{{ cell.cnt }}</span>
+            </a>
+          {% endfor %}
+        {% endfor %}
+      </div>
+
+      <div class="small" style="margin-top:10px">
+        Hücrelerde büyük sayı <strong>skor (P×S)</strong>, sağ altta <strong>adet</strong> gösterilir.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Donut’lar ===== -->
+  <div class="card" style="margin-top:12px" aria-labelledby="donutTitle">
+    <div class="card-head">
+      <h3 id="donutTitle" class="card-title"><span class="pill">◎</span>Category & Risk Distribution</h3>
+      <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
+    </div>
+
+    {% if category_stats and category_stats|length > 0 %}
+      <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
+
+      <div class="donut-grid">
+        <div class="donut-card">
+          <div class="donut-head">
+            <div class="donut-title">1- Kategori Bazında Dağılım</div>
+            <div class="small" id="catTotal"></div>
+          </div>
+          <canvas id="donut-categories" height="220" aria-label="Kategori dağılım donut" role="img"></canvas>
+          <div class="legend-row" id="legend-cats"></div>
+        </div>
+
+        <div class="donut-card">
+          <div class="donut-head">
+            <div class="donut-title">2- Risk Seviyeleri (Toplam)</div>
+          </div>
+          <canvas id="donut-levels" height="220" aria-label="Seviye dağılım donut" role="img"></canvas>
+          <div class="legend-row" id="legend-levels"></div>
+        </div>
+      </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        (function(){
+          const raw = document.getElementById('categoryStats');
+          const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
+          const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
+
+          const PALETTE = ['#60a5fa','#34d399','#f59e0b','#ef4444','#a78bfa','#f472b6','#22d3ee','#84cc16','#fb7185','#f97316'];
+          const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
+
+          // 1) Kategori Donut
+          const catLabels = rows.map(r => r.cat);
+          const catCounts = rows.map(r => Number(r.total)||0);
+          const catColors = catLabels.map((_,i)=> PALETTE[i % PALETTE.length]);
+
+          new Chart(document.getElementById('donut-categories').getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors, borderWidth: 0 }]},
+            options: {
+              cutout: '65%',
+              plugins: {
+                legend: { display:false },
+                tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+              }
+            }
+          });
+
+          const totalCat = catCounts.reduce((a,b)=>a+b,0);
+          const catTotalEl = document.getElementById('catTotal');
+          if (catTotalEl) catTotalEl.textContent = `${totalCat} adet`;
+
+          const legendCats = document.getElementById('legend-cats');
+          catLabels.forEach((lbl, i) => {
+            const n = catCounts[i]||0;
+            const el = document.createElement('span');
+            el.className = 'legend-chip';
+            el.innerHTML = `<span class="chip-dot" style="background:${catColors[i]}"></span>${lbl} (${n})`;
+            legendCats.appendChild(el);
+          });
+
+          // 2) Seviye Donut
+          const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
+          const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
+          const lvlKeys   = ['low','mid','high','vhigh'];
+          const lvlData   = lvlKeys.map(k => sum(k));
+          const lvlColors = lvlKeys.map(k => LEVEL_COLORS[k]);
+
+          new Chart(document.getElementById('donut-levels').getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: lvlLabels, datasets: [{ data: lvlData, backgroundColor: lvlColors, borderWidth: 0 }]},
+            options: {
+              cutout: '65%',
+              plugins: {
+                legend: { display:false },
+                tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+              }
+            }
+          });
+
+          const legendLvls = document.getElementById('legend-levels');
+          lvlLabels.forEach((lbl, i) => {
+            const el = document.createElement('span');
+            el.className = 'legend-chip';
+            el.innerHTML = `<span class="chip-dot" style="background:${lvlColors[i]}"></span>${lbl} (${lvlData[i]})`;
+            legendLvls.appendChild(el);
+          });
+        })();
+      </script>
+    {% else %}
+      <div class="empty">Grafik oluşturmak için yeterli veri yok.</div>
+    {% endif %}
+  </div>
+
+  <!-- ===== Hızlı İşlemler ===== -->
+  <div class="card" style="margin-top:12px">
+    <div class="quick-actions">
+      <h3 style="margin:0; font-weight:900;">Quick Actions</h3>
+      <div class="btns">
+        <a class="btn" href="{{ url_for('risk_identify') }}">📋 Risk Tanımla</a>
+        {% if session.get('role') == 'admin' %}
+          <a class="btn" href="{{ url_for('categories_index') }}">🗂️ Kategori Yönetimi</a>
+          <a class="btn" href="{{ url_for('import_suggestions') }}">⬆️ CSV İçe Aktar</a>
+        {% endif %}
+        <a class="btn" href="{{ url_for('risks_export_csv') }}">⬇️ CSV Dışa Aktar</a>
+        <a class="btn" href="{{ url_for('settings_account') }}">⚙️ Hesap Ayarları</a>
+        <a class="btn" href="{{ url_for('settings_project') }}">🏷️ Proje Bilgileri</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- ✅ Chart.js (Pareto grafikleri için) -->
-<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
-
-<!-- Tema toggle + sidebar + panel auto-mark -->
-<script>
-(function(){
-  const KEY = 'riskapp.theme';
-  const SIDEBAR_KEY = 'riskapp.sidebarCollapsed';
-  const root = document.documentElement;
-  const getBtnTheme = () => document.getElementById('themeToggle');
-  const sidebar = document.getElementById('sidebar');
-  const sidebarToggle = document.getElementById('sidebarToggle');
-
-  function applyTheme(t){
-    root.setAttribute('data-theme', t);
-    try{ localStorage.setItem(KEY, t); }catch(e){}
-    const btn = getBtnTheme();
-    if (btn){
-      btn.textContent = (t === 'light') ? '🌙 Koyu Tema' : '🌞 Açık Tema';
-    }
-  }
-
-  const saved = (()=>{ try{ return localStorage.getItem(KEY); }catch(e){ return null } })();
-  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initial = saved || (prefersDark ? 'dark' : 'light');
-  applyTheme(initial);
-
-  window.__toggleTheme = function(){
-    const current = root.getAttribute('data-theme') || 'light';
-    applyTheme(current === 'light' ? 'dark' : 'light');
-  };
-
-  function isMobile(){
-    return window.matchMedia && window.matchMedia('(max-width: 980px)').matches;
-  }
-
-  // Desktop için sidebar collapsed state'ini yükle
-  (function initSidebarPref(){
-    if (!sidebar) return;
-    let collapsed = false;
-    try{
-      collapsed = localStorage.getItem(SIDEBAR_KEY) === '1';
-    } catch(e){}
-    if (collapsed && !isMobile()){
-      document.body.classList.add('sidebar-collapsed');
-    }
-  })();
-
-  // Sidebar toggle (mobil + desktop)
-  if (sidebarToggle && sidebar){
-    sidebarToggle.addEventListener('click', () => {
-      if (isMobile()){
-        // Mobil: slide-in menü
-        sidebar.classList.toggle('open');
-      } else {
-        // Desktop: sidebar tamamen gizle/göster
-        document.body.classList.toggle('sidebar-collapsed');
-        try{
-          const collapsed = document.body.classList.contains('sidebar-collapsed');
-          localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
-        } catch(e){}
-      }
-    });
-
-    // Sidebar dışına tıklayınca kapat (sadece mobilde)
-    document.addEventListener('click', (e)=>{
-      if (!isMobile()) return;
-      if (!sidebar.classList.contains('open')) return;
-      const within = sidebar.contains(e.target) || sidebarToggle.contains(e.target);
-      if (!within) sidebar.classList.remove('open');
-    });
-
-    // Ekran boyutu değişince mobil>desktop geçişinde açık sidebar'ı kapat
-    window.addEventListener('resize', ()=>{
-      if (!isMobile()){
-        sidebar.classList.remove('open');
-      }
-    });
-  }
-
-  // Değerlendirme / RPN panellerini koyu temada auto-mark (beyaz fix)
-  function markAssessmentsPanel(){
-    const candidates = document.querySelectorAll('.panel, .card, .section, .box, .content, .container');
-    candidates.forEach(el => {
-      const titleEl = el.querySelector('h1, h2, h3, .title, .header');
-      if (!titleEl) return;
-      const t = (titleEl.textContent || '').trim().toLowerCase();
-      if (t.startsWith('değerlendirmeler') || t === 'rpn' || t.includes('p / s / d')){
-        el.classList.add('assessments');
-      }
-    });
-  }
-  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', markAssessmentsPanel); }
-  else { markAssessmentsPanel(); }
-})();
-</script>
-
-<!-- ✅ Modal/backdrop kilitlenme sigortası (hiçbir şeyi eksiltmeden sadece ek) -->
-<script>
-(function(){
-  function cleanupBackdrops(){
-    // Açık modal yoksa backdrop ve kilidi temizle
-    const openModal = document.querySelector('.modal.show');
-    if (!openModal){
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-    }
-  }
-
-  // data-bs-dismiss tıklarını garanti kapat (bazı custom markup'larda bootstrap kaçırabiliyor)
-  document.addEventListener('click', (e) => {
-    const dismissBtn = e.target.closest('[data-bs-dismiss="modal"]');
-    if (!dismissBtn) return;
-
-    const modalEl = dismissBtn.closest('.modal');
-    if (!modalEl) { cleanupBackdrops(); return; }
-
-    try{
-      if (window.bootstrap){
-        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-      } else {
-        // Bootstrap objesi yoksa yine de sayfa kilidini kaldır
-        modalEl.classList.remove('show');
-        modalEl.style.display = 'none';
-        cleanupBackdrops();
-      }
-    }catch(_){
-      modalEl.classList.remove('show');
-      modalEl.style.display = 'none';
-      cleanupBackdrops();
-    }
-  });
-
-  // Bootstrap eventleriyle de temizle
-  document.addEventListener('hidden.bs.modal', cleanupBackdrops);
-  window.addEventListener('pageshow', cleanupBackdrops);
-
-  // ESC ile de kaçış kapısı
-  document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape') cleanupBackdrops();
-  });
-})();
-</script>
 {% endblock %}
-
-</body>
-</html>
