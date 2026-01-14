@@ -5,594 +5,594 @@
 
 {% block content %}
 
-{# CSS’i static dosyadan çek #}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/costs.css') }}">
 
-<div class="container py-4">
+<div class="costs-page">
+  <div class="container py-4">
 
-  <!-- Header -->
-  <div class="page-head">
-    <div>
-      <h2 class="mb-1">Maliyet Yönetimi</h2>
-      <div class="page-sub">
-        Şablondan seç, maliyet gir, açıklamasını yaz; sonra Pareto/Pareto Front ile nereye odaklanacağını gör.
-      </div>
-
-      <!-- ✅ Baz para + kur + yıllıklaştırma ayarları -->
-      <div class="fx-panel mt-3">
-        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
-          <div class="d-flex flex-wrap gap-2 align-items-center">
-            <div class="small text-muted">Baz Para:</div>
-            <select class="form-select form-select-sm" id="baseCurrency" style="width:110px;">
-              <option value="TRY">TRY</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-            </select>
-
-            <div class="small text-muted ms-2">Tek Sefer:</div>
-            <select class="form-select form-select-sm" id="oneTimePolicy" style="width:190px;">
-              <option value="1x">Yıllığa dahil et (1x)</option>
-              <option value="0x">Yıllığa dahil etme (0x)</option>
-              <option value="amortize">Amortisman</option>
-            </select>
-
-            <div class="d-flex align-items-center gap-2">
-              <input type="number" min="1" step="1" id="amortizeYears"
-                     class="form-control form-control-sm"
-                     style="width:90px;" value="3">
-              <span class="small text-muted">yıl</span>
-            </div>
-
-            <div class="form-check ms-2">
-              <input class="form-check-input" type="checkbox" id="paretoUseAnnual" checked>
-              <label class="form-check-label small text-muted" for="paretoUseAnnual">
-                Pareto’da yıllıklaştır
-              </label>
-            </div>
-          </div>
-
-          <div class="d-flex flex-wrap gap-2 align-items-center">
-            <div class="small text-muted">Kur (TRY):</div>
-            <input class="form-control form-control-sm" id="fxUSDTRY" placeholder="USD/TRY" style="width:110px;">
-            <input class="form-control form-control-sm" id="fxEURTRY" placeholder="EUR/TRY" style="width:110px;">
-            <span class="small text-muted">Kaydedilir (local)</span>
-          </div>
+    <!-- Header -->
+    <div class="page-head">
+      <div>
+        <h2 class="mb-1">Maliyet Yönetimi</h2>
+        <div class="page-sub">
+          Şablondan seç, maliyet gir, açıklamasını yaz; sonra Pareto/Pareto Front ile nereye odaklanacağını gör.
         </div>
 
-        <div class="small text-muted mt-2">
-          Not: Dönüşüm için USD/TRY ve EUR/TRY girmen gerekir (USD/EUR satırların varsa).
-        </div>
-      </div>
-    </div>
-
-    <div class="d-flex flex-wrap gap-2 align-items-center">
-      <span class="chip" title="Tablodaki görünen satırlar">
-        Anlık: <strong id="liveTotal">—</strong>
-      </span>
-      <span class="chip" title="Tablodaki görünen satırlar">
-        Yıllık: <strong id="liveAnnual">—</strong>
-      </span>
-      <span class="chip" title="Baz para (tablodaki görünen satırlar)">
-        Anlık (Baz): <strong id="liveTotalBase">0</strong>
-      </span>
-      <span class="chip" title="Baz para (tablodaki görünen satırlar)">
-        Yıllık (Baz): <strong id="liveAnnualBase">0</strong>
-      </span>
-    </div>
-  </div>
-
-  <div class="row g-3">
-
-    <!-- LEFT: Templates -->
-    <div class="col-12 col-lg-5">
-      <div class="card shadow-sm">
-        <div class="card-header d-flex align-items-center justify-content-between gap-2">
-          <div>
-            <div class="fw-semibold">Maliyet Şablonları</div>
-            <small class="text-muted">Formu otomatik doldurur</small>
-          </div>
-
-          <button type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  data-bs-toggle="modal"
-                  data-bs-target="#tplCreateModal">
-            + Yeni Şablon
-          </button>
-        </div>
-
-        <div class="card-body">
-          <div class="template-toolbar">
-            <div class="input-group" style="max-width: 360px;">
-              <span class="input-group-text">Ara</span>
-              <input class="form-control" id="tplSearch" placeholder="Örn: lisans, ekipman, eğitim">
-              <button class="btn btn-outline-secondary" id="tplClearSearch" type="button">Temizle</button>
-            </div>
-
-            <div class="d-flex gap-2">
-              <select class="form-select" id="tplCategory" style="min-width: 170px;">
-                <option value="">Tümü</option>
-                <option value="İş Gücü">İş Gücü</option>
-                <option value="Ekipman">Ekipman</option>
-                <option value="Yazılım">Yazılım</option>
-                <option value="Eğitim">Eğitim</option>
-                <option value="Hizmet">Hizmet</option>
-                <option value="Operasyon">Operasyon</option>
+        <!-- FX panel -->
+        <div class="fx-panel mt-3">
+          <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <div class="small text-muted">Baz Para:</div>
+              <select class="form-select form-select-sm" id="baseCurrency" style="width:110px;">
+                <option value="TRY">TRY</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
               </select>
+
+              <div class="small text-muted ms-2">Tek Sefer:</div>
+              <select class="form-select form-select-sm" id="oneTimePolicy" style="width:190px;">
+                <option value="1x">Yıllığa dahil et (1x)</option>
+                <option value="0x">Yıllığa dahil etme (0x)</option>
+                <option value="amortize">Amortisman</option>
+              </select>
+
+              <div class="d-flex align-items-center gap-2">
+                <input type="number" min="1" step="1" id="amortizeYears"
+                       class="form-control form-control-sm"
+                       style="width:90px;" value="3">
+                <span class="small text-muted">yıl</span>
+              </div>
+
+              <div class="form-check ms-2">
+                <input class="form-check-input" type="checkbox" id="paretoUseAnnual" checked>
+                <label class="form-check-label small text-muted" for="paretoUseAnnual">
+                  Pareto’da yıllıklaştır
+                </label>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <div class="small text-muted">Kur (TRY):</div>
+              <input class="form-control form-control-sm" id="fxUSDTRY" placeholder="USD/TRY" style="width:110px;">
+              <input class="form-control form-control-sm" id="fxEURTRY" placeholder="EUR/TRY" style="width:110px;">
+              <span class="small text-muted">Kaydedilir (local)</span>
             </div>
           </div>
 
-          <div class="row g-2" id="tplGrid">
-
-            {% if cost_templates and cost_templates|length > 0 %}
-              <div class="col-12">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                  <div class="fw-semibold">Senin Şablonların</div>
-                  <span class="tpl-badge">{{ cost_templates|length }} adet</span>
-                </div>
-              </div>
-
-              {% for t in cost_templates %}
-                <div class="col-12">
-                  <div class="template-card"
-                       data-tpl-id="{{ t.id }}"
-                       data-title="{{ (t.title or '')|e }}"
-                       data-category="{{ (t.category or '')|e }}"
-                       data-unit="{{ (t.unit or '')|e }}"
-                       data-currency="{{ (t.currency or 'TRY')|upper|e }}"
-                       data-frequency="{{ (t.frequency or 'Tek Sefer')|e }}"
-                       data-desc="{{ (t.description or '')|e }}"
-                       data-edit-url="{{ url_for('cost_template_edit_post', tpl_id=t.id) }}"
-                       data-search="{{ ((t.title or '') ~ ' ' ~ (t.category or '') ~ ' ' ~ (t.unit or '') ~ ' ' ~ (t.currency or '') ~ ' ' ~ (t.frequency or '') ~ ' ' ~ (t.description or ''))|lower|e }}"
-                       role="button" tabindex="0">
-
-                    <div class="d-flex align-items-start justify-content-between gap-2">
-                      <div>
-                        <div class="fw-semibold">{{ t.title }}</div>
-                        <div class="template-meta">
-                          {{ t.category }} • {{ t.unit }} • {{ (t.currency or 'TRY')|upper }} • {{ t.frequency }}
-                        </div>
-                      </div>
-
-                      <div class="tpl-actions">
-                        <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-
-                        <button type="button"
-                                class="btn btn-sm btn-outline-secondary tpl-edit"
-                                data-bs-toggle="modal"
-                                data-bs-target="#tplEditModal">
-                          Düzenle
-                        </button>
-
-                        <form method="post"
-                              action="{{ url_for('cost_template_delete', tpl_id=t.id) }}"
-                              class="d-inline"
-                              onsubmit="return confirm('Bu şablonu silmek istiyor musun?');">
-                          <button type="submit" class="btn btn-sm btn-outline-danger">
-                            Sil
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-
-                    <div class="small text-muted mt-2">
-                      {{ t.description or '-' }}
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-
-              <hr class="my-3">
-            {% endif %}
-
-            <div class="col-12">
-              <div class="d-flex align-items-center justify-content-between mb-1">
-                <div class="fw-semibold">Varsayılan Şablonlar</div>
-                <span class="tpl-badge">Hazır</span>
-              </div>
-            </div>
-
-            <!-- Default templates -->
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Personel / Mesai"
-                   data-category="İş Gücü"
-                   data-unit="saat"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="Ek mesai, vardiya, geçici personel, fazla iş yükü için maliyet."
-                   data-search="personel mesai iş gücü saat try tek sefer ek mesai vardiya geçici personel fazla iş yükü maliyet"
-                   role="button" tabindex="0">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Personel / Mesai</div>
-                    <div class="template-meta">İş Gücü • saat • TRY • Tek Sefer</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Ek mesai, vardiya, geçici personel gibi kalemler.</div>
-              </div>
-            </div>
-
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Yazılım Lisansı"
-                   data-category="Yazılım"
-                   data-unit="lisans"
-                   data-currency="USD"
-                   data-frequency="Yıllık"
-                   data-desc="Yıllık abonelik / lisans bedelleri (SaaS, güvenlik, ERP vb.)."
-                   data-search="yazılım lisansı saas abonelik yıllık usd yazılım güvenlik erp"
-                   role="button" tabindex="0">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Yazılım Lisansı</div>
-                    <div class="template-meta">Yazılım • lisans • USD • Yıllık</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">SaaS/abonelik/lisans kalemleri.</div>
-              </div>
-            </div>
-
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Ekipman / Donanım"
-                   data-category="Ekipman"
-                   data-unit="adet"
-                   data-currency="EUR"
-                   data-frequency="Tek Sefer"
-                   data-desc="Cihaz, ekipman, donanım alımı (tek seferlik)."
-                   data-search="ekipman donanım cihaz adet eur tek sefer alım satın alma"
-                   role="button" tabindex="0">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Ekipman / Donanım</div>
-                    <div class="template-meta">Ekipman • adet • EUR • Tek Sefer</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Tek seferlik donanım alımı.</div>
-              </div>
-            </div>
-
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Eğitim / Sertifika"
-                   data-category="Eğitim"
-                   data-unit="kişi"
-                   data-currency="TRY"
-                   data-frequency="Tek Sefer"
-                   data-desc="İç/dış eğitim, sertifika, workshop, danışmanlık eğitimi."
-                   data-search="eğitim sertifika workshop kişi try tek sefer danışmanlık"
-                   role="button" tabindex="0">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Eğitim / Sertifika</div>
-                    <div class="template-meta">Eğitim • kişi • TRY • Tek Sefer</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Eğitim ve sertifika maliyetleri.</div>
-              </div>
-            </div>
-
-            <div class="col-12">
-              <div class="template-card"
-                   data-title="Operasyon / Bakım"
-                   data-category="Operasyon"
-                   data-unit="ay"
-                   data-currency="TRY"
-                   data-frequency="Aylık"
-                   data-desc="Bakım, işletme, operasyonel aylık giderler."
-                   data-search="operasyon bakım aylık gider işletme ay try"
-                   role="button" tabindex="0">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">Operasyon / Bakım</div>
-                    <div class="template-meta">Operasyon • ay • TRY • Aylık</div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
-                </div>
-                <div class="small text-muted mt-2">Aylık operasyon/bakım masrafları.</div>
-              </div>
-            </div>
-
-          </div>
-
-          <hr class="my-3">
-          <div class="muted-hint">
-            Şablonlar “temel varsayımlar” içindir. Gerçek dünyada her şey daha karmaşık.
+          <div class="small text-muted mt-2">
+            Not: Dönüşüm için USD/TRY ve EUR/TRY girmen gerekir (USD/EUR satırların varsa).
           </div>
         </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="chip" title="Tablodaki görünen satırlar">
+          Anlık: <strong id="liveTotal">—</strong>
+        </span>
+        <span class="chip" title="Tablodaki görünen satırlar">
+          Yıllık: <strong id="liveAnnual">—</strong>
+        </span>
+        <span class="chip" title="Baz para (tablodaki görünen satırlar)">
+          Anlık (Baz): <strong id="liveTotalBase">0</strong>
+        </span>
+        <span class="chip" title="Baz para (tablodaki görünen satırlar)">
+          Yıllık (Baz): <strong id="liveAnnualBase">0</strong>
+        </span>
       </div>
     </div>
 
-    <!-- RIGHT: Add cost form -->
-    <div class="col-12 col-lg-7">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Maliyet Ekle</div>
-        <div class="card-body">
+    <div class="row g-3">
 
-          <form method="post" action="{{ url_for('costs') }}" id="costForm" novalidate>
-            <div class="row g-3">
-
-              <div class="col-12 col-md-6">
-                <label class="form-label">Başlık</label>
-                <input class="form-control" name="title" id="title" placeholder="Örn: Yazılım lisansı" required>
-                <div class="invalid-feedback">Başlık gerekli.</div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <label class="form-label">Kategori</label>
-                <select class="form-select" name="category" id="category" required>
-                  <option value="">— Seç —</option>
-                  {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
-                  {% for cat in cats %}
-                    <option value="{{ cat }}">{{ cat }}</option>
-                  {% endfor %}
-                </select>
-                <div class="invalid-feedback">Kategori gerekli.</div>
-              </div>
-
-              <div class="col-12 col-md-4">
-                <label class="form-label">Birim</label>
-                <input class="form-control" name="unit" id="unit" placeholder="adet / saat / gün / lisans" required>
-                <div class="invalid-feedback">Birim gerekli.</div>
-              </div>
-
-              <div class="col-12 col-md-4">
-                <label class="form-label">Para Birimi</label>
-                <select class="form-select" name="currency" id="currency">
-                  <option value="TRY">TRY</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </div>
-
-              <div class="col-12 col-md-4">
-                <label class="form-label">Sıklık</label>
-                <select class="form-select" name="frequency" id="frequency">
-                  <option>Tek Sefer</option>
-                  <option>Aylık</option>
-                  <option>Yıllık</option>
-                </select>
-              </div>
-
-              <div class="col-12">
-                <label class="form-label">
-                  Riski Bağla (opsiyonel)
-                  <span class="text-muted small ms-1">Pareto Front için</span>
-                </label>
-                <select class="form-select" name="risk_id" id="risk_id">
-                  <option value="">— Risk seçme (boş bırak) —</option>
-                  {% if risks and risks|length > 0 %}
-                    {% for r in risks %}
-                      <option value="{{ r.id }}">
-                        #{{ r.id }} • {{ r.title }}{% if r.category %} • {{ r.category }}{% endif %}
-                      </option>
-                    {% endfor %}
-                  {% endif %}
-                </select>
-                <div class="form-text text-muted">
-                  Risk seçersen, bu maliyet Pareto Front’ta risk skoru (P×S) ile eşleşir.
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <label class="form-label">Miktar</label>
-                <input class="form-control" type="number" step="0.01" min="0" name="qty" id="qty" placeholder="Örn: 10" required>
-                <div class="invalid-feedback">Miktar gerekli ve 0’dan büyük olmalı.</div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <label class="form-label">Birim Fiyat</label>
-                <input class="form-control" type="number" step="0.01" min="0" name="unit_price" id="unit_price" placeholder="Örn: 2500" required>
-                <div class="invalid-feedback">Birim fiyat gerekli ve 0’dan büyük olmalı.</div>
-              </div>
-
-              <div class="col-12">
-                <label class="form-label">Maliyet Açıklaması</label>
-                <textarea class="form-control" rows="3" name="description" id="description"
-                          placeholder="Bu maliyet neden var, hangi riske/önleme bağlı, varsayımlar neler?"></textarea>
-              </div>
-
-              <div class="col-12 d-flex flex-wrap gap-2">
-                <button type="submit" class="btn btn-primary">Kaydet</button>
-                <button type="button" class="btn btn-outline-secondary" id="clearForm">Formu Temizle</button>
-
-                <div class="ms-auto text-muted small d-flex align-items-center gap-2">
-                  <span>Anlık: <span class="fw-semibold" id="liveTotalInline">0</span></span>
-                  <span class="d-none d-md-inline">•</span>
-                  <span>Yıllık: <span class="fw-semibold" id="liveAnnualInline">0</span></span>
-                </div>
-              </div>
-
-            </div>
-          </form>
-
-        </div>
-      </div>
-
-      <!-- Costs list -->
-      <div class="card shadow-sm mt-3">
-        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <div class="fw-semibold">Mevcut Maliyetler</div>
-
-          <div class="d-flex flex-wrap gap-2 align-items-center">
-            <div class="input-group input-group-sm" style="max-width: 260px;">
-              <span class="input-group-text">Filtre</span>
-              <input class="form-control" id="tableSearch" placeholder="Başlık / kategori">
-              <button class="btn btn-outline-secondary" id="tableClearSearch" type="button">X</button>
+      <!-- LEFT: Templates -->
+      <div class="col-12 col-lg-5">
+        <div class="card glass-card">
+          <div class="card-header d-flex align-items-center justify-content-between gap-2">
+            <div>
+              <div class="fw-semibold">Maliyet Şablonları</div>
+              <small class="text-muted">Formu otomatik doldurur</small>
             </div>
 
-            <select class="form-select form-select-sm" id="tableCurrency" style="min-width: 110px;">
-              <option value="">PB</option>
-              <option value="TRY">TRY</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-            </select>
-
-            <select class="form-select form-select-sm" id="tableFrequency" style="min-width: 120px;">
-              <option value="">Sıklık</option>
-              <option>Tek Sefer</option>
-              <option>Aylık</option>
-              <option>Yıllık</option>
-            </select>
-
-            <button class="btn btn-sm btn-outline-primary" id="exportCsv" type="button">CSV</button>
+            <button type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#tplCreateModal">
+              + Yeni Şablon
+            </button>
           </div>
-        </div>
 
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table mb-0 align-middle" id="costTable">
-              <thead class="table-light">
-                <tr>
-                  <th role="button" class="sortable" data-sort="title">Başlık</th>
-                  <th role="button" class="sortable" data-sort="category">Kategori</th>
-                  <th role="button" class="sortable text-end" data-sort="qty">Miktar</th>
-                  <th role="button" class="sortable text-end" data-sort="unit_price">Birim Fiyat</th>
-                  <th role="button" class="sortable text-end" data-sort="total">Toplam</th>
-                  <th role="button" class="sortable text-end" data-sort="frequency">Sıklık</th>
-                  <th class="text-end">Detay</th>
-                  <th class="text-end">İşlem</th>
-                </tr>
-              </thead>
+          <div class="card-body">
+            <div class="template-toolbar">
+              <div class="input-group" style="max-width: 360px;">
+                <span class="input-group-text">Ara</span>
+                <input class="form-control" id="tplSearch" placeholder="Örn: lisans, ekipman, eğitim">
+                <button class="btn btn-outline-secondary" id="tplClearSearch" type="button">Temizle</button>
+              </div>
 
-              <tbody id="costTbody">
-                {% if costs and costs|length > 0 %}
-                  {% for c in costs %}
-                    {% set cur = (c.currency or 'TRY')|upper %}
-                    <tr class="cost-row"
-                        data-id="{{ c.id }}"
-                        data-title="{{ (c.title or '')|e }}"
-                        data-category="{{ (c.category or '')|e }}"
-                        data-currency="{{ cur|e }}"
-                        data-frequency="{{ (c.frequency or 'Tek Sefer')|e }}"
-                        data-qty="{{ c.qty if c.qty is not none else 0 }}"
-                        data-unit_price="{{ c.unit_price if c.unit_price is not none else 0 }}"
-                        data-total="{{ c.total if c.total is not none else ((c.qty or 0) * (c.unit_price or 0)) }}"
-                        data-risk-id="{{ c.risk_id if c.risk_id is not none else '' }}">
-                      <td class="fw-semibold">{{ c.title }}</td>
-                      <td>{{ c.category }}</td>
-                      <td class="text-end">{{ c.qty }}</td>
-                      <td class="text-end">{{ c.unit_price }} {{ cur }}</td>
-                      <td class="text-end fw-semibold">{{ c.total }} {{ cur }}</td>
-                      <td class="text-end">{{ c.frequency }}</td>
+              <div class="d-flex gap-2">
+                <select class="form-select" id="tplCategory" style="min-width: 170px;">
+                  <option value="">Tümü</option>
+                  <option value="İş Gücü">İş Gücü</option>
+                  <option value="Ekipman">Ekipman</option>
+                  <option value="Yazılım">Yazılım</option>
+                  <option value="Eğitim">Eğitim</option>
+                  <option value="Hizmet">Hizmet</option>
+                  <option value="Operasyon">Operasyon</option>
+                </select>
+              </div>
+            </div>
 
-                      <td class="text-end cost-actions">
-                        {% if c.description %}
-                          <button class="btn btn-sm btn-outline-secondary"
-                                  type="button"
-                                  data-bs-toggle="collapse"
-                                  data-bs-target="#desc_{{ loop.index }}">
-                            Açıklama
+            <div class="row g-2" id="tplGrid">
+
+              {% if cost_templates and cost_templates|length > 0 %}
+                <div class="col-12">
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div class="fw-semibold">Senin Şablonların</div>
+                    <span class="tpl-badge">{{ cost_templates|length }} adet</span>
+                  </div>
+                </div>
+
+                {% for t in cost_templates %}
+                  <div class="col-12">
+                    <div class="template-card"
+                         data-tpl-id="{{ t.id }}"
+                         data-title="{{ (t.title or '')|e }}"
+                         data-category="{{ (t.category or '')|e }}"
+                         data-unit="{{ (t.unit or '')|e }}"
+                         data-currency="{{ (t.currency or 'TRY')|upper|e }}"
+                         data-frequency="{{ (t.frequency or 'Tek Sefer')|e }}"
+                         data-desc="{{ (t.description or '')|e }}"
+                         data-edit-url="{{ url_for('cost_template_edit_post', tpl_id=t.id) }}"
+                         data-search="{{ ((t.title or '') ~ ' ' ~ (t.category or '') ~ ' ' ~ (t.unit or '') ~ ' ' ~ (t.currency or '') ~ ' ' ~ (t.frequency or '') ~ ' ' ~ (t.description or ''))|lower|e }}"
+                         role="button" tabindex="0">
+
+                      <div class="d-flex align-items-start justify-content-between gap-2">
+                        <div>
+                          <div class="fw-semibold">{{ t.title }}</div>
+                          <div class="template-meta">
+                            {{ t.category }} • {{ t.unit }} • {{ (t.currency or 'TRY')|upper }} • {{ t.frequency }}
+                          </div>
+                        </div>
+
+                        <div class="tpl-actions">
+                          <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+
+                          <button type="button"
+                                  class="btn btn-sm btn-outline-secondary tpl-edit"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#tplEditModal">
+                            Düzenle
                           </button>
-                        {% else %}
-                          <span class="text-muted small">-</span>
-                        {% endif %}
-                      </td>
-
-                      <td class="text-end">
-                        <div class="actions-wrap">
-                          <a class="btn btn-outline-primary btn-sm btn-icon"
-                             href="{{ url_for('cost_edit', cost_id=c.id) }}"
-                             title="Düzenle">✎</a>
 
                           <form method="post"
-                                action="{{ url_for('cost_delete', cost_id=c.id) }}"
+                                action="{{ url_for('cost_template_delete', tpl_id=t.id) }}"
                                 class="d-inline"
-                                onsubmit="return confirm('Bu maliyeti silmek istiyor musun?');">
-                            <button type="submit"
-                                    class="btn btn-outline-danger btn-sm btn-icon"
-                                    title="Sil">🗑</button>
+                                onsubmit="return confirm('Bu şablonu silmek istiyor musun?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                              Sil
+                            </button>
                           </form>
                         </div>
-                      </td>
-                    </tr>
+                      </div>
 
-                    {% if c.description %}
-                      <tr class="desc-row">
-                        <td colspan="8" class="p-0">
-                          <div class="collapse" id="desc_{{ loop.index }}">
-                            <div class="p-3 small">
-                              <span class="fw-semibold">Açıklama:</span>
-                              <span class="text-muted">{{ c.description }}</span>
-                            </div>
+                      <div class="small text-muted mt-2">
+                        {{ t.description or '-' }}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+
+                <hr class="my-3">
+              {% endif %}
+
+              <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <div class="fw-semibold">Varsayılan Şablonlar</div>
+                  <span class="tpl-badge">Hazır</span>
+                </div>
+              </div>
+
+              <!-- Default templates -->
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Personel / Mesai"
+                     data-category="İş Gücü"
+                     data-unit="saat"
+                     data-currency="TRY"
+                     data-frequency="Tek Sefer"
+                     data-desc="Ek mesai, vardiya, geçici personel, fazla iş yükü için maliyet."
+                     data-search="personel mesai iş gücü saat try tek sefer ek mesai vardiya geçici personel fazla iş yükü maliyet"
+                     role="button" tabindex="0">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Personel / Mesai</div>
+                      <div class="template-meta">İş Gücü • saat • TRY • Tek Sefer</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  </div>
+                  <div class="small text-muted mt-2">Ek mesai, vardiya, geçici personel gibi kalemler.</div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Yazılım Lisansı"
+                     data-category="Yazılım"
+                     data-unit="lisans"
+                     data-currency="USD"
+                     data-frequency="Yıllık"
+                     data-desc="Yıllık abonelik / lisans bedelleri (SaaS, güvenlik, ERP vb.)."
+                     data-search="yazılım lisansı saas abonelik yıllık usd yazılım güvenlik erp"
+                     role="button" tabindex="0">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Yazılım Lisansı</div>
+                      <div class="template-meta">Yazılım • lisans • USD • Yıllık</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  </div>
+                  <div class="small text-muted mt-2">SaaS/abonelik/lisans kalemleri.</div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Ekipman / Donanım"
+                     data-category="Ekipman"
+                     data-unit="adet"
+                     data-currency="EUR"
+                     data-frequency="Tek Sefer"
+                     data-desc="Cihaz, ekipman, donanım alımı (tek seferlik)."
+                     data-search="ekipman donanım cihaz adet eur tek sefer alım satın alma"
+                     role="button" tabindex="0">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Ekipman / Donanım</div>
+                      <div class="template-meta">Ekipman • adet • EUR • Tek Sefer</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  </div>
+                  <div class="small text-muted mt-2">Tek seferlik donanım alımı.</div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Eğitim / Sertifika"
+                     data-category="Eğitim"
+                     data-unit="kişi"
+                     data-currency="TRY"
+                     data-frequency="Tek Sefer"
+                     data-desc="İç/dış eğitim, sertifika, workshop, danışmanlık eğitimi."
+                     data-search="eğitim sertifika workshop kişi try tek sefer danışmanlık"
+                     role="button" tabindex="0">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Eğitim / Sertifika</div>
+                      <div class="template-meta">Eğitim • kişi • TRY • Tek Sefer</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  </div>
+                  <div class="small text-muted mt-2">Eğitim ve sertifika maliyetleri.</div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="template-card"
+                     data-title="Operasyon / Bakım"
+                     data-category="Operasyon"
+                     data-unit="ay"
+                     data-currency="TRY"
+                     data-frequency="Aylık"
+                     data-desc="Bakım, işletme, operasyonel aylık giderler."
+                     data-search="operasyon bakım aylık gider işletme ay try"
+                     role="button" tabindex="0">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">Operasyon / Bakım</div>
+                      <div class="template-meta">Operasyon • ay • TRY • Aylık</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary use-template">Uygula</button>
+                  </div>
+                  <div class="small text-muted mt-2">Aylık operasyon/bakım masrafları.</div>
+                </div>
+              </div>
+
+            </div>
+
+            <hr class="my-3">
+            <div class="muted-hint">
+              Şablonlar “temel varsayımlar” içindir. Gerçek dünyada her şey daha karmaşık.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Add cost form -->
+      <div class="col-12 col-lg-7">
+        <div class="card glass-card">
+          <div class="card-header fw-semibold">Maliyet Ekle</div>
+          <div class="card-body">
+
+            <form method="post" action="{{ url_for('costs') }}" id="costForm" novalidate>
+              <div class="row g-3">
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Başlık</label>
+                  <input class="form-control" name="title" id="title" placeholder="Örn: Yazılım lisansı" required>
+                  <div class="invalid-feedback">Başlık gerekli.</div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Kategori</label>
+                  <select class="form-select" name="category" id="category" required>
+                    <option value="">— Seç —</option>
+                    {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
+                    {% for cat in cats %}
+                      <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="invalid-feedback">Kategori gerekli.</div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label">Birim</label>
+                  <input class="form-control" name="unit" id="unit" placeholder="adet / saat / gün / lisans" required>
+                  <div class="invalid-feedback">Birim gerekli.</div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label">Para Birimi</label>
+                  <select class="form-select" name="currency" id="currency">
+                    <option value="TRY">TRY</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <label class="form-label">Sıklık</label>
+                  <select class="form-select" name="frequency" id="frequency">
+                    <option>Tek Sefer</option>
+                    <option>Aylık</option>
+                    <option>Yıllık</option>
+                  </select>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">
+                    Riski Bağla (opsiyonel)
+                    <span class="text-muted small ms-1">Pareto Front için</span>
+                  </label>
+                  <select class="form-select" name="risk_id" id="risk_id">
+                    <option value="">— Risk seçme (boş bırak) —</option>
+                    {% if risks and risks|length > 0 %}
+                      {% for r in risks %}
+                        <option value="{{ r.id }}">
+                          #{{ r.id }} • {{ r.title }}{% if r.category %} • {{ r.category }}{% endif %}
+                        </option>
+                      {% endfor %}
+                    {% endif %}
+                  </select>
+                  <div class="form-text text-muted">
+                    Risk seçersen, bu maliyet Pareto Front’ta risk skoru (P×S) ile eşleşir.
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Miktar</label>
+                  <input class="form-control" type="number" step="0.01" min="0" name="qty" id="qty" placeholder="Örn: 10" required>
+                  <div class="invalid-feedback">Miktar gerekli ve 0’dan büyük olmalı.</div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Birim Fiyat</label>
+                  <input class="form-control" type="number" step="0.01" min="0" name="unit_price" id="unit_price" placeholder="Örn: 2500" required>
+                  <div class="invalid-feedback">Birim fiyat gerekli ve 0’dan büyük olmalı.</div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Maliyet Açıklaması</label>
+                  <textarea class="form-control" rows="3" name="description" id="description"
+                            placeholder="Bu maliyet neden var, hangi riske/önleme bağlı, varsayımlar neler?"></textarea>
+                </div>
+
+                <div class="col-12 d-flex flex-wrap gap-2">
+                  <button type="submit" class="btn btn-primary">Kaydet</button>
+                  <button type="button" class="btn btn-outline-secondary" id="clearForm">Formu Temizle</button>
+
+                  <div class="ms-auto text-muted small d-flex align-items-center gap-2">
+                    <span>Anlık: <span class="fw-semibold" id="liveTotalInline">0</span></span>
+                    <span class="d-none d-md-inline">•</span>
+                    <span>Yıllık: <span class="fw-semibold" id="liveAnnualInline">0</span></span>
+                  </div>
+                </div>
+
+              </div>
+            </form>
+
+          </div>
+        </div>
+
+        <!-- Costs list -->
+        <div class="card glass-card mt-3">
+          <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="fw-semibold">Mevcut Maliyetler</div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <div class="input-group input-group-sm" style="max-width: 260px;">
+                <span class="input-group-text">Filtre</span>
+                <input class="form-control" id="tableSearch" placeholder="Başlık / kategori">
+                <button class="btn btn-outline-secondary" id="tableClearSearch" type="button">X</button>
+              </div>
+
+              <select class="form-select form-select-sm" id="tableCurrency" style="min-width: 110px;">
+                <option value="">PB</option>
+                <option value="TRY">TRY</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+
+              <select class="form-select form-select-sm" id="tableFrequency" style="min-width: 120px;">
+                <option value="">Sıklık</option>
+                <option>Tek Sefer</option>
+                <option>Aylık</option>
+                <option>Yıllık</option>
+              </select>
+
+              <button class="btn btn-sm btn-outline-primary" id="exportCsv" type="button">CSV</button>
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table mb-0 align-middle" id="costTable">
+                <thead>
+                  <tr>
+                    <th role="button" class="sortable" data-sort="title">Başlık</th>
+                    <th role="button" class="sortable" data-sort="category">Kategori</th>
+                    <th role="button" class="sortable text-end" data-sort="qty">Miktar</th>
+                    <th role="button" class="sortable text-end" data-sort="unit_price">Birim Fiyat</th>
+                    <th role="button" class="sortable text-end" data-sort="total">Toplam</th>
+                    <th role="button" class="sortable text-end" data-sort="frequency">Sıklık</th>
+                    <th class="text-end">Detay</th>
+                    <th class="text-end">İşlem</th>
+                  </tr>
+                </thead>
+
+                <tbody id="costTbody">
+                  {% if costs and costs|length > 0 %}
+                    {% for c in costs %}
+                      {% set cur = (c.currency or 'TRY')|upper %}
+                      <tr class="cost-row"
+                          data-id="{{ c.id }}"
+                          data-title="{{ (c.title or '')|e }}"
+                          data-category="{{ (c.category or '')|e }}"
+                          data-currency="{{ cur|e }}"
+                          data-frequency="{{ (c.frequency or 'Tek Sefer')|e }}"
+                          data-qty="{{ c.qty if c.qty is not none else 0 }}"
+                          data-unit_price="{{ c.unit_price if c.unit_price is not none else 0 }}"
+                          data-total="{{ c.total if c.total is not none else ((c.qty or 0) * (c.unit_price or 0)) }}"
+                          data-risk-id="{{ c.risk_id if c.risk_id is not none else '' }}">
+                        <td class="fw-semibold">{{ c.title }}</td>
+                        <td>{{ c.category }}</td>
+                        <td class="text-end">{{ c.qty }}</td>
+                        <td class="text-end">{{ c.unit_price }} {{ cur }}</td>
+                        <td class="text-end fw-semibold">{{ c.total }} {{ cur }}</td>
+                        <td class="text-end">{{ c.frequency }}</td>
+
+                        <td class="text-end cost-actions">
+                          {% if c.description %}
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#desc_{{ loop.index }}">
+                              Açıklama
+                            </button>
+                          {% else %}
+                            <span class="text-muted small">-</span>
+                          {% endif %}
+                        </td>
+
+                        <td class="text-end">
+                          <div class="actions-wrap">
+                            <a class="btn btn-outline-primary btn-sm btn-icon"
+                               href="{{ url_for('cost_edit', cost_id=c.id) }}"
+                               title="Düzenle">✎</a>
+
+                            <form method="post"
+                                  action="{{ url_for('cost_delete', cost_id=c.id) }}"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Bu maliyeti silmek istiyor musun?');">
+                              <button type="submit"
+                                      class="btn btn-outline-danger btn-sm btn-icon"
+                                      title="Sil">🗑</button>
+                            </form>
                           </div>
                         </td>
                       </tr>
-                    {% endif %}
-                  {% endfor %}
-                {% else %}
+
+                      {% if c.description %}
+                        <tr class="desc-row">
+                          <td colspan="8" class="p-0">
+                            <div class="collapse" id="desc_{{ loop.index }}">
+                              <div class="p-3 small">
+                                <span class="fw-semibold">Açıklama:</span>
+                                <span class="text-muted">{{ c.description }}</span>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">
+                        Henüz maliyet yok.
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+
+                <tfoot>
                   <tr>
-                    <td colspan="8" class="text-center text-muted py-4">
-                      Henüz maliyet yok.
-                    </td>
+                    <th colspan="4" class="text-end">Görünen satırların toplamı</th>
+                    <th class="text-end" id="tableTotalCell">0</th>
+                    <th class="text-end small text-muted">Baz</th>
+                    <th class="text-end" id="tableTotalBaseCell" title="">0</th>
+                    <th></th>
                   </tr>
-                {% endif %}
-              </tbody>
+                </tfoot>
+              </table>
+            </div>
 
-              <tfoot class="table-light">
-                <tr>
-                  <th colspan="4" class="text-end">Görünen satırların toplamı</th>
-                  <th class="text-end" id="tableTotalCell">0</th>
-                  <th class="text-end small text-muted">Baz</th>
-                  <th class="text-end" id="tableTotalBaseCell" title="">0</th>
-                  <th></th>
-                </tr>
-              </tfoot>
-            </table>
+            <div class="px-3 py-2 small text-muted" id="tableHint">
+              İpucu: Başlıklara tıklayıp sıralayabilirsin. Filtreler sadece tabloda görünenleri etkiler.
+            </div>
           </div>
+        </div>
 
-          <div class="px-3 py-2 small text-muted" id="tableHint">
-            İpucu: Başlıklara tıklayıp sıralayabilirsin. Filtreler sadece tabloda görünenleri etkiler.
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-3 mt-2">
+      <div class="col-12 col-lg-6">
+        <div class="card glass-card">
+          <div class="card-header fw-semibold">Pareto Analizi</div>
+          <div class="card-body">
+            <div class="text-muted small mb-2">
+              En yüksek etkiyi en az kaynakla yakalama denemesi. Matematik romantizmi.
+            </div>
+            <canvas id="paretoChart" height="140"></canvas>
+            <div id="paretoEmpty" class="text-muted small mt-2" style="display:none;">
+              Pareto verisi yok (ya da kur/yıllıklaştırma yüzünden hesaplanamadı).
+            </div>
           </div>
         </div>
       </div>
 
+      <div class="col-12 col-lg-6">
+        <div class="card glass-card">
+          <div class="card-header fw-semibold">Pareto Front</div>
+          <div class="card-body">
+            <div class="text-muted small mb-2">
+              Maliyet (x) ve fayda/azaltım (y) arasında “en iyi” noktalar kümesi.
+            </div>
+            <canvas id="frontChart" height="140"></canvas>
+            <div id="frontEmpty" class="text-muted small mt-2" style="display:none;">
+              Pareto front verisi yok (ya da backend henüz göndermiyor).
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
   </div>
-
-  <!-- Charts -->
-  <div class="row g-3 mt-2">
-    <div class="col-12 col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Pareto Analizi</div>
-        <div class="card-body">
-          <div class="text-muted small mb-2">
-            En yüksek etkiyi en az kaynakla yakalama denemesi. Matematik romantizmi.
-          </div>
-          <canvas id="paretoChart" height="140"></canvas>
-          <div id="paretoEmpty" class="text-muted small mt-2" style="display:none;">
-            Pareto verisi yok (ya da kur/yıllıklaştırma yüzünden hesaplanamadı).
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12 col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Pareto Front</div>
-        <div class="card-body">
-          <div class="text-muted small mb-2">
-            Maliyet (x) ve fayda/azaltım (y) arasında “en iyi” noktalar kümesi.
-          </div>
-          <canvas id="frontChart" height="140"></canvas>
-          <div id="frontEmpty" class="text-muted small mt-2" style="display:none;">
-            Pareto front verisi yok (ya da backend henüz göndermiyor).
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<!-- JSON (Pareto Front için) -->
 <script id="frontData" type="application/json">{{ front_json|default(None)|tojson }}</script>
 
-<!-- Modals -->
+<!-- Modals (aynı) -->
 <div class="modal fade" id="tplCreateModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -732,10 +732,6 @@
 
 {% block scripts %}
   {{ super() }}
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-  <!-- ✅ Sayfanın JS’i -->
   <script src="{{ url_for('static', filename='js/costs.js') }}"></script>
 {% endblock %}

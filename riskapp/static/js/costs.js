@@ -102,16 +102,13 @@
     const cur = ($("#currency")?.value || "TRY").toUpperCase();
     const freq = $("#frequency")?.value || "Tek Sefer";
 
-    const { oneTimePolicy, amortizeYears, base } = getPrefs();
-    const fx = getFx();
+    const { oneTimePolicy, amortizeYears } = getPrefs();
 
     const total = qty * unitPrice;
     const annual = total * annualFactor(freq, oneTimePolicy, amortizeYears);
 
     $("#liveTotalInline") && ($("#liveTotalInline").textContent = money(total, cur));
     $("#liveAnnualInline") && ($("#liveAnnualInline").textContent = money(annual, cur));
-
-    // Not: header toplamları tablo üzerinden hesaplanıyor (updateTableAndHeader)
   }
 
   // --- TABLE rows to objects ---
@@ -169,14 +166,14 @@
 
     const sorted = [...rows].sort((a,b)=>compare(a,b,sortState.key,sortState.dir));
 
-    // preserve desc-row pairs:
-    // each cost-row may be followed by .desc-row
+    // ✅ FIX: desc-row’ları kaybetmeden taşı
     sorted.forEach(r => {
+      const desc = r.tr.nextElementSibling && r.tr.nextElementSibling.classList.contains("desc-row")
+        ? r.tr.nextElementSibling
+        : null;
+
       tbody.appendChild(r.tr);
-      const next = r.tr.nextElementSibling;
-      if (next && next.classList.contains("desc-row")){
-        tbody.appendChild(next);
-      }
+      if (desc) tbody.appendChild(desc);
     });
   }
 
@@ -186,7 +183,6 @@
         const key = th.dataset.sort;
         if (!key) return;
 
-        // toggle dir
         if (sortState.key === key){
           sortState.dir = (sortState.dir === "asc") ? "desc" : "asc";
         } else {
@@ -194,7 +190,6 @@
           sortState.dir = "asc";
         }
 
-        // update UI indicators
         $$(".sortable").forEach(x => x.removeAttribute("data-sortdir"));
         th.setAttribute("data-sortdir", sortState.dir);
 
@@ -223,13 +218,11 @@
     const { base, oneTimePolicy, amortizeYears } = getPrefs();
     const fx = getFx();
 
-    // table totals (visible)
     let sum = 0;
     let sumBase = 0;
     let annualSum = 0;
     let annualSumBase = 0;
 
-    // for non-base chip (only meaningful if single currency)
     const curInfo = sameCurrencyOrMixed(v);
 
     v.forEach(r => {
@@ -243,21 +236,18 @@
       if (Number.isFinite(baseAnnual)) annualSumBase += baseAnnual;
     });
 
-    // Footer (Toplam) – non-base
     $("#tableTotalCell") && (
       $("#tableTotalCell").textContent = v.length
         ? (curInfo.single ? money(sum, curInfo.currency) : "Karışık")
         : "0"
     );
 
-    // Footer (Base)
     $("#tableTotalBaseCell") && (
       $("#tableTotalBaseCell").textContent = v.length
         ? money(sumBase, base)
         : money(0, base)
     );
 
-    // Header chips
     $("#liveTotal") && (
       $("#liveTotal").textContent = v.length
         ? (curInfo.single ? money(sum, curInfo.currency) : "Karışık")
@@ -270,14 +260,9 @@
         : "0"
     );
 
-    $("#liveTotalBase") && (
-      $("#liveTotalBase").textContent = money(sumBase, base)
-    );
-    $("#liveAnnualBase") && (
-      $("#liveAnnualBase").textContent = money(annualSumBase, base)
-    );
+    $("#liveTotalBase") && ($("#liveTotalBase").textContent = money(sumBase, base));
+    $("#liveAnnualBase") && ($("#liveAnnualBase").textContent = money(annualSumBase, base));
 
-    // table base tooltip info
     const tip = (!Number.isFinite(fx.usdtry) || !Number.isFinite(fx.eurtry))
       ? "Kur girilmemişse USD/EUR dönüşümü hesaplanamaz."
       : `Baz: ${base}, USD/TRY=${fx.usdtry}, EUR/TRY=${fx.eurtry}`;
@@ -300,7 +285,6 @@
     $("#frequency") && ($("#frequency").value = frequency);
     $("#description") && ($("#description").value = desc);
 
-    // varsayılan sayılar
     $("#qty") && ($("#qty").value = $("#qty").value || 1);
     $("#unit_price") && ($("#unit_price").value = $("#unit_price").value || 0);
 
@@ -321,7 +305,6 @@
   }
 
   function bindTemplateEvents(){
-    // Apply
     document.addEventListener("click", (e) => {
       const btn = e.target.closest(".use-template");
       if (!btn) return;
@@ -330,14 +313,12 @@
       applyTemplateToForm(card);
     });
 
-    // Card click (optional: click body = apply)
     document.addEventListener("dblclick", (e) => {
       const card = e.target.closest(".template-card");
       if (!card) return;
       applyTemplateToForm(card);
     });
 
-    // Keyboard enter on template card
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       const card = document.activeElement?.closest?.(".template-card");
@@ -346,7 +327,6 @@
       applyTemplateToForm(card);
     });
 
-    // Search/filter
     $("#tplSearch")?.addEventListener("input", applyTplFilters);
     $("#tplCategory")?.addEventListener("change", applyTplFilters);
     $("#tplClearSearch")?.addEventListener("click", () => {
@@ -355,7 +335,6 @@
       applyTplFilters();
     });
 
-    // Edit modal prefill
     document.addEventListener("click", (e) => {
       const editBtn = e.target.closest(".tpl-edit");
       if (!editBtn) return;
@@ -442,7 +421,6 @@
     const { base, oneTimePolicy, amortizeYears, paretoUseAnnual } = getPrefs();
     const fx = getFx();
 
-    // group by category
     const map = new Map();
     v.forEach(r => {
       const factor = paretoUseAnnual ? annualFactor(r.frequency, oneTimePolicy, amortizeYears) : 1;
@@ -494,22 +472,8 @@
       data: {
         labels: data.labels,
         datasets: [
-          {
-            type: "bar",
-            label: `Maliyet (${data.base})`,
-            data: data.bars,
-            yAxisID: "y",
-            borderWidth: 1
-          },
-          {
-            type: "line",
-            label: "Birikimli %",
-            data: data.cumPct,
-            yAxisID: "y1",
-            tension: 0.35,
-            borderDash: [6,4],
-            pointRadius: 3
-          }
+          { type: "bar", label: `Maliyet (${data.base})`, data: data.bars, yAxisID: "y", borderWidth: 1 },
+          { type: "line", label: "Birikimli %", data: data.cumPct, yAxisID: "y1", tension: 0.35, borderDash: [6,4], pointRadius: 3 }
         ]
       },
       options: {
@@ -528,18 +492,8 @@
           }
         },
         scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { callback: (v)=> nf0.format(v) }
-          },
-          y1: {
-            beginAtZero: true,
-            position: "right",
-            min: 0,
-            max: 100,
-            grid: { drawOnChartArea: false },
-            ticks: { callback: (v)=> `${nf0.format(v)}%` }
-          }
+          y: { beginAtZero: true, ticks: { callback: (v)=> nf0.format(v) } },
+          y1: { beginAtZero: true, position: "right", min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { callback: (v)=> `${nf0.format(v)}%` } }
         }
       }
     };
@@ -566,14 +520,8 @@
 
     empty && (empty.style.display = "none");
 
-    // beklenen format örneği:
-    // [{x: 120000, y: 18, label:"R-105"}, ...]
     const points = payload
-      .map(p => ({
-        x: safeNum(p.x, NaN),
-        y: safeNum(p.y, NaN),
-        label: p.label || ""
-      }))
+      .map(p => ({ x: safeNum(p.x, NaN), y: safeNum(p.y, NaN), label: p.label || "" }))
       .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
 
     if (!points.length){
@@ -701,7 +649,6 @@
 
   // --- FX panel persistence ---
   function bindFxPanel(){
-    // load
     const s = readSettings();
 
     if ($("#baseCurrency") && s.baseCurrency) $("#baseCurrency").value = s.baseCurrency;
@@ -748,7 +695,6 @@
     bindForm();
     bindTableControls();
 
-    // initial
     applyTplFilters();
     updateTableAndHeader();
     updateCharts();
