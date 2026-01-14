@@ -1,35 +1,615 @@
 {% extends "base.html" %}
 {% block title %}Şifre Sıfırlama{% endblock %}
+
+{# Bu sayfada landing/reset görünümü için body class #}
+{% block body_class %}auth reset{% endblock %}
+
 {% block content %}
-<div class="wizard">
-  <div class="panel">
-    <div class="panel-head">ŞİFRE SIFIRLAMA</div>
-    <div class="panel-sub">E-posta adresinizi ve yeni şifrenizi girin</div>
+<style>
+  /* ===============================
+     RiskApp · Şifre Sıfırlama (Modern)
+     - Manrope
+     - Primary: #194c8f
+     - Geometric dot background
+     - Dark mode: html.dark veya data-theme="dark"
+     =============================== */
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="flash {{cat}}">{{ msg }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+  :root{
+    --primary:#194c8f;
+    --bg-light:#f9fafb;
+    --bg-dark:#1a1d23;
+    --card-dark:#24282f;
+    --text:#0f141a;
+    --muted:#536e93;
+  }
 
-    <form method="post" class="form">
-      <label>E-POSTA</label>
-      <input class="input" type="email" name="email" placeholder="ornek@firma.com" value="{{ email or '' }}" required>
+  /* Panel kabuğunu temizle (base.html panel/wizard varsa) */
+  .wizard{ display:block; }
+  .panel{
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
 
-      <label>YENİ ŞİFRE</label>
-      <input class="input" type="password" name="new_password" placeholder="Yeni şifre" required>
+  /* Sayfa arka planı */
+  body.reset{
+    background: var(--bg-light);
+    color: var(--text);
+  }
+  /* Geometric dot pattern */
+  body.reset::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background-image: radial-gradient(color-mix(in oklab, var(--primary) 10%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 1;
+  }
 
-      <label>YENİ ŞİFRE (TEKRAR)</label>
-      <input class="input" type="password" name="new_password2" placeholder="Yeni şifre tekrar" required>
+  /* Dark mode: hem html.dark hem data-theme=dark yakala */
+  html.dark body.reset,
+  html[data-theme="dark"] body.reset{
+    background: var(--bg-dark);
+    color: #fff;
+  }
 
-      <div class="row">
-        <a class="btn" href="{{ url_for('login') }}">Geri</a>
-        <div style="flex:1"></div>
-        <button class="btn btn-primary" type="submit">Şifreyi Güncelle</button>
+  /* Layout */
+  .reset-shell{
+    min-height: calc(100vh - 72px);
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Sticky top nav */
+  .reset-topbar{
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(232,236,242,1);
+    background: rgba(255,255,255,.80);
+    backdrop-filter: blur(12px);
+  }
+  html.dark .reset-topbar,
+  html[data-theme="dark"] .reset-topbar{
+    border-bottom-color: rgba(255,255,255,.10);
+    background: rgba(26,29,35,.80);
+  }
+
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    color: var(--primary);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  html.dark .brand, html[data-theme="dark"] .brand{ color:#fff; }
+
+  .brand-badge{
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--primary);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight: 900;
+    box-shadow: 0 14px 30px rgba(25,76,143,.18);
+  }
+
+  .avatar{
+    width: 40px; height: 40px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 30%, rgba(25,76,143,.25), rgba(25,76,143,.05));
+    border: 2px solid rgba(25,76,143,.10);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--primary);
+    font-weight: 900;
+  }
+  html.dark .avatar, html[data-theme="dark"] .avatar{
+    border-color: rgba(255,255,255,.12);
+    color: #9cc2ff;
+  }
+
+  /* Center */
+  .reset-main{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 28px 16px 36px;
+  }
+
+  /* Card */
+  .card{
+    width:100%;
+    max-width: 500px;
+    border-radius: 16px;
+    overflow:hidden;
+    border: 1px solid rgba(2,6,23,.06);
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 20px 50px rgba(0,0,0,.10);
+    position: relative;
+  }
+  html.dark .card, html[data-theme="dark"] .card{
+    background: rgba(36,40,47,.92);
+    border-color: rgba(255,255,255,.06);
+    box-shadow: 0 20px 50px rgba(0,0,0,.30);
+  }
+
+  .card-topbar{ height: 6px; width:100%; background: var(--primary); }
+
+  .card-body{ padding: 28px 24px; }
+  @media (min-width: 768px){
+    .card-body{ padding: 40px 44px; }
+  }
+
+  .title{
+    margin: 0;
+    text-align:center;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    font-size: 26px;
+    color: var(--primary);
+  }
+  html.dark .title, html[data-theme="dark"] .title{ color:#fff; }
+
+  .subtitle{
+    margin: 10px 0 0;
+    text-align:center;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  html.dark .subtitle, html[data-theme="dark"] .subtitle{ color: rgba(156,163,175,1); }
+
+  /* Flash */
+  .flash{
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(2,6,23,.08);
+    background: rgba(248,250,252,.75);
+    color: var(--text);
+    font-weight: 700;
+  }
+  html.dark .flash, html[data-theme="dark"] .flash{
+    border-color: rgba(255,255,255,.08);
+    background: rgba(255,255,255,.06);
+    color: rgba(229,231,235,1);
+  }
+
+  /* Form */
+  .form{ margin-top: 22px; display:flex; flex-direction:column; gap: 18px; }
+
+  .field{ display:flex; flex-direction:column; gap: 8px; }
+
+  .label{
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--text);
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  html.dark .label, html[data-theme="dark"] .label{ color: rgba(229,231,235,1); }
+
+  .icon{
+    width: 18px; height: 18px;
+    display:inline-flex; align-items:center; justify-content:center;
+    color: var(--text);
+    opacity: .85;
+    font-size: 18px;
+    line-height: 1;
+  }
+  html.dark .icon, html[data-theme="dark"] .icon{ color: rgba(229,231,235,1); }
+
+  .input{
+    width:100%;
+    height: 56px;
+    border-radius: 12px;
+    padding: 0 16px;
+    border: 1px solid #d1dae5;
+    background: #f8fafb;
+    color: var(--text);
+    font-weight: 600;
+    outline:none;
+    transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .input::placeholder{ color: var(--muted); opacity: .95; }
+
+  html.dark .input, html[data-theme="dark"] .input{
+    border-color: rgba(255,255,255,.10);
+    background: rgba(255,255,255,.05);
+    color: #fff;
+  }
+
+  .input:focus{
+    background:#fff;
+    border-color: color-mix(in oklab, var(--primary) 80%, #ffffff);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+  html.dark .input:focus, html[data-theme="dark"] .input:focus{
+    background: rgba(255,255,255,.06);
+    box-shadow: 0 0 0 4px rgba(25,76,143,.20);
+  }
+
+  /* Password with toggle */
+  .pw-wrap{ position: relative; }
+  .pw-toggle{
+    position:absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor:pointer;
+    padding: 8px;
+    border-radius: 10px;
+    transition: color .12s ease, background .12s ease;
+  }
+  .pw-toggle:hover{
+    color: var(--primary);
+    background: rgba(25,76,143,.06);
+  }
+  html.dark .pw-toggle, html[data-theme="dark"] .pw-toggle{ color: rgba(156,163,175,1); }
+  html.dark .pw-toggle:hover, html[data-theme="dark"] .pw-toggle:hover{
+    color:#fff;
+    background: rgba(255,255,255,.06);
+  }
+
+  /* Strength indicator */
+  .strength{
+    margin-top: 8px;
+    display:flex;
+    flex-direction:column;
+    gap: 8px;
+  }
+  .bars{ display:flex; gap: 6px; height: 4px; }
+  .bar{
+    flex:1;
+    border-radius: 999px;
+    background: rgba(25,76,143,.20);
+    transition: background .2s ease;
+  }
+  .bar.on{ background: var(--primary); }
+
+  .strength-text{
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--muted);
+    display:flex;
+    align-items:center;
+    gap: 6px;
+  }
+  .strength-text .ok{
+    color: var(--primary);
+    font-size: 14px;
+    line-height: 1;
+  }
+  html.dark .strength-text, html[data-theme="dark"] .strength-text{ color: rgba(156,163,175,1); }
+  html.dark .strength-text .ok, html[data-theme="dark"] .strength-text .ok{ color: #9cc2ff; }
+
+  /* Actions */
+  .actions{
+    margin-top: 10px;
+    display:flex;
+    flex-direction:column;
+    gap: 12px;
+  }
+  @media (min-width: 640px){
+    .actions{ flex-direction:row; }
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    height: 48px;
+    padding: 0 18px;
+    border-radius: 12px;
+    font-weight: 900;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    text-decoration:none;
+    border: 1px solid rgba(25,76,143,.20);
+    color: var(--primary);
+    background: transparent;
+    cursor:pointer;
+    transition: background .12s ease, transform .12s ease, filter .12s ease, color .12s ease, border-color .12s ease;
+    flex: 1;
+  }
+  .btn:hover{ background: rgba(25,76,143,.05); }
+  .btn:active{ transform: scale(.99); }
+
+  html.dark .btn, html[data-theme="dark"] .btn{
+    border-color: rgba(255,255,255,.20);
+    color: #fff;
+  }
+  html.dark .btn:hover, html[data-theme="dark"] .btn:hover{ background: rgba(255,255,255,.06); }
+
+  .btn-primary{
+    background: var(--primary);
+    color:#fff;
+    border-color: rgba(25,76,143,.35);
+    box-shadow: 0 14px 26px rgba(25,76,143,.20);
+    flex: 2;
+  }
+  .btn-primary:hover{ filter: brightness(.95); }
+
+  /* Card footer info */
+  .card-foot{
+    padding: 14px 16px;
+    text-align:center;
+    border-top: 1px solid rgba(2,6,23,.06);
+    background: rgba(248,250,252,.75);
+  }
+  html.dark .card-foot, html[data-theme="dark"] .card-foot{
+    border-top-color: rgba(255,255,255,.06);
+    background: rgba(255,255,255,.05);
+  }
+
+  .card-foot p{
+    margin:0 auto;
+    max-width: 340px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  html.dark .card-foot p, html[data-theme="dark"] .card-foot p{ color: rgba(156,163,175,1); }
+
+  /* Assistance */
+  .assist{
+    margin-top: 18px;
+    text-align:center;
+    padding: 0 12px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  html.dark .assist, html[data-theme="dark"] .assist{ color: rgba(107,114,128,1); }
+
+  .assist a{
+    color: var(--primary);
+    font-weight: 900;
+    text-decoration:none;
+  }
+  .assist a:hover{ text-decoration: underline; }
+  html.dark .assist a, html[data-theme="dark"] .assist a{ color: #9cc2ff; }
+
+  /* Page footer */
+  .page-footer{
+    padding: 26px 16px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 12px;
+    color: var(--muted);
+  }
+  .page-footer .links{
+    display:flex;
+    gap: 18px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .page-footer a{
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 12px;
+    text-decoration:none;
+  }
+  .page-footer a:hover{ color: var(--primary); }
+
+  html.dark .page-footer, html[data-theme="dark"] .page-footer{ color: rgba(107,114,128,1); }
+  html.dark .page-footer a, html[data-theme="dark"] .page-footer a{ color: rgba(107,114,128,1); }
+  html.dark .page-footer a:hover, html[data-theme="dark"] .page-footer a:hover{ color: #9cc2ff; }
+
+  .copyright{
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    opacity: .6;
+    font-weight: 800;
+  }
+</style>
+
+<div class="reset-shell">
+  <!-- Top Navigation (page-local) -->
+  <header class="reset-topbar">
+    <div class="brand" aria-label="RiskApp">
+      <div class="brand-badge" aria-hidden="true">🛡️</div>
+      <div style="font-size: 18px;">RiskApp</div>
+    </div>
+
+    <div class="avatar" aria-hidden="true">👤</div>
+  </header>
+
+  <main class="reset-main">
+    <div style="width:100%; max-width: 520px;">
+      <!-- Central Action Card -->
+      <section class="card" aria-labelledby="resetTitle">
+        <div class="card-topbar"></div>
+
+        <div class="card-body">
+          <header style="margin-bottom: 22px;">
+            <h1 class="title" id="resetTitle">ŞİFRE SIFIRLAMA</h1>
+            <p class="subtitle">E-posta adresinizi ve yeni şifrenizi girin</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for cat, msg in messages %}
+                  <div class="flash {{cat}}" role="alert" aria-live="polite">{{ msg }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+          </header>
+
+          <form method="post" class="form" id="resetForm" novalidate>
+            {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
+
+            <!-- E-POSTA -->
+            <div class="field">
+              <label class="label" for="email">
+                <span class="icon">✉️</span> E-POSTA
+              </label>
+              <input
+                class="input"
+                id="email"
+                type="email"
+                name="email"
+                placeholder="ornek@firma.com"
+                value="{{ (email or '')|trim|e }}"
+                required
+                autocomplete="email"
+                inputmode="email"
+              >
+            </div>
+
+            <!-- YENİ ŞİFRE -->
+            <div class="field">
+              <label class="label" for="new_password">
+                <span class="icon">🔒</span> YENİ ŞİFRE
+              </label>
+
+              <div class="pw-wrap">
+                <input
+                  class="input"
+                  id="new_password"
+                  type="password"
+                  name="new_password"
+                  placeholder="••••••••"
+                  required
+                  minlength="8"
+                  maxlength="128"
+                  autocomplete="new-password"
+                >
+                <button class="pw-toggle" type="button" id="togglePwd"
+                        aria-controls="new_password" aria-pressed="false"
+                        aria-label="Şifreyi göster/gizle">
+                  👁️
+                </button>
+              </div>
+
+              <!-- Strength (basit gösterim; JS ile güncellenebilir) -->
+              <div class="strength" aria-hidden="true">
+                <div class="bars">
+                  <div class="bar on" id="sb1"></div>
+                  <div class="bar on" id="sb2"></div>
+                  <div class="bar" id="sb3"></div>
+                  <div class="bar" id="sb4"></div>
+                </div>
+                <div class="strength-text">
+                  <span class="ok">✓</span> Şifre Gücü: <span id="strengthLabel">Orta</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- YENİ ŞİFRE (TEKRAR) -->
+            <div class="field">
+              <label class="label" for="new_password2">
+                <span class="icon">🔁</span> YENİ ŞİFRE (TEKRAR)
+              </label>
+              <input
+                class="input"
+                id="new_password2"
+                type="password"
+                name="new_password2"
+                placeholder="••••••••"
+                required
+                minlength="8"
+                maxlength="128"
+                autocomplete="new-password"
+              >
+            </div>
+
+            <div class="actions">
+              <a class="btn" href="{{ url_for('login') }}">
+                ← Geri
+              </a>
+              <button class="btn btn-primary" type="submit">
+                Şifreyi Güncelle
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card-foot">
+          <p>
+            Bu işlem kurumsal güvenlik protokolleri çerçevesinde 256-bit AES şifreleme ile korunmaktadır.
+          </p>
+        </div>
+      </section>
+
+      <div class="assist">
+        Sorun mu yaşıyorsunuz?
+        <a href="#">Sistem Yöneticisi</a> ile iletişime geçin.
       </div>
-    </form>
-  </div>
+    </div>
+  </main>
+
+  <footer class="page-footer">
+    <div class="links">
+      <a href="#">Gizlilik Politikası</a>
+      <a href="#">Kullanım Koşulları</a>
+      <a href="#">Güvenlik</a>
+    </div>
+    <div class="copyright">© 2024 RISKAPP GLOBAL SERVICES LTD.</div>
+  </footer>
 </div>
+
+<script>
+(function(){
+  const pwd = document.getElementById('new_password');
+  const toggle = document.getElementById('togglePwd');
+  const label = document.getElementById('strengthLabel');
+  const bars = [
+    document.getElementById('sb1'),
+    document.getElementById('sb2'),
+    document.getElementById('sb3'),
+    document.getElementById('sb4'),
+  ];
+
+  function scorePassword(v){
+    let s = 0;
+    if (!v) return 0;
+    if (v.length >= 8) s++;
+    if (v.length >= 12) s++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++;
+    if (/\d/.test(v)) s++;
+    if (/[^A-Za-z0-9]/.test(v)) s++;
+    return Math.min(4, s); // 0..4
+  }
+
+  function renderStrength(){
+    const v = pwd.value || "";
+    const sc = scorePassword(v);
+
+    bars.forEach((b,i)=> b.classList.toggle('on', i < sc));
+    if (sc <= 1) label.textContent = "Zayıf";
+    else if (sc === 2) label.textContent = "Orta";
+    else if (sc === 3) label.textContent = "İyi";
+    else label.textContent = "Güçlü";
+  }
+
+  if (pwd) pwd.addEventListener('input', renderStrength);
+  renderStrength();
+
+  if (toggle){
+    toggle.addEventListener('click', () => {
+      const isText = pwd.type === 'text';
+      pwd.type = isText ? 'password' : 'text';
+      toggle.textContent = isText ? '👁️' : '🙈';
+      toggle.setAttribute('aria-pressed', String(!isText));
+      pwd.focus();
+    });
+  }
+})();
+</script>
 {% endblock %}
