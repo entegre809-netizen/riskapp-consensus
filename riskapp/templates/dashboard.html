@@ -80,116 +80,6 @@
   }
   [data-theme="dark"] .dash-scope .score-hi{ color:#fed7aa; }
 
-  /* --- Dashboard Topbar (Tailwind örneği gibi) --- */
-  .dash-topbar{
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    margin: -10px 0 16px;
-    padding: 14px 14px;
-    border-radius: 16px;
-    background: rgba(255,255,255,.78);
-    border: 1px solid rgba(226,232,240,.9);
-    box-shadow: 0 14px 40px -22px rgba(15,23,42,.28);
-    backdrop-filter: blur(12px);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    flex-wrap:wrap;
-  }
-  [data-theme="dark"] .dash-topbar{
-    background: rgba(18,24,32,.72);
-    border-color: rgba(51,65,85,.55);
-  }
-
-  .brand{
-    display:flex; align-items:center; gap:10px;
-  }
-  .brand-badge{
-    width: 38px; height: 38px;
-    border-radius: 12px;
-    background: #2866bd;
-    display:grid; place-items:center;
-    color:#fff;
-    font-weight: 900;
-  }
-  .brand-title{
-    display:flex; flex-direction:column; line-height:1.05;
-  }
-  .brand-title b{ font-size: 1.05rem; letter-spacing:-.02em; }
-  .brand-title span{ font-size: .85rem; color:#64748b; }
-  [data-theme="dark"] .brand-title span{ color:#94a3b8; }
-
-  .dash-search{
-    flex: 1;
-    min-width: 260px;
-    max-width: 520px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    border: 1px solid rgba(226,232,240,.9);
-    background: rgba(248,250,252,.85);
-  }
-  [data-theme="dark"] .dash-search{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(30,33,38,.55);
-  }
-  .dash-search input{
-    width:100%;
-    border:none;
-    outline:none;
-    background: transparent;
-    font-size: .95rem;
-    color: inherit;
-  }
-  .dash-search .icon{ opacity:.55; font-weight: 900; }
-
-  .dash-nav{
-    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-  }
-  .dash-nav a{
-    text-decoration:none;
-    font-weight: 800;
-    font-size: .92rem;
-    color: #475569;
-    padding: .35rem .5rem;
-    border-radius: 10px;
-    transition: background .15s ease, color .15s ease;
-  }
-  .dash-nav a:hover{ background: rgba(148,163,184,.18); color:#0f172a; }
-  [data-theme="dark"] .dash-nav a{ color:#94a3b8; }
-  [data-theme="dark"] .dash-nav a:hover{ background: rgba(148,163,184,.12); color:#e5e7eb; }
-  .dash-nav a.active{ color:#2866bd; }
-
-  .dash-right{
-    display:flex; align-items:center; gap:10px;
-  }
-  .icon-btn{
-    width: 40px; height: 40px;
-    border-radius: 12px;
-    border: 1px solid rgba(226,232,240,.9);
-    background: rgba(255,255,255,.7);
-    display:grid; place-items:center;
-    cursor:pointer;
-    transition: filter .15s ease, transform .08s ease;
-  }
-  .icon-btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
-  [data-theme="dark"] .icon-btn{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(30,33,38,.55);
-    color:#e5e7eb;
-  }
-  .avatar{
-    width: 40px; height: 40px;
-    border-radius: 999px;
-    border: 2px solid rgba(255,255,255,.9);
-    background: linear-gradient(135deg, rgba(148,163,184,.4), rgba(148,163,184,.15));
-  }
-  [data-theme="dark"] .avatar{ border-color: rgba(18,24,32,.9); }
-
   /* --- KPI’ler (Tailwind kart ölçülerine yakın) --- */
   .kpis{
     display:grid;
@@ -318,7 +208,7 @@
   .table tbody tr:hover td{ background: rgba(40,102,189,.04); }
   [data-theme="dark"] .table tbody tr:hover td{ background: rgba(40,102,189,.08); }
 
-  /* --- Risk matrix (senin mantık aynen) --- */
+  /* --- Risk matrix --- */
   .risk-matrix{
     --label-w: 140px;
     --cell-size: 60px;
@@ -361,33 +251,43 @@
     font-weight: 900;
   }
 
+  /* ✅ FIX: skor ortada, adet sağ-altta; üst üste binme yok */
   .rm-cell{
     position:relative;
     border-radius: 14px;
-    display:grid;
-    place-items:center;
+    display:flex;                 /* grid yerine flex */
+    align-items:center;
+    justify-content:center;
     text-decoration:none;
     font-weight: 900;
     border: 1px solid rgba(0,0,0,.06);
     transition: transform .08s ease, filter .16s ease;
+    overflow:hidden;
+    min-height: var(--cell-size);
   }
   .rm-cell:hover{ transform: translateY(-1px); filter: brightness(1.02); }
   .rm-cell:focus-visible{ outline: 4px solid rgba(40,102,189,.22); outline-offset: 2px; }
 
-  .rm-score{ font: 900 1.02rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono"; }
+  .rm-score{
+    font: 900 1.06rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono";
+    letter-spacing: -0.02em;
+  }
+
   .rm-count{
     position:absolute;
-    right: 8px;
-    bottom: 8px;
+    right: 6px;
+    bottom: 6px;
     font-weight: 900;
-    font-size: .8rem;
-    padding: .14rem .48rem;
+    font-size: .72rem;
+    padding: .12rem .42rem;
     border-radius: 999px;
-    background: rgba(255,255,255,.72);
+    background: rgba(255,255,255,.55);
     border: 1px solid rgba(0,0,0,.10);
+    line-height: 1;
+    pointer-events: none;
   }
   [data-theme="dark"] .rm-count{
-    background: rgba(0,0,0,.22);
+    background: rgba(0,0,0,.28);
     border-color: rgba(255,255,255,.14);
   }
 
@@ -457,8 +357,6 @@
 
 <div class="dash-scope">
 
-
-
   {# ==== KPI hesap: her risk için Risk.score() (detaydakiyle aynı) ==== #}
   {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
   {% for r in risks or [] %}
@@ -481,7 +379,7 @@
   {% endfor %}
   {% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
 
-  <!-- ===== KPIs (Tailwind kartları gibi) ===== -->
+  <!-- ===== KPIs ===== -->
   <div class="kpis" role="list" aria-label="Özet göstergeler">
     <div class="kpi" role="listitem">
       <div class="label">Total Risk</div>
