@@ -279,6 +279,8 @@
     gap: 10px;
     margin-top: 10px;
   }
+
+  /* ✅ DÜZELTME: "Giriş Yap" yazısı her koşulda beyaz kalsın */
   .phone-btn-primary{
     display:flex;
     align-items:center;
@@ -286,7 +288,7 @@
     padding: 14px 12px;
     border-radius: 14px;
     background: var(--primary);
-    color:#fff;
+    color:#fff !important;              /* <-- burada */
     font-weight: 900;
     text-decoration:none;
     box-shadow: 0 12px 24px rgba(40,102,189,.20);
@@ -296,6 +298,7 @@
     filter: brightness(.96);
     transform: scale(1.02);
     text-decoration:none;
+    color:#fff !important;              /* <-- hover’da da garanti */
   }
 
   .phone-btn-ghost{
