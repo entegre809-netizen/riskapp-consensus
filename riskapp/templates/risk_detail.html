@@ -123,7 +123,7 @@
   }
 
   /* ============================================================
-     ✅ SOL: Risk Formu (gönderdiğin tasarım)
+     ✅ SOL: Risk Formu (tasarım)
      ============================================================ */
   .rf-card{
     padding: 14px 14px 12px;
@@ -238,7 +238,173 @@
   }
 
   /* ============================================================
-     ✅ Yorumlar ve İşlem Geçmişi (ekrandaki tasarım)
+     ✅ SAĞ PANEL (gönderdiğin tasarım): geçmiş + değerlendirme + maliyet
+     ============================================================ */
+  .rd-card{ padding: 14px; border-radius: 14px; }
+  .rd-section-title{
+    font-size:.72rem;
+    font-weight:900;
+    letter-spacing:.08em;
+    opacity:.7;
+    text-transform: uppercase;
+    margin: 2px 0 10px;
+  }
+  .rd-kpis{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+  }
+  @media (max-width: 520px){
+    .rd-kpis{ grid-template-columns: 1fr; }
+  }
+  .rd-kpi{
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
+    border-radius: 12px;
+    padding:10px 10px;
+    background: color-mix(in oklab, var(--card,#fff) 96%, transparent);
+  }
+  .rd-kpi .k{ font-size:.65rem; font-weight:900; letter-spacing:.08em; opacity:.7; text-transform:uppercase; }
+  .rd-kpi .v{ margin-top:6px; font-size:1.1rem; font-weight:900; }
+  .rd-kpi.rpn{
+    background: color-mix(in oklab, #ef4444 8%, transparent);
+    border-color: color-mix(in oklab, #ef4444 18%, transparent);
+  }
+  .rd-kpi.rpn .k{ color:#ef4444; opacity:1; }
+  .rd-kpi.rpn .v{ color:#b91c1c; }
+
+  [data-theme="dark"] .rd-kpi{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  }
+  [data-theme="dark"] .rd-kpi.rpn{
+    background: color-mix(in oklab, #ef4444 12%, transparent);
+    border-color: color-mix(in oklab, #ef4444 20%, transparent);
+  }
+  [data-theme="dark"] .rd-kpi.rpn .v{ color:#fecaca; }
+  [data-theme="dark"] .rd-kpi.rpn .k{ color:#fca5a5; }
+
+  .rd-add-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin: 2px 0 10px;
+  }
+  .rd-add-head h3{
+    margin:0;
+    font-size:1rem;
+    font-weight:900;
+  }
+  .rd-live-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border-radius: 999px;
+    padding: .25rem .6rem;
+    background: color-mix(in oklab, #f59e0b 16%, transparent);
+    border:1px solid color-mix(in oklab, #f59e0b 25%, transparent);
+    font-size:.75rem;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .rd-live-pill b{
+    font-size: 1rem;
+    color: color-mix(in oklab, #b45309 65%, black 35%);
+  }
+  [data-theme="dark"] .rd-live-pill{
+    background: color-mix(in oklab, #f59e0b 18%, transparent);
+    border-color: color-mix(in oklab, #f59e0b 25%, transparent);
+  }
+  [data-theme="dark"] .rd-live-pill b{ color:#fde68a; }
+
+  .rd-score-row{ margin-top:10px; display:grid; gap:12px; }
+  .rd-score-block label{
+    font-size:.86rem;
+    font-weight:900;
+    margin-bottom:8px;
+    display:block;
+  }
+  .rd-score-buttons{
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap:8px;
+  }
+  .rd-score-btn{
+    height: 36px;
+    border-radius: 10px;
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+    background: color-mix(in oklab, var(--card,#fff) 96%, transparent);
+    font-weight:900;
+    cursor:pointer;
+  }
+  .rd-score-btn:hover{
+    border-color: color-mix(in oklab, var(--primary,#2563eb) 30%, var(--line,#e5e7eb) 70%);
+  }
+  .rd-score-btn.active{
+    background: color-mix(in oklab, var(--primary,#2563eb) 16%, transparent);
+    border:2px solid color-mix(in oklab, var(--primary,#2563eb) 70%, transparent);
+    color: color-mix(in oklab, var(--primary,#2563eb) 88%, black 12%);
+  }
+  [data-theme="dark"] .rd-score-btn{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  }
+  [data-theme="dark"] .rd-score-btn.active{
+    background: color-mix(in oklab, var(--primary,#6ea8ff) 18%, transparent);
+    border-color: color-mix(in oklab, var(--primary,#6ea8ff) 45%, transparent);
+    color: #bfdbfe;
+  }
+
+  .rd-cost-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 10px 2px 8px;
+  }
+  .rd-cost-head h3{ margin:0; font-size:.9rem; font-weight:900; letter-spacing:.08em; text-transform:uppercase; opacity:.78; }
+  .rd-add-link{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.78rem; font-weight:900;
+    color: var(--primary,#2563eb);
+    text-decoration:none;
+  }
+  .rd-add-link:hover{ text-decoration: underline; }
+
+  .rd-cost-table{
+    width:100%;
+    border-collapse: collapse;
+    overflow:hidden;
+    border-radius: 12px;
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
+  }
+  .rd-cost-table th, .rd-cost-table td{
+    padding: .55rem .6rem;
+    font-size:.86rem;
+    border-bottom:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
+    text-align:left;
+  }
+  .rd-cost-table th{
+    font-size:.62rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    opacity:.7;
+    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 90%, transparent);
+  }
+  .rd-cost-table tr:last-child td{ border-bottom:none; }
+  .rd-money{ font-weight:900; color:#dc2626; }
+  .rd-date{ font-size:.78rem; opacity:.65; white-space:nowrap; }
+  [data-theme="dark"] .rd-cost-table{
+    border-color: rgba(255,255,255,.14);
+  }
+  [data-theme="dark"] .rd-cost-table th{
+    background: rgba(255,255,255,.04);
+  }
+  [data-theme="dark"] .rd-cost-table th,
+  [data-theme="dark"] .rd-cost-table td{
+    border-bottom-color: rgba(255,255,255,.10);
+  }
+  [data-theme="dark"] .rd-money{ color:#fca5a5; }
+
+  /* ============================================================
+     ✅ Yorumlar ve İşlem Geçmişi (tasarım)
      ============================================================ */
   .yh-wrap{ padding: 10px 10px 12px; }
   .yh-header{
@@ -552,39 +718,40 @@
       </form>
     </div>
 
-    {# ========= SAĞ: DEĞERLENDİRMELER + COST BLOĞU ========= #}
-    <div class="card">
-      <h3 style="margin-top:0">Geçmiş İşlem Verileri</h3>
+    {# ========= SAĞ: Tasarımlı panel (geçmiş + değerlendirme + maliyet) ========= #}
+    <div class="card rd-card">
+      <div class="rd-section-title">Geçmiş İşlem Verileri</div>
 
-      <div class="grid grid-2" style="margin-bottom:10px">
-        <div class="chip">
-          <strong>Son P/S</strong> ·
-          {% if last_eval %}
-            P={{ last_eval.probability }},
-            S={{ last_eval.severity }},
-            RPN={{ last_rpn_display }}
-          {% else %}
-            Henüz değerlendirme yok
-          {% endif %}
+      <div class="rd-kpis" style="margin-bottom:14px">
+        <div class="rd-kpi">
+          <div class="k">Olasılık (P)</div>
+          <div class="v">
+            {% if last_eval %}{{ last_eval.probability }}{% else %}—{% endif %}
+            <span style="font-size:.75rem; font-weight:700; opacity:.55"> / 5</span>
+          </div>
         </div>
-        <div class="chip">
-          <strong>RPN Rozeti</strong>:
-          {% if last_rpn_display is not none %}
-            {{ last_rpn_display }}{% if grade %} · {{ grade }}{% endif %}
-          {% else %}
-            —
-          {% endif %}
+        <div class="rd-kpi">
+          <div class="k">Şiddet (S)</div>
+          <div class="v">
+            {% if last_eval %}{{ last_eval.severity }}{% else %}—{% endif %}
+            <span style="font-size:.75rem; font-weight:700; opacity:.55"> / 5</span>
+          </div>
+        </div>
+        <div class="rd-kpi rpn">
+          <div class="k">RPN</div>
+          <div class="v">
+            {% if last_rpn_display is not none %}{{ last_rpn_display }}{% else %}—{% endif %}
+          </div>
         </div>
       </div>
 
+      {# ✅ İsteğe bağlı: ps_reco kartı aynen kalsın #}
       {% if ps_reco and (ps_reco.p or ps_reco.s) %}
-        <div class="card" style="margin-bottom:10px">
+        <div class="card" style="margin: 0 0 12px; padding:12px">
           <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
             <div>
-              <h4 style="margin:.25rem 0">Sistemin Önerdiği P/S</h4>
-              <div class="muted">
-                Aynı kategorideki geçmiş değerlendirmelerin <em>modu</em>.
-              </div>
+              <h4 style="margin:.15rem 0 .2rem">Sistemin Önerdiği P/S</h4>
+              <div class="muted">Aynı kategorideki geçmiş değerlendirmelerin <em>modu</em>.</div>
               <div style="margin-top:6px" class="btnbar">
                 <span class="pill">P: {{ ps_reco.p or '—' }}</span>
                 <span class="pill">S: {{ ps_reco.s or '—' }}</span>
@@ -602,6 +769,7 @@
         </div>
       {% endif %}
 
+      {# ✅ Eval hedefleri (bulk) aynı #}
       {% if bulk_risks is defined and bulk_risks %}
         {% set eval_targets = bulk_risks %}
       {% else %}
@@ -609,167 +777,116 @@
       {% endif %}
 
       {% for rr in eval_targets %}
-        <div class="eval-block" data-risk-id="{{ rr.id }}">
+        {% set _lrpn = 0 %}
+        <div class="eval-block" data-risk-id="{{ rr.id }}" style="margin-top:10px">
 
           {% if eval_targets|length > 1 %}
-            <div class="muted" style="margin-bottom:4px">
+            <div class="muted" style="margin-bottom:6px">
               <strong>{{ rr.code or ('Risk #' ~ rr.id) }}</strong> · {{ rr.title }}
             </div>
           {% endif %}
 
+          <div class="rd-add-head">
+            <h3>Değerlendirmeyi Ekle</h3>
+            <span class="rd-live-pill">
+              <span style="opacity:.85;">CANLI RPN:</span>
+              <b class="liveRpnNum">1</b>
+            </span>
+          </div>
+
           <form method="post" action="{{ url_for('add_eval', risk_id=rr.id) }}" class="grid">
-            <div class="grid grid-2">
-              <div>
-                <label>Olasılık (P)</label>
-                <select class="input probSel" name="probability">
+            <div class="rd-score-row">
+              <div class="rd-score-block">
+                <label>Olasılık Derecesi (Probability)</label>
+                <select class="input probSel" name="probability" style="display:none">
                   {% for i in range(1,6) %}
                     <option value="{{ i }}">{{ i }}</option>
                   {% endfor %}
                 </select>
-                <div class="btnbar" style="margin-top:6px">
+
+                <div class="rd-score-buttons">
                   {% for i in range(1,6) %}
-                    <button class="btn btn-tab" type="button" data-setp="{{i}}" aria-pressed="false">{{ i }}</button>
+                    <button class="rd-score-btn" type="button" data-setp="{{i}}" aria-pressed="false">{{ i }}</button>
                   {% endfor %}
                 </div>
               </div>
-              <div>
-                <label>Şiddet (S)</label>
-                <select class="input sevSel" name="severity">
+
+              <div class="rd-score-block">
+                <label>Şiddet Derecesi (Severity)</label>
+                <select class="input sevSel" name="severity" style="display:none">
                   {% for i in range(1,6) %}
                     <option value="{{ i }}">{{ i }}</option>
                   {% endfor %}
                 </select>
-                <div class="btnbar" style="margin-top:6px">
+
+                <div class="rd-score-buttons">
                   {% for i in range(1,6) %}
-                    <button class="btn btn-tab" type="button" data-sets="{{i}}" aria-pressed="false">{{ i }}</button>
+                    <button class="rd-score-btn" type="button" data-sets="{{i}}" aria-pressed="false">{{ i }}</button>
                   {% endfor %}
                 </div>
               </div>
             </div>
 
-            <div class="row">
+            <div class="row" style="margin-top:10px">
               <input class="input grow" name="evaluator" placeholder="Değerlendiren (opsiyonel)">
-              <span class="pill nowrap liveRpn">RPN: 1×1 = 1</span>
+              <span class="pill nowrap liveRpn" style="display:none">RPN: 1×1 = 1</span>
             </div>
-            <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
-            <div class="right">
+
+            <input class="input" name="comment" placeholder="Yorum (opsiyonel)" style="margin-top:10px">
+
+            <div class="right" style="margin-top:10px">
               <button class="btn btn-success">Değerlendirmeyi Ekle</button>
             </div>
           </form>
         </div>
       {% endfor %}
 
-      <details class="history-details" style="margin-top:10px">
-        <summary class="muted" style="cursor:pointer; padding:.35rem .1rem;">
-          Geçmiş değerlendirmeleri göster/gizle
-        </summary>
-        <div style="margin-top:6px; max-height:260px; overflow:auto;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                <th>Değerlendiren</th>
-                <th>P</th>
-                <th>Ş</th>
-                <th>RPN</th>
-                <th>Yorum</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for e in (r.evaluations or [])|sort(attribute='id', reverse=True) %}
-                <tr>
-                  <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '-' }}</td>
-                  <td>{{ e.evaluator or '-' }}</td>
-                  <td>{{ e.probability }}</td>
-                  <td>{{ e.severity }}</td>
-                  <td>
-                    {% if e.probability and e.severity %}
-                      {% set row_rpn = e.probability * e.severity %}
-                      {% set row_rpn_display = row_rpn %}
-                      {% if e.comment and 'RPN ort:' in e.comment %}
-                        {% set __chunk = e.comment.split('RPN ort:')[1].strip() %}
-                        {% set __num   = __chunk.split(')')[0].strip() %}
-                        {% set row_rpn_display = __num %}
-                      {% endif %}
-                      {{ row_rpn_display }}
-                    {% else %}
-                      —
-                    {% endif %}
-                  </td>
-                  <td>{{ e.comment or '-' }}</td>
-                </tr>
-              {% else %}
-                <tr><td colspan="6">Henüz değerlendirme yok.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </details>
-
-      {# ===========================
-         ✅ Bu riske bağlı maliyetler
-         Backend -> risk_costs, cost_totals
-         =========================== #}
-      <div class="card" style="margin-top:12px">
-        <div class="row" style="justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="margin:0">Bu Riske Bağlı Maliyetler</h3>
-            <div class="muted">Risk_id = {{ r.id }} ile bağlı CostItem’lar.</div>
-          </div>
-
-          <div class="btnbar">
-            <a class="btn btn-primary" href="{{ url_for('costs') }}?risk_id={{ r.id }}">
-              ➕ Bu riske maliyet ekle
-            </a>
-          </div>
+      {# ✅ Maliyetler: tasarımlı mini tablo #}
+      <div style="margin-top:16px">
+        <div class="rd-cost-head">
+          <h3>Bu Riske Bağlı Maliyetler</h3>
+          <a class="rd-add-link" href="{{ url_for('costs') }}?risk_id={{ r.id }}">
+            <span class="material-symbols-outlined" style="font-size:16px">add_circle</span> Ekle
+          </a>
         </div>
 
         {% if risk_costs and risk_costs|length > 0 %}
-          <div style="margin-top:10px; max-height:280px; overflow:auto;">
-            <table class="table cost-mini">
-              <thead>
+          <table class="rd-cost-table">
+            <thead>
+              <tr>
+                <th>Öge</th>
+                <th class="nowrap">Maliyet</th>
+                <th class="nowrap">Tarih</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in risk_costs[:8] %}
                 <tr>
-                  <th>Başlık</th>
-                  <th>Kategori</th>
-                  <th class="nowrap">Toplam</th>
-                  <th class="nowrap">Sıklık</th>
-                  <th class="nowrap">Para</th>
-                  <th class="nowrap">İşlem</th>
+                  <td>{{ c.title or '—' }}</td>
+                  <td class="rd-money">
+                    {% if c.currency %}{{ c.currency|upper }} {% endif %}
+                    {{ '%.2f'|format((c.total or 0)|float) }}
+                  </td>
+                  <td class="rd-date">
+                    {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '-' }}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {% for c in risk_costs %}
-                  <tr>
-                    <td>{{ c.title or '—' }}</td>
-                    <td>{{ c.category or '—' }}</td>
-                    <td class="nowrap">{{ '%.2f'|format((c.total or 0)|float) }}</td>
-                    <td class="nowrap">{{ c.frequency or 'Tek Sefer' }}</td>
-                    <td class="nowrap">{{ c.currency or 'TRY' }}</td>
-                    <td class="nowrap">
-                      <a class="btn btn-sm" href="{{ url_for('cost_edit', cost_id=c.id) }}">Düzenle</a>
-                    </td>
-                  </tr>
-                {% endfor %}
+              {% endfor %}
+            </tbody>
+          </table>
 
-                {% if cost_totals %}
-                  <tr class="sumrow">
-                    <td colspan="6">
-                      Toplam:
-                      {% for cur, val in cost_totals.items() %}
-                        <span class="pill" style="margin-left:6px">
-                          {{ '%.2f'|format((val or 0)|float) }} {{ cur }}
-                        </span>
-                      {% endfor %}
-                    </td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
+          {% if cost_totals %}
+            <div style="margin-top:10px">
+              <div class="muted" style="margin-bottom:6px">Toplam:</div>
+              {% for cur, val in cost_totals.items() %}
+                <span class="pill" style="margin-right:6px">
+                  {{ '%.2f'|format((val or 0)|float) }} {{ cur }}
+                </span>
+              {% endfor %}
+            </div>
+          {% endif %}
 
-          {# ===========================
-             ✅ Risk içi mini Pareto
-             =========================== #}
+          {# ✅ Pareto kartın (özellik) AYNEN KALDI #}
           <div class="card" style="margin-top:12px">
             <div class="row" style="justify-content:space-between; align-items:flex-start;">
               <div class="grow">
@@ -844,11 +961,58 @@
 
         {% else %}
           <div class="muted" style="margin-top:10px">
-            Bu risk’e bağlı maliyet yok. “Bu riske maliyet ekle” ile bağlayabilirsin.
+            Bu risk’e bağlı maliyet yok. “Ekle” ile bağlayabilirsin.
           </div>
         {% endif %}
       </div>
 
+      {# geçmiş değerlendirme tablosu (özellik) aynen kalsın #}
+      <details class="history-details" style="margin-top:14px">
+        <summary class="muted" style="cursor:pointer; padding:.35rem .1rem;">
+          Geçmiş değerlendirmeleri göster/gizle
+        </summary>
+        <div style="margin-top:6px; max-height:260px; overflow:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Değerlendiren</th>
+                <th>P</th>
+                <th>Ş</th>
+                <th>RPN</th>
+                <th>Yorum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in (r.evaluations or [])|sort(attribute='id', reverse=True) %}
+                <tr>
+                  <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '-' }}</td>
+                  <td>{{ e.evaluator or '-' }}</td>
+                  <td>{{ e.probability }}</td>
+                  <td>{{ e.severity }}</td>
+                  <td>
+                    {% if e.probability and e.severity %}
+                      {% set row_rpn = e.probability * e.severity %}
+                      {% set row_rpn_display = row_rpn %}
+                      {% if e.comment and 'RPN ort:' in e.comment %}
+                        {% set __chunk = e.comment.split('RPN ort:')[1].strip() %}
+                        {% set __num   = __chunk.split(')')[0].strip() %}
+                        {% set row_rpn_display = __num %}
+                      {% endif %}
+                      {{ row_rpn_display }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td>{{ e.comment or '-' }}</td>
+                </tr>
+              {% else %}
+                <tr><td colspan="6">Henüz değerlendirme yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </div>
 
     {# ============================================================
@@ -1001,8 +1165,14 @@
     if (!pSel || !sSel) return;
     const p = parseInt(pSel.value || '1', 10);
     const s = parseInt(sSel.value || '1', 10);
+
+    // eski pill (gizli) da güncelle
     const el = block.querySelector('.liveRpn');
     if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
+
+    // yeni header'daki canlı sayı
+    const num = block.querySelector('.liveRpnNum');
+    if (num) num.textContent = String(p*s);
   }
 
   function syncButtonsFromSelect(block){
@@ -1012,10 +1182,14 @@
     const sV = sSel ? String(sSel.value || "1") : "1";
 
     block.querySelectorAll('[data-setp]').forEach(b=>{
-      b.setAttribute("aria-pressed", b.dataset.setp === pV ? "true" : "false");
+      const on = (b.dataset.setp === pV);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.classList.toggle("active", on);
     });
     block.querySelectorAll('[data-sets]').forEach(b=>{
-      b.setAttribute("aria-pressed", b.dataset.sets === sV ? "true" : "false");
+      const on = (b.dataset.sets === sV);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.classList.toggle("active", on);
     });
   }
 
@@ -1026,14 +1200,9 @@
       const pSel = block.querySelector('.probSel');
       const sSel = block.querySelector('.sevSel');
 
-      if (pSel) pSel.addEventListener('change', ()=>{
-        syncButtonsFromSelect(block);
-        updateLiveRpnBlock(block);
-      });
-      if (sSel) sSel.addEventListener('change', ()=>{
-        syncButtonsFromSelect(block);
-        updateLiveRpnBlock(block);
-      });
+      // varsayılan seçimi 1 yap
+      if (pSel) pSel.value = pSel.value || "1";
+      if (sSel) sSel.value = sSel.value || "1";
 
       block.querySelectorAll('[data-setp]').forEach(b=>{
         b.addEventListener('click',()=>{
