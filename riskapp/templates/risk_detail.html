@@ -88,40 +88,6 @@
     color: var(--text);
   }
 
-  /* ===== Yorum blokları (Sistem + Kullanıcı) ===== */
-  .comment{
-    margin-bottom:10px;
-    padding:8px 10px;
-    border-radius:10px;
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-  }
-  .comment.system{
-    border-color: color-mix(in oklab, var(--primary) 55%, var(--line) 45%);
-    background:
-      radial-gradient(circle at 0 0,
-        color-mix(in oklab, var(--primary) 18%, transparent),
-        color-mix(in oklab, var(--bg-soft) 96%, transparent));
-  }
-  .comment .meta{
-    font-size:.8rem;
-    opacity:.85;
-  }
-  .comment pre{
-    margin-top:.4rem;
-    padding:10px 12px;
-    border-radius:8px;
-    background:#020617;
-    color:#e5e7eb;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-                 "Liberation Mono","Courier New", monospace;
-    font-size:.85rem;
-    line-height:1.45;
-    white-space:pre-wrap;
-  }
-  html[data-theme="light"] .comment pre{ background:#0b1120; color:#e5e7eb; }
-  html[data-theme="dark"] .comment pre{ background:#020617; color:#e5e7eb; }
-
   /* ✅ Costs mini table */
   .cost-mini td, .cost-mini th{ font-size:.88rem; }
   .cost-mini .sumrow td{ font-weight:600; }
@@ -154,6 +120,141 @@
   [data-theme="dark"] .chart-box{
     border-color: rgba(255,255,255,.14);
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  }
+
+  /* ============================================================
+     ✅ Yorumlar ve İşlem Geçmişi (ekrandaki tasarım)
+     ============================================================ */
+  .yh-wrap{
+    padding: 10px 10px 12px;
+  }
+  .yh-header{
+    display:flex; align-items:center; gap:10px;
+    padding: 8px 10px 12px;
+    border-bottom:1px solid var(--line,#e5e7eb);
+  }
+  .yh-header .yh-ico{
+    width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:10px;
+    background: color-mix(in oklab, var(--primary,#6ea8ff) 12%, transparent);
+    border:1px solid color-mix(in oklab, var(--primary,#6ea8ff) 28%, transparent);
+  }
+  .yh-title{
+    font-weight:800;
+    margin:0;
+  }
+  .yh-list{
+    padding: 12px 10px 6px;
+  }
+  .yh-item{
+    display:flex; gap:12px;
+    padding: 10px 6px;
+  }
+  .yh-item + .yh-item{
+    border-top: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
+  }
+  .yh-avatar{
+    width:42px; height:42px;
+    border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    flex:0 0 42px;
+    border: 2px solid color-mix(in oklab, var(--line,#e5e7eb) 55%, transparent);
+    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 92%, transparent);
+    overflow:hidden;
+  }
+  .yh-avatar.system{
+    border-color: color-mix(in oklab, var(--primary,#6ea8ff) 35%, transparent);
+    background: color-mix(in oklab, var(--primary,#6ea8ff) 14%, transparent);
+  }
+  .yh-meta{
+    display:flex; gap:8px; align-items:baseline; flex-wrap:wrap;
+    margin-bottom:4px;
+  }
+  .yh-name{
+    font-weight:800;
+    font-size:.95rem;
+  }
+  .yh-date{
+    font-size:.78rem;
+    opacity:.7;
+  }
+  .yh-bubble{
+    width:100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
+    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 92%, transparent);
+    font-size:.92rem;
+    line-height:1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .yh-bubble.system{
+    font-style: italic;
+    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 80%, transparent);
+  }
+  .yh-actions{
+    display:grid;
+    grid-template-columns: 1fr 320px;
+    gap:12px;
+    padding: 12px 10px 0;
+    border-top:1px solid var(--line,#e5e7eb);
+    align-items:stretch;
+  }
+  @media (max-width: 980px){
+    .yh-actions{ grid-template-columns: 1fr; }
+  }
+  .yh-newlabel{
+    font-size:.72rem;
+    letter-spacing:.08em;
+    font-weight:800;
+    opacity:.75;
+    margin-bottom:8px;
+  }
+  .yh-textarea{
+    min-height: 74px;
+    resize: vertical;
+  }
+  .yh-compose{
+    display:flex; gap:10px; align-items:flex-end;
+  }
+  .yh-compose .grow{ flex:1; }
+  .yh-send{
+    min-width: 92px;
+  }
+  .yh-deletebox{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-items:stretch;
+    justify-content:center;
+    padding: 10px;
+    border-radius: 12px;
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
+    background: color-mix(in oklab, #ef4444 5%, transparent);
+  }
+  .yh-deletehint{
+    font-size:.72rem;
+    opacity:.75;
+    text-align:center;
+  }
+
+  [data-theme="dark"] .yh-header,
+  [data-theme="dark"] .yh-item + .yh-item,
+  [data-theme="dark"] .yh-actions{
+    border-color: rgba(255,255,255,.12);
+  }
+  [data-theme="dark"] .yh-bubble{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  }
+  [data-theme="dark"] .yh-bubble.system{
+    background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
+  }
+  [data-theme="dark"] .yh-deletebox{
+    border-color: rgba(255,255,255,.12);
+    background: color-mix(in oklab, #ef4444 10%, transparent);
   }
 </style>
 
@@ -648,57 +749,98 @@
 
     </div>
 
-    {# ========= ALT: YORUMLAR ========= #}
+    {# ============================================================
+       ✅ YORUMLAR ve İŞLEM GEÇMİŞİ (gönderdiğin tasarım)
+       ============================================================ #}
     <div class="card" style="grid-column:1/-1">
-      <div class="row" style="justify-content:space-between">
-        <h3 style="margin-top:0">Yorumlar</h3>
-        <div class="muted">{{ (r.comments|length) or 0 }} yorum</div>
+      <div class="yh-header">
+        <div class="yh-ico" aria-hidden="true">
+          <span class="material-symbols-outlined" style="font-size:18px">chat</span>
+        </div>
+        <div class="grow">
+          <div class="row" style="justify-content:space-between; align-items:baseline;">
+            <h3 class="yh-title">Yorumlar ve İşlem Geçmişi</h3>
+            <div class="muted">{{ (r.comments|length) or 0 }} kayıt</div>
+          </div>
+        </div>
       </div>
 
-      <div class="grid">
-        {% for c in (r.comments or [])|sort(attribute='id', reverse=True) %}
-          <div class="comment {% if c.is_system %}system{% endif %}">
-            <div class="row meta" style="justify-content:space-between">
-              <strong>{% if c.is_system %}Sistem{% else %}Kullanıcı{% endif %}</strong>
-              <span class="muted">
-                {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '' }} ·
-                {{ c.created_at.strftime('%H:%M') if c.created_at else '' }}
-              </span>
+      <div class="yh-wrap">
+        <div class="yh-list">
+          {% for c in (r.comments or [])|sort(attribute='id', reverse=True) %}
+            {% set who = 'System Bot' if c.is_system else (c.author or c.evaluator or 'Kullanıcı') %}
+            {% set date_str = (c.created_at.strftime('%d.%m.%Y') if c.created_at else '') %}
+            {% set time_str = (c.created_at.strftime('%H:%M') if c.created_at else '') %}
+            {% set txt = c.text or '' %}
+            {% set is_long = txt|length > 900 %}
+
+            <div class="yh-item">
+              <div class="yh-avatar {% if c.is_system %}system{% endif %}">
+                {% if c.is_system %}
+                  <span class="material-symbols-outlined" style="font-size:18px; color: var(--primary,#2563eb)">smart_toy</span>
+                {% else %}
+                  <span style="font-weight:800; opacity:.75">
+                    {{ (who[:1] if who else 'K')|upper }}
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="grow">
+                <div class="yh-meta">
+                  <span class="yh-name">{{ who }}</span>
+                  <span class="yh-date">
+                    {{ date_str }}{% if date_str and time_str %} · {% endif %}{{ time_str }}
+                  </span>
+                </div>
+
+                {% if is_long %}
+                  <details>
+                    <summary class="muted" style="cursor:pointer; padding:2px 0 8px;">Mesajı aç/kapat</summary>
+                    <div class="yh-bubble {% if c.is_system %}system{% endif %}">{{ txt }}</div>
+                  </details>
+                {% else %}
+                  <div class="yh-bubble {% if c.is_system %}system{% endif %}">
+                    {{ txt }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="muted" style="padding:10px 6px">Yorum yok.</div>
+          {% endfor %}
+        </div>
+
+        {% if session.get('role') == 'admin' %}
+          <div class="yh-actions">
+            <div>
+              <div class="yh-newlabel">YENİ YORUM EKLE</div>
+
+              <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
+                <div class="yh-compose">
+                  <div class="grow">
+                    <textarea class="input yh-textarea" name="text" rows="2" placeholder="Fikrinizi paylaşın..."></textarea>
+                  </div>
+                  <button class="btn btn-primary yh-send" type="submit">Gönder</button>
+                </div>
+              </form>
             </div>
 
-            {% set _txt = c.text or '' %}
-            {% set _is_long = _txt|length > 900 %}
-            {% if _is_long %}
-              <details style="margin-top:.35rem">
-                <summary class="muted" style="cursor:pointer">Yorumu aç/kapat</summary>
-                <pre>{{ _txt }}</pre>
-              </details>
-            {% else %}
-              <pre>{{ _txt }}</pre>
-            {% endif %}
+            <div class="yh-deletebox">
+              <form method="post"
+                    action="{{ url_for('risk_delete', risk_id=r.id) }}"
+                    onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');">
+                <button class="btn danger" type="submit" style="width:100%; padding:.7rem .9rem;">
+                  <span class="material-symbols-outlined" style="font-size:18px; vertical-align:-4px; margin-right:6px;">delete</span>
+                  Riski Sil
+                </button>
+              </form>
+              <div class="yh-deletehint">Sadece admin yetkisiyle silinebilir.</div>
+            </div>
           </div>
-        {% else %}
-          <div class="muted">Yorum yok.</div>
-        {% endfor %}
+        {% endif %}
       </div>
-
-      {% if session.get('role') == 'admin' %}
-        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}" style="margin-top:12px">
-          <label>Yeni Yorum</label>
-          <textarea class="input" name="text" rows="2" placeholder="Güncelleme veya not girin"></textarea>
-          <div class="right" style="margin-top:8px">
-            <button class="btn">Yorum Ekle</button>
-          </div>
-        </form>
-
-        <form method="post"
-              action="{{ url_for('risk_delete', risk_id=r.id) }}"
-              onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
-              style="margin-top:12px" class="right">
-          <button class="btn danger">❌ Risk Sil</button>
-        </form>
-      {% endif %}
     </div>
+
   </div>
 </div>
 
@@ -739,7 +881,6 @@
   // =============================
   function applyConsensus(p, s) {
     try {
-      // ilk eval bloğa uygula (sayfada birden fazla olabilir)
       const block = document.querySelector('.eval-block');
       if (!block) return;
       const pSel = block.querySelector('.probSel');
