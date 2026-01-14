@@ -177,16 +177,17 @@
     }
     .btn:active{ transform: scale(.99); }
 
-    .btn-primary{
+    /* ✅ DÜZELTME: Sarı gelen primary butonu ZORLA mavi yap */
+    button.btn.btn-primary{
       width: 100%;
       padding: 14px 12px;
       border-radius: 14px;
-      border-color: rgba(40,102,189,.35);
-      background: var(--primary);
-      color:#fff;
-      box-shadow: 0 14px 28px rgba(40,102,189,.20);
+      border-color: rgba(40,102,189,.35) !important;
+      background: var(--primary) !important;
+      color:#fff !important;
+      box-shadow: 0 14px 28px rgba(40,102,189,.20) !important;
     }
-    .btn-primary:hover{
+    button.btn.btn-primary:hover{
       filter: brightness(.96);
     }
 
