@@ -3,85 +3,321 @@
 
 {% block content %}
 <style>
-  /* ---------- Sayfa-özel (base tokenlarını kullanır) ---------- */
+  /* =========================================================
+     Risk Identify — "Enterprise / Tailwind-like" UI
+     Feature kaybı YOK: aynı Jinja + aynı JS akışı
+     ========================================================= */
+
   :root{
     --gap-1: 6px; --gap-2: 10px; --gap-3: 14px; --gap-4: 18px;
     --round-sm: 10px; --round: 14px;
+
+    /* fallback'ler (base yoksa patlamasın) */
+    --primary: #2866bd;
+    --bg: #ffffff;
+    --bg-soft: #f8fafc;
+    --card: rgba(255,255,255,.92);
+    --line: rgba(148,163,184,.35);
+    --muted: rgba(100,116,139,1);
+    --radius: 16px;
+    --radius-sm: 12px;
+    --elev-1: 0 10px 26px -18px rgba(15,23,42,.25);
+    --glass-blur: blur(10px);
+    --danger: #ef4444;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono";
   }
 
+  [data-theme="dark"]{
+    --bg: #0b1220;
+    --bg-soft: rgba(18,24,32,.72);
+    --card: rgba(18,24,32,.62);
+    --line: rgba(51,65,85,.55);
+    --muted: rgba(148,163,184,1);
+  }
+
+  /* ---------- Sayfa wrapper ---------- */
+  .page{
+    position: relative;
+  }
+
+  /* ---------- Başlık ---------- */
+  .page-title{
+    margin: 0 0 .35rem;
+    letter-spacing:.01em;
+    font-weight: 900;
+  }
+  .page-sub{
+    margin: 0 0 1rem;
+    color: var(--muted);
+    font-size: .95rem;
+  }
+
+  /* ---------- Toolbar (sticky) ---------- */
   .toolbar {
-    position: sticky; top: 8px; z-index: 2;
+    position: sticky; top: 8px; z-index: 3;
     display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap;
-    padding: .75rem; margin: 0 0 1rem;
-    border:1px solid color-mix(in oklab, var(--line) 82%, transparent);
+    padding: .85rem; margin: 0 0 1rem;
+    border:1px solid color-mix(in oklab, var(--line) 90%, transparent);
     border-radius: var(--radius);
-    background: color-mix(in oklab, var(--bg-soft) 98%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
     box-shadow: var(--elev-1);
     backdrop-filter: var(--glass-blur);
   }
-  .toolbar .group{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end }
+  .toolbar .group{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:flex-end }
   .toolbar .fill{ flex:1 }
-  .input, select.input{ height: 40px; padding: .5rem .75rem; }
 
-  .cat-grid{ display:grid; gap:var(--gap-4); grid-template-columns: repeat(3, minmax(0,1fr)); }
-  @media (max-width:1200px){ .cat-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  @media (max-width:820px){ .cat-grid{ grid-template-columns: 1fr; } }
-
-  .cat-card{
-    border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
-    border-radius: var(--round);
-    padding:12px; background: var(--card);
-    box-shadow: 0 8px 26px rgba(0,0,0,.07);
+  .input, select.input, textarea.input{
+    height: 40px;
+    padding: .55rem .8rem;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--line) 92%, transparent);
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
+    color: inherit;
+    outline: none;
   }
-  .cat-head{ display:flex; align-items:flex-end; gap:.55rem; margin:4px 0 10px }
-  .cat-head h3{ letter-spacing:.02em; font-variant: all-small-caps; font-weight: 900; opacity:.9 }
-  .cat-count{ font-weight:900; color:var(--muted); background: color-mix(in oklab, var(--brand-2) 80%, transparent); padding:.12rem .5rem; border-radius:999px; }
+  textarea.input{ height: auto; }
 
-  .bulk-row{ margin:6px 0 10px; display:flex; justify-content:space-between; align-items:center; gap:.5rem }
+  .input:focus, select.input:focus, textarea.input:focus{
+    border-color: color-mix(in oklab, var(--primary) 55%, var(--line));
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 20%, transparent);
+  }
+
+  .input-search{ min-width: clamp(220px, 26vw, 360px); }
+
+  /* ---------- Grid ---------- */
+  .cat-grid{ display:grid; gap:var(--gap-4); grid-template-columns: repeat(2, minmax(0,1fr)); }
+  @media (max-width: 980px){ .cat-grid{ grid-template-columns: 1fr; } }
+
+  /* ---------- Category card ---------- */
+  .cat-card{
+    border:1px solid color-mix(in oklab, var(--line) 92%, transparent);
+    border-radius: 18px;
+    padding: 14px;
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
+    box-shadow: 0 10px 28px -22px rgba(15,23,42,.25);
+    transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+  }
+  .cat-card:hover{
+    border-color: color-mix(in oklab, var(--primary) 30%, var(--line));
+    box-shadow: 0 18px 42px -26px rgba(15,23,42,.32);
+    transform: translateY(-1px);
+  }
+  [data-theme="dark"] .cat-card{
+    background: rgba(18,24,32,.58);
+  }
+  [data-theme="dark"] .cat-card:hover{ transform: translateY(-1px); }
+
+  .cat-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.75rem;
+    margin: 2px 0 12px;
+  }
+  .cat-left{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    min-width: 0;
+  }
+  .cat-head h3{
+    margin: 0;
+    font-weight: 950;
+    letter-spacing: -0.01em;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cat-count{
+    font-weight: 900;
+    color: var(--muted);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    padding: .18rem .55rem;
+    border-radius: 999px;
+    font-size: .82rem;
+    white-space: nowrap;
+  }
+
+  /* ---------- Bulk row ---------- */
+  .bulk-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:.6rem;
+    flex-wrap:wrap;
+    padding: 10px 10px;
+    border: 1px solid color-mix(in oklab, var(--line) 82%, transparent);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
+    margin: 0 0 12px;
+  }
+  [data-theme="dark"] .bulk-row{
+    background: rgba(30,33,38,.40);
+  }
   .bulk-row .right{ display:flex; gap:.5rem; align-items:center }
 
-  .table-select{ width:100%; border-collapse:separate; border-spacing:0; border-radius: 12px; overflow: clip; }
+  /* ---------- Table wrapper ---------- */
+  .table-wrap{
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    border-radius: 14px;
+    border: 1px solid color-mix(in oklab, var(--line) 88%, transparent);
+    background: color-mix(in oklab, var(--bg) 97%, transparent);
+  }
+  [data-theme="dark"] .table-wrap{
+    background: rgba(18,24,32,.40);
+  }
+
+  .table-select{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    table-layout: auto !important;
+    min-width: 980px;
+  }
+
   .table-select th,.table-select td{
-    padding:.6rem .7rem;
-    border-bottom:1px solid color-mix(in oklab, var(--line) 82%, transparent);
-    vertical-align:top; font-size:.96rem;
+    padding: .8rem .85rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--line) 82%, transparent);
+    vertical-align: top;
+    font-size: .95rem;
   }
+
   .table-select thead th{
-    position:sticky; top:0; z-index:1;
-    text-transform:uppercase; letter-spacing:.08em; font-weight:1000; font-size:.76rem;
-    color:var(--muted);
-    background: linear-gradient(180deg, color-mix(in oklab, var(--bg-soft) 98%, transparent), transparent);
-    border-bottom:1px solid color-mix(in oklab, var(--line) 88%, transparent);
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 950;
+    font-size: .72rem;
+    color: color-mix(in oklab, var(--muted) 88%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--line) 92%, transparent);
+    white-space: nowrap;
   }
-  .table-select tbody tr:nth-child(even) td{ background: color-mix(in oklab, var(--bg) 96%, transparent); }
-  .table-select tbody tr:hover td{ background: color-mix(in oklab, var(--primary) 5%, transparent); }
+
+  .table-select tbody tr:hover td{
+    background: color-mix(in oklab, var(--primary) 6%, transparent);
+  }
 
   /* Kolon hizaları */
-  .table-select th:nth-child(1), .table-select td:nth-child(1){ width: 48px; }
+  .table-select th:nth-child(1), .table-select td:nth-child(1){ width: 54px; }
   .table-select th:nth-child(4), .table-select td:nth-child(4){ width: 120px; text-align:center; }
   .table-select th:nth-child(5), .table-select td:nth-child(5),
-  .table-select th:nth-child(6), .table-select td:nth-child(6){ width: 110px; text-align:center; }
-  .table-select th:last-child, .table-select td:last-child{ width: 150px; }
+  .table-select th:nth-child(6), .table-select td:nth-child(6){ width: 130px; text-align:center; }
+  .table-select th:last-child, .table-select td:last-child{ width: 180px; }
 
-  .risk-badge{ display:inline-flex; align-items:center; gap:.4rem }
-  .risk-code{ display:inline-block; min-width:3ch }
+  /* ---------- Chips / badges ---------- */
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:.4rem;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    border:1px solid color-mix(in oklab, var(--line) 86%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 94%, transparent);
+    font-size: .82rem;
+    font-weight: 800;
+    color: color-mix(in oklab, var(--muted) 92%, transparent);
+    white-space: nowrap;
+  }
+
+  .code-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: .14rem .5rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--primary);
+    font: 900 .74rem/1 var(--mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select:none;
+    white-space: nowrap;
+  }
 
   .risk-title{
-    font-weight:600;
-    display:inline-block;
+    font-weight: 800;
+    color: inherit;
   }
 
-  .inline-edit{
-    border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
-    border-radius: var(--radius-sm);
-    background: color-mix(in oklab, var(--bg-soft) 98%, transparent);
-    padding:10px;
+  /* group-hover detail button */
+  .risk-inline{
+    display:flex;
+    align-items:center;
+    gap:.55rem;
+    min-width: 0;
   }
-  .edit-row[hidden]{ display:none }
-  .row-actions{ display:flex; gap:.5rem; flex-wrap:wrap }
+  .btn-mini{
+    opacity: 0;
+    transform: translateY(1px);
+    transition: opacity .15s ease, transform .15s ease, background .15s ease, border-color .15s ease;
+  }
+  tr:hover .btn-mini{
+    opacity: 1;
+    transform: translateY(0);
+  }
 
-  /* Butonlar: kompakt ve sakin */
-  .btn{ padding:.5rem .8rem; border-radius: 10px; }
+  .btn-icon{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in oklab, var(--line) 84%, transparent);
+    background: transparent;
+    cursor: pointer;
+    text-decoration:none;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .btn-icon:hover{
+    border-color: color-mix(in oklab, var(--primary) 30%, var(--line));
+    background: color-mix(in oklab, var(--primary) 8%, transparent);
+  }
+
+  /* ---------- Buttons (compact) ---------- */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    padding: .55rem .85rem;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--line) 86%, transparent);
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
+    color: inherit;
+    font-weight: 900;
+    font-size: .92rem;
+    text-decoration:none;
+    cursor:pointer;
+    transition: transform .08s ease, filter .16s ease, border-color .16s ease, background .16s ease;
+  }
+  .btn:hover{ transform: translateY(-1px); border-color: color-mix(in oklab, var(--primary) 28%, var(--line)); }
+
+  .btn-primary{
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 16px 38px -22px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+  .btn-primary:hover{ filter: brightness(1.03); }
+
+  .btn-ghost{
+    background: transparent;
+    border-style: dashed;
+    opacity: .95;
+  }
+  .btn-ghost:hover{ opacity: 1; }
+
   .btn-danger{
     background: color-mix(in oklab, var(--danger) 18%, transparent);
     color: color-mix(in oklab, var(--danger) 85%, #fff 15%);
@@ -89,116 +325,145 @@
     box-shadow: none;
   }
   .btn-danger:hover{ background: color-mix(in oklab, var(--danger) 28%, transparent); }
-  [data-theme="dark"] .btn-danger{
-    background: color-mix(in oklab, var(--danger) 25%, transparent);
-    border-color: color-mix(in oklab, var(--danger) 45%, transparent);
-    color:#ffecec;
-  }
-  .btn-ghost{ background:transparent; border:1px dashed color-mix(in oklab, var(--line) 70%, transparent); opacity:.9 }
-  .btn-ghost:hover{ opacity:1 }
-  .btn.btn-edit{ background: color-mix(in oklab, var(--primary) 16%, transparent); border-color: transparent; }
 
-  /* 🔍 küçük detay butonu */
-  .btn-icon{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:.15rem .35rem;
-    border-radius:999px;
-    border:1px solid color-mix(in oklab, var(--line) 70%, transparent);
-    background:transparent;
-    font-size:.9rem;
-    cursor:pointer;
-  }
-  .btn-icon:hover{
-    background: color-mix(in oklab, var(--primary) 10%, transparent);
+  .btn-edit{
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    border-color: transparent;
   }
 
+  /* ---------- Inline edit ---------- */
+  .inline-edit{
+    border:1px solid color-mix(in oklab, var(--line) 86%, transparent);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
+    padding: 12px;
+  }
+  .edit-row[hidden]{ display:none }
+  .row-actions{
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .row-actions form{ margin:0 }
+
+  /* ---------- Pager + info ---------- */
   .pager{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-end; margin-top:12px }
   .pager .btn[aria-disabled="true"]{ pointer-events:none; opacity:.5 }
-  .totalinfo{ color:var(--muted); font-size:.9rem; margin-top:.35rem }
+  .totalinfo{ color:var(--muted); font-size:.92rem; margin-top: .6rem }
 
-  /* küçük iyileştirmeler */
-  .input-search{
-  min-width: clamp(220px, 26vw, 340px);
-}
-  .w-code{ width:110px }
-  .w-num{ width:130px }
-  .w-ops{ width:170px }
-  .text-muted{ opacity:.8 }
-  .kbd{ font: 600 .82rem var(--mono); padding:.08rem .35rem; border-radius:6px;
-        border:1px solid color-mix(in oklab, var(--line) 80%, transparent) }
+  .small{ color: var(--muted); font-size: .9rem; }
+  .text-muted{ opacity: .82; }
 
-  /* Sticky action bar (seçim yapılınca gösterilecek) */
-  .actionbar{
-    position: sticky; bottom: 8px; z-index: 5;
-    display: none; /* JS ile görünür */
-    margin-top: 10px;
-    justify-content: flex-end; gap: var(--gap-2);
-  }
-  .actionbar .chip{
-    align-self:center; font-weight:900; font-size:.9rem;
-    padding:.35rem .6rem; border-radius:999px;
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    background: color-mix(in oklab, var(--bg-soft) 95%, transparent);
-  }
-
-  /* Dar ekranda sağ “İşlem” sabit kalsın DIŞI — varsayılan kapalı (hotfix ile birlikte) */
-  @media (max-width: 1100px){
-    .table-select th:last-child, .table-select td:last-child{ position: static !important; }
-  }
-
-  /* ====== RISK TABLE OVERLAP HOTFIX ====== */
-  .table-wrap{ overflow-x: auto !important; overflow-y: visible !important; }
-  .table-select{ table-layout: auto !important; min-width: 980px; }
-  .table-select thead th{
-    position: sticky; top: 0; z-index: 3; background: inherit;
-  }
-  .table-select td, .table-select th{ position: relative; z-index: 1; }
-  .table-select th:last-child, .table-select td:last-child{
-    position: static !important; right: auto !important; background: inherit; z-index: 2; white-space: nowrap;
-  }
-  .row-actions{ display: inline-flex !important; gap: 8px !important; flex-wrap: nowrap !important; align-items: center; }
-  .row-actions form{ margin:0 }
-  .row-actions .btn{ white-space: nowrap; }
-  .table-select th:nth-child(2), .table-select td:nth-child(2){ min-width: 180px; }
-  .table-select th:nth-child(3), .table-select td:nth-child(3){ min-width: 260px; }
-  .cat-card:hover{ transform: none !important; }
-  .table-select tbody tr:nth-child(even) td,
-  .table-select tbody tr:hover td{ background-clip: padding-box; }
-
-  /* --- Mitigation (önerilen önlemler) bloğu (link + gizli kutu) --- */
+  /* ---------- Mitigation toggle ---------- */
   .mit-link{
     display:inline-flex;
     align-items:center;
-    gap:4px;
+    gap:6px;
     font-size:.82rem;
-    color:var(--muted);
+    color: color-mix(in oklab, var(--muted) 92%, transparent);
     text-decoration:none;
-    margin-top:4px;
+    margin-top: 6px;
   }
-  .mit-link::before{
-    content:"➜";
-    font-size:.8rem;
-    opacity:.7;
-  }
-  .mit-link.is-open{
-    color:var(--primary);
-  }
+  .mit-link::before{ content:"➜"; opacity:.75; }
+  .mit-link.is-open{ color: var(--primary); }
   .mit-box{
     display:none;
-    margin-top:4px;
-    padding:6px 8px;
-    border-radius:8px;
-    border:1px dashed color-mix(in oklab, var(--line) 80%, transparent);
-    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-    font-size:.8rem;
+    margin-top:6px;
+    padding:8px 10px;
+    border-radius: 12px;
+    border:1px dashed color-mix(in oklab, var(--line) 84%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
+    font-size:.84rem;
     white-space:pre-wrap;
+  }
+
+  /* ---------- Bottom action bar (fixed, screenshot style) ---------- */
+  .actionbar{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 18px;
+    width: min(980px, calc(100% - 24px));
+    z-index: 60;
+    display: none; /* JS açacak */
+  }
+  .actionbar-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: #0b1220;
+    color: #fff;
+    border: 1px solid rgba(148,163,184,.22);
+    box-shadow: 0 22px 50px -26px rgba(0,0,0,.6);
+  }
+  [data-theme="dark"] .actionbar-inner{
+    background: #000;
+    border-color: rgba(148,163,184,.18);
+  }
+  .action-left{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .action-ico{
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    background: var(--primary);
+    box-shadow: 0 14px 30px -20px rgba(40,102,189,.85);
+    flex: 0 0 auto;
+    font-weight: 900;
+  }
+  .action-meta{ min-width:0 }
+  .action-meta h4{
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 950;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .action-meta p{
+    margin: 2px 0 0;
+    font-size: .78rem;
+    color: rgba(226,232,240,.75);
+  }
+  .action-right{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content:flex-end;
+  }
+  .btn-clear{
+    background: transparent;
+    border: 0;
+    color: rgba(226,232,240,.78);
+    font-weight: 800;
+    cursor:pointer;
+    padding: .45rem .5rem;
+    border-radius: 12px;
+  }
+  .btn-clear:hover{ color:#fff; background: rgba(255,255,255,.06); }
+
+  /* küçük ekran */
+  @media (max-width: 520px){
+    .actionbar-inner{ flex-direction: column; align-items: stretch; }
+    .action-right{ width: 100%; }
+    .action-right .btn{ width: 100%; justify-content:center; }
   }
 </style>
 
-<div class="card" id="top">
-  <h2 style="margin:0 0 .35rem; letter-spacing:.01em">Tanımlı Risklerden Seç</h2>
+<div class="page card" id="top">
+  <h2 class="page-title">Tanımlı Risklerden Seç</h2>
+  <p class="page-sub">Kategorilere göre filtreleyin, şablonları seçin ve yeni risk formunda açın.</p>
 
   <!-- Sticky Üst araç çubuğu -->
   <div class="toolbar noprint" role="region" aria-label="Filtreler">
@@ -213,14 +478,17 @@
           {% endfor %}
         </select>
       </div>
+
       <div>
         <label class="small" for="q">Ara <span class="text-muted">(Ctrl/⌘+K)</span></label>
         <input id="q" name="q" class="input input-search" value="{{ q or '' }}" placeholder="Metin / kod ara…">
       </div>
+
       <div>
         <label class="small">&nbsp;</label>
         <button class="btn" type="submit" title="Filtreleri uygula">Uygula</button>
       </div>
+
       {% if q or (cat and cat != '__all__') %}
       <div>
         <label class="small">&nbsp;</label>
@@ -243,7 +511,7 @@
 
   {% if not categories or categories|length == 0 %}
     <div class="flash info">
-      Henüz tanımlı risk şablonu yok. Önce <a href="{{ url_for('import_suggestions') }}">CSV/XLSX içe aktar</a> 
+      Henüz tanımlı risk şablonu yok. Önce <a href="{{ url_for('import_suggestions') }}">CSV/XLSX içe aktar</a>
       veya <a href="{{ url_for('categories_index') }}?next=identify">Kategori Yönetimi</a> üzerinden kategorileri tanımlayın.
     </div>
   {% endif %}
@@ -262,14 +530,21 @@
 
       <section class="cat-card" id="cat-{{ slug }}" aria-label="{{ cat_name }}">
         <div class="cat-head">
-          <h3 style="margin:0">{{ cat_name }}</h3>
-          <span class="small cat-count" id="count-{{ cat_idx }}">(0 seçili)</span>
+          <div class="cat-left">
+            <h3>{{ cat_name }}</h3>
+            <span class="cat-count" id="count-{{ cat_idx }}">0 seçili</span>
+          </div>
+
+          <div class="small" style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+            <span class="chip">{{ risks|length }} kayıt</span>
+            <a class="btn btn-ghost" href="#top" title="Sayfa başına dön">↑</a>
+          </div>
         </div>
 
         {% if session.get('role') == 'admin' %}
-        <details style="margin:6px 0 12px;">
+        <details style="margin: 2px 0 12px;">
           <summary class="small" style="cursor:pointer; user-select:none;">➕ Bu kategoriye yeni madde ekle</summary>
-          <form method="post" action="{{ url_for('admin_suggestion_create') }}" class="grid grid-2" style="margin-top:.5rem;">
+          <form method="post" action="{{ url_for('admin_suggestion_create') }}" class="grid grid-2" style="margin-top:.6rem;">
             <input type="hidden" name="category" value="{{ cat_name }}">
             <div style="grid-column:1/-1">
               <label>
@@ -279,14 +554,12 @@
               <textarea class="input" name="text" rows="2" required placeholder="Risk cümlesi..."></textarea>
             </div>
 
-            <!-- Risk Faktörü -->
             <div style="grid-column:1/-1">
               <label>Risk Faktörü (açıklama)</label>
               <textarea class="input" name="risk_desc" rows="2"
                         placeholder="Jeoteknik, batimetrik veya çevresel verilerin eksik/yanlış olması sonucu tasarım parametrelerinin hatalı belirlenmesi gibi..."></textarea>
             </div>
 
-            <!-- Önerilen Önlemler -->
             <div style="grid-column:1/-1">
               <label>Önerilen Önlemler (opsiyonel)</label>
               <textarea class="input" name="mitigation_hint" rows="2"
@@ -303,14 +576,17 @@
                      pattern="[A-Za-z]{3}[0-9]{2}"
                      title="İlk 3 karakter harf, son 2 karakter rakam olmalı. Örn: UYR02">
             </div>
+
             <div>
               <label>Vars. Olasılık (1–5)</label>
               <input class="input" type="number" name="default_prob" min="1" max="5" placeholder="—">
             </div>
+
             <div>
               <label>Vars. Şiddet (1–5)</label>
               <input class="input" type="number" name="default_sev" min="1" max="5" placeholder="—">
             </div>
+
             <div style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:.5rem;">
               <button class="btn btn-primary" type="submit">Ekle</button>
             </div>
@@ -319,13 +595,13 @@
         {% endif %}
 
         <div class="bulk-row">
-          <label class="small">
+          <label class="small" style="display:flex; align-items:center; gap:.55rem;">
             <input type="checkbox" class="toggle-all" data-group="{{ cat_idx }}">
             <strong>Tümünü seç / kaldır</strong>
           </label>
+
           <div class="right small">
             <button type="button" class="btn btn-ghost btn-collapse" data-target="#cat-{{ slug }}" title="Kategori tablosunu daralt/aç">Daralt ▼</button>
-            <a class="btn btn-ghost" href="#top" title="Sayfa başına dön">↑</a>
           </div>
         </div>
 
@@ -333,15 +609,16 @@
           <table class="table-select">
             <thead>
               <tr>
-                <th style="width:56px">Seç</th>
+                <th>Seç</th>
                 <th>Risk</th>
-                <th>RİSK FAKTÖRÜ</th>
-                <th class="w-code">Risk Kodu</th>
-                <th class="w-num">Vars. Olasılık</th>
-                <th class="w-num">Vars. Şiddet</th>
-                <th class="w-ops">İşlem</th>
+                <th>Risk Faktörü</th>
+                <th>Risk Kodu</th>
+                <th>Vars. Olasılık</th>
+                <th>Vars. Şiddet</th>
+                <th>İşlem</th>
               </tr>
             </thead>
+
             <tbody>
             {% for s in risks %}
               {% set row_idx = loop.index0 %}
@@ -361,42 +638,54 @@
                   >
                 </td>
 
-                <!-- RİSK: kısa risk adı + kategori + büyüteç -->
                 <td>
-                  <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}">
-                    <div class="risk-badge">
+                  <label class="risk-label" id="lbl-{{ cb_id }}" for="{{ cb_id }}" style="cursor:pointer;">
+                    <div class="risk-inline">
                       <span class="risk-title">
                         {{ s.risk_title or s.text }}
                       </span>
-                      <a href="{{ url_for('risk_template_detail', sid=s.id) }}"
-   class="btn-icon"
-   title="Risk detayını görüntüle">
-  🔍
-</a>
 
+                      <a href="{{ url_for('risk_template_detail', sid=s.id) }}"
+                         class="btn-icon btn-mini"
+                         title="Risk detayını görüntüle"
+                         aria-label="Risk detayını görüntüle">
+                        🔍
+                      </a>
                     </div>
                   </label>
                 </td>
 
-                <!-- RİSK FAKTÖRÜ + Mitigation -->
                 <td class="small">
-                  {{ s.risk_desc or s.text }}
-                  {% if s.mitigation_hint %}
-                    <br>
-                    <a href="#"
-                       class="mit-link"
-                       data-target="mit-{{ s.id }}">
-                      Önerilen önlemleri göster
-                    </a>
-                    <div id="mit-{{ s.id }}" class="mit-box">
-                      {{ s.mitigation_hint }}
+                  <span class="chip" title="Risk faktörü / açıklama">
+                    {{ (s.risk_desc or '—')[:60] }}{% if (s.risk_desc or '')|length > 60 %}…{% endif %}
+                  </span>
+
+                  {% if s.risk_desc and (s.risk_desc|length > 60) %}
+                    <div style="margin-top:6px; color: color-mix(in oklab, var(--muted) 92%, transparent);">
+                      {{ s.risk_desc }}
                     </div>
+                  {% endif %}
+
+                  {% if s.mitigation_hint %}
+                    <a href="#" class="mit-link" data-target="mit-{{ s.id }}">Önerilen önlemleri göster</a>
+                    <div id="mit-{{ s.id }}" class="mit-box">{{ s.mitigation_hint }}</div>
                   {% endif %}
                 </td>
 
-                <td><span class="badge" data-copy="{{ s.risk_code or '' }}">{{ s.risk_code or '—' }}</span></td>
-                <td>{{ s.default_prob if s.default_prob is not none else '—' }}</td>
-                <td>{{ s.default_sev  if s.default_sev  is not none else '—' }}</td>
+                <td style="text-align:center;">
+                  <span class="code-badge" data-copy="{{ s.risk_code or '' }}">
+                    {{ s.risk_code or '—' }}
+                  </span>
+                </td>
+
+                <td style="text-align:center;">
+                  <span class="chip">{{ s.default_prob if s.default_prob is not none else '—' }}/5</span>
+                </td>
+
+                <td style="text-align:center;">
+                  <span class="chip">{{ s.default_sev if s.default_sev is not none else '—' }}/5</span>
+                </td>
+
                 <td>
                   <div class="row-actions">
                     {% if session.get('role') == 'admin' %}
@@ -407,7 +696,7 @@
                         <button class="btn btn-danger" type="submit">Sil</button>
                       </form>
                     {% else %}
-                      <span class="small" style="opacity:.7;">(düzenleme için admin)</span>
+                      <span class="small" style="opacity:.75;">(düzenleme için admin)</span>
                     {% endif %}
                   </div>
                 </td>
@@ -426,13 +715,11 @@
                         <textarea class="input" name="text" rows="2" required>{{ s.text }}</textarea>
                       </div>
 
-                      <!-- edit için Risk Faktörü -->
                       <div style="grid-column:1/-1">
                         <label>Risk Faktörü (açıklama)</label>
                         <textarea class="input" name="risk_desc" rows="2">{{ s.risk_desc or '' }}</textarea>
                       </div>
 
-                      <!-- edit için Önerilen Önlemler -->
                       <div style="grid-column:1/-1">
                         <label>Önerilen Önlemler (opsiyonel)</label>
                         <textarea class="input" name="mitigation_hint" rows="2">{{ s.mitigation_hint or '' }}</textarea>
@@ -442,6 +729,7 @@
                         <label>Kategori</label>
                         <input class="input" name="category" value="{{ s.category or '' }}">
                       </div>
+
                       <div>
                         <label>
                           Risk Kodu
@@ -453,14 +741,17 @@
                                pattern="[A-Za-z]{3}[0-9]{2}"
                                title="İlk 3 karakter harf, son 2 karakter rakam olmalı. Örn: UYR02">
                       </div>
+
                       <div>
                         <label>Varsayılan Olasılık (1–5)</label>
                         <input class="input" name="default_prob" type="number" min="1" max="5" value="{{ s.default_prob or '' }}">
                       </div>
+
                       <div>
                         <label>Varsayılan Şiddet (1–5)</label>
                         <input class="input" name="default_sev" type="number" min="1" max="5" value="{{ s.default_sev or '' }}">
                       </div>
+
                       <div style="grid-column:1/-1; display:flex; gap:.5rem; justify-content:flex-end">
                         <button class="btn btn-primary" type="submit">Kaydet</button>
                         <button class="btn btn-ghost btn-cancel-edit" type="button" data-sid="{{ s.id }}">İptal</button>
@@ -492,17 +783,28 @@
     <a class="btn" aria-disabled="{{ 'true' if page >= pages else 'false' }}"
        href="{{ url_for('risk_identify', q=(q or None), cat=(cat or None), page=pages) }}">Son »</a>
   </div>
+</div>
 
-  <!-- Sticky Action Bar: seçim olunca görünür -->
-  <div class="actionbar noprint" id="actionbar">
-    <span class="chip" id="selCounter">0 seçili</span>
+<!-- Fixed bottom action bar (seçim olunca görünür) -->
+<div class="actionbar noprint" id="actionbar">
+  <div class="actionbar-inner">
+    <div class="action-left">
+      <div class="action-ico">✓</div>
+      <div class="action-meta">
+        <h4><span id="selCounter">0</span> Risk Seçildi</h4>
+        <p>Seçili şablonlar yeni risk formuna taşınacak.</p>
+      </div>
+    </div>
 
-    <!-- yeni akış: risk_new’de formda aç -->
-    <button type="submit" class="btn btn-primary"
-            form="select-form" name="action" value="pick_for_new"
-            title="Seçili şablonları yeni risk formuna taşı">
-      Yeni Risk Formunda Aç
-    </button>
+    <div class="action-right">
+      <button type="button" class="btn-clear" id="clearSelection">Seçimi Temizle</button>
+
+      <button type="submit" class="btn btn-primary"
+              form="select-form" name="action" value="pick_for_new"
+              title="Seçili şablonları yeni risk formuna taşı">
+        Yeni Risk Formunda Aç →
+      </button>
+    </div>
   </div>
 </div>
 
@@ -514,16 +816,17 @@
   function updateCount(groupIdx){
     const sel = $$('.chk-' + groupIdx).filter(b => b.checked).length;
     const el = $('#count-' + groupIdx);
-    if (el) el.textContent = '(' + sel + ' seçili)';
+    if (el) el.textContent = sel + ' seçili';
   }
 
   // global sayaç + action bar
   const bar = $('#actionbar');
-  const counter = $('#selCounter');
+  const counterNum = $('#selCounter');
+
   function updateGlobalCount(){
     const total = $$('input[type="checkbox"][name="selected"]:checked').length;
-    if(counter) counter.textContent = total + ' seçili';
-    if(bar) bar.style.display = total > 0 ? 'flex' : 'none';
+    if(counterNum) counterNum.textContent = String(total);
+    if(bar) bar.style.display = total > 0 ? 'block' : 'none';
   }
 
   // toplu seç / kaldır
@@ -545,6 +848,18 @@
     });
   });
   updateGlobalCount();
+
+  // seçimi temizle
+  const clearBtn = $('#clearSelection');
+  if (clearBtn){
+    clearBtn.addEventListener('click', () => {
+      $$('input[type="checkbox"][name="selected"]:checked').forEach(c => c.checked = false);
+      $$('.toggle-all').forEach(tg => tg.checked = false);
+      $$('.toggle-all').forEach(tg => updateCount(tg.getAttribute('data-group')));
+      updateGlobalCount();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 
   // inline edit aç/kapat
   document.addEventListener('click', (e) => {
@@ -577,17 +892,18 @@
 
   // risk kodu rozetine tıkla → kopyala
   document.addEventListener('click', async (e) => {
-    const badge = e.target.closest('.risk-badge .badge'); if (!badge) return;
+    const badge = e.target.closest('.code-badge'); if (!badge) return;
     const code = badge.getAttribute('data-copy') || badge.textContent.trim();
     if (!code || code === '—') return;
     try {
       await navigator.clipboard.writeText(code);
-      badge.style.outline='2px solid currentColor';
-      setTimeout(()=>badge.style.outline='', 700);
+      const old = badge.style.outline;
+      badge.style.outline = '2px solid currentColor';
+      setTimeout(()=>badge.style.outline = old, 700);
     } catch {}
   });
 
-  // kategori panelini daralt/aç (ikonlu metin)
+  // kategori panelini daralt/aç
   $$('.btn-collapse').forEach(btn => {
     const sel = btn.getAttribute('data-target');
     const box = document.querySelector(sel + ' .table-wrap');
@@ -607,7 +923,9 @@
   document.addEventListener('keydown', (e) => {
     const isMac = navigator.platform.toUpperCase().includes('MAC');
     if ((isMac && e.metaKey && e.key.toLowerCase()==='k') || (!isMac && e.ctrlKey && e.key.toLowerCase()==='k')){
-      e.preventDefault(); const q = $('#q'); if (q){ q.focus(); q.select(); }
+      e.preventDefault();
+      const q = $('#q');
+      if (q){ q.focus(); q.select(); }
     }
   });
 
@@ -617,14 +935,6 @@
     let t=null;
     q.addEventListener('input', ()=>{ if(t) clearTimeout(t); t = setTimeout(()=> form.requestSubmit(), 500); });
     q.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); form.requestSubmit(); } });
-  })();
-
-  // tablo genişse: yatay scroll’u zorla (görsel taşma olmasın)
-  (function(){
-    document.querySelectorAll('.table-wrap').forEach(w => {
-      const t = w.querySelector('table'); if(!t) return;
-      if (t.scrollWidth > w.clientWidth) w.style.overflowX = 'auto';
-    });
   })();
 
   // Önerilen önlemler linki → kutu aç/kapa
