@@ -1,100 +1,249 @@
 {# templates/cost_edit.html #}
 {% extends "base.html" %}
-
 {% block title %}Maliyet Düzenle{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<style>
+  /* Bu sayfa: senin base.html tokenları + Inter/Tailwind “cost edit” diliyle uyumlu */
+  .ce-wrap{ max-width:1200px; margin:0 auto; }
+  .ce-head{
+    display:flex; flex-wrap:wrap; gap:18px;
+    align-items:flex-start; justify-content:space-between;
+    margin-bottom: 18px;
+  }
+  .ce-title{
+    font-size: clamp(1.7rem, 1.4rem + 1vw, 2.35rem);
+    font-weight: 950;
+    letter-spacing: -.02em;
+    margin:0;
+  }
+  .ce-sub{ margin-top:6px; color: var(--text-dim); font-weight:650; }
 
-  <style>
-    .page-head{
-      display:flex; flex-wrap:wrap; gap:.75rem;
-      align-items:flex-end; justify-content:space-between;
-      margin-bottom: 1rem;
-    }
-    .page-sub{ color: var(--bs-secondary-color); }
+  .ce-kpis{ display:flex; gap:12px; flex-wrap:wrap; align-items:stretch; }
+  .ce-kpi{
+    min-width: 170px;
+    border-radius: 16px;
+    padding: 14px 14px;
+    border: 1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    background: color-mix(in oklab, var(--primary) 6%, var(--card));
+  }
+  .ce-kpi.alt{
+    background: var(--card);
+  }
+  .ce-kpi .k{
+    font-size: .72rem;
+    font-weight: 950;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--primary) 85%, var(--text-dim));
+  }
+  .ce-kpi .v{
+    margin-top: 6px;
+    font-size: 1.55rem;
+    font-weight: 950;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
 
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      gap:.35rem;
-      padding: .15rem .55rem;
-      border-radius: 999px;
-      border: 1px solid rgba(0,0,0,.08);
-      background: rgba(0,0,0,.02);
-      font-size: .82rem;
-      color: var(--bs-secondary-color);
-      white-space: nowrap;
-    }
-    #liveTotal, #liveAnnual{
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-  </style>
+  .ce-card{
+    border-radius: 18px;
+    border: 1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    background: var(--card);
+    overflow:hidden;
+    box-shadow: var(--elev-card);
+  }
 
-  <div class="page-head">
+  .ce-card-head{
+    display:flex; gap:12px; align-items:center;
+    padding: 18px 18px 14px;
+    border-bottom:1px solid var(--line);
+    background: color-mix(in oklab, var(--bg-soft) 88%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .ce-ico{
+    width:40px; height:40px;
+    border-radius:12px;
+    display:grid; place-items:center;
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    border:1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--primary);
+  }
+  .ce-card-head h3{ margin:0; font-size:1.05rem; font-weight:950; }
+  .ce-card-head p{ margin:2px 0 0; color: var(--text-dim); font-weight:650; font-size:.92rem; }
+
+  .ce-body{ padding: 18px; }
+
+  .ce-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 860px){ .ce-grid{ grid-template-columns:1fr; } }
+
+  .ce-field{ display:flex; flex-direction:column; gap:8px; }
+  .ce-field label{
+    font-size:.9rem;
+    font-weight:850;
+    color: color-mix(in oklab, var(--text) 86%, transparent);
+  }
+
+  /* base.html zaten .input tanımlıyor; burada “form-input / form-select / form-textarea” uyumu için alias */
+  .form-input, .form-select, .form-textarea{ width:100%; }
+  .form-textarea{ min-height: 120px; resize: vertical; }
+
+  .ce-rel{ position:relative; }
+  .ce-suffix{
+    position:absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size:.9rem;
+    font-weight:850;
+    color: color-mix(in oklab, var(--text-dim) 90%, transparent);
+    pointer-events:none;
+  }
+  .ce-prefix{
+    position:absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: color-mix(in oklab, var(--text-dim) 90%, transparent);
+    pointer-events:none;
+  }
+  .ce-pad-left{ padding-left: 44px !important; }
+
+  /* Sticky Action Bar */
+  .ce-actions{
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 14px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line);
+    background: color-mix(in oklab, var(--bg-soft) 78%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  .ce-actions .left{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .ce-actions .right{ display:none; gap:18px; align-items:center; }
+  @media (min-width: 640px){
+    .ce-actions .right{ display:flex; }
+  }
+  .ce-metric{
+    text-align:right;
+    font-variant-numeric: tabular-nums;
+  }
+  .ce-metric .k{
+    font-size:.72rem;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color: color-mix(in oklab, var(--text-dim) 90%, transparent);
+  }
+  .ce-metric .v{
+    margin-top:4px;
+    font-size:1.1rem;
+    font-weight:950;
+    color: var(--text);
+    white-space:nowrap;
+  }
+
+  .ce-sep{
+    width:1px; height:34px;
+    background: color-mix(in oklab, var(--line) 92%, transparent);
+  }
+
+  .ce-info{
+    margin-top: 18px;
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    text-align:center;
+  }
+  .ce-info b{ font-weight:950; color: var(--primary); }
+</style>
+
+<div class="ce-wrap">
+  <!-- Heading + KPIs -->
+  <div class="ce-head">
     <div>
-      <h2 class="mb-1">Maliyet Düzenle</h2>
-      <div class="page-sub">
-        Kaydı güncelle, toplamı anlık gör, sonra listeye geri dön.
-      </div>
+      <h1 class="ce-title">Maliyet Düzenle</h1>
+      <div class="ce-sub">Proje maliyet kalemini detaylandırın ve güncelleyin.</div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 align-items-center">
-      <span class="chip">Anlık Toplam: <strong id="liveTotal">0</strong></span>
-      <span class="chip">Yıllıklaştırılmış: <strong id="liveAnnual">0</strong></span>
+    <div class="ce-kpis">
+      <div class="ce-kpi">
+        <div class="k">Anlık Toplam</div>
+        <div class="v" id="liveTotal">0</div>
+      </div>
+      <div class="ce-kpi alt">
+        <div class="k" style="color: var(--text-dim);">Yıllıklaştırılmış</div>
+        <div class="v" id="liveAnnual">0</div>
+      </div>
     </div>
   </div>
 
-  <div class="card shadow-sm">
-    <div class="card-body">
+  <!-- Form Card -->
+  <div class="ce-card">
+    <div class="ce-card-head">
+      <div class="ce-ico" aria-hidden="true">
+        <span class="material-symbols-outlined" style="font-size:22px;">analytics</span>
+      </div>
+      <div>
+        <h3>Maliyet Detayları</h3>
+        <p>Lütfen maliyet kalemine ait bilgileri eksiksiz doldurunuz.</p>
+      </div>
+    </div>
 
+    <div class="ce-body">
       <form method="post"
             action="{{ url_for('cost_edit_post', cost_id=c.id) }}"
             id="editCostForm"
             novalidate>
+
         {# Flask-WTF kullanıyorsan aç: {{ form.csrf_token }} #}
 
-        <div class="row g-3">
-
-          <div class="col-12 col-md-6">
-            <label class="form-label">Başlık</label>
-            <input class="form-control" name="title" id="title"
-                   value="{{ c.title or '' }}"
-                   required>
+        <div class="ce-grid">
+          <!-- Title -->
+          <div class="ce-field">
+            <label for="title">Başlık</label>
+            <input class="input form-input" name="title" id="title"
+                   value="{{ c.title or '' }}" required
+                   placeholder="Maliyet kalemi adını girin...">
             <div class="invalid-feedback">Başlık gerekli.</div>
           </div>
 
-          <div class="col-12 col-md-6">
-            <label class="form-label">Kategori</label>
-
-            {# ✅ input yerine dropdown #}
+          <!-- Category -->
+          <div class="ce-field">
+            <label for="category">Kategori</label>
             {% set current_cat = (c.category or '') %}
             {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
-
-            <select class="form-select" name="category" id="category" required>
+            <select class="input form-select" name="category" id="category" required>
               <option value="">— Seç —</option>
               {% for cat in cats %}
-                <option value="{{ cat }}" {{ 'selected' if current_cat==cat else '' }}>
-                  {{ cat }}
-                </option>
+                <option value="{{ cat }}" {{ 'selected' if current_cat==cat else '' }}>{{ cat }}</option>
               {% endfor %}
             </select>
-
             <div class="invalid-feedback">Kategori gerekli.</div>
           </div>
 
-          <div class="col-12 col-md-4">
-            <label class="form-label">Birim</label>
-            <input class="form-control" name="unit" id="unit"
-                   value="{{ c.unit or '' }}"
-                   required>
+          <!-- Unit -->
+          <div class="ce-field">
+            <label for="unit">Birim</label>
+            <input class="input form-input" name="unit" id="unit"
+                   value="{{ c.unit or '' }}" required
+                   placeholder="Örn: Adet, Saat, GB">
             <div class="invalid-feedback">Birim gerekli.</div>
           </div>
 
-          <div class="col-12 col-md-4">
-            <label class="form-label">Para Birimi</label>
-            <select class="form-select" name="currency" id="currency">
+          <!-- Currency -->
+          <div class="ce-field">
+            <label for="currency">Para Birimi</label>
+            <select class="input form-select" name="currency" id="currency">
               {% set cur = (c.currency or 'TRY') %}
               <option value="TRY" {{ 'selected' if cur=='TRY' else '' }}>TRY</option>
               <option value="USD" {{ 'selected' if cur=='USD' else '' }}>USD</option>
@@ -102,84 +251,114 @@
             </select>
           </div>
 
-          <div class="col-12 col-md-4">
-            <label class="form-label">Sıklık</label>
-            <select class="form-select" name="frequency" id="frequency">
+          <!-- Qty -->
+          <div class="ce-field">
+            <label for="qty">Miktar (adet/saat/gün)</label>
+            <div class="ce-rel">
+              <input class="input form-input" type="number" step="0.01" min="0"
+                     name="qty" id="qty"
+                     value="{{ c.qty if c.qty is not none else '' }}"
+                     required>
+              <span class="ce-suffix">Birim</span>
+            </div>
+            <div class="invalid-feedback">Miktar gerekli ve 0’dan büyük olmalı.</div>
+          </div>
+
+          <!-- Unit Price -->
+          <div class="ce-field">
+            <label for="unit_price">Birim Fiyat</label>
+            <div class="ce-rel">
+              <input class="input form-input" type="number" step="0.01" min="0"
+                     name="unit_price" id="unit_price"
+                     value="{{ c.unit_price if c.unit_price is not none else '' }}"
+                     required>
+              <span class="ce-suffix" id="currencySuffix">{{ (c.currency or 'TRY')|upper }}</span>
+            </div>
+            <div class="invalid-feedback">Birim fiyat gerekli ve 0’dan büyük olmalı.</div>
+          </div>
+
+          <!-- Frequency -->
+          <div class="ce-field">
+            <label for="frequency">Frekans</label>
+            <select class="input form-select" name="frequency" id="frequency">
               {% set fr = (c.frequency or 'Tek Sefer') %}
-              <option {{ 'selected' if fr=='Tek Sefer' else '' }}>Tek Sefer</option>
-              <option {{ 'selected' if fr=='Aylık' else '' }}>Aylık</option>
-              <option {{ 'selected' if fr=='Yıllık' else '' }}>Yıllık</option>
+              <option value="Aylık"    {{ 'selected' if fr=='Aylık' else '' }}>Aylık (Düzenli)</option>
+              <option value="Tek Sefer"{{ 'selected' if fr=='Tek Sefer' else '' }}>Tek Seferlik</option>
+              <option value="Yıllık"   {{ 'selected' if fr=='Yıllık' else '' }}>Yıllık</option>
             </select>
           </div>
 
-          {# ✅ risk dropdown (opsiyonel) #}
-          <div class="col-12">
-            <label class="form-label">
-              Riski Bağla (opsiyonel)
-              <span class="text-muted small ms-1">Pareto Front için</span>
-            </label>
-
+          <!-- Risk linker -->
+          <div class="ce-field">
+            <label for="risk_id">Riski Bağla <span class="small" style="font-weight:800; opacity:.8;">(opsiyonel)</span></label>
             {% set selected_risk = c.risk_id %}
-            <select class="form-select" name="risk_id" id="risk_id">
-              <option value="" {{ 'selected' if not selected_risk else '' }}>
-                — Risk seçme (boş bırak) —
-              </option>
-
-              {% if risks and risks|length > 0 %}
-                {% for r in risks %}
-                  <option value="{{ r.id }}" {{ 'selected' if selected_risk==r.id else '' }}>
-                    #{{ r.id }} • {{ r.title }}{% if r.category %} • {{ r.category }}{% endif %}
-                  </option>
-                {% endfor %}
-              {% endif %}
-            </select>
-
-            <div class="form-text text-muted">
+            <div class="ce-rel">
+              <span class="material-symbols-outlined ce-prefix">link</span>
+              <select class="input form-select ce-pad-left" name="risk_id" id="risk_id">
+                <option value="" {{ 'selected' if not selected_risk else '' }}>İlgili bir risk seçin...</option>
+                {% if risks and risks|length > 0 %}
+                  {% for r in risks %}
+                    <option value="{{ r.id }}" {{ 'selected' if selected_risk==r.id else '' }}>
+                      #{{ r.id }} • {{ r.title }}{% if r.category %} • {{ r.category }}{% endif %}
+                    </option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+            <div class="small" style="margin-top:6px; color: var(--text-dim); font-weight:650;">
               Risk seçersen, bu maliyet risk skoruyla (P×S) eşleşir. Boş bırakırsan maliyet “genel” kalır.
             </div>
           </div>
 
-          <div class="col-12 col-md-6">
-            <label class="form-label">Miktar (adet/saat/gün)</label>
-            <input class="form-control" type="number" step="0.01" min="0"
-                   name="qty" id="qty"
-                   value="{{ c.qty if c.qty is not none else '' }}"
-                   required>
-            <div class="invalid-feedback">Miktar gerekli ve 0’dan büyük olmalı.</div>
+          <!-- Description (full width) -->
+          <div class="ce-field" style="grid-column:1/-1;">
+            <label for="description">Açıklama</label>
+            <textarea class="input form-textarea" rows="4" name="description" id="description"
+                      placeholder="Maliyet ile ilgili notlar ve detaylar...">{{ c.description or '' }}</textarea>
+          </div>
+        </div>
+
+        <!-- Sticky Action Bar -->
+        <div class="ce-actions">
+          <div class="left">
+            <button type="submit" class="btn btn-primary">
+              <span class="material-symbols-outlined" style="font-size:18px;">sync</span>
+              Güncelle
+            </button>
+            <a class="btn" href="{{ url_for('costs') }}">
+              <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+              İptal
+            </a>
           </div>
 
-          <div class="col-12 col-md-6">
-            <label class="form-label">Birim Fiyat</label>
-            <input class="form-control" type="number" step="0.01" min="0"
-                   name="unit_price" id="unit_price"
-                   value="{{ c.unit_price if c.unit_price is not none else '' }}"
-                   required>
-            <div class="invalid-feedback">Birim fiyat gerekli ve 0’dan büyük olmalı.</div>
-          </div>
-
-          <div class="col-12">
-            <label class="form-label">Maliyet Açıklaması</label>
-            <textarea class="form-control" rows="3" name="description" id="description"
-                      placeholder="Bu maliyet neden var, hangi riske/önleme bağlı, varsayımlar neler?">{{ c.description or '' }}</textarea>
-          </div>
-
-          <div class="col-12 d-flex flex-wrap gap-2">
-            <button type="submit" class="btn btn-primary">Güncelle</button>
-            <a class="btn btn-outline-secondary" href="{{ url_for('costs') }}">İptal</a>
-
-            <div class="ms-auto text-muted small d-flex align-items-center gap-2">
-              <span>Anlık: <span class="fw-semibold" id="liveTotalInline">0</span></span>
-              <span class="d-none d-md-inline">•</span>
-              <span>Yıllık: <span class="fw-semibold" id="liveAnnualInline">0</span></span>
+          <div class="right">
+            <div class="ce-metric">
+              <div class="k">Alt Toplam</div>
+              <div class="v" id="liveTotalInline">0</div>
+            </div>
+            <div class="ce-sep" aria-hidden="true"></div>
+            <div class="ce-metric">
+              <div class="k" style="color: color-mix(in oklab, var(--primary) 82%, var(--text-dim));">Tahmini Vergi</div>
+              <div class="v" id="liveTaxInline">0</div>
             </div>
           </div>
-
         </div>
-      </form>
 
+      </form>
     </div>
   </div>
 
+  <!-- Contextual footer info -->
+  <div class="ce-info">
+    <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:6px;">
+      <span class="material-symbols-outlined" style="color: var(--primary);">info</span>
+      <b>Otomatik Hesaplama</b>
+    </div>
+    <div class="small" style="max-width: 70ch; margin:0 auto;">
+      Miktar ve birim fiyat alanlarındaki değişiklikler gerçek zamanlı olarak toplam maliyetlere yansıtılır.
+      Yıllık maliyet frekansa göre projeksiyonlanır.
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -195,7 +374,12 @@
 
       onReady(() => {
         const $ = (sel) => document.querySelector(sel);
+
         const nf2 = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Basit vergi tahmini (UI’daki “Tahmini Vergi” için):
+        // İstersen bunu backend’den de besleriz; şimdilik sadece görüntü amaçlı.
+        const TAX_RATE = 0.18;
 
         function annualFactor(freq){
           if (freq === 'Aylık') return 12;
@@ -213,34 +397,38 @@
           return `${nf2.format(safe)} ${cur || ''}`.trim();
         }
 
+        function setText(id, v){
+          const el = document.getElementById(id);
+          if (el) el.textContent = v;
+        }
+
+        function updateCurrencySuffix(){
+          const cur = ($('#currency')?.value || 'TRY').toUpperCase();
+          const suf = document.getElementById('currencySuffix');
+          if (suf) suf.textContent = cur;
+        }
+
         function updateLiveTotals(){
           const qty = numVal('qty');
           const unitPrice = numVal('unit_price');
-          const cur = $('#currency')?.value || '';
+          const cur = ($('#currency')?.value || '').toUpperCase();
           const freq = $('#frequency')?.value || 'Tek Sefer';
 
           const total = qty * unitPrice;
           const annual = total * annualFactor(freq);
+          const tax = total * TAX_RATE;
 
           const totalTxt = formatMoney(total, cur);
           const annualTxt = formatMoney(annual, cur);
+          const taxTxt = formatMoney(tax, cur);
 
-          $('#liveTotal') && ($('#liveTotal').textContent = totalTxt);
-          $('#liveAnnual') && ($('#liveAnnual').textContent = annualTxt);
-          $('#liveTotalInline') && ($('#liveTotalInline').textContent = totalTxt);
-          $('#liveAnnualInline') && ($('#liveAnnualInline').textContent = annualTxt);
+          setText('liveTotal', totalTxt);
+          setText('liveAnnual', annualTxt);
+          setText('liveTotalInline', totalTxt);
+          setText('liveTaxInline', taxTxt);
         }
 
-        document.addEventListener('input', (e) => {
-          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) updateLiveTotals();
-        });
-        document.addEventListener('change', (e) => {
-          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) updateLiveTotals();
-        });
-        updateLiveTotals();
-
-        // Basit front-end doğrulama
-        $('#editCostForm')?.addEventListener('submit', (e) => {
+        function validateForm(e){
           let ok = true;
 
           ['title','category','unit'].forEach(id => {
@@ -260,11 +448,30 @@
             ok = ok && good;
           });
 
-          if (!ok) {
+          if (!ok){
             e.preventDefault();
             e.stopPropagation();
           }
+        }
+
+        document.addEventListener('input', (e) => {
+          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) {
+            updateCurrencySuffix();
+            updateLiveTotals();
+          }
         });
+        document.addEventListener('change', (e) => {
+          if (e.target.matches('#qty, #unit_price, #currency, #frequency')) {
+            updateCurrencySuffix();
+            updateLiveTotals();
+          }
+        });
+
+        $('#editCostForm')?.addEventListener('submit', validateForm);
+
+        // init
+        updateCurrencySuffix();
+        updateLiveTotals();
       });
     })();
   </script>

@@ -123,6 +123,124 @@
   }
 
   /* ============================================================
+     ✅ ÜST HERO (tasarım)
+     ============================================================ */
+  .hero{
+    padding: 22px 22px 18px;
+    border-radius: 18px;
+  }
+  .crumb{
+    font-size:.75rem;
+    letter-spacing:.08em;
+    font-weight:900;
+    opacity:.65;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .crumb .sep{ opacity:.45; margin: 0 .35rem; }
+  .crumb .active{ color: var(--primary,#2563eb); opacity:1; }
+
+  .hero-title{
+    margin: 0;
+    font-weight: 900;
+    font-size: clamp(2.2rem, 3.6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-family: ui-serif, Georgia, "Times New Roman", Times, serif;
+  }
+  .hero-sub{
+    margin-top: 10px;
+    font-size: 1rem;
+    opacity:.75;
+    font-weight: 600;
+  }
+  .hero-meta{
+    margin-top: 18px;
+    display:flex;
+    gap:14px;
+    flex-wrap: wrap;
+    align-items:center;
+  }
+  .cat-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: .75rem 1.05rem;
+    border-radius: 999px;
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 78%, transparent);
+    font-weight: 900;
+    letter-spacing:.02em;
+    min-height: 46px;
+  }
+  .cat-pill .ico{
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(245,158,11,.15);
+    border: 1px solid rgba(245,158,11,.25);
+  }
+  .rpn-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: .75rem 1.05rem;
+    border-radius: 999px;
+    min-height: 46px;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    box-shadow: 0 10px 24px rgba(185,28,28,.22);
+    border: 1px solid rgba(255,255,255,.15);
+  }
+  .rpn-badge .divider{
+    width:1px; height:20px;
+    background: rgba(255,255,255,.35);
+  }
+  .hero-actions{
+    margin-top: 18px;
+    display:flex;
+    gap:14px;
+    flex-wrap: wrap;
+    align-items:center;
+  }
+  .hero-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding: .9rem 1.25rem;
+    border-radius: 14px;
+    font-weight: 900;
+    border: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 75%, transparent);
+    background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .hero-btn.primary{
+    background: color-mix(in oklab, var(--primary,#2563eb) 92%, white 8%);
+    border-color: color-mix(in oklab, var(--primary,#2563eb) 70%, black 30%);
+    color:#fff;
+    box-shadow: 0 12px 26px color-mix(in oklab, var(--primary,#2563eb) 22%, transparent);
+  }
+  .hero-btn.yellow{
+    background: #facc15;
+    border-color: #eab308;
+    color:#111827;
+    box-shadow: 0 12px 26px rgba(250,204,21,.18);
+  }
+
+  [data-theme="dark"] .cat-pill{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    color: var(--text,#e5e7eb);
+  }
+  [data-theme="dark"] .hero-btn{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    color: var(--text,#e5e7eb);
+  }
+
+  /* ============================================================
      ✅ SOL: Risk Formu (tasarım)
      ============================================================ */
   .rf-card{
@@ -199,7 +317,6 @@
     border-color: color-mix(in oklab, var(--primary,#2563eb) 55%, var(--line,#e5e7eb) 45%);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary,#2563eb) 18%, transparent);
   }
-
   .rf-wide{ grid-column: 1 / -1; }
   .rf-actions{
     margin-top: 14px;
@@ -218,10 +335,7 @@
     box-shadow: 0 10px 26px color-mix(in oklab, var(--primary,#2563eb) 22%, transparent);
     cursor:pointer;
   }
-  .rf-save:hover{
-    filter: brightness(0.98);
-    transform: translateY(-1px);
-  }
+  .rf-save:hover{ filter: brightness(0.98); transform: translateY(-1px); }
   .rf-save:active{ transform: translateY(0); }
 
   [data-theme="dark"] .rf-head,
@@ -238,7 +352,7 @@
   }
 
   /* ============================================================
-     ✅ SAĞ PANEL (gönderdiğin tasarım): geçmiş + değerlendirme + maliyet
+     ✅ SAĞ PANEL: geçmiş + değerlendirme + maliyet
      ============================================================ */
   .rd-card{ padding: 14px; border-radius: 14px; }
   .rd-section-title{
@@ -391,16 +505,10 @@
   .rd-cost-table tr:last-child td{ border-bottom:none; }
   .rd-money{ font-weight:900; color:#dc2626; }
   .rd-date{ font-size:.78rem; opacity:.65; white-space:nowrap; }
-  [data-theme="dark"] .rd-cost-table{
-    border-color: rgba(255,255,255,.14);
-  }
-  [data-theme="dark"] .rd-cost-table th{
-    background: rgba(255,255,255,.04);
-  }
+  [data-theme="dark"] .rd-cost-table{ border-color: rgba(255,255,255,.14); }
+  [data-theme="dark"] .rd-cost-table th{ background: rgba(255,255,255,.04); }
   [data-theme="dark"] .rd-cost-table th,
-  [data-theme="dark"] .rd-cost-table td{
-    border-bottom-color: rgba(255,255,255,.10);
-  }
+  [data-theme="dark"] .rd-cost-table td{ border-bottom-color: rgba(255,255,255,.10); }
   [data-theme="dark"] .rd-money{ color:#fca5a5; }
 
   /* ============================================================
@@ -548,65 +656,64 @@
     {% endif %}
   {% endif %}
 
-  {# ========= ÜST ÖZET + AKSİYONLAR ========= #}
-  <div class="card sticky-top">
-    <div class="row" style="justify-content:space-between; align-items:flex-start;">
-      <div class="grow">
+  {# ========= ÜST HERO (tasarım) ========= #}
+  <div class="card sticky-top hero">
+    <div class="crumb">
+      RİSK YÖNETİMİ <span class="sep">/</span> <span class="active">RİSK DETAYI</span>
+    </div>
 
-        <div class="row" style="gap:10px; flex-wrap:wrap">
-          <h2 style="margin:0">{{ r.title }}</h2>
+    <h2 class="hero-title">{{ r.title }}</h2>
 
-          {% set __cats = [] %}
-          {% if r.categories_list %}
-            {% set __cats = r.categories_list %}
-          {% elif r.category %}
-            {% set __cats = [r.category] %}
-          {% endif %}
-
-          {% for c in __cats %}
-            <span class="pill" title="Kategori"><strong>📂</strong> {{ c }}</span>
-          {% endfor %}
-
-          {% if r.risk_type %}
-            <span class="pill" title="Risk Tipi"><strong>🏷️</strong> {{ r.risk_type }}</span>
-          {% endif %}
-
-          {% if last_rpn_display is not none %}
-            <span class="pill" title="RPN">
-              <strong>RPN</strong> {{ last_rpn_display }}{% if grade %} · {{ grade }}{% endif %}
-            </span>
-          {% endif %}
-        </div>
-
-        {% if last_eval %}
-          <div class="muted" style="margin-top:4px">
-            Son değerlendirme:
-            P = {{ last_eval.probability }},
-            S = {{ last_eval.severity }},
-            RPN = {{ last_rpn_display }}
-            (toplam {{ evals|length }} kayıt)
-          </div>
-        {% else %}
-          <div class="muted" style="margin-top:4px">
-            Bu risk için henüz değerlendirme yok.
-          </div>
-        {% endif %}
+    {% if last_eval %}
+      <div class="hero-sub">
+        Son değerlendirme: P = {{ last_eval.probability }}, S = {{ last_eval.severity }},
+        RPN = {{ last_rpn_display }} (toplam {{ evals|length }} kayıt)
       </div>
+    {% else %}
+      <div class="hero-sub">Bu risk için henüz değerlendirme yok.</div>
+    {% endif %}
 
-      <div class="btnbar noprint">
-        <a class="btn" href="{{ url_for('risk_identify') }}" title="Tanımlı risk kütüphanesine git">📚 Şablon Kütüphanesi</a>
-        <a class="btn" href="{{ url_for('risk_new') }}" title="Şablondan yeni risk oluştur">➕ Yeni Risk</a>
+    <div class="hero-meta">
+      {% set __cats = [] %}
+      {% if r.categories_list %}
+        {% set __cats = r.categories_list %}
+      {% elif r.category %}
+        {% set __cats = [r.category] %}
+      {% endif %}
 
-        <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}">
-          <button class="btn btn-primary" type="submit" title="Sayısal özet + RACI + KPI">AI Yorum</button>
-        </form>
+      {% if __cats and __cats|length %}
+        <span class="cat-pill" title="Kategori">
+          <span class="ico">📁</span>
+          {{ __cats[0] }}
+        </span>
+      {% endif %}
 
-        <a class="btn" href="{{ url_for('index') }}">← Risk Listesine Dön</a>
-      </div>
+      {% if last_rpn_display is not none %}
+        <span class="rpn-badge" title="RPN">
+          <span style="letter-spacing:.08em">RPN</span>
+          <span class="divider"></span>
+          <span>{{ last_rpn_display }}{% if grade %} - {{ grade }}{% endif %}</span>
+        </span>
+      {% endif %}
+
+      {% if r.risk_type %}
+        <span class="pill" title="Risk Tipi">🏷️ {{ r.risk_type }}</span>
+      {% endif %}
+    </div>
+
+    <div class="hero-actions noprint">
+      <a class="hero-btn" href="{{ url_for('risk_identify') }}">🧩 Şablon Kütüphanesi</a>
+      <a class="hero-btn primary" href="{{ url_for('risk_new') }}">➕ Yeni Risk</a>
+
+      <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}" style="margin:0">
+        <button class="hero-btn yellow" type="submit">✨ AI Yorum</button>
+      </form>
+
+      <a class="hero-btn" href="{{ url_for('index') }}">← Liste</a>
     </div>
 
     {% if consensus %}
-      <div class="flash info" style="margin-top:10px">
+      <div class="flash info" style="margin-top:14px">
         🔔 Konsensüs: P={{ consensus.p }}, Ş={{ consensus.s }}
         ({{ consensus.count }} oy, eşik {{ threshold }})
         <button class="btn btn-tab" type="button"
@@ -620,13 +727,11 @@
   </div>
 
   <div class="cols">
-    {# ========= SOL: RİSK FORMU (tasarım eklendi) ========= #}
+    {# ========= SOL: RİSK FORMU (tasarım) ========= #}
     <div class="card rf-card">
       <div class="rf-head">
         <div class="rf-left">
-          <div class="rf-ico" aria-hidden="true">
-            <span class="material-symbols-outlined" style="font-size:18px">assignment</span>
-          </div>
+          <div class="rf-ico" aria-hidden="true">📝</div>
           <h3 class="rf-title">Risk Formu</h3>
         </div>
         <span class="rf-badge">TASLAK MODU</span>
@@ -711,8 +816,7 @@
 
         <div class="rf-actions rf-wide">
           <button class="rf-save" id="saveBtn" title="Ctrl+S" type="submit">
-            <span class="material-symbols-outlined" style="font-size:18px">save</span>
-            Kaydet ve Güncelle
+            💾 Kaydet ve Güncelle
           </button>
         </div>
       </form>
@@ -745,13 +849,15 @@
         </div>
       </div>
 
-      {# ✅ İsteğe bağlı: ps_reco kartı aynen kalsın #}
+      {# ✅ rr undefined fix: burada rr yok, o yüzden r.id kullanıyoruz #}
       {% if ps_reco and (ps_reco.p or ps_reco.s) %}
         <div class="card" style="margin: 0 0 12px; padding:12px">
           <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
             <div>
               <h4 style="margin:.15rem 0 .2rem">Sistemin Önerdiği P/S</h4>
-              <div class="muted">Aynı kategorideki geçmiş değerlendirmelerin <em>modu</em>.</div>
+              <div class="muted">
+                Aynı kategorideki geçmiş değerlendirmelerin <em>modu</em>.
+              </div>
               <div style="margin-top:6px" class="btnbar">
                 <span class="pill">P: {{ ps_reco.p or '—' }}</span>
                 <span class="pill">S: {{ ps_reco.s or '—' }}</span>
@@ -769,7 +875,6 @@
         </div>
       {% endif %}
 
-      {# ✅ Eval hedefleri (bulk) aynı #}
       {% if bulk_risks is defined and bulk_risks %}
         {% set eval_targets = bulk_risks %}
       {% else %}
@@ -777,7 +882,6 @@
       {% endif %}
 
       {% for rr in eval_targets %}
-        {% set _lrpn = 0 %}
         <div class="eval-block" data-risk-id="{{ rr.id }}" style="margin-top:10px">
 
           {% if eval_targets|length > 1 %}
@@ -798,6 +902,8 @@
             <div class="rd-score-row">
               <div class="rd-score-block">
                 <label>Olasılık Derecesi (Probability)</label>
+
+                {# select: form submit için (gizli) #}
                 <select class="input probSel" name="probability" style="display:none">
                   {% for i in range(1,6) %}
                     <option value="{{ i }}">{{ i }}</option>
@@ -813,6 +919,8 @@
 
               <div class="rd-score-block">
                 <label>Şiddet Derecesi (Severity)</label>
+
+                {# select: form submit için (gizli) #}
                 <select class="input sevSel" name="severity" style="display:none">
                   {% for i in range(1,6) %}
                     <option value="{{ i }}">{{ i }}</option>
@@ -829,6 +937,7 @@
 
             <div class="row" style="margin-top:10px">
               <input class="input grow" name="evaluator" placeholder="Değerlendiren (opsiyonel)">
+              {# eski canlı pill: JS bunu da update ediyor (gizli) #}
               <span class="pill nowrap liveRpn" style="display:none">RPN: 1×1 = 1</span>
             </div>
 
@@ -841,13 +950,14 @@
         </div>
       {% endfor %}
 
-      {# ✅ Maliyetler: tasarımlı mini tablo #}
+      {# ===========================
+         ✅ Bu riske bağlı maliyetler (tasarımlı)
+         Backend -> risk_costs, cost_totals
+         =========================== #}
       <div style="margin-top:16px">
         <div class="rd-cost-head">
           <h3>Bu Riske Bağlı Maliyetler</h3>
-          <a class="rd-add-link" href="{{ url_for('costs') }}?risk_id={{ r.id }}">
-            <span class="material-symbols-outlined" style="font-size:16px">add_circle</span> Ekle
-          </a>
+          <a class="rd-add-link" href="{{ url_for('costs') }}?risk_id={{ r.id }}">➕ Ekle</a>
         </div>
 
         {% if risk_costs and risk_costs|length > 0 %}
@@ -864,8 +974,7 @@
                 <tr>
                   <td>{{ c.title or '—' }}</td>
                   <td class="rd-money">
-                    {% if c.currency %}{{ c.currency|upper }} {% endif %}
-                    {{ '%.2f'|format((c.total or 0)|float) }}
+                    {{ '%.2f'|format((c.total or 0)|float) }} {{ (c.currency or 'TRY')|upper }}
                   </td>
                   <td class="rd-date">
                     {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '-' }}
@@ -886,7 +995,42 @@
             </div>
           {% endif %}
 
-          {# ✅ Pareto kartın (özellik) AYNEN KALDI #}
+          {# ✅ “Düzenle” gibi full özellik kaybolmasın diye detayda tam tabloyu da bıraktım #}
+          <details style="margin-top:10px">
+            <summary class="muted" style="cursor:pointer">Tüm maliyetleri tablo halinde gör (düzenle)</summary>
+            <div style="margin-top:8px; max-height:280px; overflow:auto;">
+              <table class="table cost-mini">
+                <thead>
+                  <tr>
+                    <th>Başlık</th>
+                    <th>Kategori</th>
+                    <th class="nowrap">Toplam</th>
+                    <th class="nowrap">Sıklık</th>
+                    <th class="nowrap">Para</th>
+                    <th class="nowrap">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in risk_costs %}
+                    <tr>
+                      <td>{{ c.title or '—' }}</td>
+                      <td>{{ c.category or '—' }}</td>
+                      <td class="nowrap">{{ '%.2f'|format((c.total or 0)|float) }}</td>
+                      <td class="nowrap">{{ c.frequency or 'Tek Sefer' }}</td>
+                      <td class="nowrap">{{ c.currency or 'TRY' }}</td>
+                      <td class="nowrap">
+                        <a class="btn btn-sm" href="{{ url_for('cost_edit', cost_id=c.id) }}">Düzenle</a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </details>
+
+          {# ===========================
+             ✅ Risk içi mini Pareto (özellik: aynen duruyor)
+             =========================== #}
           <div class="card" style="margin-top:12px">
             <div class="row" style="justify-content:space-between; align-items:flex-start;">
               <div class="grow">
@@ -966,7 +1110,7 @@
         {% endif %}
       </div>
 
-      {# geçmiş değerlendirme tablosu (özellik) aynen kalsın #}
+      {# ✅ Geçmiş değerlendirmeler (özellik: aynen duruyor) #}
       <details class="history-details" style="margin-top:14px">
         <summary class="muted" style="cursor:pointer; padding:.35rem .1rem;">
           Geçmiş değerlendirmeleri göster/gizle
@@ -1020,9 +1164,7 @@
        ============================================================ #}
     <div class="card" style="grid-column:1/-1">
       <div class="yh-header">
-        <div class="yh-ico" aria-hidden="true">
-          <span class="material-symbols-outlined" style="font-size:18px">chat</span>
-        </div>
+        <div class="yh-ico" aria-hidden="true">💬</div>
         <div class="grow">
           <div class="row" style="justify-content:space-between; align-items:baseline;">
             <h3 class="yh-title">Yorumlar ve İşlem Geçmişi</h3>
@@ -1043,7 +1185,7 @@
             <div class="yh-item">
               <div class="yh-avatar {% if c.is_system %}system{% endif %}">
                 {% if c.is_system %}
-                  <span class="material-symbols-outlined" style="font-size:18px; color: var(--primary,#2563eb)">smart_toy</span>
+                  🤖
                 {% else %}
                   <span style="font-weight:800; opacity:.75">
                     {{ (who[:1] if who else 'K')|upper }}
@@ -1096,8 +1238,7 @@
                     action="{{ url_for('risk_delete', risk_id=r.id) }}"
                     onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');">
                 <button class="btn danger" type="submit" style="width:100%; padding:.7rem .9rem;">
-                  <span class="material-symbols-outlined" style="font-size:18px; vertical-align:-4px; margin-right:6px;">delete</span>
-                  Riski Sil
+                  🗑️ Riski Sil
                 </button>
               </form>
               <div class="yh-deletehint">Sadece admin yetkisiyle silinebilir.</div>
@@ -1166,7 +1307,7 @@
     const p = parseInt(pSel.value || '1', 10);
     const s = parseInt(sSel.value || '1', 10);
 
-    // eski pill (gizli) da güncelle
+    // eski pill (gizli)
     const el = block.querySelector('.liveRpn');
     if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
 
@@ -1194,13 +1335,12 @@
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
-
     // P/S butonları + select senkron
     document.querySelectorAll('.eval-block').forEach(block=>{
       const pSel = block.querySelector('.probSel');
       const sSel = block.querySelector('.sevSel');
 
-      // varsayılan seçimi 1 yap
+      // default 1
       if (pSel) pSel.value = pSel.value || "1";
       if (sSel) sSel.value = sSel.value || "1";
 
@@ -1221,36 +1361,9 @@
         });
       });
 
-      // ilk init
       syncButtonsFromSelect(block);
       updateLiveRpnBlock(block);
     });
-
-    // AI suggest form varsa: fetch + reload
-    const form = document.getElementById('aiSuggestForm');
-    const btn  = document.getElementById('btn-ai-suggest');
-    if (form && btn){
-      form.addEventListener('submit', function (ev) {
-        ev.preventDefault();
-
-        const oldText = btn.innerText;
-        btn.disabled = true;
-        btn.innerText = '🤖 Çalışıyor...';
-
-        fetch(form.action, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } })
-        .then(resp => {
-          if (!resp.ok) throw new Error("AI isteği başarısız");
-          return resp.text();
-        })
-        .then(() => window.location.reload())
-        .catch(err => {
-          console.error(err);
-          alert("AI çağrısında hata oluştu.");
-          btn.disabled = false;
-          btn.innerText = oldText;
-        });
-      });
-    }
   });
 
   // =============================
