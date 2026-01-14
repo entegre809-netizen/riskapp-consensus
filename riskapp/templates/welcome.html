@@ -85,18 +85,29 @@
     color: #0f766e;
   }
 
-  /* ✅ DÜZELTME: Başlık beyaz + okunaklı gölge */
+  /* ✅ Başlık: açık temada mavi, koyu temada beyaz */
   .onboard-left-title{
     font-size: clamp(2.8rem, 5.4vw, 4.2rem);
     line-height:1.05;
     font-weight: 900;
     letter-spacing:-.045em;
     margin: 0 0 14px;
-    color: #fff !important;
-    text-shadow: 0 10px 30px rgba(2,6,23,.28), 0 2px 8px rgba(2,6,23,.18);
+    color: var(--primary); /* light: mavi */
+    text-shadow: none;
   }
   .onboard-left-title .accent{
-    color: #fff !important; /* accent de beyaz */
+    color: var(--primary); /* light: mavi */
+  }
+
+  /* dark override: (hem html[data-theme="dark"] hem body.dark yakalanır) */
+  html[data-theme="dark"] body.onboarding .onboard-left-title,
+  body.dark .onboard-left-title{
+    color:#fff !important;
+    text-shadow: 0 10px 30px rgba(2,6,23,.35), 0 2px 8px rgba(2,6,23,.22);
+  }
+  html[data-theme="dark"] body.onboarding .onboard-left-title .accent,
+  body.dark .onboard-left-title .accent{
+    color:#fff !important;
   }
 
   .onboard-left-sub{
@@ -284,7 +295,7 @@
     margin-top: 10px;
   }
 
-  /* ✅ DÜZELTME: "Giriş Yap" yazısı kesin beyaz */
+  /* ✅ "Giriş Yap" yazısı kesin beyaz kalsın */
   .phone-btn-primary{
     display:flex;
     align-items:center;
@@ -429,7 +440,7 @@
       </div>
     </div>
 
-    <!-- Sağ taraf: RiskApp 3D telefon + içerik -->
+    <!-- Sağ taraf: RiskApp 3D telefon + içerik (mevcut link özelliklerin korunuyor) -->
     <div class="onboard-right" style="position:relative;">
       <div class="phone-frame phone-shadow">
         <div class="phone-notch"></div>
