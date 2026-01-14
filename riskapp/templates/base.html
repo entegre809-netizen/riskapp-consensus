@@ -5,106 +5,133 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{% block title %}Entegre Risk Yönetimi{% endblock %}</title>
 
-  <!-- Harici CSS'in kalabilir; bu sayfa kendi stillerini de içeriyor -->
+  <!-- Tailwind (senin RiskApp şablon dili için) -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Fonts + Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap" rel="stylesheet"/>
+
+  <!-- Bootstrap kalabilir (modal/backdrop vs) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <!-- Senin ana CSS'in -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#2866bd",
+            "background-light": "#f0f2f4",
+            "background-dark": "#17191c",
+            "slate-muted": "#8B919D",
+            charcoal: "#474B52"
+          },
+          fontFamily: {
+            display: ["Space Grotesk", "sans-serif"]
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem",
+            lg: "1rem",
+            xl: "1.5rem",
+            full: "9999px"
+          }
+        }
+      }
+    }
+  </script>
 
   <style>
     /* ==========================================================
-       RiskApp · 2026 Modern UI — Base Template
-       - Işık/Koyu tema (manuel + sistem tercihi)
-       - Mobilde üst bar + açılır sidebar
-       - Erişilebilir odak halkaları, sticky table head
-       - Hafif animasyonlar, yumuşak geçişler
+       RiskApp · Base Template (2026 Modern)
+       - data-theme tokenları (dashboard template'in buna bağlı)
+       - Tailwind dark class ile uyum
+       - Sticky topbar + modern sidebar
        ========================================================== */
 
-    /* Sistem tercihine saygı */
-    @media (prefers-color-scheme: dark){ :root{ color-scheme:dark } }
-    @media (prefers-color-scheme: light){ :root{ color-scheme:light } }
+    :root{ color-scheme: light; }
+    [data-theme="dark"]{ color-scheme: dark; }
 
     /* ====================
-       Tema Tokenları (Koyu)
+       Tokenlar (LIGHT)
        ==================== */
-    :root,
-    [data-theme="dark"]{
-      --bg: #0b1020;
-      --bg-soft: #0f1630;
-      --surface: #0d152c;
+    [data-theme="light"]{
+      --bg: #f0f2f4;
+      --bg-soft: #ffffff;
+      --surface: #f6f7f8;
 
-      --card: #121a38cc;  /* hafif cam efekti */
-      --card-solid:#121a38;
+      --card: #ffffff;
+      --card-solid:#ffffff;
 
-      --text: #e8ecff;
-      --text-dim:#a5b1d6;
+      --text: #0f172a;
+      --text-dim:#64748b;
 
-      --line: #243055;
+      --line: #e5e7eb;
 
-      --brand:   #0a0f25;
-      --brand-2: #0f1736;
-      --primary: #6ea8ff;
-      --primary-2:#8fb9ff;
-      --success: #39d98a;
+      --primary: #2866bd;
+      --primary-2:#3b82f6;
+
+      --success: #16a34a;
       --warning: #f59e0b;
       --danger:  #ef4444;
 
-      --low:#34d399;
-      --mid:#f59e0b;
-      --high:#ef4444;
+      --ring: rgba(40,102,189,.35);
 
-      --ring: #6ea8ff;
-
-      --elev: 0 6px 18px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.04);
-      --elev-card: 0 16px 36px rgba(8,15,40,.36);
-      --glass-blur: saturate(140%) blur(6px);
+      --elev: 0 10px 40px -10px rgba(0,0,0,0.08);
+      --elev-card: 0 10px 40px -10px rgba(0,0,0,0.10);
+      --glass-blur: saturate(120%) blur(8px);
 
       --radius-2xl: 18px;
       --radius: 14px;
       --radius-sm: 10px;
-      --pad: 14px;
 
-      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      --font: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
       --ease: cubic-bezier(.22,1,.36,1);
     }
 
-    /* =====================
-       Tema Tokenları (Açık)
-       ===================== */
-    [data-theme="light"]{
-      --bg: #f7faff;
-      --bg-soft: #ffffff;
-      --surface: #f7f9ff;
+    /* ====================
+       Tokenlar (DARK)
+       ==================== */
+    [data-theme="dark"]{
+      --bg: #17191c;
+      --bg-soft: #121820;
+      --surface: #121820;
 
-      --card: #ffffffee;
-      --card-solid:#ffffff;
+      --card: #1e2126;
+      --card-solid:#1e2126;
 
-      --text: #0a1328;
-      --text-dim:#556384;
+      --text: #eaf0ff;
+      --text-dim:#9aa4b2;
 
-      --line: #e6ebf4;
+      --line: rgba(255,255,255,.10);
 
-      --brand:   #fff0b8;
-      --brand-2: #fff7d8;
-      --primary: #ffd24d;
-      --primary-2:#ffe07a;
-      --success: #16a34a;
+      --primary: #2866bd;
+      --primary-2:#60a5fa;
+
+      --success: #22c55e;
       --warning: #f59e0b;
-      --danger:  #e05656;
+      --danger:  #ef4444;
 
-      --ring: #ffd65a;
+      --ring: rgba(96,165,250,.35);
 
-      --elev: 0 8px 18px rgba(15,23,42,.08), inset 0 0 0 1px rgba(15,23,42,.03);
-      --elev-card: 0 14px 28px rgba(15,23,42,.10);
-      --glass-blur: saturate(118%) blur(5px);
+      --elev: 0 10px 40px -10px rgba(0,0,0,0.35);
+      --elev-card: 0 16px 40px rgba(0,0,0,.35);
+      --glass-blur: saturate(140%) blur(10px);
 
       --radius-2xl: 18px;
       --radius: 14px;
       --radius-sm: 10px;
-      --pad: 14px;
 
-      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      --font: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+      --ease: cubic-bezier(.22,1,.36,1);
     }
 
     /* ========== Reset/Global ========== */
@@ -113,133 +140,150 @@
       margin:0; padding:0;
       font-family:var(--font);
       color:var(--text);
-      background:
-        radial-gradient(1000px 700px at 0% 0%, color-mix(in oklab, var(--brand-2) 46%, transparent) 0%, transparent 60%),
-        radial-gradient(1000px 700px at 100% 0%, color-mix(in oklab, var(--brand) 36%, transparent) 0%, transparent 60%),
-        linear-gradient(180deg, var(--bg) 0%, color-mix(in oklab, var(--bg) 92%, #ffffff 8%) 100%);
+      background: var(--bg);
       min-height:100dvh;
-      -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
       transition: background .25s ease, color .25s ease;
     }
     @media (prefers-reduced-motion: reduce){
       *{ animation:none !important; transition:none !important; }
     }
-    a{ color:#1247ff; text-decoration:none; font-weight:700 }
-    [data-theme="dark"] a{ color:#9fc0ff }
+
+    a{
+      color: var(--primary);
+      text-decoration:none;
+      font-weight:700;
+    }
     a:hover{ text-decoration:underline }
 
-    h1,h2,h3{ line-height:1.2; margin:.2rem 0 .7rem; letter-spacing:.01em }
-    h1{ font-size: clamp(1.45rem, 2.1vw, 1.9rem); font-weight:900 }
-    h2{ font-size: clamp(1.25rem, 1.8vw, 1.55rem); font-weight:850 }
-    h3{ font-size: clamp(1.08rem, 1.5vw, 1.25rem); font-weight:800 }
+    /* Whisper shadow helper */
+    .whisper-shadow{ box-shadow: var(--elev); }
 
-    img{ max-width:100%; height:auto; border-radius: 10px }
-
-    /* ========== Yerleşim ========== */
+    /* ========== Layout ========== */
     .shell{
       display:grid;
       grid-template-rows: auto 1fr;
       min-height:100dvh;
     }
 
-    /* Üst bar (mobil ve masaüstü) */
+    /* TOPBAR */
     .topbar{
-      position:sticky; top:0; z-index:5;
-      display:flex; align-items:center; gap:10px;
-      padding:10px 12px;
-      background: color-mix(in oklab, var(--bg) 86%, transparent);
-      backdrop-filter: blur(6px);
+      position:sticky; top:0; z-index:50;
+      height:64px;
+      display:flex; align-items:center; gap:12px;
+      padding: 0 16px;
+      background: color-mix(in oklab, var(--bg-soft) 75%, transparent);
+      backdrop-filter: blur(10px);
       border-bottom:1px solid var(--line);
     }
-    .topbar .brand{
-      display:flex; align-items:center; gap:10px; font-weight:900;
-      padding:6px 10px; border-radius:12px;
-      background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 22%, transparent), transparent);
-      color: color-mix(in oklab, var(--text) 88%, #000 12%);
-    }
-    .topbar .spacer{ flex:1 }
-    .topbar .btn-icon{
-      display:inline-grid; place-items:center;
-      width:40px; height:40px; border-radius:12px;
-      border:1px solid color-mix(in oklab, var(--text) 10%, transparent);
-      background: color-mix(in oklab, var(--bg-soft) 76%, transparent);
-      cursor:pointer; transition: filter .15s ease;
-    }
-    .topbar .btn-icon:hover{ filter:brightness(1.06) }
 
-    /* Ana layout: sol menü + içerik */
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:900;
+      letter-spacing:-.01em;
+    }
+    .brand-badge{
+      width:38px; height:38px;
+      border-radius:12px;
+      display:grid; place-items:center;
+      background: var(--primary);
+      color:#fff;
+      box-shadow: 0 12px 24px color-mix(in oklab, var(--primary) 35%, transparent);
+    }
+    .brand-title{
+      font-size:1.1rem;
+      color: var(--text);
+    }
+
+    .topbar .spacer{ flex:1 }
+
+    .btn-icon{
+      width:40px; height:40px;
+      display:grid; place-items:center;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: color-mix(in oklab, var(--card) 85%, transparent);
+      cursor:pointer;
+      transition: filter .15s ease, transform .08s ease;
+    }
+    .btn-icon:hover{ filter:brightness(1.04) }
+    .btn-icon:active{ transform: translateY(1px) }
+
+    /* MAIN LAYOUT */
     .layout{
-      display:grid; grid-template-columns: 280px 1fr; gap:0;
-      min-height: calc(100dvh - 62px);
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      min-height: calc(100dvh - 64px);
     }
     @media (max-width: 980px){
-      .layout{ grid-template-columns: 1fr }
+      .layout{ grid-template-columns: 1fr; }
     }
 
-    /* Desktop: hamburger ile sidebar'ı tamamen gizle */
+    /* Desktop: sidebar collapse */
     @media (min-width: 981px){
-      body.sidebar-collapsed .layout{
-        grid-template-columns: 1fr;
-      }
-      body.sidebar-collapsed .sidebar{
-        display:none;
-      }
+      body.sidebar-collapsed .layout{ grid-template-columns: 1fr; }
+      body.sidebar-collapsed .sidebar{ display:none; }
     }
 
     /* Sidebar */
     .sidebar{
-      position:sticky; top:62px; align-self:start;
-      height: calc(100dvh - 62px);
+      position:sticky; top:64px; align-self:start;
+      height: calc(100dvh - 64px);
       overflow:auto;
-      background:linear-gradient(180deg, var(--brand) 0%, var(--brand-2) 100%);
-      color:#1b2338; padding:16px 0; border-right:1px solid color-mix(in oklab, var(--line) 70%, transparent);
+      background: var(--card);
+      border-right:1px solid var(--line);
+      padding: 14px 0;
       box-shadow: var(--elev);
-      transform: translateX(0); transition: transform .28s var(--ease);
+      transition: transform .28s var(--ease);
     }
-    [data-theme="dark"] .sidebar{
-      color:#dbe5ff; border-right:1px solid rgba(255,255,255,.08);
-    }
-    /* Mobilde kapalı başlasın */
     @media (max-width: 980px){
-      .sidebar{ position:fixed; inset:62px auto 0 0; width:min(78vw, 300px); transform: translateX(-102%); z-index:6 }
-      .sidebar.open{ transform:none }
+      .sidebar{
+        position:fixed;
+        inset:64px auto 0 0;
+        width:min(78vw, 300px);
+        transform: translateX(-102%);
+        z-index:60;
+      }
+      .sidebar.open{ transform:none; }
     }
 
-    .menu-section{ margin:10px 0 16px }
+    .menu-section{ margin:10px 0 14px; }
     .menu-title{
-      margin:.3rem 0 .4rem 1rem; font-size:.78rem; text-transform:uppercase;
-      letter-spacing:.09em; color:#616b86; font-weight:900; opacity:.9;
+      margin: .25rem 0 .5rem 1rem;
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color: var(--text-dim);
+      font-weight:900;
     }
-    [data-theme="dark"] .menu-title{ color:#9fb3ff }
 
     .menu a{
       display:flex; align-items:center; gap:.55rem;
-      padding:.64rem 1.1rem; color:#253052; text-decoration:none;
-      border-left:3px solid transparent; border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+      padding:.68rem 1.1rem;
+      color: color-mix(in oklab, var(--text) 90%, transparent);
+      text-decoration:none;
+      border-left:3px solid transparent;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
       transition: background .18s ease, color .18s ease, border-color .18s ease;
-      font-weight:700;
+      font-weight:800;
     }
-    .menu a:hover{ background:rgba(0,0,0,.05); color:#0e172c }
+    .menu a:hover{
+      background: color-mix(in oklab, var(--primary) 7%, transparent);
+      color: var(--text);
+    }
     .menu a.active,[aria-current="page"]{
-      background:linear-gradient(90deg, color-mix(in oklab, var(--primary) 28%, transparent), transparent);
-      color:#0e172c; border-left-color: var(--primary);
-      box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 24%, transparent);
+      background: color-mix(in oklab, var(--primary) 12%, transparent);
+      border-left-color: var(--primary);
+      color: var(--text);
     }
-    [data-theme="dark"] .menu a{ color:#cfe0ff }
-    [data-theme="dark"] .menu a:hover{ background:rgba(255,255,255,.06); color:#fff }
-    [data-theme="dark"] .menu a.active,
-    [data-theme="dark"] .menu a[aria-current="page"]{
-      background:linear-gradient(90deg, rgba(110,168,255,.16), rgba(110,168,255,0));
-      color:#fff; border-left-color: var(--primary);
-      box-shadow: inset 0 0 0 1px rgba(110,168,255,.14);
-    }
-    .submenu{ margin-left:.25rem; border-left:2px dashed rgba(0,0,0,.06) }
-    [data-theme="dark"] .submenu{ border-left-color: rgba(255,255,255,.08) }
-    .submenu a{ padding-left:1.2rem; font-size:.98rem }
 
-    /* Ana içerik paneli */
+    .submenu{ margin-left:.25rem; border-left:2px dashed color-mix(in oklab, var(--line) 85%, transparent); }
+    .submenu a{ padding-left:1.2rem; font-size:.98rem; }
+
+    /* Main content */
     .main{
-      padding: 20px min(4vw, 36px) 40px;
+      padding: 18px min(4vw, 32px) 40px;
     }
     .panel{
       background: var(--card);
@@ -247,177 +291,162 @@
       border-radius: var(--radius-2xl);
       padding: clamp(16px, 2vw, 22px);
       box-shadow: var(--elev-card);
-      backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-      transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
     }
 
-    /* Grid yardımcıları */
-    .grid{ display:grid; gap:14px }
-    .grid-2{ grid-template-columns: repeat(2, minmax(0,1fr)) }
-    .grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)) }
-    @media (max-width: 980px){
-      .grid-2, .grid-3{ grid-template-columns: 1fr }
-    }
-
-    /* Formlar */
-    label{ display:block; font-size:.86rem; color:var(--text-dim); margin-bottom:.45rem; font-weight:850 }
+    /* Forms */
+    label{ display:block; font-size:.86rem; color:var(--text-dim); margin-bottom:.45rem; font-weight:850; }
     .input, select.input, textarea.input{
-      width:100%; padding:.78rem .85rem; border-radius:12px;
-      border:1px solid color-mix(in oklab, var(--line) 88%, transparent);
-      background: linear-gradient(180deg, #ffffff, #f7faff);
-      color:#0a1328; outline:none; font-weight:600;
-      transition:.2s border-color, .2s box-shadow, .2s background, .2s color;
+      width:100%;
+      padding:.78rem .85rem;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: color-mix(in oklab, var(--card) 95%, transparent);
+      color: var(--text);
+      outline:none;
+      font-weight:600;
+      transition:.2s border-color, .2s box-shadow;
     }
-    .input::placeholder{ color:#8691a9; opacity:.95 }
+    .input::placeholder{ color: color-mix(in oklab, var(--text-dim) 90%, transparent); }
     .input:focus{
-      border-color: color-mix(in oklab, var(--ring) 60%, transparent);
-      box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 35%, transparent), inset 0 0 0 1px rgba(0,0,0,.04);
-      background:#ffffff;
-    }
-    [data-theme="dark"] .input, [data-theme="dark"] select.input, [data-theme="dark"] textarea.input{
-      border:1px solid rgba(150,170,220,.35);
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-      color:#f6f8ff; font-weight:600; color-scheme: dark;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
-    }
-    [data-theme="dark"] .input::placeholder{ color:#aebbff; opacity:.9 }
-    [data-theme="dark"] .input:focus{
-      border-color: rgba(110,168,255,.85);
-      box-shadow: 0 0 0 4px rgba(110,168,255,.22), inset 0 0 0 1px rgba(110,168,255,.35);
-      background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
-      color:#ffffff;
-    }
-    /* Select oku */
-    select.input{ appearance:none; -webkit-appearance:none; padding-right:2.1rem;
-      background-position: right .65rem center; background-repeat:no-repeat;
-      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2310182d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-    }
-    [data-theme="dark"] select.input{
-      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23e8ecff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      border-color: color-mix(in oklab, var(--primary) 70%, transparent);
+      box-shadow: 0 0 0 4px var(--ring);
     }
 
-    /* Butonlar */
+    /* Buttons */
     .btn{
       display:inline-flex; align-items:center; gap:.55rem;
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      background: linear-gradient(180deg, #ffffff, #f4f7ff);
-      color:#0f182d; padding:.66rem 1rem; border-radius:12px; cursor:pointer;
-      transition: transform .08s ease, filter .15s ease, box-shadow .2s ease, background .25s ease, color .25s ease, border-color .25s ease;
-      box-shadow: 0 8px 16px rgba(13,19,33,.08), inset 0 0 0 1px rgba(255,255,255,.95);
-      font-weight:900; text-decoration:none; line-height:1;
+      border:1px solid var(--line);
+      background: color-mix(in oklab, var(--card) 95%, transparent);
+      color: var(--text);
+      padding:.66rem 1rem;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .08s ease, filter .15s ease, box-shadow .2s ease;
+      box-shadow: 0 10px 30px -15px rgba(0,0,0,.18);
+      font-weight:900;
+      text-decoration:none;
+      line-height:1;
     }
-    .btn:hover{ filter:brightness(1.03); box-shadow: 0 12px 22px rgba(13,19,33,.12), inset 0 0 0 1px rgba(255,255,255,1) }
-    .btn:active{ transform: translateY(1px) }
-    .btn[disabled]{ opacity:.6; cursor:not-allowed }
+    .btn:hover{ filter:brightness(1.03); }
+    .btn:active{ transform: translateY(1px); }
+    .btn[disabled]{ opacity:.6; cursor:not-allowed; }
+
     .btn-primary{
-      background: linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary) 78%, #000 22%));
-      color:#0a1228; border-color: transparent; text-shadow: 0 1px 0 rgba(255,255,255,.35);
-      box-shadow: 0 8px 18px rgba(255,210,77,.22);
+      background: var(--primary);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 14px 30px -18px color-mix(in oklab, var(--primary) 55%, transparent);
     }
-    .btn-success{ background: linear-gradient(180deg, #3de097, #18c578); color:#06141d; border-color: transparent; font-weight:800 }
-    [data-theme="dark"] .btn{
-      border:1px solid rgba(255,255,255,.12);
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-      color:#eaf0ff;
-      box-shadow: 0 6px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+    .btn-success{
+      background: var(--success);
+      color:#fff;
+      border-color: transparent;
     }
 
-    /* Odak halkası (tüm etkileşimliler) */
+    /* Focus ring */
     :where(a, button, .btn, .input, textarea.input, select.input):focus-visible{
-      outline: none;
-      box-shadow:
-        0 0 0 4px color-mix(in oklab, var(--ring) 40%, transparent),
-        0 2px 16px color-mix(in oklab, var(--ring) 18%, transparent),
-        inset 0 0 0 1px color-mix(in oklab, var(--ring) 50%, transparent);
-      border-color: color-mix(in oklab, var(--ring) 65%, transparent);
+      outline:none;
+      box-shadow: 0 0 0 4px var(--ring);
+      border-color: color-mix(in oklab, var(--primary) 70%, transparent);
     }
 
-    /* Tablo */
-    .table-wrap{ overflow:auto; border-radius:14px }
-    .table{ width:100%; border-collapse:separate; border-spacing:0; min-width:720px }
+    /* Table */
+    .table-wrap{ overflow:auto; border-radius:14px; }
+    .table{ width:100%; border-collapse:separate; border-spacing:0; min-width:720px; }
     .table th,.table td{
-      padding:.78rem .9rem; border-bottom:1px solid var(--line);
-      text-align:left; font-size:.96rem; vertical-align:top;
+      padding:.78rem .9rem;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      font-size:.96rem;
+      vertical-align:top;
     }
     .table thead th{
-      font-size:.82rem; text-transform:uppercase; letter-spacing:.09em;
+      font-size:.82rem;
+      text-transform:uppercase;
+      letter-spacing:.09em;
       color:var(--text-dim);
       position:sticky; top:0; z-index:1;
-      background: color-mix(in oklab, var(--surface) 84%, transparent);
-      backdrop-filter: blur(4px);
-      border-bottom:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+      background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
+      backdrop-filter: blur(8px);
       font-weight:900;
     }
-    .table tbody tr:hover td{ background: color-mix(in oklab, var(--primary) 6%, transparent) }
+    .table tbody tr:hover td{
+      background: color-mix(in oklab, var(--primary) 6%, transparent);
+    }
 
     /* Flash/Badge */
     .flash{
-      margin:.7rem 0; padding:.85rem 1rem; border-radius:12px; font-size:.98rem;
-      border:1px solid #ffe3a1; background: linear-gradient(180deg, #fff7df, #fff1c9);
-      color:#3a2c0e; box-shadow: inset 0 0 0 1px rgba(255,255,255,.85); font-weight:800;
+      margin:.7rem 0;
+      padding:.85rem 1rem;
+      border-radius:12px;
+      font-size:.98rem;
+      border:1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+      background: color-mix(in oklab, var(--primary) 10%, var(--card));
+      color: var(--text);
+      font-weight:800;
     }
-    .flash.success{ background:linear-gradient(180deg, #eafff4, #d8ffee); color:#073a2a; border-color:#baffdf }
-    .flash.danger{  background:linear-gradient(180deg, #ffefef, #ffe3e3); color:#5a1c1c; border-color:#ffc9c9 }
-    .flash.info{    background:linear-gradient(180deg, #f5f9ff, #eef4ff); color:#17223a; border-color:#dbe6ff }
-    [data-theme="dark"] .flash{
-      border-color: rgba(255,255,255,.15);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.06));
-      color:#f3f6ff;
-    }
+    .flash.success{ border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.12); }
+    .flash.danger{  border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.12); }
+    .flash.info{    border-color: rgba(96,165,250,.25); background: rgba(96,165,250,.12); }
 
     .badge{
-      display:inline-block; padding:.28rem .6rem; border-radius:999px; font-size:.86rem;
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      background: #fffdf5; color:#4b3a0f; font-weight:800;
+      display:inline-block;
+      padding:.28rem .6rem;
+      border-radius:999px;
+      font-size:.86rem;
+      border:1px solid var(--line);
+      background: color-mix(in oklab, var(--card) 92%, transparent);
+      color: var(--text);
+      font-weight:800;
     }
-    [data-theme="dark"] .badge{
-      border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.08); color:#eaeef7;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
-    }
-    .score-low{ background:rgba(16,185,129,.18); color:#116b4f; border-color:rgba(16,185,129,.28) }
-    .score-mid{ background:rgba(245,158,11,.18); color:#6f4b00;   border-color:rgba(245,158,11,.28) }
-    .score-high{background:rgba(239,68,68,.18);  color:#7a1e1e;   border-color:rgba(239,68,68,.28) }
+    .score-low{ background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.25); }
+    .score-mid{ background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.25); }
+    .score-high{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.25); }
 
-    .small{ font-size:.86rem; color:var(--text-dim); font-weight:600 }
-    .footer{ margin-top:32px; color:var(--text-dim); font-size:.9rem }
+    .small{ font-size:.86rem; color:var(--text-dim); font-weight:600; }
+    .footer{ margin-top:28px; color:var(--text-dim); font-size:.9rem; }
 
-    /* Yazdırma */
+    /* Print */
     @media print{
-      .noprint{ display:none !important }
-      body{ background:#fff; color:#111 }
-      .topbar, .sidebar{ display:none }
-      .main{ padding:0 }
-      .panel{ box-shadow:none; border:1px solid #ddd; background:#fff; color:#111 }
-      .table th,.table td{ border-color:#eee }
+      .noprint{ display:none !important; }
+      body{ background:#fff; color:#111; }
+      .topbar, .sidebar{ display:none; }
+      .main{ padding:0; }
+      .panel{ box-shadow:none; border:1px solid #ddd; background:#fff; color:#111; }
+      .table th,.table td{ border-color:#eee; }
     }
 
-    /* Yüksek Kontrast */
-    @media (prefers-contrast: more){
-      .btn, .input, select.input, textarea.input, .panel, .menu a{ border-width:2px }
-      .menu a.active{ outline: 3px solid color-mix(in oklab, var(--ring) 40%, transparent) }
-    }
-
-    /* ===========================
-       AUTH/HIDE_NAV (login/register veya menüsüz sayfa)
-       =========================== */
+    /* AUTH/HIDE_NAV */
     .layout.auth{ grid-template-columns:1fr !important; }
     .auth .sidebar{ display:none !important; }
-    .auth #sidebarToggle{ display:none !important; } /* Üst bardaki ☰ de gizlensin */
+    .auth #sidebarToggle{ display:none !important; }
   </style>
 </head>
+
 <body class="{% block body_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
 
 <div class="shell">
-  <!-- ÜST BAR -->
+  <!-- TOPBAR -->
   <header class="topbar noprint">
     {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
-      <button class="btn-icon" id="sidebarToggle" aria-label="Menüyü Aç/Kapat">☰</button>
+      <button class="btn-icon" id="sidebarToggle" aria-label="Menüyü Aç/Kapat">
+        <span class="material-icons-outlined" style="font-size:20px;">menu</span>
+      </button>
     {% endif %}
-    <div class="brand">⚠️ Risk Yönetimi</div>
+
+    <div class="brand">
+      <div class="brand-badge">
+        <span class="material-icons-outlined" style="font-size:22px;">shield</span>
+      </div>
+      <div class="brand-title">RiskApp</div>
+    </div>
+
     <div class="spacer"></div>
 
     {% if session.get('username') and request.endpoint != 'welcome' %}
-      <div class="small">
+      <div class="small" style="white-space:nowrap;">
         👋 {{ session.get('username') }}
         {% if session.get('role') %} · {{ session.get('role')|capitalize }}{% endif %}
       </div>
@@ -429,10 +458,11 @@
   </header>
 
   <div class="layout {% block layout_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
-    <!-- SOL MENÜ -->
+    <!-- SIDEBAR -->
     {% block sidebar %}
     {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
     <aside class="sidebar" id="sidebar">
+
       <!-- Proje Seçici (varsa) -->
       {% if session.get('account_id') %}
         {% set _acc_id = session.get('account_id') %}
@@ -457,7 +487,6 @@
         </nav>
       </div>
 
-      <!-- RİSK MENÜSÜ -->
       <div class="menu-section">
         <div class="menu-title">Risk</div>
         <nav class="menu submenu">
@@ -494,10 +523,6 @@
             <a href="{{ url_for(_pareto_ep) }}" class="{{ 'active' if request.endpoint==_pareto_ep }}">Pareto Analizi</a>
           {% endif %}
 
-          {% if r is defined %}
-            {# Risk detayındayken ekstra linkler koyacaksan buraya #}
-          {% endif %}
-
           {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">Risk ve Kategori Aktarma (CSV,Excel)</a>
           {% endif %}
@@ -510,7 +535,6 @@
       <div class="menu-section">
         <div class="menu-title">Ayarlar</div>
         <nav class="menu submenu">
-          {# ---- Güvenli admin linki: önce endpoint var mı bakıyoruz ---- #}
           {% set _has_ep_helper = (has_endpoint is defined) %}
           {% set _admin_ep = (
               'admin.admin_users' if (
@@ -545,7 +569,7 @@
     {% endif %}
     {% endblock %}
 
-    <!-- ANA İÇERİK -->
+    <!-- MAIN -->
     <main class="main">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -555,7 +579,7 @@
         {% endif %}
       {% endwith %}
 
-      <section class="panel">
+      <section class="panel whisper-shadow">
         {% block content %}{% endblock %}
       </section>
 
@@ -570,20 +594,26 @@
 <!-- ✅ Chart.js (Pareto grafikleri için) -->
 <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
 
-<!-- Tema toggle + sidebar + panel auto-mark -->
 <script>
 (function(){
   const KEY = 'riskapp.theme';
   const SIDEBAR_KEY = 'riskapp.sidebarCollapsed';
   const root = document.documentElement;
-  const getBtnTheme = () => document.getElementById('themeToggle');
+
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
+  const btnTheme = () => document.getElementById('themeToggle');
 
   function applyTheme(t){
+    // 1) data-theme (senin CSS tokenları için)
     root.setAttribute('data-theme', t);
+
+    // 2) Tailwind dark class (şablonların için)
+    root.classList.toggle('dark', t === 'dark');
+
     try{ localStorage.setItem(KEY, t); }catch(e){}
-    const btn = getBtnTheme();
+
+    const btn = btnTheme();
     if (btn){
       btn.textContent = (t === 'light') ? '🌙 Koyu Tema' : '🌞 Açık Tema';
     }
@@ -607,9 +637,7 @@
   (function initSidebarPref(){
     if (!sidebar) return;
     let collapsed = false;
-    try{
-      collapsed = localStorage.getItem(SIDEBAR_KEY) === '1';
-    } catch(e){}
+    try{ collapsed = localStorage.getItem(SIDEBAR_KEY) === '1'; } catch(e){}
     if (collapsed && !isMobile()){
       document.body.classList.add('sidebar-collapsed');
     }
@@ -619,10 +647,8 @@
   if (sidebarToggle && sidebar){
     sidebarToggle.addEventListener('click', () => {
       if (isMobile()){
-        // Mobil: slide-in menü
         sidebar.classList.toggle('open');
       } else {
-        // Desktop: sidebar tamamen gizle/göster
         document.body.classList.toggle('sidebar-collapsed');
         try{
           const collapsed = document.body.classList.contains('sidebar-collapsed');
@@ -631,7 +657,7 @@
       }
     });
 
-    // Sidebar dışına tıklayınca kapat (sadece mobilde)
+    // Mobilde dışa tıklayınca kapat
     document.addEventListener('click', (e)=>{
       if (!isMobile()) return;
       if (!sidebar.classList.contains('open')) return;
@@ -639,36 +665,20 @@
       if (!within) sidebar.classList.remove('open');
     });
 
-    // Ekran boyutu değişince mobil>desktop geçişinde açık sidebar'ı kapat
+    // Resize: mobil>desktop geçişinde açık sidebar'ı kapat
     window.addEventListener('resize', ()=>{
       if (!isMobile()){
         sidebar.classList.remove('open');
       }
     });
   }
-
-  // Değerlendirme / RPN panellerini koyu temada auto-mark (beyaz fix)
-  function markAssessmentsPanel(){
-    const candidates = document.querySelectorAll('.panel, .card, .section, .box, .content, .container');
-    candidates.forEach(el => {
-      const titleEl = el.querySelector('h1, h2, h3, .title, .header');
-      if (!titleEl) return;
-      const t = (titleEl.textContent || '').trim().toLowerCase();
-      if (t.startsWith('değerlendirmeler') || t === 'rpn' || t.includes('p / s / d')){
-        el.classList.add('assessments');
-      }
-    });
-  }
-  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', markAssessmentsPanel); }
-  else { markAssessmentsPanel(); }
 })();
 </script>
 
-<!-- ✅ Modal/backdrop kilitlenme sigortası (hiçbir şeyi eksiltmeden sadece ek) -->
+<!-- ✅ Modal/backdrop kilitlenme sigortası (ek, bir şey eksiltmez) -->
 <script>
 (function(){
   function cleanupBackdrops(){
-    // Açık modal yoksa backdrop ve kilidi temizle
     const openModal = document.querySelector('.modal.show');
     if (!openModal){
       document.body.classList.remove('modal-open');
@@ -677,7 +687,6 @@
     }
   }
 
-  // data-bs-dismiss tıklarını garanti kapat (bazı custom markup'larda bootstrap kaçırabiliyor)
   document.addEventListener('click', (e) => {
     const dismissBtn = e.target.closest('[data-bs-dismiss="modal"]');
     if (!dismissBtn) return;
@@ -689,7 +698,6 @@
       if (window.bootstrap){
         bootstrap.Modal.getOrCreateInstance(modalEl).hide();
       } else {
-        // Bootstrap objesi yoksa yine de sayfa kilidini kaldır
         modalEl.classList.remove('show');
         modalEl.style.display = 'none';
         cleanupBackdrops();
@@ -701,11 +709,9 @@
     }
   });
 
-  // Bootstrap eventleriyle de temizle
   document.addEventListener('hidden.bs.modal', cleanupBackdrops);
   window.addEventListener('pageshow', cleanupBackdrops);
 
-  // ESC ile de kaçış kapısı
   document.addEventListener('keydown', (e)=>{
     if (e.key === 'Escape') cleanupBackdrops();
   });
