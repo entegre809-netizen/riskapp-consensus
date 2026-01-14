@@ -72,7 +72,7 @@
   [data-theme="dark"] .dash-scope .score-mid { color:#fde68a; }
   [data-theme="dark"] .dash-scope .score-high{ color:#fecaca; }
 
-  /* 🔧 Legend için “Yüksek(11–15)” ve “Çok Yüksek(16–25)” uyumlu rozetler */
+  /* 🔧 Legend için “Yüksek(11–15)” uyumlu rozet */
   .dash-scope .score-hi{
     background: rgba(251,146,60,.18);
     border-color: rgba(251,146,60,.38);
@@ -80,7 +80,7 @@
   }
   [data-theme="dark"] .dash-scope .score-hi{ color:#fed7aa; }
 
-  /* --- KPI’ler (Tailwind kart ölçülerine yakın) --- */
+  /* --- KPI’ler --- */
   .kpis{
     display:grid;
     grid-template-columns: repeat(6, minmax(0,1fr));
@@ -130,7 +130,7 @@
   .kpi.primary .label{ color: rgba(255,255,255,.55); }
   .kpi.primary .value{ color:#fff; }
 
-  /* --- Ana kartlar (table + matrix) --- */
+  /* --- Kartlar --- */
   .card{
     border-radius: 16px;
     border: 1px solid rgba(226,232,240,.9);
@@ -172,7 +172,7 @@
     font-weight: 900;
   }
 
-  /* --- Tablo tailwindvari --- */
+  /* --- Tablo --- */
   .table-wrap{ overflow:auto; border-radius: 14px; }
   .table{
     width:100%;
@@ -255,7 +255,7 @@
   .rm-cell{
     position:relative;
     border-radius: 14px;
-    display:flex;                 /* grid yerine flex */
+    display:flex;
     align-items:center;
     justify-content:center;
     text-decoration:none;
