@@ -1,116 +1,162 @@
 /* static/css/costs.css */
 
-/* --- Layout polish --- */
 .page-head{
-  display:flex; flex-wrap:wrap; gap:.75rem;
-  align-items:flex-end; justify-content:space-between;
+  display:flex;
+  flex-wrap:wrap;
+  gap:.9rem;
+  align-items:flex-end;
+  justify-content:space-between;
   margin-bottom: 1rem;
 }
-.page-sub{ color: var(--bs-secondary-color); }
 
-/* --- Template cards --- */
-.template-toolbar{
-  display:flex; flex-wrap:wrap; gap:.5rem;
-  align-items:center; justify-content:space-between;
-  margin-bottom:.75rem;
+.page-sub{
+  color: rgba(0,0,0,.55);
 }
 
-.template-card{
-  cursor:pointer;
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
-  user-select:none;
+.fx-panel{
   border: 1px solid rgba(0,0,0,.08);
-  border-radius: .75rem;
+  background: rgba(255,255,255,.6);
+  border-radius: 14px;
   padding: .85rem;
-  background: #fff;
-}
-.template-card:hover{
-  transform: translateY(-1px);
-  box-shadow: 0 .55rem 1.2rem rgba(0,0,0,.08);
-  border-color: rgba(13,110,253,.35) !important;
-}
-.template-card.active{
-  border-color: rgba(13,110,253,.75) !important;
-  box-shadow: 0 .75rem 1.25rem rgba(13,110,253,.12);
-  background: rgba(13,110,253,.04);
-}
-.template-meta{
-  font-size:.85rem;
-  color: var(--bs-secondary-color);
 }
 
-.tpl-badge{
-  font-size:.75rem;
-  padding:.15rem .45rem;
-  border-radius:999px;
-  border:1px solid rgba(0,0,0,.08);
-  background: rgba(0,0,0,.02);
-  color: var(--bs-secondary-color);
-  white-space: nowrap;
+[data-theme="dark"] .fx-panel,
+.dark .fx-panel{
+  border-color: rgba(255,255,255,.12);
+  background: rgba(18,24,32,.55);
 }
 
-/* --- Live totals --- */
-#liveTotal, #liveAnnual, #liveTotalBase, #liveAnnualBase{
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* --- Table --- */
-.table thead th{ white-space: nowrap; }
-.cost-row{ vertical-align: middle; }
-.cost-actions{ white-space: nowrap; }
-.desc-row td{ background: rgba(108,117,125,.08); }
-
-/* --- Small helpers --- */
 .chip{
   display:inline-flex;
   align-items:center;
   gap:.35rem;
-  padding: .15rem .55rem;
+  padding: .18rem .65rem;
   border-radius: 999px;
   border: 1px solid rgba(0,0,0,.08);
   background: rgba(0,0,0,.02);
-  font-size: .82rem;
-  color: var(--bs-secondary-color);
+  font-size: .84rem;
+  color: rgba(0,0,0,.65);
   white-space: nowrap;
 }
-.muted-hint{ color: var(--bs-secondary-color); font-size: .9rem; }
 
-/* --- Actions buttons --- */
-.btn-icon{
-  display:inline-flex;
+[data-theme="dark"] .chip,
+.dark .chip{
+  border-color: rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.75);
+}
+
+#liveTotal, #liveAnnual, #liveTotalBase, #liveAnnualBase,
+#liveTotalInline, #liveAnnualInline{
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.template-toolbar{
+  display:flex;
+  gap:.6rem;
   align-items:center;
-  justify-content:center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border-radius: .6rem;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  margin-bottom: .75rem;
 }
-.actions-wrap{
-  display:inline-flex;
-  gap:.35rem;
-  justify-content:flex-end;
+
+.tpl-badge{
+  font-size:.75rem;
+  font-weight:700;
+  padding:.14rem .5rem;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.02);
 }
+
+[data-theme="dark"] .tpl-badge,
+.dark .tpl-badge{
+  border-color: rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.75);
+}
+
+.template-card{
+  border:1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.7);
+  padding: .85rem;
+  transition: transform .08s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.template-card:hover{
+  border-color: rgba(40,102,189,.25);
+  box-shadow: 0 10px 30px -18px rgba(0,0,0,.25);
+}
+
+[data-theme="dark"] .template-card,
+.dark .template-card{
+  border-color: rgba(255,255,255,.12);
+  background: rgba(18,24,32,.55);
+}
+
+.template-meta{
+  font-size: .78rem;
+  color: rgba(0,0,0,.55);
+}
+
+[data-theme="dark"] .template-meta,
+.dark .template-meta{
+  color: rgba(255,255,255,.6);
+}
+
 .tpl-actions{
   display:flex;
   gap:.35rem;
+  align-items:center;
   flex-wrap:wrap;
   justify-content:flex-end;
-  align-items:center;
 }
 
-/* --- FX panel --- */
-.fx-panel{
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: .75rem;
-  padding: .75rem;
-  background: rgba(13,110,253,.03);
+.muted-hint{
+  font-size:.86rem;
+  color: rgba(0,0,0,.55);
 }
-.fx-grid{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap:.5rem;
+
+[data-theme="dark"] .muted-hint,
+.dark .muted-hint{
+  color: rgba(255,255,255,.6);
 }
-@media (max-width: 992px){
-  .fx-grid{ grid-template-columns: 1fr; }
+
+.sortable{
+  user-select:none;
+}
+
+.sortable:after{
+  content:" ⇅";
+  opacity:.35;
+  font-weight:700;
+  font-size:.85em;
+}
+
+.sortable[data-sortdir="asc"]:after{
+  content:" ↑";
+  opacity:.7;
+}
+
+.sortable[data-sortdir="desc"]:after{
+  content:" ↓";
+  opacity:.7;
+}
+
+.actions-wrap{
+  display:flex;
+  gap:.35rem;
+  justify-content:flex-end;
+}
+
+.btn-icon{
+  width: 34px;
+  height: 34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  border-radius: 10px;
 }

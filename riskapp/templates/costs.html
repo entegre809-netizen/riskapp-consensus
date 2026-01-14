@@ -5,7 +5,7 @@
 
 {% block content %}
 
-{# CSS’i static dosyadan çek (base.html'de ayrı styles bloğun yoksa burada da çalışır) #}
+{# CSS’i static dosyadan çek #}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/costs.css') }}">
 
 <div class="container py-4">
@@ -30,7 +30,7 @@
             </select>
 
             <div class="small text-muted ms-2">Tek Sefer:</div>
-            <select class="form-select form-select-sm" id="oneTimePolicy" style="width:170px;">
+            <select class="form-select form-select-sm" id="oneTimePolicy" style="width:190px;">
               <option value="1x">Yıllığa dahil et (1x)</option>
               <option value="0x">Yıllığa dahil etme (0x)</option>
               <option value="amortize">Amortisman</option>
@@ -60,16 +60,24 @@
         </div>
 
         <div class="small text-muted mt-2">
-          Not: Baz para dönüşümü için USD/TRY ve EUR/TRY girmen gerekir (USD/EUR satırların varsa).
+          Not: Dönüşüm için USD/TRY ve EUR/TRY girmen gerekir (USD/EUR satırların varsa).
         </div>
       </div>
     </div>
 
     <div class="d-flex flex-wrap gap-2 align-items-center">
-      <span class="chip">Anlık: <strong id="liveTotal">0</strong></span>
-      <span class="chip">Yıllık: <strong id="liveAnnual">0</strong></span>
-      <span class="chip">Anlık (Baz): <strong id="liveTotalBase">0</strong></span>
-      <span class="chip">Yıllık (Baz): <strong id="liveAnnualBase">0</strong></span>
+      <span class="chip" title="Tablodaki görünen satırlar">
+        Anlık: <strong id="liveTotal">—</strong>
+      </span>
+      <span class="chip" title="Tablodaki görünen satırlar">
+        Yıllık: <strong id="liveAnnual">—</strong>
+      </span>
+      <span class="chip" title="Baz para (tablodaki görünen satırlar)">
+        Anlık (Baz): <strong id="liveTotalBase">0</strong>
+      </span>
+      <span class="chip" title="Baz para (tablodaki görünen satırlar)">
+        Yıllık (Baz): <strong id="liveAnnualBase">0</strong>
+      </span>
     </div>
   </div>
 
@@ -135,7 +143,7 @@
                        data-desc="{{ (t.description or '')|e }}"
                        data-edit-url="{{ url_for('cost_template_edit_post', tpl_id=t.id) }}"
                        data-search="{{ ((t.title or '') ~ ' ' ~ (t.category or '') ~ ' ' ~ (t.unit or '') ~ ' ' ~ (t.currency or '') ~ ' ' ~ (t.frequency or '') ~ ' ' ~ (t.description or ''))|lower|e }}"
-                       role="button" tabindex="0" aria-label="Şablon: {{ t.title|e }}">
+                       role="button" tabindex="0">
 
                     <div class="d-flex align-items-start justify-content-between gap-2">
                       <div>
@@ -183,7 +191,7 @@
               </div>
             </div>
 
-            <!-- Default templates (data-search dahil) -->
+            <!-- Default templates -->
             <div class="col-12">
               <div class="template-card"
                    data-title="Personel / Mesai"
@@ -316,7 +324,6 @@
 
               <div class="col-12 col-md-6">
                 <label class="form-label">Kategori</label>
-                {# ✅ input yerine dropdown #}
                 <select class="form-select" name="category" id="category" required>
                   <option value="">— Seç —</option>
                   {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
@@ -351,7 +358,6 @@
                 </select>
               </div>
 
-              {# ✅ risk dropdown (opsiyonel) #}
               <div class="col-12">
                 <label class="form-label">
                   Riski Bağla (opsiyonel)
@@ -444,10 +450,10 @@
                 <tr>
                   <th role="button" class="sortable" data-sort="title">Başlık</th>
                   <th role="button" class="sortable" data-sort="category">Kategori</th>
-                  <th class="text-end" role="button" class="sortable" data-sort="qty">Miktar</th>
-                  <th class="text-end" role="button" class="sortable" data-sort="unit_price">Birim Fiyat</th>
-                  <th class="text-end" role="button" class="sortable" data-sort="total">Toplam</th>
-                  <th class="text-end" role="button" class="sortable" data-sort="frequency">Sıklık</th>
+                  <th role="button" class="sortable text-end" data-sort="qty">Miktar</th>
+                  <th role="button" class="sortable text-end" data-sort="unit_price">Birim Fiyat</th>
+                  <th role="button" class="sortable text-end" data-sort="total">Toplam</th>
+                  <th role="button" class="sortable text-end" data-sort="frequency">Sıklık</th>
                   <th class="text-end">Detay</th>
                   <th class="text-end">İşlem</th>
                 </tr>
@@ -456,20 +462,22 @@
               <tbody id="costTbody">
                 {% if costs and costs|length > 0 %}
                   {% for c in costs %}
+                    {% set cur = (c.currency or 'TRY')|upper %}
                     <tr class="cost-row"
                         data-id="{{ c.id }}"
                         data-title="{{ (c.title or '')|e }}"
                         data-category="{{ (c.category or '')|e }}"
-                        data-currency="{{ (c.currency or 'TRY')|upper|e }}"
+                        data-currency="{{ cur|e }}"
                         data-frequency="{{ (c.frequency or 'Tek Sefer')|e }}"
-                        data-qty="{{ c.qty }}"
-                        data-unit_price="{{ c.unit_price }}"
-                        data-total="{{ c.total }}">
+                        data-qty="{{ c.qty if c.qty is not none else 0 }}"
+                        data-unit_price="{{ c.unit_price if c.unit_price is not none else 0 }}"
+                        data-total="{{ c.total if c.total is not none else ((c.qty or 0) * (c.unit_price or 0)) }}"
+                        data-risk-id="{{ c.risk_id if c.risk_id is not none else '' }}">
                       <td class="fw-semibold">{{ c.title }}</td>
                       <td>{{ c.category }}</td>
                       <td class="text-end">{{ c.qty }}</td>
-                      <td class="text-end">{{ c.unit_price }} {{ (c.currency or 'TRY')|upper }}</td>
-                      <td class="text-end fw-semibold">{{ c.total }} {{ (c.currency or 'TRY')|upper }}</td>
+                      <td class="text-end">{{ c.unit_price }} {{ cur }}</td>
+                      <td class="text-end fw-semibold">{{ c.total }} {{ cur }}</td>
                       <td class="text-end">{{ c.frequency }}</td>
 
                       <td class="text-end cost-actions">
@@ -581,7 +589,7 @@
 
 </div>
 
-<!-- JSON -->
+<!-- JSON (Pareto Front için) -->
 <script id="frontData" type="application/json">{{ front_json|default(None)|tojson }}</script>
 
 <!-- Modals -->
@@ -603,7 +611,6 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">Kategori</label>
-              {# ✅ input yerine dropdown #}
               <select class="form-select" name="category" required>
                 <option value="">— Seç —</option>
                 {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
@@ -675,7 +682,6 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">Kategori</label>
-              {# ✅ input yerine dropdown #}
               <select class="form-select" name="category" id="tplEditCategory" required>
                 <option value="">— Seç —</option>
                 {% set cats = cost_categories if cost_categories is defined else ["İş Gücü","Ekipman","Yazılım","Eğitim","Hizmet","Operasyon"] %}
