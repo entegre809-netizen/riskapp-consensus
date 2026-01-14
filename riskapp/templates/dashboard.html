@@ -457,35 +457,7 @@
 
 <div class="dash-scope">
 
-  <!-- ===== TOP NAV (dashboard görünümü) ===== -->
-  <div class="dash-topbar" role="region" aria-label="Dashboard üst menü">
-    <div class="brand">
-      <div class="brand-badge">🛡️</div>
-      <div class="brand-title">
-        <b>RiskApp</b>
-        <span>Integrated Risk Management</span>
-      </div>
-    </div>
 
-    <div class="dash-search" role="search" aria-label="Risk arama">
-      <span class="icon">⌕</span>
-      <input type="text" placeholder="Search risks, metrics..." aria-label="Search risks, metrics">
-    </div>
-
-    <div class="dash-nav" aria-label="Kısayol menü">
-      <a class="active" href="{{ url_for('dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('risk_select') }}">Risk Inventory</a>
-      {% if session.get('role') == 'admin' %}
-        <a href="{{ url_for('categories_index') }}">Compliance</a>
-      {% endif %}
-      <a href="{{ url_for('settings_account') }}">Settings</a>
-    </div>
-
-    <div class="dash-right">
-      <button class="icon-btn" type="button" aria-label="Bildirimler">🔔</button>
-      <div class="avatar" aria-label="User avatar"></div>
-    </div>
-  </div>
 
   {# ==== KPI hesap: her risk için Risk.score() (detaydakiyle aynı) ==== #}
   {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
