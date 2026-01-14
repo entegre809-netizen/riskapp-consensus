@@ -5,18 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Giriş</title>
 
-  <!-- Ana tasarım dosyan -->
+  <!-- Ana tasarım dosyan (özelliklerin kalsın) -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <style>
-    /* ——— Login’e özel hafif stil: mevcut tema tokenlarını kullanır ——— */
-    :root{ --login-max: 440px }
+    /* ========= RiskApp Login Template Look & Feel (kendi sayfana uygulandı) ========= */
+    :root{
+      --primary: #2866bd;
+      --background-light: #f0f2f4;
+      --background-dark: #17191c;
+
+      --slate-muted: #8B919D;
+      --charcoal: #474B52;
+
+      --login-max: 480px;
+    }
 
     body{
+      font-family: 'Space Grotesk', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       min-height: 100dvh;
-      display:grid;
-      place-items:center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       padding: 24px 16px;
+      background: var(--background-light);
+      color: var(--charcoal);
+    }
+
+    /* Kart gölgesi: whisper-shadow */
+    .whisper-shadow{
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
     }
 
     .login-wrap{
@@ -24,77 +42,281 @@
       max-width: var(--login-max);
     }
 
+    /* Üst logo */
+    .brand{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .brand-badge{
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--primary);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      box-shadow: 0 14px 30px rgba(40,102,189,.18);
+    }
+    .brand-name{
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
+    }
+
+    /* Login Card */
     .card{
-      padding: clamp(16px, 3.2vw, 24px);
-      border-radius: var(--radius, 14px);
-      background: var(--card, #fff);
-      border: 1px solid var(--line, #e6ebf4);
-      box-shadow: var(--elev-card, 0 12px 28px rgba(15,23,42,.08));
-      backdrop-filter: var(--glass-blur, none);
+      padding: clamp(20px, 3.6vw, 30px);
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(2, 6, 23, 0.06);
+      box-shadow: 0 22px 60px rgba(2,6,23,.08);
     }
 
     .card h1{
-      margin:.25rem 0 .85rem;
-      font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+      margin: .2rem 0 .55rem;
+      font-size: 32px;
       font-weight: 900;
-      letter-spacing: .01em;
+      letter-spacing: -0.02em;
+      color: var(--charcoal);
     }
 
     .desc{
-      margin:-.35rem 0 1rem;
-      color: var(--muted, #556384);
+      margin: 0 0 18px;
+      color: var(--slate-muted);
       font-size: .95rem;
+      line-height: 1.55;
     }
 
-    .field{ display:flex; flex-direction:column; gap:.45rem; margin-bottom:.9rem }
-    .input-group{ display:flex; gap:.5rem; align-items:stretch }
-    .input-group .input{ flex:1 }
+    /* Fields */
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap: .45rem;
+      margin-bottom: 16px;
+    }
 
-    .muted{ opacity:.9; color: var(--muted, #6b7280) }
-    .tiny{ font-size:.85rem }
-    .error{ color: var(--danger, #b00020) }
+    label{
+      font-size: .92rem;
+      font-weight: 700;
+      color: var(--charcoal);
+      margin-left: 4px;
+    }
+
+    .input-group{
+      display:flex;
+      gap:.5rem;
+      align-items:stretch;
+    }
+    .input-group .input{ flex:1; }
+
+    /* Senin .input class'ını koruyoruz; burada login-tema görünümü veriyoruz */
+    .input{
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(2,6,23,.10);
+      background: rgba(248,250,252,.85);
+      color: var(--charcoal);
+      outline: none;
+      transition: box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    }
+
+    .input::placeholder{ color: rgba(71,75,82,.45); }
+
+    .input:focus{
+      background: #fff;
+      border-color: rgba(40,102,189,.55);
+      box-shadow: 0 0 0 4px rgba(40,102,189,.14);
+    }
+
+    .muted{ opacity:.95; color: var(--slate-muted); }
+    .tiny{ font-size: .82rem; }
+    .error{ color: #b00020; font-weight: 700; }
 
     .is-invalid{
-      border-color: var(--danger, #b00020) !important;
-      box-shadow: 0 0 0 .12rem color-mix(in oklab, var(--danger, #b00020) 20%, transparent);
-    }
-
-    .btn-ghost{
-      background: transparent;
-      border:1px solid color-mix(in oklab, currentColor 20%, transparent);
-      color: inherit;
-      padding: .66rem .8rem;
-      border-radius:12px;
-      line-height:1;
-    }
-
-    .actions{
-      margin-top:12px;
-      display:flex; flex-wrap:wrap; gap:8px;
-      align-items:center; justify-content:space-between;
+      border-color: #b00020 !important;
+      box-shadow: 0 0 0 .16rem rgba(176,0,32,.14) !important;
+      background: #fff !important;
     }
 
     /* Yardım/hata metni hizası */
     .help-row{
-      display:flex; gap:8px; align-items:flex-start; justify-content:space-between;
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding: 0 4px;
     }
 
-    /* Küçük marka / telif */
-    .foot{
-      margin-top: .9rem;
+    /* Buttons: senin .btn sınıflarını silmeden, login temasına uyarlıyoruz */
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 800;
+      border: 1px solid rgba(2,6,23,.10);
+      background: rgba(2,6,23,.03);
+      color: var(--charcoal);
+      text-decoration:none;
+      cursor:pointer;
+      transition: background .12s ease, transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+    }
+    .btn:hover{
+      background: rgba(2,6,23,.05);
+      text-decoration:none;
+    }
+    .btn:active{ transform: scale(.99); }
+
+    .btn-primary{
+      width: 100%;
+      padding: 14px 12px;
+      border-radius: 14px;
+      border-color: rgba(40,102,189,.35);
+      background: var(--primary);
+      color:#fff;
+      box-shadow: 0 14px 28px rgba(40,102,189,.20);
+    }
+    .btn-primary:hover{
+      filter: brightness(.96);
+    }
+
+    .btn-ghost{
+      background: transparent;
+      border: 1px solid rgba(2,6,23,.10);
+      color: var(--charcoal);
+      padding: 10px 12px;
+      border-radius: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .btn-ghost:hover{ background: rgba(2,6,23,.03); }
+
+    /* Remember / forgot */
+    .actions{
+      margin-top: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+    }
+    .row-between{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      flex-wrap:wrap;
+    }
+
+    .checkline{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      color: var(--slate-muted);
+      font-weight: 650;
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkline input[type="checkbox"]{
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      accent-color: var(--primary);
+    }
+
+    .link{
+      color: var(--primary);
+      font-weight: 800;
+      text-decoration:none;
+    }
+    .link:hover{ text-decoration: underline; }
+
+    /* Alt kayıt satırı */
+    .divider{
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(2,6,23,.06);
       text-align:center;
-      color: var(--muted, #6b7692);
+      color: var(--slate-muted);
+      font-weight: 650;
+    }
+
+    /* System status / meta */
+    .meta{
+      margin-top: 16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 18px;
+      color: var(--slate-muted);
+      font-size: 12px;
+      font-weight: 650;
+      flex-wrap: wrap;
+    }
+    .okdot{
+      width: 9px; height: 9px;
+      border-radius: 999px;
+      background: #10b981;
+      display:inline-block;
+      margin-right: 6px;
+    }
+
+    /* Flash (senin feature) — hafif modern görünsün */
+    .flash{
+      margin: 10px 0 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(2,6,23,.08);
+      background: rgba(248,250,252,.75);
+      color: var(--charcoal);
+      font-weight: 700;
+    }
+
+    /* Küçük footer */
+    .foot{
+      margin-top: 12px;
+      text-align:center;
+      color: var(--slate-muted);
       font-size: .85rem;
+      font-weight: 650;
+    }
+
+    /* Responsive */
+    @media (max-width: 420px){
+      .card{ padding: 18px; }
+      .card h1{ font-size: 28px; }
     }
   </style>
+
+  <!-- RiskApp login şablonundaki font (kendi projene ekliyoruz) -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 </head>
+
 <body>
   <main class="login-wrap">
-    <section class="card" role="form" aria-labelledby="loginTitle">
-      <h1 id="loginTitle">Giriş</h1>
-      <p class="desc">Hesabınıza erişmek için e-posta ve şifrenizi girin.</p>
 
-      {# Flash mesajları #}
+    <!-- Brand -->
+    <div class="brand" aria-label="RiskApp">
+      <div class="brand-badge" aria-hidden="true">🛡️</div>
+      <div class="brand-name">RiskApp</div>
+    </div>
+
+    <!-- Login Card -->
+    <section class="card whisper-shadow" role="form" aria-labelledby="loginTitle">
+      <header style="margin-bottom: 18px;">
+        <h1 id="loginTitle">Giriş</h1>
+        <p class="desc">Lütfen kurumsal e-posta adresinizle giriş yapın.</p>
+      </header>
+
+      {# Flash mesajları (özelliğin aynen duruyor) #}
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for cat, msg in messages %}
@@ -108,13 +330,13 @@
 
         <!-- E-posta -->
         <div class="field">
-          <label for="email">E-posta</label>
+          <label for="email">Kurumsal E-posta</label>
           <input
             class="input"
             id="email"
             type="email"
             name="email"
-            placeholder="ornek@firma.com"
+            placeholder="isim@sirket.com"
             value="{{ (email or '')|trim|e }}"
             required
             inputmode="email"
@@ -124,7 +346,7 @@
             aria-invalid="false"
           >
           <div class="help-row">
-            <small id="emailHelp" class="muted tiny">Kurumsal e-postanızı girin (boşluk/emoji kabul edilmez).</small>
+            <small id="emailHelp" class="muted tiny">Kurumsal e-posta adresinizi giriniz.</small>
             <small id="emailErr" class="tiny error" hidden>E-posta formatı hatalı.</small>
           </div>
         </div>
@@ -148,52 +370,71 @@
               aria-describedby="pwdHelp pwdErr"
               aria-invalid="false"
             >
-            <button class="btn btn-ghost" type="button" id="togglePwd" aria-controls="password" aria-pressed="false" aria-label="Şifreyi göster/gizle">Göster</button>
+            <button class="btn-ghost" type="button" id="togglePwd"
+                    aria-controls="password" aria-pressed="false"
+                    aria-label="Şifreyi göster/gizle">
+              Göster
+            </button>
           </div>
           <div class="help-row">
-            <small id="pwdHelp" class="muted tiny">En az 8 karakter, harf + rakam önerilir.</small>
+            <small id="pwdHelp" class="muted tiny">En az 8 karakter olmalıdır.</small>
             <small id="pwdErr" class="tiny error" hidden>Şifre kurala uymuyor.</small>
           </div>
         </div>
 
         <!-- Referans Kodu (opsiyonel) -->
         <div class="field">
-          <label for="ref_code">Referans Kodu <span class="muted tiny">(opsiyonel)</span></label>
+          <label for="ref_code">Referans Kodu <span class="muted tiny">(Opsiyonel)</span></label>
           <input
             class="input"
             id="ref_code"
             type="text"
             name="ref_code"
-            placeholder="PRJ-2025-123456"
+            placeholder="Opsiyonel"
             value="{{ (ref_code or '')|trim|e }}"
             inputmode="text"
             maxlength="32"
             autocomplete="one-time-code"
             aria-describedby="refHelp"
           >
-          <small id="refHelp" class="muted tiny">Admin’in atadığı kod. İlk/tek admin için gerekmez.</small>
+          <div class="help-row">
+            <small id="refHelp" class="muted tiny">Varsa referans kodunuzu ekleyin.</small>
+            <span></span>
+          </div>
         </div>
 
-        <!-- Remember me -->
-        <div class="field" style="margin:.2rem 0;">
-          <label for="remember" style="display:flex; align-items:center; gap:.55rem;">
+        <!-- Remember & Forgot -->
+        <div class="row-between" style="padding: 4px 2px 0;">
+          <label class="checkline" for="remember">
             <input id="remember" name="remember" type="checkbox" {% if remember %}checked{% endif %}>
             <span>Beni hatırla</span>
           </label>
+
+          <a class="link" href="{{ url_for('forgot_password') }}">Şifremi unuttum</a>
         </div>
 
-        <!-- CTA’lar -->
+        <!-- Primary Action -->
         <div class="actions">
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <a class="btn" href="{{ url_for('setup_step1') }}">Kayıt ol</a>
-            <a class="btn" href="{{ url_for('forgot_password') }}">Şifremi unuttum</a>
-          </div>
           <button class="btn btn-primary" id="submitBtn" type="submit">Giriş yap</button>
+        </div>
+
+        <!-- Footer Links -->
+        <div class="divider">
+          Hesabınız yok mu?
+          <a class="link" href="{{ url_for('setup_step1') }}">Kayıt ol</a>
         </div>
       </form>
 
-      <p class="foot">Girişte sorun mu var? <a href="mailto:support@ornek.com">support@ornek.com</a></p>
+      <p class="foot">Girişte sorun mu var? <a class="link" href="mailto:support@ornek.com">support@ornek.com</a></p>
     </section>
+
+    <!-- System Status / Meta Info -->
+    <div class="meta">
+      <div><span class="okdot"></span> Tüm sistemler çalışıyor</div>
+      <a class="link" href="#">Destek</a>
+      <a class="link" href="#">Gizlilik Politikası</a>
+    </div>
+
   </main>
 
   <script>
