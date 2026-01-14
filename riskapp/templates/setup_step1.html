@@ -1,236 +1,592 @@
 {% extends "base.html" %}
 {% block title %}Kayıt Ol · Proje Bilgileri{% endblock %}
+
+{# Wizard sayfası için body class (base.html destekliyorsa) #}
+{% block body_class %}auth register-wizard{% endblock %}
+
 {% block content %}
+<style>
+/* ==========================================================
+   RiskApp · Yeni Hesap ve Proje Kaydı (Wizard) — BLUE THEME
+   - Manrope hissi + modern wizard layout
+   - Primary: #2866bd (mavi)
+   - Sticky header + progress
+   - Sticky footer action bar (isteğe bağlı: bu sayfada panel içi bırakıldı)
+   ========================================================== */
+
+:root{
+  --primary:#2866bd;
+  --primary-2:#3b82f6;
+
+  --bg:#f7f7f7;
+  --card:#ffffff;
+  --line:#e4e8f2;
+  --text:#0f141a;
+  --text-dim:#536e93;
+
+  --danger:#b00020;
+  --warning:#f59e0b;
+  --success:#0F9D58;
+
+  --ring: var(--primary);
+}
+
+/* Panel kabuğunu yumuşat (base.html panel varsa) */
+.panel{
+  max-width: 960px;
+  margin: 0 auto;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--line) 90%, transparent);
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  box-shadow: 0 18px 50px rgba(2,6,23,.08);
+  overflow:hidden;
+}
+
+/* Page bg */
+body.register-wizard{
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* -------- Wizard shell -------- */
+.wizard{ display:grid; gap: 14px; }
+
+/* Sticky header */
+.wizard-head{
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255,255,255,.85);
+  border-bottom: 1px solid rgba(228,232,242,.9);
+  backdrop-filter: blur(12px);
+}
+.wizard-head-inner{
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 14px 18px;
+}
+
+/* Top row */
+.wizard-top{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap: 16px;
+  flex-wrap:wrap;
+  margin-bottom: 10px;
+}
+.brand{
+  display:flex; align-items:center; gap: 12px;
+}
+.brand-badge{
+  width: 38px; height: 38px;
+  border-radius: 12px;
+  display:flex; align-items:center; justify-content:center;
+  background: var(--primary);
+  color:#fff;
+  box-shadow: 0 14px 30px rgba(40,102,189,.18);
+}
+.brand h2{ margin:0; font-size: 20px; font-weight: 900; letter-spacing:-.02em; }
+.brand p{ margin:0; font-size: 12px; color: var(--text-dim); font-weight: 650; }
+
+.wizard-title{
+  text-align:right;
+}
+.wizard-title h2{
+  margin:0;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.wizard-title p{
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: color-mix(in oklab, var(--text-dim) 85%, transparent);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* Progress */
+.wizard-progress{
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+}
+.wizard-progress .top{
+  display:flex; justify-content:space-between; align-items:center;
+}
+.wizard-progress .top .lbl{
+  font-size: 11px;
+  font-weight: 900;
+  color: color-mix(in oklab, var(--text-dim) 85%, transparent);
+  text-transform: uppercase;
+  letter-spacing:.02em;
+}
+.wizard-progress .top .pct{
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary);
+}
+.wizard-progress .bar{
+  height: 7px;
+  width: 100%;
+  background: color-mix(in oklab, var(--line) 70%, transparent);
+  border-radius: 999px;
+  overflow:hidden;
+}
+.wizard-progress .bar > span{
+  display:block;
+  height:100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+  border-radius: 999px;
+}
+
+/* -------- Card content padding -------- */
+.panel-pad{
+  padding: 22px 22px 18px;
+}
+@media (min-width: 820px){
+  .panel-pad{ padding: 30px 34px 22px; }
+}
+
+/* Flash */
+.flash{
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+  background: rgba(248,250,252,.8);
+  color: var(--text);
+  font-weight: 750;
+}
+.flash.error{ border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+.flash.success{ border-color: color-mix(in oklab, var(--success) 35%, transparent); }
+.flash.warning{ border-color: color-mix(in oklab, var(--warning) 35%, transparent); }
+
+/* Section title */
+.section-title{
+  display:flex;
+  align-items:center;
+  gap: 14px;
+  margin: 6px 0 12px;
+  border-left: 4px solid var(--primary);
+  padding-left: 14px;
+}
+.section-title h3{
+  margin:0;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing:-.02em;
+}
+.section-title .line{
+  height: 1px;
+  flex:1;
+  background: color-mix(in oklab, var(--line) 70%, transparent);
+}
+
+/* Grid */
+.grid{ display:grid; gap: 14px; }
+.grid-2{ grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px){
+  .grid-2{ grid-template-columns: 1fr; }
+}
+
+/* Fields */
+.field{ display:flex; flex-direction:column; gap: .45rem; }
+label{ font-weight: 800; color: color-mix(in oklab, var(--text) 85%, transparent); }
+.tiny{ font-size: .85rem; }
+.muted{ opacity:.95; color: var(--text-dim); }
+.error{ color: var(--danger); font-weight: 750; }
+.warning{ color: var(--warning); font-weight: 750; }
+
+.input{
+  width: 100%;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  background: rgba(255,255,255,.92);
+  color: var(--text);
+  outline:none;
+  transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
+}
+textarea.input{ padding: 12px 14px; resize:none; }
+.input::placeholder{ color: color-mix(in oklab, var(--text-dim) 85%, transparent); }
+
+.input:focus{
+  background:#fff;
+  border-color: color-mix(in oklab, var(--primary) 55%, var(--line));
+  box-shadow: 0 0 0 4px rgba(40,102,189,.14);
+}
+
+/* Input group */
+.input-group{ display:flex; gap:.6rem; align-items:stretch; }
+.input-group .input{ flex:1; }
+
+/* Counters */
+.with-counter{ position: relative; }
+.counter{
+  position:absolute;
+  right: 8px;
+  bottom: -18px;
+  font-size: 11px;
+  color: color-mix(in oklab, var(--text-dim) 80%, transparent);
+  font-weight: 700;
+}
+.help-row{
+  display:flex;
+  gap: 10px;
+  align-items:flex-start;
+  justify-content:space-between;
+  flex-wrap:wrap;
+}
+
+/* Divider */
+.divider{
+  grid-column:1/-1;
+  height: 1px;
+  background: color-mix(in oklab, var(--line) 80%, transparent);
+  border-radius: 999px;
+  margin: 8px 0 6px;
+}
+
+/* Invalid */
+.is-invalid{
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(176,0,32,.14) !important;
+  background: #fff !important;
+}
+
+/* Checkbox card */
+.checkbox{
+  display:flex;
+  gap: 12px;
+  align-items:flex-start;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: rgba(248,250,252,.85);
+  border: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+}
+.checkbox input[type="checkbox"]{
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--primary);
+}
+
+/* Buttons */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 900;
+  border: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+  background: rgba(2,6,23,.03);
+  color: color-mix(in oklab, var(--text) 85%, transparent);
+  text-decoration:none;
+  cursor:pointer;
+  transition: background .12s ease, transform .12s ease, border-color .12s ease, filter .12s ease;
+}
+.btn:hover{ background: rgba(2,6,23,.05); text-decoration:none; }
+.btn:active{ transform: scale(.99); }
+
+.btn-ghost{
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--primary) 20%, var(--line));
+  color: var(--primary);
+}
+.btn-ghost:hover{ background: rgba(40,102,189,.06); }
+
+.btn-success{
+  background: var(--success);
+  border-color: color-mix(in oklab, var(--success) 50%, transparent);
+  color:#fff;
+  box-shadow: 0 14px 26px rgba(15,157,88,.18);
+}
+.btn-success:hover{ filter: brightness(.97); }
+
+.form-actions{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+}
+.actions-right{ display:flex; gap: 10px; align-items:center; }
+
+/* Small note link */
+a{ color: var(--primary); font-weight: 850; }
+a:hover{ text-decoration: underline; }
+</style>
+
 <div class="wizard">
-  <!-- ÜST BAŞLIK (sticky) -->
+
+  <!-- STICKY HEADER (RiskApp wizard look) -->
   <div class="wizard-head">
-    <div class="wizard-title">
-      <h2>Yeni Hesap ve Proje Kaydı</h2>
-      <p class="muted tiny">Lütfen hem kullanıcı hem proje bilgilerinizi girin. <strong>(*) zorunlu alan</strong></p>
-    </div>
-    <div class="wizard-progress" aria-hidden="true">
-      <span class="bar" style="--p:100%"></span>
+    <div class="wizard-head-inner">
+      <div class="wizard-top">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true">🛡️</div>
+          <div>
+            <h2>RiskApp</h2>
+            <p>Enterprise Security Management</p>
+          </div>
+        </div>
+
+        <div class="wizard-title">
+          <h2>Yeni Hesap ve Proje Kaydı</h2>
+          <p>SON ADIM: TAMAMLANMAK ÜZERE</p>
+        </div>
+      </div>
+
+      <div class="wizard-progress" aria-hidden="true">
+        <div class="top">
+          <span class="lbl">İşlem Durumu</span>
+          <span class="pct">100%</span>
+        </div>
+        <div class="bar"><span></span></div>
+      </div>
     </div>
   </div>
 
-  <div class="panel" style="max-width: 820px; margin: 0 auto;">
-    <!-- Flash mesajları -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="stack" style="gap:.55rem;margin-bottom:.9rem" aria-live="polite">
-          {% for cat, msg in messages %}
-            <div class="flash {{cat}}">{{ msg }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+  <!-- FORM CARD -->
+  <div class="panel">
+    <div class="panel-pad">
 
-    {% set errors = errors or {} %}
-
-    <form method="post" id="registerForm" class="grid grid-2" novalidate>
-      {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
-
-      <!-- Bölüm: Kullanıcı -->
-      <div class="section-title" style="grid-column:1/-1">
-        <h3>Kullanıcı Bilgileri</h3>
-      </div>
-
-      <div class="field">
-        <label for="language">Lisan *</label>
-        {% set lang_val = (request.form.get('language') or 'Türkçe') %}
-        <select class="input" id="language" name="language" required
-                aria-invalid="{{ 'true' if errors.get('language') }}">
-          <option value="Türkçe" {{ 'selected' if lang_val == 'Türkçe' else '' }}>Türkçe</option>
-          <option value="English" {{ 'selected' if lang_val == 'English' else '' }}>English</option>
-        </select>
-        {% if errors.get('language') %}<small class="error">{{ errors.get('language') }}</small>{% endif %}
-      </div>
-
-      <div class="field">
-        <label for="contact_name">Yetkili Kişi *</label>
-        <div class="with-counter">
-          <input class="input"
-                 id="contact_name" name="contact_name"
-                 placeholder="Ad Soyad" required
-                 value="{{ request.form.get('contact_name','')|e }}"
-                 autocomplete="name" inputmode="text" maxlength="60"
-                 pattern="^[A-Za-zÇĞİÖŞÜçğıöşü\s]{2,60}$"
-                 title="Sadece harf ve boşluk; 2–60 karakter"
-                 aria-invalid="{{ 'true' if errors.get('contact_name') }}"
-                 aria-describedby="nameHelp nameErr nameCnt">
-          <small id="nameCnt" class="tiny muted counter" aria-live="polite">0 / 60</small>
-        </div>
-        <div class="help-row">
-          <small id="nameHelp" class="muted tiny">Sadece harf ve boşluk.</small>
-          {% if errors.get('contact_name') %}
-            <small id="nameErr" class="error tiny">{{ errors.get('contact_name') }}</small>
-          {% else %}
-            <small id="nameErr" class="error tiny" hidden>Geçersiz ad.</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="contact_title">Ünvan</label>
-        <div class="with-counter">
-          <input class="input" id="contact_title" name="contact_title"
-                 placeholder="örn. Proje Müdürü"
-                 value="{{ request.form.get('contact_title','')|e }}"
-                 autocomplete="organization-title" inputmode="text" maxlength="80"
-                 pattern="^[A-Za-zÇĞİÖŞÜçğıöşü\s\.\'\-,]{2,80}$"
-                 title="Harf ve temel noktalama (. , ' -) kullanın; 2–80 karakter"
-                 aria-invalid="{{ 'true' if errors.get('contact_title') }}"
-                 aria-describedby="titleHelp titleErr titleCnt">
-          <small id="titleCnt" class="tiny muted counter" aria-live="polite">0 / 80</small>
-        </div>
-        <div class="help-row">
-          <small id="titleHelp" class="muted tiny">Noktalama: . , ' - izinli.</small>
-          {% if errors.get('contact_title') %}
-            <small id="titleErr" class="error tiny">{{ errors.get('contact_title') }}</small>
-          {% else %}
-            <small id="titleErr" class="error tiny" hidden>Geçersiz ünvan.</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="email">E-posta *</label>
-        <input class="input" id="email" type="email" name="email"
-               placeholder="ornek@firma.com" required autocomplete="email"
-               inputmode="email" maxlength="120"
-               value="{{ request.form.get('email','')|e }}"
-               aria-invalid="{{ 'true' if errors.get('email') }}"
-               aria-describedby="emailHelp emailErr">
-        <div class="help-row">
-          <small id="emailHelp" class="muted tiny">Kurumsal e-posta önerilir.</small>
-          {% if errors.get('email') %}
-            <small id="emailErr" class="error tiny">{{ errors.get('email') }}</small>
-          {% else %}
-            <small id="emailErr" class="error tiny" hidden>E-posta formatı hatalı.</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="field" style="grid-column:1/-1">
-        <label for="password">Şifre *</label>
-        <div class="input-group">
-          <input class="input" id="password" type="password" name="password"
-                 placeholder="En az 8 karakter" required minlength="8" maxlength="128"
-                 autocomplete="new-password"
-                 pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\-_.!@#$%^&*]{8,128}$"
-                 title="En az bir harf ve bir rakam içermeli; özel karakter olarak - _ . ! @ # $ % ^ & * kullanılabilir"
-                 aria-describedby="pwdHelp pwdErr capsHint"
-                 aria-invalid="{{ 'true' if errors.get('password') }}">
-          <button class="btn btn-ghost" id="togglePwd" type="button"
-                  aria-controls="password" aria-pressed="false">Göster</button>
-        </div>
-        <div class="help-row">
-          <small id="pwdHelp" class="muted tiny">Harf + rakam; 8–128 karakter.</small>
-          <small id="capsHint" class="tiny warning" hidden>Caps Lock açık olabilir.</small>
-          {% if errors.get('password') %}
-            <small id="pwdErr" class="error tiny">{{ errors.get('password') }}</small>
-          {% else %}
-            <small id="pwdErr" class="error tiny" hidden>Şifre kurala uymuyor.</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="divider" style="grid-column:1/-1" role="separator" aria-label="Proje bilgileri"></div>
-
-      <!-- Bölüm: Proje -->
-      <div class="section-title" style="grid-column:1/-1">
-        <h3>Proje Bilgileri</h3>
-      </div>
-
-      <div class="field">
-        <label for="workplace_name">Proje / İş Yeri Unvanı *</label>
-        <div class="with-counter">
-          <input class="input" id="workplace_name" name="workplace_name" required
-                 value="{{ request.form.get('workplace_name','')|e }}"
-                 autocomplete="organization" inputmode="text" maxlength="80"
-                 pattern="(?=.*[A-Za-zÇĞİÖŞÜçğıöşü])[A-Za-z0-9ÇĞİÖŞÜçğıöşü\s\.\&'\-,()]{2,80}"
-                 title="En az bir harf içermeli; harf/rakam/boşluk ve . & ' - , ( ) kullanılabilir; 2–80 karakter"
-                 aria-invalid="{{ 'true' if errors.get('workplace_name') }}"
-                 aria-describedby="workHelp workErr workCnt">
-          <small id="workCnt" class="tiny muted counter" aria-live="polite">0 / 80</small>
-        </div>
-        <div class="help-row">
-          <small id="workHelp" class="muted tiny">Unvanda en az bir harf olmalı.</small>
-          {% if errors.get('workplace_name') %}
-            <small id="workErr" class="error tiny">{{ errors.get('workplace_name') }}</small>
-          {% else %}
-            <small id="workErr" class="error tiny" hidden>Geçersiz unvan.</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="project_duration">Proje Süresi</label>
-        <input class="input" id="project_duration" name="project_duration"
-               placeholder="örn. 12 ay, 6-9 ay, proje boyunca"
-               value="{{ request.form.get('project_duration','')|e }}"
-               inputmode="text" maxlength="40"
-               pattern="^[A-Za-zÇĞİÖŞÜçğıöşü0-9\s/\-]{2,40}$"
-               title="Harf/rakam/boşluk ve / - kullanın; 2–40 karakter"
-               aria-invalid="{{ 'true' if errors.get('project_duration') }}"
-               aria-describedby="durHelp durErr">
-        <div class="help-row">
-          <small id="durHelp" class="muted tiny">Serbest metin (örn. 12 ay).</small>
-          {% if errors.get('project_duration') %}
-            <small id="durErr" class="error tiny">{{ errors.get('project_duration') }}</small>
-          {% else %}
-            <small id="durErr" class="error tiny" hidden>Geçersiz süre.</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="field" style="grid-column:1/-1">
-        <label for="workplace_address">Adres *</label>
-        <div class="with-counter">
-          <textarea class="input" id="workplace_address" name="workplace_address"
-                    rows="3" required autocomplete="street-address" maxlength="180"
-                    pattern="^[A-Za-zÇĞİÖŞÜçğıöşü0-9\s\.\,'/\\\-#():;]{5,180}$"
-                    title="Harf/rakam/boşluk ve ., ' / \ - # ( ) : ; kullanılabilir; 5–180 karakter"
-                    aria-invalid="{{ 'true' if errors.get('workplace_address') }}"
-                    aria-describedby="addrHelp addrErr addrCnt">{{ request.form.get('workplace_address','')|e }}</textarea>
-          <small id="addrCnt" class="tiny muted counter" aria-live="polite">0 / 180</small>
-        </div>
-        <div class="help-row">
-          <small id="addrHelp" class="muted tiny">Posta adresini eksiksiz yazın.</small>
-          {% if errors.get('workplace_address') %}
-            <small id="addrErr" class="error tiny">{{ errors.get('workplace_address') }}</small>
-          {% else %}
-            <small id="addrErr" class="error tiny" hidden>Adres yetersiz.</small>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="field" style="grid-column:1/-1">
-        <label class="checkbox" for="kvkk_accepted">
-          <input type="checkbox" name="kvkk_accepted" id="kvkk_accepted"
-                 {% if request.form.get('kvkk_accepted') %}checked{% endif %} required
-                 aria-invalid="{{ 'true' if errors.get('kvkk_accepted') }}"
-                 aria-describedby="kvkkErr">
-          <span>KVKK/Aydınlatma metnini okudum ve kabul ediyorum *</span>
-        </label>
-        {% if errors.get('kvkk_accepted') %}
-          <small id="kvkkErr" class="error tiny">{{ errors.get('kvkk_accepted') }}</small>
-        {% else %}
-          <small id="kvkkErr" class="error tiny" hidden>Kabul edilmelidir.</small>
+      <!-- Flash mesajları -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="stack" style="display:grid; gap:.55rem; margin-bottom: .9rem" aria-live="polite">
+            {% for cat, msg in messages %}
+              <div class="flash {{cat}}">{{ msg }}</div>
+            {% endfor %}
+          </div>
         {% endif %}
-      </div>
+      {% endwith %}
 
-      <!-- Alt eylemler -->
-      <div class="form-actions" style="grid-column:1/-1">
-        <a class="btn" href="{{ url_for('welcome') }}">Geri</a>
-        <div class="actions-right">
-          <button class="btn btn-ghost" type="reset">Temizle</button>
-          <button class="btn btn-success" id="submitBtn">Kaydı Tamamla</button>
+      {% set errors = errors or {} %}
+
+      <form method="post" id="registerForm" class="grid grid-2" novalidate>
+        {% if csrf_token is defined %}{{ csrf_token() }}{% endif %}
+
+        <!-- Section: Kullanıcı -->
+        <div class="section-title" style="grid-column:1/-1">
+          <h3>Kullanıcı Bilgileri</h3>
+          <div class="line"></div>
         </div>
-      </div>
-    </form>
 
-    <p class="tiny muted" style="margin-top:.9rem">Sorun yaşarsanız <a href="mailto:support@ornek.com">support@ornek.com</a>.</p>
+        <div class="field">
+          <label for="language">Lisan *</label>
+          {% set lang_val = (request.form.get('language') or 'Türkçe') %}
+          <select class="input" id="language" name="language" required
+                  aria-invalid="{{ 'true' if errors.get('language') }}">
+            <option value="Türkçe" {{ 'selected' if lang_val == 'Türkçe' else '' }}>Türkçe</option>
+            <option value="English" {{ 'selected' if lang_val == 'English' else '' }}>English</option>
+          </select>
+          {% if errors.get('language') %}<small class="error tiny">{{ errors.get('language') }}</small>{% endif %}
+        </div>
+
+        <div class="field">
+          <label for="contact_name">Yetkili Kişi *</label>
+          <div class="with-counter">
+            <input class="input"
+                   id="contact_name" name="contact_name"
+                   placeholder="Ad Soyad" required
+                   value="{{ request.form.get('contact_name','')|e }}"
+                   autocomplete="name" inputmode="text" maxlength="60"
+                   pattern="^[A-Za-zÇĞİÖŞÜçğıöşü\s]{2,60}$"
+                   title="Sadece harf ve boşluk; 2–60 karakter"
+                   aria-invalid="{{ 'true' if errors.get('contact_name') }}"
+                   aria-describedby="nameHelp nameErr nameCnt">
+            <small id="nameCnt" class="counter" aria-live="polite">0 / 60</small>
+          </div>
+          <div class="help-row">
+            <small id="nameHelp" class="muted tiny">Sadece harf ve boşluk.</small>
+            {% if errors.get('contact_name') %}
+              <small id="nameErr" class="error tiny">{{ errors.get('contact_name') }}</small>
+            {% else %}
+              <small id="nameErr" class="error tiny" hidden>Geçersiz ad.</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="contact_title">Ünvan</label>
+          <div class="with-counter">
+            <input class="input" id="contact_title" name="contact_title"
+                   placeholder="örn. Proje Müdürü"
+                   value="{{ request.form.get('contact_title','')|e }}"
+                   autocomplete="organization-title" inputmode="text" maxlength="80"
+                   pattern="^[A-Za-zÇĞİÖŞÜçğıöşü\s\.\'\-,]{2,80}$"
+                   title="Harf ve temel noktalama (. , ' -) kullanın; 2–80 karakter"
+                   aria-invalid="{{ 'true' if errors.get('contact_title') }}"
+                   aria-describedby="titleHelp titleErr titleCnt">
+            <small id="titleCnt" class="counter" aria-live="polite">0 / 80</small>
+          </div>
+          <div class="help-row">
+            <small id="titleHelp" class="muted tiny">Noktalama: . , ' - izinli.</small>
+            {% if errors.get('contact_title') %}
+              <small id="titleErr" class="error tiny">{{ errors.get('contact_title') }}</small>
+            {% else %}
+              <small id="titleErr" class="error tiny" hidden>Geçersiz ünvan.</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="email">E-posta *</label>
+          <input class="input" id="email" type="email" name="email"
+                 placeholder="ornek@firma.com" required autocomplete="email"
+                 inputmode="email" maxlength="120"
+                 value="{{ request.form.get('email','')|e }}"
+                 aria-invalid="{{ 'true' if errors.get('email') }}"
+                 aria-describedby="emailHelp emailErr">
+          <div class="help-row">
+            <small id="emailHelp" class="muted tiny">Kurumsal e-posta önerilir.</small>
+            {% if errors.get('email') %}
+              <small id="emailErr" class="error tiny">{{ errors.get('email') }}</small>
+            {% else %}
+              <small id="emailErr" class="error tiny" hidden>E-posta formatı hatalı.</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="field" style="grid-column:1/-1">
+          <label for="password">Şifre *</label>
+          <div class="input-group">
+            <input class="input" id="password" type="password" name="password"
+                   placeholder="En az 8 karakter" required minlength="8" maxlength="128"
+                   autocomplete="new-password"
+                   pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\-_.!@#$%^&*]{8,128}$"
+                   title="En az bir harf ve bir rakam içermeli; özel karakter olarak - _ . ! @ # $ % ^ & * kullanılabilir"
+                   aria-describedby="pwdHelp pwdErr capsHint"
+                   aria-invalid="{{ 'true' if errors.get('password') }}">
+            <button class="btn btn-ghost" id="togglePwd" type="button"
+                    aria-controls="password" aria-pressed="false">Göster</button>
+          </div>
+          <div class="help-row">
+            <small id="pwdHelp" class="muted tiny">Harf + rakam; 8–128 karakter.</small>
+            <small id="capsHint" class="tiny warning" hidden>Caps Lock açık olabilir.</small>
+            {% if errors.get('password') %}
+              <small id="pwdErr" class="error tiny">{{ errors.get('password') }}</small>
+            {% else %}
+              <small id="pwdErr" class="error tiny" hidden>Şifre kurala uymuyor.</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="divider" role="separator" aria-label="Proje bilgileri"></div>
+
+        <!-- Section: Proje -->
+        <div class="section-title" style="grid-column:1/-1">
+          <h3>Proje Bilgileri</h3>
+          <div class="line"></div>
+        </div>
+
+        <div class="field">
+          <label for="workplace_name">Proje / İş Yeri Unvanı *</label>
+          <div class="with-counter">
+            <input class="input" id="workplace_name" name="workplace_name" required
+                   value="{{ request.form.get('workplace_name','')|e }}"
+                   autocomplete="organization" inputmode="text" maxlength="80"
+                   pattern="(?=.*[A-Za-zÇĞİÖŞÜçğıöşü])[A-Za-z0-9ÇĞİÖŞÜçğıöşü\s\.\&'\-,()]{2,80}"
+                   title="En az bir harf içermeli; harf/rakam/boşluk ve . & ' - , ( ) kullanılabilir; 2–80 karakter"
+                   aria-invalid="{{ 'true' if errors.get('workplace_name') }}"
+                   aria-describedby="workHelp workErr workCnt">
+            <small id="workCnt" class="counter" aria-live="polite">0 / 80</small>
+          </div>
+          <div class="help-row">
+            <small id="workHelp" class="muted tiny">Unvanda en az bir harf olmalı.</small>
+            {% if errors.get('workplace_name') %}
+              <small id="workErr" class="error tiny">{{ errors.get('workplace_name') }}</small>
+            {% else %}
+              <small id="workErr" class="error tiny" hidden>Geçersiz unvan.</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="project_duration">Proje Süresi</label>
+          <input class="input" id="project_duration" name="project_duration"
+                 placeholder="örn. 12 ay, 6-9 ay, proje boyunca"
+                 value="{{ request.form.get('project_duration','')|e }}"
+                 inputmode="text" maxlength="40"
+                 pattern="^[A-Za-zÇĞİÖŞÜçğıöşü0-9\s/\-]{2,40}$"
+                 title="Harf/rakam/boşluk ve / - kullanın; 2–40 karakter"
+                 aria-invalid="{{ 'true' if errors.get('project_duration') }}"
+                 aria-describedby="durHelp durErr">
+          <div class="help-row">
+            <small id="durHelp" class="muted tiny">Serbest metin (örn. 12 ay).</small>
+            {% if errors.get('project_duration') %}
+              <small id="durErr" class="error tiny">{{ errors.get('project_duration') }}</small>
+            {% else %}
+              <small id="durErr" class="error tiny" hidden>Geçersiz süre.</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="field" style="grid-column:1/-1">
+          <label for="workplace_address">Adres *</label>
+          <div class="with-counter">
+            <textarea class="input" id="workplace_address" name="workplace_address"
+                      rows="3" required autocomplete="street-address" maxlength="180"
+                      pattern="^[A-Za-zÇĞİÖŞÜçğıöşü0-9\s\.\,'/\\\-#():;]{5,180}$"
+                      title="Harf/rakam/boşluk ve ., ' / \ - # ( ) : ; kullanılabilir; 5–180 karakter"
+                      aria-invalid="{{ 'true' if errors.get('workplace_address') }}"
+                      aria-describedby="addrHelp addrErr addrCnt">{{ request.form.get('workplace_address','')|e }}</textarea>
+            <small id="addrCnt" class="counter" aria-live="polite">0 / 180</small>
+          </div>
+          <div class="help-row">
+            <small id="addrHelp" class="muted tiny">Posta adresini eksiksiz yazın.</small>
+            {% if errors.get('workplace_address') %}
+              <small id="addrErr" class="error tiny">{{ errors.get('workplace_address') }}</small>
+            {% else %}
+              <small id="addrErr" class="error tiny" hidden>Adres yetersiz.</small>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="field" style="grid-column:1/-1">
+          <label class="checkbox" for="kvkk_accepted">
+            <input type="checkbox" name="kvkk_accepted" id="kvkk_accepted"
+                   {% if request.form.get('kvkk_accepted') %}checked{% endif %} required
+                   aria-invalid="{{ 'true' if errors.get('kvkk_accepted') }}"
+                   aria-describedby="kvkkErr">
+            <span>
+              <strong>KVKK/Aydınlatma metni:</strong>
+              Kişisel verilerimin işlenmesine dair hazırlanan aydınlatma metnini okudum ve kabul ediyorum. *
+            </span>
+          </label>
+          {% if errors.get('kvkk_accepted') %}
+            <small id="kvkkErr" class="error tiny">{{ errors.get('kvkk_accepted') }}</small>
+          {% else %}
+            <small id="kvkkErr" class="error tiny" hidden>Kabul edilmelidir.</small>
+          {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <a class="btn" href="{{ url_for('welcome') }}">Geri</a>
+          <div class="actions-right">
+            <button class="btn btn-ghost" type="reset">Temizle</button>
+            <button class="btn btn-success" id="submitBtn" type="submit">Kaydı Tamamla</button>
+          </div>
+        </div>
+      </form>
+
+      <p class="tiny muted" style="margin-top:.9rem">
+        Sorun yaşarsanız <a href="mailto:support@ornek.com">support@ornek.com</a>.
+      </p>
+
+    </div>
   </div>
 </div>
 
@@ -297,20 +653,16 @@
   // Karakter sayacı
   function counter(id, max){
     const el = document.getElementById(id);
-    const cnt = document.querySelector('#'+id+' ~ .counter');
+    const cnt = document.getElementById(id === 'workplace_address' ? 'addrCnt' : (id === 'contact_name' ? 'nameCnt' : (id === 'contact_title' ? 'titleCnt' : 'workCnt')));
     if (!el || !cnt) return;
-    const update = () => { cnt.textContent = el.value.length + ' / ' + max; };
+    const update = () => { cnt.textContent = (el.value || '').length + ' / ' + max; };
     el.addEventListener('input', update);
     update();
   }
   counter('contact_name', 60);
   counter('contact_title', 80);
   counter('workplace_name', 80);
-  (function(){
-    const t = document.getElementById('workplace_address');
-    const cnt = document.getElementById('addrCnt');
-    if (t && cnt){ t.addEventListener('input', ()=>{ cnt.textContent = t.value.length + ' / 180'; }); cnt.textContent = (t.value||'').length + ' / 180'; }
-  })();
+  counter('workplace_address', 180);
 
   // Alan geçerlilik göstergesi
   form.addEventListener('input', (e) => {
@@ -324,10 +676,10 @@
     }
   });
 
-  // En az bir harf kuralı (ad/unvan/işyeri)
+  // En az bir harf kuralı
   const hasLetter = (s) => /[A-Za-zÇĞİÖŞÜçğıöşü]/.test(s||'');
 
-  // Submit – yerel + ek kontroller + çift tık kilidi
+  // Submit – ek kontroller + çift tık kilidi
   form.addEventListener('submit', (e) => {
     const nameOk = hasLetter(document.getElementById('contact_name').value);
     const titleEl = document.getElementById('contact_title');
@@ -343,6 +695,7 @@
       (form.querySelector('.is-invalid') || document.getElementById('contact_name')).focus();
       return;
     }
+
     submitBtn.disabled = true;
     submitBtn.textContent = 'Gönderiliyor...';
   });
@@ -352,62 +705,4 @@
   if (first && !first.value) first.focus();
 })();
 </script>
-
-<style>
-/* ——— Kayıt sihirbazı ——— */
-.wizard { display: grid; gap: 16px; }
-.wizard-head{
-  position: sticky; top: -8px; z-index: 2;
-  padding: 8px 0 0;
-  backdrop-filter: blur(6px);
-}
-.wizard-title h2{ margin: .2rem 0 .3rem; font-weight: 900 }
-.wizard-title .muted{ color: var(--text-dim, #6b7692) }
-.wizard-progress{ height: 6px; background: color-mix(in oklab, var(--line, #e6ebf4) 40%, transparent); border-radius: 999px; overflow: hidden }
-.wizard-progress .bar{ display:block; height:100%; width: var(--p,0%); background: linear-gradient(90deg, var(--primary,#ffd24d), var(--primary-2,#ffe07a)); }
-
-.section-title h3{ margin:.6rem 0 .4rem; font-weight: 850; letter-spacing:.01em }
-
-.field{ display:flex; flex-direction:column; gap:.4rem }
-.input-group{ display:flex; gap:.6rem; align-items:stretch }
-.input-group .input{ flex:1 }
-
-.help-row{ display:flex; gap:8px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap }
-.tiny{ font-size:.85rem }
-.muted{ opacity:.9; color: var(--text-dim, #6b7692) }
-.error{ color: var(--danger, #b00020) }
-.warning{ color: var(--warning, #f59e0b) }
-
-.is-invalid{
-  border-color: var(--danger, #b00020) !important;
-  box-shadow: 0 0 0 .125rem color-mix(in oklab, var(--danger, #b00020) 20%, transparent);
-}
-.counter{ margin-left:auto }
-
-.checkbox{ display:flex; gap:.6rem; align-items:flex-start }
-.form-actions{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:.4rem }
-.actions-right{ display:flex; gap:.5rem; align-items:center }
-
-/* Bölücü çizgi */
-.divider{ height:1px; background: color-mix(in oklab, var(--line,#e6ebf4) 80%, transparent); margin:.4rem 0 0.6rem; border-radius: 999px }
-
-/* Küçük ekran: tek kolon */
-@media (max-width: 900px){
-  .grid-2{ grid-template-columns: 1fr !important }
-}
-
-/* Focus-visible (temayla uyumlu) */
-:where(select.input, input.input, textarea.input, .btn, .btn-ghost):focus-visible{
-  outline:none;
-  box-shadow:
-    0 0 0 4px color-mix(in oklab, var(--ring, #ffd65a) 35%, transparent),
-    0 2px 14px color-mix(in oklab, var(--ring, #ffd65a) 18%, transparent),
-    inset 0 0 0 1px color-mix(in oklab, var(--ring, #ffd65a) 60%, transparent);
-  border-color: color-mix(in oklab, var(--ring, #ffd65a) 60%, transparent);
-}
-
-/* “with-counter” düzeni */
-.with-counter{ position: relative }
-.with-counter .counter{ position:absolute; right:6px; bottom:-1.2rem }
-</style>
 {% endblock %}
