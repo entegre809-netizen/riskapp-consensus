@@ -1,233 +1,656 @@
 {% extends "base.html" %}
 {% block title %}Yeni Risk{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>Yeni Risk</h2>
 
+<style>
+  /* =========================================================
+     Risk New — Tailwind-like / Enterprise UI (base ile uyumlu)
+     Feature kaybı yok: aynı Jinja + aynı POST akışı + aynı JS
+     ========================================================= */
+
+  :root{
+    --primary: #2866bd;
+    --bg: #ffffff;
+    --bg-soft: #f6f7f8;
+    --card: rgba(255,255,255,.92);
+    --line: rgba(148,163,184,.35);
+    --muted: rgba(100,116,139,1);
+    --radius: 18px;
+    --radius-sm: 14px;
+    --elev-1: 0 10px 26px -18px rgba(15,23,42,.25);
+    --glass-blur: blur(10px);
+    --danger: #ef4444;
+  }
+
+  [data-theme="dark"]{
+    --bg: #0b1220;
+    --bg-soft: rgba(17,23,33,.70);
+    --card: rgba(18,24,32,.62);
+    --line: rgba(51,65,85,.55);
+    --muted: rgba(148,163,184,1);
+  }
+
+  .page-wrap{ max-width: 1100px; margin: 0 auto; }
+  .crumbs{
+    display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+    font-weight: 700; font-size: .92rem;
+    color: color-mix(in oklab, var(--muted) 92%, transparent);
+    margin: 6px 0 14px;
+  }
+  .crumbs a{
+    color: color-mix(in oklab, var(--muted) 92%, transparent);
+    text-decoration:none;
+  }
+  .crumbs a:hover{ color: var(--primary); }
+
+  .page-head{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap: 12px; flex-wrap:wrap;
+    margin-bottom: 14px;
+  }
+  .page-head h1{
+    margin:0;
+    font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+    font-weight: 950;
+    letter-spacing: -0.02em;
+  }
+  .page-head p{
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: .95rem;
+  }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    gap:.5rem;
+    padding: .6rem .95rem;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--line) 86%, transparent);
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
+    color: inherit;
+    font-weight: 900;
+    font-size: .92rem;
+    text-decoration:none;
+    cursor:pointer;
+    transition: transform .08s ease, filter .16s ease, border-color .16s ease, background .16s ease;
+  }
+  .btn:hover{
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--primary) 28%, var(--line));
+  }
+  .btn-primary{
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 16px 38px -22px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+  .btn-primary:hover{ filter: brightness(1.03); }
+  .btn-secondary{
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    border-color: color-mix(in oklab, var(--primary) 20%, transparent);
+    color: var(--primary);
+  }
+  .btn-ghost{
+    background: transparent;
+    border-style: dashed;
+    opacity: .95;
+  }
+  .btn-ghost:hover{ opacity: 1; }
+
+  .btn-danger{
+    background: color-mix(in oklab, var(--danger) 12%, transparent);
+    border-color: color-mix(in oklab, var(--danger) 28%, transparent);
+    color: color-mix(in oklab, var(--danger) 85%, #fff 15%);
+  }
+  [data-theme="dark"] .btn-danger{ color: #ffecec; }
+
+  .icon{
+    display:inline-grid; place-items:center;
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--primary);
+    font-weight: 1000;
+    flex: 0 0 auto;
+  }
+
+  .panel-card{
+    border-radius: var(--radius);
+    border: 1px solid color-mix(in oklab, var(--line) 88%, transparent);
+    background: color-mix(in oklab, var(--bg) 97%, transparent);
+    box-shadow: var(--elev-1);
+    padding: 18px;
+  }
+  [data-theme="dark"] .panel-card{
+    background: rgba(18,24,32,.55);
+  }
+
+  .basket{
+    background: color-mix(in oklab, var(--primary) 6%, transparent);
+    border: 2px dashed color-mix(in oklab, var(--primary) 22%, transparent);
+  }
+
+  .basket-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 10px; flex-wrap:wrap;
+    margin-bottom: 12px;
+  }
+  .basket-title{
+    display:flex; align-items:center; gap: 10px;
+    font-weight: 950;
+    margin: 0;
+    font-size: 1.05rem;
+  }
+  .pill{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding: .22rem .55rem;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 950;
+    font-size: .78rem;
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+
+  .grid-templates{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 12px;
+  }
+  @media (max-width: 980px){ .grid-templates{ grid-template-columns: 1fr; } }
+
+  .tpl-card{
+    background: color-mix(in oklab, var(--bg) 98%, transparent);
+    border: 1px solid color-mix(in oklab, var(--line) 88%, transparent);
+    border-radius: 14px;
+    padding: 12px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 10px;
+  }
+  [data-theme="dark"] .tpl-card{ background: rgba(18,24,32,.55); }
+
+  .tpl-meta{ min-width: 0; }
+  .tpl-cat{
+    margin:0 0 4px;
+    font-weight: 950;
+    color: var(--primary);
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .tpl-title{
+    margin:0;
+    font-weight: 900;
+    font-size: .92rem;
+    color: inherit;
+    line-height: 1.25;
+  }
+  .tpl-desc{
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.35;
+
+  /* clamp */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+
+  /* standart + webkit */
+  line-clamp: 1;
+  -webkit-line-clamp: 1;
+}
+
+  .tpl-x{
+    border: 0;
+    background: transparent;
+    color: color-mix(in oklab, var(--muted) 65%, transparent);
+    cursor:pointer;
+    font-weight: 1000;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+  .tpl-x:hover{ color: var(--danger); background: color-mix(in oklab, var(--danger) 10%, transparent); }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: .12rem .48rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    color: var(--primary);
+    font-weight: 950;
+    font-size: .74rem;
+    margin-left: .35rem;
+    white-space: nowrap;
+  }
+
+  .form-card{
+    padding: 20px;
+  }
+
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin: 18px 0 12px;
+  }
+  .section-title h3{
+    margin:0;
+    font-size: 1.1rem;
+    font-weight: 950;
+    letter-spacing: -0.01em;
+  }
+
+  .form-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+  }
+  @media (max-width: 900px){ .form-grid{ grid-template-columns: 1fr; } }
+
+  .field{ display:flex; flex-direction:column; gap: 6px; }
+  .field label{ font-weight: 900; font-size: .9rem; }
+  .small{ color: var(--muted); font-size: .85rem; }
+
+  .input, textarea.input, select.input{
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--line) 92%, transparent);
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
+    color: inherit;
+    padding: .65rem .85rem;
+    outline:none;
+    font-size: .95rem;
+  }
+  textarea.input{ min-height: 110px; resize: vertical; }
+  .input:focus{
+    border-color: color-mix(in oklab, var(--primary) 55%, var(--line));
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+
+  .info-note{
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
+    border: 1px solid color-mix(in oklab, var(--line) 82%, transparent);
+    color: var(--muted);
+    font-size: .85rem;
+    line-height: 1.45;
+  }
+
+  .footer-actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    margin-top: 14px;
+    padding-bottom: 70px; /* bottom bar boşluğu */
+  }
+
+  /* Bottom bar (seçim varsa) */
+  .actionbar{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 18px;
+    width: min(980px, calc(100% - 24px));
+    z-index: 60;
+  }
+  .actionbar-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: #0b1220;
+    color: #fff;
+    border: 1px solid rgba(148,163,184,.22);
+    box-shadow: 0 22px 50px -26px rgba(0,0,0,.6);
+  }
+  [data-theme="dark"] .actionbar-inner{ background:#000; border-color: rgba(148,163,184,.18); }
+
+  .action-left{ display:flex; align-items:center; gap: 12px; min-width:0; }
+  .action-ico{
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display:grid;
+    place-items:center;
+    background: var(--primary);
+    box-shadow: 0 14px 30px -20px rgba(40,102,189,.85);
+    font-weight: 1000;
+  }
+  .action-meta{ min-width:0; }
+  .action-meta h4{
+    margin:0;
+    font-size: 1.05rem;
+    font-weight: 950;
+    letter-spacing: -0.01em;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .action-meta p{
+    margin:2px 0 0;
+    font-size: .78rem;
+    color: rgba(226,232,240,.75);
+  }
+  .action-right{ display:flex; align-items:center; gap: 10px; flex-wrap:wrap; justify-content:flex-end; }
+
+  .btn-clear{
+    background: transparent;
+    border: 0;
+    color: rgba(226,232,240,.78);
+    font-weight: 900;
+    cursor:pointer;
+    padding: .45rem .55rem;
+    border-radius: 12px;
+  }
+  .btn-clear:hover{ color:#fff; background: rgba(255,255,255,.06); }
+
+  @media (max-width: 520px){
+    .actionbar-inner{ flex-direction: column; align-items: stretch; }
+    .action-right{ width: 100%; }
+    .action-right .btn{ width: 100%; justify-content:center; }
+  }
+</style>
+
+<div class="page-wrap" id="top">
+
+  <!-- Flash -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for c,m in messages %}
       <div class="flash {{ c }}">{{ m }}</div>
     {% endfor %}
   {% endwith %}
 
-  <div style="display:flex; gap:.5rem; margin:.25rem 0 1rem">
-    <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç (Kütüphane)</a>
+  <!-- Breadcrumbs (linkler senin route’lara göre) -->
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <span style="opacity:.55">/</span>
+    <span>Risks</span>
+    <span style="opacity:.55">/</span>
+    <span style="color: var(--primary);">Yeni Risk</span>
+  </nav>
 
-    {% set _picked = picked_suggestions if picked_suggestions is defined and picked_suggestions else [] %}
+  <!-- Header -->
+  <div class="page-head">
+    <div>
+      <h1>Yeni Risk Kaydı</h1>
+      <p>Seçili şablonlar üzerinden projeniz için yeni risk(ler) tanımlayın.</p>
+    </div>
 
-    {% if _picked and _picked|length > 0 %}
-      <!-- Hızlı buton: HER ZAMAN tek riskte birleştirir -->
-      <form method="post" id="bulk-create-form">
-        <input type="hidden" name="action" value="create_from_picked">
-        <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
-        <!-- YYYY-MM gizli alanlar (JS doldurur) -->
-        <input type="hidden" name="start_month" id="start_month">
-        <input type="hidden" name="end_month" id="end_month">
-        <!-- Tek riskte birleştir -->
-        <input type="hidden" name="merge" value="1">
-        <button class="btn btn-primary" type="submit">
-          Sepetten Risk Oluştur ({{ _picked|length }})
-        </button>
-      </form>
-    {% endif %}
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç (Kütüphane)</a>
+
+      {% set _picked = picked_suggestions if picked_suggestions is defined and picked_suggestions else [] %}
+
+      {% if _picked and _picked|length > 0 %}
+        <!-- Hızlı buton: HER ZAMAN tek riskte birleştirir -->
+        <form method="post" id="bulk-create-form" style="margin:0;">
+          <input type="hidden" name="action" value="create_from_picked">
+          <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
+          <input type="hidden" name="start_month" id="start_month">
+          <input type="hidden" name="end_month" id="end_month">
+          <input type="hidden" name="merge" value="1">
+          <button class="btn btn-primary" type="submit">
+            Sepetten Risk Oluştur ({{ _picked|length }})
+          </button>
+        </form>
+      {% endif %}
+    </div>
   </div>
 
   {% if _picked and _picked|length > 0 %}
-    <details class="card" style="margin:.5rem 0 1rem; border:1px dashed var(--line);">
-      <summary class="small" style="cursor:pointer">
-        Sepetteki şablonlar ({{ _picked|length }})
-      </summary>
-      <ul style="margin:.6rem 0 0 1rem">
+    <!-- Basket -->
+    <div class="panel-card basket">
+      <div class="basket-head">
+        <h3 class="basket-title">
+          <span class="icon" aria-hidden="true">🧺</span>
+          Seçili Şablonlar
+        </h3>
+        <span class="pill">{{ _picked|length }} Şablon</span>
+      </div>
+
+      <div class="grid-templates">
         {% for s in _picked %}
-          <li class="small"
-              style="margin:.15rem 0; display:flex; align-items:center; justify-content:space-between; gap:.5rem;">
-            <div>
-              <strong>{{ s.category or 'Genel' }}</strong> — {{ s.text }}
+          <div class="tpl-card">
+            <div class="tpl-meta">
+              <p class="tpl-cat">{{ s.category or 'Genel' }}</p>
+              <h4 class="tpl-title">{{ s.text }}</h4>
+              <p class="tpl-desc">
+                {% if s.risk_desc %}{{ s.risk_desc }}{% else %}Şablon açıklaması yok.{% endif %}
+              </p>
               {% if s.risk_code %}
-                <span class="badge" style="margin-left:.35rem">{{ s.risk_code }}</span>
+                <span class="badge">{{ s.risk_code }}</span>
               {% endif %}
             </div>
 
-            <!-- Sepetten kaldır butonu -->
-            <form method="post"
-                  action="{{ url_for('risk_basket_remove') }}"
-                  style="margin:0;">
+            <form method="post" action="{{ url_for('risk_basket_remove') }}" style="margin:0;">
               <input type="hidden" name="template_id" value="{{ s.id }}">
-              <button type="submit"
-                      class="btn btn-ghost"
-                      style="padding:2px 10px; font-size:.78rem; border-radius:999px;">
-                ✕ Kaldır
-              </button>
+              <button type="submit" class="tpl-x" title="Sepetten kaldır" aria-label="Sepetten kaldır">✕</button>
             </form>
-          </li>
+          </div>
         {% endfor %}
-      </ul>
-    </details>
+      </div>
+    </div>
+
+    <!-- Form Section -->
+    <div class="section-title">
+      <span class="icon" aria-hidden="true">✍️</span>
+      <h3>Ortak Alanlar</h3>
+    </div>
+
+    <div class="panel-card form-card">
+      <!-- ORTAK ALANLAR FORMU -->
+      <form method="post" id="common-form" class="form-grid">
+        <input type="hidden" name="action" value="create_from_picked">
+        <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
+        <input type="hidden" name="start_month" id="start_month_2">
+        <input type="hidden" name="end_month" id="end_month_2">
+
+        <div class="field" style="grid-column:1/-1">
+          <label>Başlık <span class="small">(boşsa şablon metninin ilk 150 karakteri)</span></label>
+          <input class="input" name="title"
+                 placeholder="örn. Tedarik gecikmesi, hava koşulları…"
+                 value="{{ request.form.get('title', title_prefill or '') }}">
+        </div>
+
+        <div class="field" style="grid-column:1/-1">
+          <label>Açıklama <span class="small">(boşsa şablon metni kullanılır)</span></label>
+          <textarea class="input" name="description" rows="3"
+                    placeholder="Ortak açıklama (tüm kayıtlara)">{{ request.form.get('description', description_prefill or '') }}</textarea>
+        </div>
+
+        <div class="field" style="grid-column:1/-1">
+          <label>Önlemler (Mitigation) <span class="small">(tüm kayıtlara aynı metin)</span></label>
+          <textarea class="input" name="mitigation" rows="3"
+                    placeholder="Ortak aksiyon/önlemler">{{ request.form.get('mitigation', mitigation_prefill or '') }}</textarea>
+        </div>
+
+        <div class="field">
+          <label>Sorumlu <span class="small">(en az 3 karakter)</span></label>
+          <input class="input" name="responsible" id="responsible" placeholder="Ad Soyad"
+                 value="{{ request.form.get('responsible','') }}">
+        </div>
+
+        <div class="field">
+          <label>Başlangıç Tarihi</label>
+          <input class="input" type="date" id="start_date"
+                 min="2000-01-01" max="2100-12-31"
+                 value="{{ request.form.get('start_date','') }}">
+        </div>
+
+        <div class="field">
+          <label>Bitiş Tarihi</label>
+          <input class="input" type="date" id="end_date"
+                 min="2000-01-01" max="2100-12-31"
+                 value="{{ request.form.get('end_date','') }}">
+        </div>
+
+        <div class="field" style="grid-column:1/-1">
+          <div class="info-note">
+            <b>Bilgi Notu:</b>
+            Aşağıdaki işlemlerden <b>“Tek Risk Olarak Birleştir”</b> ile seçili şablonları tek bir kayda dönüştürebilir
+            veya <b>“Ayrı Ayrı Oluştur”</b> ile her şablon için birer risk başlatabilirsiniz.
+          </div>
+        </div>
+
+        <!-- Footer actions -->
+        <div class="footer-actions" style="grid-column:1/-1">
+          <a class="btn btn-danger" href="{{ url_for('dashboard') }}">Vazgeç</a>
+
+          <!-- Ayrı ayrı oluştur -->
+          <button class="btn" type="submit" name="merge" value="0">Ayrı Ayrı Oluştur</button>
+
+          <!-- Tek riskte birleştir -->
+          <button class="btn btn-primary" type="submit" name="merge" value="1">Tek Risk Olarak Birleştir</button>
+        </div>
+      </form>
+    </div>
+
   {% else %}
-    <div class="panel" style="text-align:center;padding:32px;border:1px dashed var(--line)">
-      <h3>Önce şablon seç</h3>
-      <p class="small">Yeni riskleri sadece “Tanımlı Risklerden Seç” ekranından oluşturuyoruz.</p>
-      <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">Şablon seç →</a>
+    <!-- Empty state -->
+    <div class="panel-card" style="text-align:center; padding: 34px; border: 2px dashed color-mix(in oklab, var(--line) 86%, transparent);">
+      <div style="display:grid; place-items:center; gap: 10px;">
+        <div class="icon" style="width:54px;height:54px;border-radius:18px;">🧺</div>
+        <h3 style="margin:0; font-weight:950;">Önce şablon seç</h3>
+        <p class="small" style="margin:0; max-width: 520px;">
+          Yeni riskleri sadece “Tanımlı Risklerden Seç” ekranından oluşturuyoruz.
+        </p>
+        <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">Şablon seç →</a>
+      </div>
     </div>
   {% endif %}
 
-  <!-- ORTAK ALANLAR FORMU -->
-  <form method="post" class="grid" id="common-form"
-        style="grid-template-columns:1fr 1fr; gap:16px; margin-top:10px">
-    <input type="hidden" name="action" value="create_from_picked">
-    <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
-    <!-- YYYY-MM gizli alanlar (JS doldurur) -->
-    <input type="hidden" name="start_month" id="start_month_2">
-    <input type="hidden" name="end_month" id="end_month_2">
+</div>
 
-    <div style="grid-column:1/-1">
-      <label>Başlık (boşsa şablon metninin ilk 150 karakteri)</label>
-      <input class="input" name="title" placeholder="örn. Tedarik gecikmesi, hava koşulları…"
-             value="{{ request.form.get('title', title_prefill or '') }}">
+{% if _picked and _picked|length > 0 %}
+  <!-- Bottom action bar (opsiyonel): sadece seçim varsa göster -->
+  <div class="actionbar noprint" id="actionbar">
+    <div class="actionbar-inner">
+      <div class="action-left">
+        <div class="action-ico">✓</div>
+        <div class="action-meta">
+          <h4>{{ _picked|length }} Şablon Seçili</h4>
+          <p>Seçili şablonlar yeni risk formunda işlenecek.</p>
+        </div>
+      </div>
+
+      <div class="action-right">
+        <!-- İstersen “temizle” butonunu burada da yaparız; şu an sepet temizleme endpoint yok -->
+        <button type="submit" class="btn btn-primary"
+                form="common-form" name="merge" value="1"
+                title="Seçili şablonları tek riskte birleştir">
+          Tek Risk Olarak Birleştir →
+        </button>
+      </div>
     </div>
+  </div>
+{% endif %}
 
-    <div style="grid-column:1/-1">
-      <label>Açıklama (boşsa şablon metni kullanılır)</label>
-      <textarea class="input" name="description" rows="3"
-                placeholder="Ortak açıklama (tüm kayıtlara)">{{ request.form.get('description', description_prefill or '') }}</textarea>
-    </div>
+<script>
+(function(){
+  // Tarihler → YYYY-MM gizli alanlara yaz
+  const startDate = document.getElementById('start_date');
+  const endDate   = document.getElementById('end_date');
 
-    <div style="grid-column:1/-1">
-      <label>Önlemler (Mitigation — tüm kayıtlara aynı metin)</label>
-      <textarea class="input" name="mitigation" rows="3"
-                placeholder="Ortak aksiyon/önlemler">{{ request.form.get('mitigation', mitigation_prefill or '') }}</textarea>
-    </div>
+  const hiddenA1  = document.getElementById('start_month');
+  const hiddenB1  = document.getElementById('end_month');
+  const hiddenA2  = document.getElementById('start_month_2');
+  const hiddenB2  = document.getElementById('end_month_2');
 
-    <div>
-      <label>Sorumlu <span class="small" style="opacity:.7">(en az 3 karakter)</span></label>
-      <input class="input" name="responsible" id="responsible" placeholder="Ad Soyad"
-             value="{{ request.form.get('responsible','') }}">
-    </div>
+  const responsible = document.getElementById('responsible');
 
-    <div>
-      <label>Başlangıç Tarihi</label>
-      <input class="input" type="date" id="start_date"
-             min="2000-01-01" max="2100-12-31"
-             value="{{ request.form.get('start_date','') }}">
-    </div>
-    <div>
-      <label>Bitiş Tarihi</label>
-      <input class="input" type="date" id="end_date"
-             min="2000-01-01" max="2100-12-31"
-             value="{{ request.form.get('end_date','') }}">
-    </div>
+  function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
 
-    <!-- İKİ AYRI BUTON: ayrı ayrı / tek riske birleştir -->
-    <div style="grid-column:1/-1; display:flex; gap:8px; justify-content:flex-end">
-      <a class="btn" href="{{ url_for('dashboard') }}">Vazgeç</a>
+  function syncHidden(){
+    const ymS = startDate ? toYM(startDate.value) : "";
+    const ymE = endDate ? toYM(endDate.value) : "";
+    [hiddenA1, hiddenA2].forEach(el => { if(el) el.value = ymS || ""; });
+    [hiddenB1, hiddenB2].forEach(el => { if(el) el.value = ymE || ""; });
+  }
 
-      <!-- Ayrı ayrı oluştur -->
-      <button class="btn" type="submit" name="merge" value="0">Ayrı Ayrı Oluştur</button>
-
-      <!-- Tek riskte birleştir -->
-      <button class="btn btn-primary" type="submit" name="merge" value="1">Tek Risk Olarak Birleştir</button>
-    </div>
-  </form>
-
-  <script>
-  (function(){
-    // Tarihler → YYYY-MM gizli alanlara yaz
-    const startDate = document.getElementById('start_date');
-    const endDate   = document.getElementById('end_date');
-
-    const hiddenA1  = document.getElementById('start_month');
-    const hiddenB1  = document.getElementById('end_month');
-    const hiddenA2  = document.getElementById('start_month_2');
-    const hiddenB2  = document.getElementById('end_month_2');
-
-    const responsible = document.getElementById('responsible');
-
-    function toYM(dateStr){ return (dateStr && dateStr.length>=10) ? dateStr.slice(0,7) : ""; }
-
-    function syncHidden(){
-      const ymS = toYM(startDate.value);
-      const ymE = toYM(endDate.value);
-      [hiddenA1, hiddenA2].forEach(el => { if(el) el.value = ymS || ""; });
-      [hiddenB1, hiddenB2].forEach(el => { if(el) el.value = ymE || ""; });
+  function validateCommon(){
+    // Sorumlu adı kontrolü
+    if (responsible) {
+      const name = responsible.value.trim();
+      if (name && name.length < 3) {
+        alert("Sorumlu adı en az 3 karakter olmalı.");
+        responsible.focus();
+        return false;
+      }
     }
 
-    function validateCommon(){
-      // Sorumlu adı kontrolü
-      if (responsible) {
-        const name = responsible.value.trim();
-        if (name && name.length < 3) {
-          alert("Sorumlu adı en az 3 karakter olmalı.");
-          responsible.focus();
-          return false;
-        }
+    function checkYear(input, label){
+      if (!input || !input.value) return true;
+      const d = new Date(input.value);
+      const y = d.getFullYear();
+      if (isNaN(y) || y < 2000 || y > 2100) {
+        alert(label + " 2000–2100 yılı arasında olmalı.");
+        input.focus();
+        return false;
       }
-
-      // Tarih / yıl aralığı kontrolü
-      function checkYear(input, label){
-        if (!input || !input.value) return true;
-        const d = new Date(input.value);
-        const y = d.getFullYear();
-        if (isNaN(y) || y < 2000 || y > 2100) {
-          alert(label + " 2000–2100 yılı arasında olmalı.");
-          input.focus();
-          return false;
-        }
-        return true;
-      }
-
-      if (!checkYear(startDate, "Başlangıç tarihi")) return false;
-      if (!checkYear(endDate, "Bitiş tarihi")) return false;
-
-      // Başlangıç > Bitiş ise engelle (JS zaten eşitlemeye çalışıyor ama yine de koruma)
-      if (startDate && endDate && startDate.value && endDate.value) {
-        const ds = new Date(startDate.value);
-        const de = new Date(endDate.value);
-        if (de < ds) {
-          alert("Bitiş tarihi, başlangıç tarihinden önce olamaz.");
-          endDate.focus();
-          return false;
-        }
-      }
-
       return true;
     }
 
-    startDate?.addEventListener('change', ()=>{
-      if(endDate.value && new Date(endDate.value) < new Date(startDate.value)){
-        endDate.value = startDate.value;
-      }
-      syncHidden();
-    });
-    endDate?.addEventListener('change', ()=>{
-      if(startDate.value && new Date(endDate.value) < new Date(startDate.value)){
-        startDate.value = endDate.value;
-      }
-      syncHidden();
-    });
+    if (!checkYear(startDate, "Başlangıç tarihi")) return false;
+    if (!checkYear(endDate, "Bitiş tarihi")) return false;
 
-    // ilk yüklemede doldur
+    if (startDate && endDate && startDate.value && endDate.value) {
+      const ds = new Date(startDate.value);
+      const de = new Date(endDate.value);
+      if (de < ds) {
+        alert("Bitiş tarihi, başlangıç tarihinden önce olamaz.");
+        endDate.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  startDate?.addEventListener('change', ()=>{
+    if(endDate && endDate.value && new Date(endDate.value) < new Date(startDate.value)){
+      endDate.value = startDate.value;
+    }
     syncHidden();
-
-    const bulkForm   = document.getElementById('bulk-create-form');
-    const commonForm = document.getElementById('common-form');
-
-    if (bulkForm){
-      bulkForm.addEventListener('submit', function(e){
-        syncHidden();
-        if (!validateCommon()){
-          e.preventDefault();
-        }
-      });
+  });
+  endDate?.addEventListener('change', ()=>{
+    if(startDate && startDate.value && new Date(endDate.value) < new Date(startDate.value)){
+      startDate.value = endDate.value;
     }
-    if (commonForm){
-      commonForm.addEventListener('submit', function(e){
-        syncHidden();
-        if (!validateCommon()){
-          e.preventDefault();
-        }
-      });
-    }
-  })();
-  </script>
-</div>
+    syncHidden();
+  });
+
+  // ilk yüklemede doldur
+  syncHidden();
+
+  const bulkForm   = document.getElementById('bulk-create-form');
+  const commonForm = document.getElementById('common-form');
+
+  if (bulkForm){
+    bulkForm.addEventListener('submit', function(e){
+      syncHidden();
+      if (!validateCommon()){
+        e.preventDefault();
+      }
+    });
+  }
+  if (commonForm){
+    commonForm.addEventListener('submit', function(e){
+      syncHidden();
+      if (!validateCommon()){
+        e.preventDefault();
+      }
+    });
+  }
+})();
+</script>
+
 {% endblock %}
