@@ -418,10 +418,38 @@
       .table th,.table td{ border-color:#eee; }
     }
 
-    /* AUTH/HIDE_NAV */
+    /* ==========================================================
+       AUTH MODE (✅ /forgot, /login, /welcome vs. için FIX)
+       - Sidebar kapat
+       - Layout tek kolon
+       - Main full width + ortalı
+       - Base panel kabuğunu sayfaya bırak (ister sayfa override eder)
+       ========================================================== */
     .layout.auth{ grid-template-columns:1fr !important; }
     .auth .sidebar{ display:none !important; }
     .auth #sidebarToggle{ display:none !important; }
+
+    /* auth sayfalarında main'in padding/width ayarları */
+    .auth .main{
+      padding: 24px 16px 40px !important;
+      width: 100%;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+    }
+
+    /* auth sayfalarında panel'i ortala + genişliği kontrol et */
+    .auth .panel{
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* auth sayfalarında flash mesajları çok yayılmasın */
+    .auth .flash{
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
   </style>
 </head>
 
