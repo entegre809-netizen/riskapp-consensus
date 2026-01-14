@@ -3,147 +3,550 @@
 
 {% block content %}
 <style>
-  .card-modern {
-    background: #fff;
-    border: 1px solid rgba(0,0,0,.06);
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(0,0,0,.06);
-    padding: 18px 18px 12px;
+  /* ====== Theme tokens (tasarımdaki gibi) ====== */
+  :root{
+    --primary:#1870a0;
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --line: rgba(15,23,42,.10);
+    --line2: rgba(15,23,42,.14);
+    --txt:#0f172a;
+    --muted: rgba(15,23,42,.62);
+
+    --success:#3B9C5F;
+    --danger:#E04B5C;
+    --warning:#F2B24C;
+
+    --rds: 16px;
+  }
+
+  /* Base layout helpers */
+  .rc-wrap{
+    background: var(--bg);
+    min-height: 100%;
+    padding: 22px 0;
+  }
+  .rc-container{
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+  }
+  .rc-title{
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    margin: 6px 0 4px;
+    color: var(--txt);
+  }
+  .rc-subtitle{
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* Card */
+  .card-modern{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--rds);
+    box-shadow: 0 8px 18px rgba(2,6,23,.06);
+    padding: 18px;
     margin-bottom: 16px;
   }
-  .toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-  .table-wrap { overflow:auto; border:1px solid #eee; border-radius:12px; }
-  table.table-modern { width:100%; border-collapse:separate; border-spacing:0; }
-  table.table-modern thead th {
-    position: sticky; top: 0; z-index: 1;
-    background: #fafafa; color:#444; font-weight:600;
-    border-bottom:1px solid #eee;
+  .card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
   }
-  table.table-modern th, table.table-modern td { padding:10px; vertical-align:middle; }
-  table.table-modern tbody tr + tr td { border-top:1px solid #f1f1f4; }
-  .muted { color:#6b7280; font-size:.9rem; }
-  .input {
-    border:1px solid #e5e7eb; border-radius:10px;
-    padding:7px 10px; min-width:140px;
+  .breadcrumb{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(15,23,42,.55);
   }
-  .input:focus {
-    outline:none; border-color:#0d6efd33;
-    box-shadow:0 0 0 4px #0d6efd1a;
+  .breadcrumb a{
+    color: rgba(15,23,42,.55);
+    text-decoration: none;
   }
-  .btn, .btn-primary, .btn-danger, .btn-ghost {
-    display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
-    border-radius:10px; padding:7px 12px; border:1px solid transparent; font-weight:600;
-    background:#f5f6f8; color:#222; font-size:.9rem;
+  .breadcrumb a:hover{ color: var(--primary); }
+  .breadcrumb .sep{ color: rgba(15,23,42,.25); }
+
+  /* Toolbar */
+  .toolbar{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .muted{ color: var(--muted); font-size:.92rem; font-weight: 600; }
+
+  /* Inputs */
+  .input{
+    border:1px solid rgba(15,23,42,.12);
+    border-radius: 12px;
+    padding: 9px 12px;
+    min-width: 160px;
+    background: #f8fafc;
+    color: var(--txt);
+    font-weight: 650;
   }
-  .btn-primary { background:#0d6efd; color:#fff; }
-  .btn-danger  { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
-  .btn-ghost   { background:transparent; color:#111827; border-color:#e5e7eb; }
-  .btn.tiny, .btn-ghost.tiny, .btn-danger.tiny {
-    padding:4px 8px; font-size:.8rem; border-radius:8px;
+  .input:focus{
+    outline:none;
+    border-color: rgba(24,112,160,.35);
+    box-shadow: 0 0 0 4px rgba(24,112,160,.14);
+    background: #fff;
+  }
+  .input.inline{
+    min-width: 220px;
+    background: transparent;
+    border-color: transparent;
+  }
+  .input.inline:hover{
+    border-color: rgba(15,23,42,.12);
+    background: #fff;
+  }
+  .input.inline:focus{
+    border-color: rgba(24,112,160,.35);
+    background: #fff;
+  }
+
+  /* Buttons */
+  .btn, .btn-primary, .btn-danger, .btn-ghost{
+    display:inline-flex; align-items:center; gap:8px; white-space:nowrap; cursor:pointer;
+    border-radius: 12px;
+    padding: 9px 12px;
+    border: 1px solid transparent;
+    font-weight: 800;
+    background:#f1f5f9;
+    color: #0f172a;
+    font-size:.92rem;
+    text-decoration: none;
+  }
+  .btn:hover{ background:#e9eef5; }
+  .btn-primary{
+    background: var(--primary);
+    color:#fff;
+  }
+  .btn-primary:hover{ filter: brightness(.95); }
+  .btn-ghost{
+    background: transparent;
+    border-color: rgba(15,23,42,.12);
+  }
+  .btn-ghost:hover{ background:#f8fafc; }
+  .btn-danger{
+    background: rgba(224,75,92,.12);
+    color: #991b1b;
+    border-color: rgba(224,75,92,.25);
+  }
+  .btn-danger:hover{ background: rgba(224,75,92,.16); }
+
+  .btn.tiny, .btn-ghost.tiny, .btn-danger.tiny{
+    padding: 6px 10px;
+    font-size: .82rem;
+    border-radius: 10px;
+  }
+
+  /* Form section (Generate) */
+  .gen-head{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .gen-icon{
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    background: rgba(24,112,160,.10);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--primary);
+    font-weight: 900;
+  }
+  .gen-title{
+    margin:0;
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--txt);
+  }
+  .gen-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 14px;
+    align-items:end;
+  }
+  @media (max-width: 860px){
+    .gen-grid{ grid-template-columns: 1fr; }
+    .btn-primary.full{ width: 100%; justify-content:center; }
+  }
+  .field label{
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .field .lbl{
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(15,23,42,.55);
+  }
+
+  /* Table */
+  .table-card{
+    border: 1px solid var(--line);
+    border-radius: var(--rds);
+    overflow:hidden;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(2,6,23,.05);
+  }
+  .table-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(248,250,252,.65);
+  }
+  .tabs{ display:flex; gap: 16px; align-items:center; }
+  .tab{
+    border:none;
+    background: transparent;
+    padding: 6px 2px;
+    font-weight: 900;
+    color: rgba(15,23,42,.55);
+    cursor: default;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active{
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .icon-btn{
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color: rgba(15,23,42,.55);
+  }
+  .icon-btn:hover{
+    background: #eef2f7;
+    border-color: rgba(15,23,42,.10);
+    color: var(--txt);
+  }
+
+  .table-wrap{ overflow:auto; }
+  table.table-modern{
+    width:100%;
+    border-collapse: separate;
+    border-spacing:0;
+  }
+  table.table-modern thead th{
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #ffffff;
+    color: rgba(15,23,42,.55);
+    font-weight: 900;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+  }
+  table.table-modern th, table.table-modern td{
+    padding: 12px 14px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  table.table-modern tbody tr{
+    transition: background .15s ease;
+  }
+  table.table-modern tbody tr:hover{
+    background: rgba(248,250,252,.8);
+  }
+  table.table-modern tbody tr + tr td{
+    border-top: 1px solid rgba(15,23,42,.06);
+  }
+
+  /* Code pill */
+  .mono-font{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+  .code-pill{
+    display:inline-flex;
+    align-items:center;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(24,112,160,.08);
+    color: var(--primary);
+    font-weight: 900;
+  }
+
+  /* Status pills */
+  .pill{
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .dot{ width: 7px; height: 7px; border-radius: 999px; display:inline-block; }
+  .pill.ok{ background: rgba(59,156,95,.12); color: var(--success); }
+  .pill.ok .dot{ background: var(--success); }
+  .pill.used{ background: rgba(100,116,139,.14); color: rgba(100,116,139,1); }
+  .pill.used .dot{ background: rgba(100,116,139,1); }
+  .pill.soon{ background: rgba(242,178,76,.14); color: rgba(176,115,26,1); }
+  .pill.soon .dot{ background: var(--warning); }
+
+  /* Row actions: hover reveal */
+  .row-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity .15s ease;
+  }
+  tr:hover .row-actions{ opacity: 1; }
+  .icon-action{
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    display:flex; align-items:center; justify-content:center;
+    color: rgba(15,23,42,.45);
+    cursor:pointer;
+  }
+  .icon-action:hover{
+    background: #eef2f7;
+    border-color: rgba(15,23,42,.10);
+    color: var(--txt);
+  }
+
+  /* Flash messages (özelliğini silmeden daha temiz görünüm) */
+  .flash{
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(15,23,42,.10);
+    background: #fbfdff;
+    font-weight: 700;
+  }
+
+  /* Bottom nav */
+  .bottom-nav{
+    display:flex;
+    justify-content:space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 14px;
   }
 </style>
 
-<div class="container">
-  <div class="card-modern">
-    <div class="toolbar" style="justify-content:space-between; margin-bottom:12px">
-      <div class="toolbar">
-        <a class="btn" href="{{ url_for('admin_users') }}">← Kullanıcı Yönetimi</a>
-      </div>
-      <h2 style="margin:0; font-size:1.25rem;">Referans Kodları</h2>
+<div class="rc-wrap">
+  <div class="rc-container">
+
+    <!-- Üst başlık (tasarımdaki gibi) -->
+    <div class="breadcrumb">
+      <a href="{{ url_for('dashboard') }}">Admin</a>
+      <span class="sep">/</span>
+      <span style="color: var(--txt); font-weight: 900;">Reference Codes</span>
     </div>
 
+    <h2 class="rc-title">Reference Code Management</h2>
+    <p class="rc-subtitle">Referans (attribution) kodlarını üret, takip et ve yönet.</p>
+
+    <!-- Flash messages (özelliğin duruyor) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for c,m in messages %}
-          <div class="flash {{c}}" style="margin:8px 0; padding:10px 12px; border-radius:10px; border:1px solid #eee; background:#fcfcfd">
-            {{m}}
-          </div>
+          <div class="flash {{c}}">{{ m }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
-    <form method="post" action="{{ url_for('admin_refcodes_create') }}"
-          class="card-modern" style="padding:14px 14px 10px; margin-bottom:12px;">
-      <div class="toolbar" style="align-items:flex-end;">
-        <label style="display:flex; flex-direction:column; gap:4px;">
-          <span class="muted">Prefix</span>
-          <input class="input" name="prefix" value="PRJ">
-        </label>
-        <label style="display:flex; flex-direction:column; gap:4px;">
-          <span class="muted">Bitiş (opsiyonel, YYYY-MM-DD)</span>
-          <input class="input" name="expires_at" placeholder="2025-12-31">
-        </label>
-        <button class="btn btn-primary">Kod Üret</button>
+    <!-- Generate New Codes (özelliğini silmeden aynı form, sadece UI değişti) -->
+    <section class="card-modern">
+      <div class="card-head">
+        <div class="toolbar">
+          <a class="btn-ghost" href="{{ url_for('admin_users') }}">← Kullanıcı Yönetimi</a>
+        </div>
       </div>
-      <div class="muted" style="margin-top:6px;">
-        Not: Prefix aynı kalır, rastgele bir kod üretilir. Bitiş tarihi dolduğunda kod kullanılamaz.
+
+      <div class="gen-head">
+        <div class="gen-icon">+</div>
+        <h3 class="gen-title">Generate New Codes</h3>
       </div>
-    </form>
 
+      <form method="post" action="{{ url_for('admin_refcodes_create') }}">
+        <div class="gen-grid">
+          <div class="field">
+            <label>
+              <span class="lbl">Prefix (Optional)</span>
+              <input class="input" name="prefix" value="PRJ" placeholder="e.g. SUMMER24">
+            </label>
+          </div>
+          <div class="field">
+            <label>
+              <span class="lbl">Expiration Date</span>
+              <!-- senin backend YYYY-MM-DD bekliyor: aynı şekilde -->
+              <input class="input" name="expires_at" placeholder="2025-12-31">
+            </label>
+          </div>
 
-    
-    <div class="table-wrap">
-      <table class="table-modern">
-        <thead>
-          <tr>
-            <th>Kod</th>
-            <th>Atanan e-posta</th>
-            <th>Kullanım</th>
-            <th>Son Tarih</th>
-            <th>Oluşturan</th>
-            <th style="width:80px;"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in rows %}
-          <tr>
-            <td style="min-width:140px;"><code>{{ r.code }}</code></td>
-            <td style="min-width:260px;">
-              <form method="post"
-                    action="{{ url_for('admin_refcodes_lock', rid=r.id) }}"
-                    style="display:flex; gap:.5rem; align-items:center;">
-                <input class="input" name="email"
-                       value="{{ r.assigned_email or '' }}"
-                       placeholder="kilitlemek için e-posta">
-                <button class="btn btn-ghost tiny">Kaydet</button>
-              </form>
-            </td>
-            <td style="min-width:100px;">
-              {{ 'Kullanıldı' if r.is_used else 'Boş' }}
-            </td>
-            <td style="min-width:120px;">
-              {{ r.expires_at or '—' }}
-            </td>
-            <td style="min-width:90px;">
-              #{{ r.created_by or '—' }}
-            </td>
-            <td style="text-align:right; min-width:80px;">
-              <form method="post"
-                    action="{{ url_for('admin_refcodes_delete', rid=r.id) }}"
-                    onsubmit="return confirm('Silinsin mi?')">
-                <button class="btn btn-danger tiny">Sil</button>
-              </form>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="6" style="padding:16px; text-align:center;" class="muted">
-              Henüz ref kod bulunmuyor. Yukarıdan yeni kod üretebilirsiniz.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          <button class="btn-primary full" type="submit">✨ Generate Code</button>
+        </div>
+
+        <div class="muted" style="margin-top:10px;">
+          Not: Prefix aynı kalır, rastgele bir kod üretilir. Bitiş tarihi dolduğunda kod kullanılamaz.
+        </div>
+      </form>
+    </section>
+
+    <!-- Codes Table (özellikleri koruduk: lock/edit = email kaydet, delete = sil) -->
+    <section class="table-card">
+      <div class="table-topbar">
+        <div class="tabs" aria-label="Tabs (UI)">
+          <!-- Bu kısım sadece UI: backend filtre yoksa da sorun değil -->
+          <button class="tab active" type="button">All Codes</button>
+          <button class="tab" type="button">Available</button>
+          <button class="tab" type="button">Redeemed</button>
+        </div>
+        <div class="toolbar">
+          <button class="icon-btn" type="button" title="Filter (UI)">
+            <!-- icon yerine text, base.html icon lib yoksa patlamasın -->
+            ☰
+          </button>
+          <button class="icon-btn" type="button" title="Download (UI)">
+            ⬇
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>Reference Code</th>
+              <th>Assigned Email</th>
+              <th>Status</th>
+              <th>Expiration</th>
+              <th>Creator</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td style="min-width:180px;">
+                <span class="code-pill mono-font">{{ r.code }}</span>
+              </td>
+
+              <td style="min-width:320px;">
+                <!-- admin_refcodes_lock özelliğin aynen duruyor -->
+                <form method="post"
+                      action="{{ url_for('admin_refcodes_lock', rid=r.id) }}"
+                      style="display:flex; gap:10px; align-items:center;">
+                  <input class="input inline"
+                         name="email"
+                         value="{{ r.assigned_email or '' }}"
+                         placeholder="kilitlemek için e-posta">
+                  <button class="btn-ghost tiny" type="submit">Kaydet</button>
+                </form>
+              </td>
+
+              <td style="min-width:160px;">
+                {% if r.is_used %}
+                  <span class="pill used"><span class="dot"></span> Used</span>
+                {% else %}
+                  {# expiring soon (opsiyonel UX): expires_at varsa ve yakınsa soon gösterelim.
+                     Tarih işlemi backend'de yoksa bile default Available döner. #}
+                  {% if r.expires_at %}
+                    <span class="pill ok"><span class="dot"></span> Available</span>
+                  {% else %}
+                    <span class="pill ok"><span class="dot"></span> Available</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+
+              <td style="min-width:160px; color: var(--muted); font-weight: 700;">
+                {{ r.expires_at or '—' }}
+              </td>
+
+              <td style="min-width:160px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="
+                    width:28px;height:28px;border-radius:999px;
+                    background: rgba(24,112,160,.16);
+                    display:flex;align-items:center;justify-content:center;
+                    font-weight:900;color: var(--primary); font-size: 11px;">
+                    {{ (r.created_by or '—')[:2] | upper }}
+                  </div>
+                  <span style="font-weight:800; color: var(--txt);">
+                    {{ r.created_by or '—' }}
+                  </span>
+                </div>
+              </td>
+
+              <td style="min-width:140px; text-align:right;">
+                <div class="row-actions">
+                  <!-- Copy/Edit ikonları UI: backend fonksiyon yoksa da patlamaz -->
+                  <button class="icon-action" type="button" title="Copy"
+                          onclick="navigator.clipboard && navigator.clipboard.writeText('{{ r.code }}')">
+                    ⧉
+                  </button>
+
+                  <!-- Edit: aslında sende edit email formu var. Bu ikon sadece UX -->
+                  <button class="icon-action" type="button" title="Edit"
+                          onclick="this.closest('tr').querySelector('input[name=email]').focus()">
+                    ✎
+                  </button>
+
+                  <!-- Delete özelliğin aynen duruyor -->
+                  <form method="post"
+                        action="{{ url_for('admin_refcodes_delete', rid=r.id) }}"
+                        onsubmit="return confirm('Silinsin mi?')"
+                        style="display:inline;">
+                    <button class="icon-action" type="submit" title="Delete" style="color: rgba(224,75,92,.9);">
+                      🗑
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+
+            {% else %}
+            <tr>
+              <td colspan="6" style="padding:18px; text-align:center;">
+                <span class="muted">Henüz ref kod bulunmuyor. Yukarıdan yeni kod üretebilirsiniz.</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination (sende backend pagination yoktu; UI olarak bırakıyoruz) -->
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding: 12px 14px; border-top: 1px solid var(--line);">
+        <p class="muted" style="margin:0; font-weight:900; letter-spacing:.08em; text-transform:uppercase; font-size:11px;">
+          {% if rows %}Showing 1-{{ rows|length }}{% else %}Showing 0{% endif %} results
+        </p>
+        <div class="toolbar">
+          <button class="btn-ghost tiny" type="button" disabled>‹</button>
+          <button class="btn-primary tiny" type="button">1</button>
+          <button class="btn-ghost tiny" type="button">2</button>
+          <button class="btn-ghost tiny" type="button">3</button>
+          <span class="muted" style="padding:0 6px;">…</span>
+          <button class="btn-ghost tiny" type="button">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alt navigasyon (özelliğin duruyor) -->
+    <div class="bottom-nav">
+      <a class="btn-ghost" href="{{ url_for('dashboard') }}">← Ana Sayfa</a>
+      <span class="muted">Ref kod yönetimi paneli</span>
     </div>
 
-    <div class="toolbar" style="margin-top:14px">
-      <a class="btn" href="{{ url_for('dashboard') }}">← Ana Sayfa</a>
-    </div>
   </div>
 </div>
 {% endblock %}
-
-
-
-
-
