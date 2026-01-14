@@ -172,42 +172,6 @@
     font-weight: 900;
   }
 
-  /* --- Tablo --- */
-  .table-wrap{ overflow:auto; border-radius: 14px; }
-  .table{
-    width:100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    min-width: 720px;
-  }
-  .table thead th{
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: rgba(248,250,252,.92);
-    color:#64748b;
-    font-size: .74rem;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    font-weight: 900;
-    padding: 14px 14px;
-    border-bottom: 1px solid rgba(226,232,240,.9);
-  }
-  [data-theme="dark"] .table thead th{
-    background: rgba(18,24,32,.68);
-    color:#94a3b8;
-    border-color: rgba(51,65,85,.55);
-  }
-  .table td{
-    padding: 14px 14px;
-    border-bottom: 1px solid rgba(226,232,240,.75);
-    vertical-align: top;
-    font-size: .95rem;
-  }
-  [data-theme="dark"] .table td{ border-color: rgba(51,65,85,.45); }
-  .table tbody tr:hover td{ background: rgba(40,102,189,.04); }
-  [data-theme="dark"] .table tbody tr:hover td{ background: rgba(40,102,189,.08); }
-
   /* --- Risk matrix --- */
   .risk-matrix{
     --label-w: 140px;
@@ -351,7 +315,188 @@
     color:#94a3b8;
   }
 
-  /* ===== Quick Actions (screenshot style) ===== */
+  /* ================================
+     ✅ General Overview (screenshot style)
+     ================================ */
+  .go-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding: 6px 4px 12px;
+    border-bottom: 1px solid rgba(226,232,240,.75);
+    margin-bottom: 10px;
+  }
+  [data-theme="dark"] .go-head{ border-color: rgba(51,65,85,.45); }
+
+  .go-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight: 900;
+    font-size: 1.02rem;
+    margin:0;
+  }
+  .go-ico{
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    display:grid; place-items:center;
+    background: rgba(40,102,189,.12);
+    border: 1px solid rgba(40,102,189,.20);
+    color:#2866bd;
+  }
+  .go-link{
+    font-weight: 900;
+    font-size: .86rem;
+    color:#2866bd;
+    text-decoration:none;
+  }
+  .go-link:hover{ text-decoration: underline; }
+
+  .go-table-wrap{
+    overflow:auto;
+    border-radius: 14px;
+    background: rgba(248,250,252,.55);
+    border: 1px solid rgba(226,232,240,.9);
+  }
+  [data-theme="dark"] .go-table-wrap{
+    background: rgba(18,24,32,.45);
+    border-color: rgba(51,65,85,.55);
+  }
+
+  .go-table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 900px;
+  }
+  .go-table thead th{
+    font-size: .70rem;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-weight: 900;
+    color:#94a3b8;
+    padding: 12px 14px;
+    background: transparent;
+    border-bottom: 1px solid rgba(226,232,240,.75);
+    text-align:left;
+  }
+  [data-theme="dark"] .go-table thead th{
+    border-color: rgba(51,65,85,.45);
+    color:#64748b;
+  }
+
+  .go-table tbody td{
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(226,232,240,.65);
+    background: rgba(255,255,255,.75);
+    vertical-align: middle;
+    font-size: .95rem;
+  }
+  [data-theme="dark"] .go-table tbody td{
+    background: rgba(30,33,38,.50);
+    border-color: rgba(51,65,85,.35);
+  }
+  .go-table tbody tr:hover td{ background: rgba(40,102,189,.06); }
+  [data-theme="dark"] .go-table tbody tr:hover td{ background: rgba(40,102,189,.10); }
+
+  .go-risk{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width: 360px;
+  }
+  .go-risk a{
+    font-weight: 900;
+    text-decoration:none;
+    color: inherit;
+  }
+  .go-risk a:hover{ text-decoration: underline; }
+  .go-sub{
+    font-size: .84rem;
+    color:#94a3b8;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    max-width: 72ch;
+  }
+  [data-theme="dark"] .go-sub{ color:#64748b; }
+
+  .go-chip{
+    display:inline-flex;
+    align-items:center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(226,232,240,.9);
+    background: rgba(255,255,255,.72);
+    font-weight: 900;
+    font-size: .84rem;
+    color:#334155;
+  }
+  [data-theme="dark"] .go-chip{
+    border-color: rgba(51,65,85,.55);
+    background: rgba(15,23,42,.35);
+    color:#e5e7eb;
+  }
+
+  .impact{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .impact-track{
+    width: 92px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(148,163,184,.25);
+    overflow:hidden;
+  }
+  .impact-fill{
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+  }
+  .impact-num{
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+    text-align:right;
+  }
+
+  .fill-low{ background:#22c55e; }
+  .fill-mid{ background:#f59e0b; }
+  .fill-hi{  background:#fb923c; }
+  .fill-crit{background:#ef4444; }
+
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: .78rem;
+    letter-spacing: .02em;
+    border: 1px solid transparent;
+  }
+  .st-active{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.28); color:#b91c1c; }
+  .st-mitigated{ background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.28); color:#15803d; }
+  .st-pending{ background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.32); color:#a16207; }
+  .st-other{ background: rgba(148,163,184,.18); border-color: rgba(148,163,184,.28); color:#334155; }
+  [data-theme="dark"] .st-active{ color:#fecaca; }
+  [data-theme="dark"] .st-mitigated{ color:#bbf7d0; }
+  [data-theme="dark"] .st-pending{ color:#fde68a; }
+  [data-theme="dark"] .st-other{ color:#e5e7eb; }
+
+  .go-updated{
+    font-size: .85rem;
+    color:#94a3b8;
+    font-weight: 800;
+  }
+  [data-theme="dark"] .go-updated{ color:#64748b; }
+
+  /* ================================
+     ✅ Quick Actions (screenshot style)
+     ================================ */
   .qa-card{ padding: 14px 16px; }
   .qa-top{
     display:flex;
@@ -471,67 +616,110 @@
     </div>
   </div>
 
-  <!-- ===== ÜST İKİLİ: Genel Görünüm + Risk Matrisi ===== -->
+  <!-- ===== ÜST İKİLİ: General Overview + Risk Matrix ===== -->
   <div class="grid grid-2">
-    <!-- Sol: Genel Görünüm -->
+
+    <!-- ✅ Sol: General Overview (NEW screenshot style) -->
     <div class="card" aria-labelledby="genelTitle">
-      <div class="card-head">
-        <h3 id="genelTitle" class="card-title"><span class="pill">≡</span>General Overview</h3>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a class="btn" href="{{ url_for('risk_select') }}">View All Risks</a>
-          {% if session.get('role') == 'admin' %}
-            <a class="btn" href="{{ url_for('categories_index') }}">Category Management</a>
-          {% endif %}
-          <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Define Risk</a>
-        </div>
+      <div class="go-head">
+        <h3 id="genelTitle" class="go-title">
+          <span class="go-ico" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          General Overview
+        </h3>
+
+        <a class="go-link" href="{{ url_for('risk_select') }}">View All Risks</a>
       </div>
 
       {% if risks and risks|length > 0 %}
-        <div class="table-wrap" style="margin-top:8px">
-          <table class="table">
+        <div class="go-table-wrap">
+          <table class="go-table" aria-label="Risk overview table">
             <thead>
               <tr>
-                <th>Risk Title</th>
-                <th style="width:200px">Category</th>
-                <th style="width:120px; text-align:center">Impact</th>
+                <th>Risk ID &amp; Title</th>
+                <th style="width:220px">Category</th>
+                <th style="width:180px">Impact Score</th>
                 <th style="width:160px">Status</th>
+                <th style="width:150px">Last Updated</th>
               </tr>
             </thead>
+
             <tbody>
               {% for r in risks[:8] %}
-              {% set sc = r.score() %}
-              <tr>
-                <td>
-                  <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
-                  {% if r.description %}
-                    <div class="small" style="margin-top:4px; max-width:72ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                      {{ r.description }}
+                {% set sc = r.score() %}
+                {% set pct = ((sc / 25) * 100) if sc is not none else 0 %}
+                {% set lvl = 'fill-low' if (sc is not none and sc<=4) else ('fill-mid' if (sc is not none and sc<=10) else ('fill-hi' if (sc is not none and sc<=15) else 'fill-crit')) %}
+
+                {% set st = (r.status or '')|lower %}
+                {% set st_class =
+                    'st-active' if ('active' in st)
+                    else ('st-mitigated' if ('mitig' in st or 'closed' in st)
+                    else ('st-pending' if ('pending' in st or 'review' in st)
+                    else 'st-other'))
+                %}
+
+                <tr>
+                  <td>
+                    <div class="go-risk">
+                      <a href="{{ url_for('risk_detail', risk_id=r.id) }}">#R-{{ r.id }} {{ r.title }}</a>
+                      {% if r.description %}
+                        <div class="go-sub">{{ r.description }}</div>
+                      {% else %}
+                        <div class="go-sub">—</div>
+                      {% endif %}
                     </div>
-                  {% endif %}
-                </td>
-                <td>{{ r.category or "-" }}</td>
-                <td style="text-align:center">
-                  {% if sc is not none %}
-                    <span class="badge
-                                {% if sc<=4 %}score-low
-                                {% elif sc<=10 %}score-mid
-                                {% else %}score-high{% endif %}"
-                          title="Skor: {{ '%.2f'|format(sc) }}">
-                      {{ '%.2f'|format(sc) }}
+                  </td>
+
+                  <td><span class="go-chip">{{ r.category or "-" }}</span></td>
+
+                  <td>
+                    {% if sc is not none %}
+                      <div class="impact" title="Skor: {{ '%.2f'|format(sc) }} / 25">
+                        <div class="impact-track" aria-hidden="true">
+                          <div class="impact-fill {{ lvl }}" data-w="{{ '%.0f'|format(pct) }}"></div>
+
+                        </div>
+                        <div class="impact-num">{{ '%.0f'|format(sc) }}</div>
+                      </div>
+                    {% else %}
+                      <span class="go-updated">—</span>
+                    {% endif %}
+                  </td>
+
+                  <td><span class="status-pill {{ st_class }}">{{ r.status or "—" }}</span></td>
+
+                  <td>
+                    <span class="go-updated">
+                      {% if r.updated_at is defined and r.updated_at %}
+                        {{ r.updated_at }}
+                      {% elif r.updated_on is defined and r.updated_on %}
+                        {{ r.updated_on }}
+                      {% elif r.updated is defined and r.updated %}
+                        {{ r.updated }}
+                      {% elif r.created_at is defined and r.created_at %}
+                        {{ r.created_at }}
+                      {% else %}
+                        —
+                      {% endif %}
                     </span>
-                  {% else %}
-                    <span class="badge">—</span>
-                  {% endif %}
-                </td>
-                <td>{{ r.status or '—' }}</td>
-              </tr>
+                  </td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        <div class="small" style="margin-top:10px">
-          Son güncellenen 8 risk gösteriliyor. Tümü için “Riskler” sayfasına gidin.
+
+        <div class="small" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+          <span>Son güncellenen 8 risk gösteriliyor.</span>
+          <a class="go-link" href="{{ url_for('risk_new') }}">+ Define Risk</a>
+          {% if session.get('role') == 'admin' %}
+            <a class="go-link" href="{{ url_for('categories_index') }}">Category Management</a>
+          {% endif %}
         </div>
+
       {% else %}
         <div class="empty" role="note" aria-live="polite">
           <h4 style="margin:0 0 .3rem; font-weight:900;">Henüz risk yok</h4>
