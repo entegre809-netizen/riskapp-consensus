@@ -67,7 +67,6 @@
     border:1px solid var(--line,#e5e7eb);
     border-radius:8px;
     cursor:pointer;
-    user-select:none;
   }
   .btn-tab[aria-pressed="true"]{
     outline: 2px solid color-mix(in oklab, var(--primary,#6ea8ff) 80%, black 20%);
@@ -276,8 +275,8 @@
         <div>
           <label>Durum</label>
           <select class="input" name="status">
-            {% for s in ['Aktif','Değerlendirildi','Azaltıcı','Kapandı'] %}
-              <option value="{{ s }}" {% if (r.status or '') == s %}selected{% endif %}>{{ s }}</option>
+            {% for s in ['Aktif','Değerlendirildi','Azaltıcı','kapandı'] %}
+              <option value="{{ s }}" {% if r.status == s %}selected{% endif %}>{{ s }}</option>
             {% endfor %}
           </select>
         </div>
@@ -345,7 +344,7 @@
         </div>
 
         <div class="right" style="grid-column:1/-1">
-          <button class="btn btn-primary" id="saveBtn" title="Ctrl+S" type="submit">Kaydet</button>
+          <button class="btn btn-primary" id="saveBtn" title="Ctrl+S">Kaydet</button>
         </div>
       </form>
     </div>
@@ -426,7 +425,7 @@
                 </select>
                 <div class="btnbar" style="margin-top:6px">
                   {% for i in range(1,6) %}
-                    <button class="btn btn-tab pbtn" type="button" aria-pressed="false" data-setp="{{i}}">{{ i }}</button>
+                    <button class="btn btn-tab" type="button" data-setp="{{i}}" aria-pressed="false">{{ i }}</button>
                   {% endfor %}
                 </div>
               </div>
@@ -439,7 +438,7 @@
                 </select>
                 <div class="btnbar" style="margin-top:6px">
                   {% for i in range(1,6) %}
-                    <button class="btn btn-tab sbtn" type="button" aria-pressed="false" data-sets="{{i}}">{{ i }}</button>
+                    <button class="btn btn-tab" type="button" data-sets="{{i}}" aria-pressed="false">{{ i }}</button>
                   {% endfor %}
                 </div>
               </div>
@@ -451,7 +450,7 @@
             </div>
             <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
             <div class="right">
-              <button class="btn btn-success" type="submit">Değerlendirmeyi Ekle</button>
+              <button class="btn btn-success">Değerlendirmeyi Ekle</button>
             </div>
           </form>
         </div>
@@ -688,7 +687,7 @@
           <label>Yeni Yorum</label>
           <textarea class="input" name="text" rows="2" placeholder="Güncelleme veya not girin"></textarea>
           <div class="right" style="margin-top:8px">
-            <button class="btn" type="submit">Yorum Ekle</button>
+            <button class="btn">Yorum Ekle</button>
           </div>
         </form>
 
@@ -696,7 +695,7 @@
               action="{{ url_for('risk_delete', risk_id=r.id) }}"
               onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
               style="margin-top:12px" class="right">
-          <button class="btn danger" type="submit">❌ Risk Sil</button>
+          <button class="btn danger">❌ Risk Sil</button>
         </form>
       {% endif %}
     </div>
@@ -722,20 +721,33 @@
 
 <script>
   // =============================
+  // ✅ Chart.js yükle (yoksa)
+  // =============================
+  function ensureChartJs(){
+    return new Promise((resolve) => {
+      if (window.Chart) return resolve(true);
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+  }
+
+  // =============================
   // Konsensüs P/S
   // =============================
   function applyConsensus(p, s) {
     try {
+      // ilk eval bloğa uygula (sayfada birden fazla olabilir)
       const block = document.querySelector('.eval-block');
       if (!block) return;
       const pSel = block.querySelector('.probSel');
       const sSel = block.querySelector('.sevSel');
       if (pSel) pSel.value = String(p);
       if (sSel) sSel.value = String(s);
-
       syncButtonsFromSelect(block);
       updateLiveRpnBlock(block);
-
       block.scrollIntoView({ behavior:'smooth', block:'center' });
     } catch(e){ console.error(e); }
   }
@@ -750,22 +762,23 @@
     if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
   }
 
-  // select -> aria-pressed butonlarını senkronla
   function syncButtonsFromSelect(block){
     const pSel = block.querySelector('.probSel');
     const sSel = block.querySelector('.sevSel');
-    const pVal = pSel ? String(pSel.value || '1') : '1';
-    const sVal = sSel ? String(sSel.value || '1') : '1';
+    const pV = pSel ? String(pSel.value || "1") : "1";
+    const sV = sSel ? String(sSel.value || "1") : "1";
 
-    block.querySelectorAll('.pbtn').forEach(btn=>{
-      btn.setAttribute('aria-pressed', (btn.dataset.setp === pVal) ? 'true' : 'false');
+    block.querySelectorAll('[data-setp]').forEach(b=>{
+      b.setAttribute("aria-pressed", b.dataset.setp === pV ? "true" : "false");
     });
-    block.querySelectorAll('.sbtn').forEach(btn=>{
-      btn.setAttribute('aria-pressed', (btn.dataset.sets === sVal) ? 'true' : 'false');
+    block.querySelectorAll('[data-sets]').forEach(b=>{
+      b.setAttribute("aria-pressed", b.dataset.sets === sV ? "true" : "false");
     });
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
+
+    // P/S butonları + select senkron
     document.querySelectorAll('.eval-block').forEach(block=>{
       const pSel = block.querySelector('.probSel');
       const sSel = block.querySelector('.sevSel');
@@ -796,10 +809,36 @@
         });
       });
 
-      // ilk yükleme
+      // ilk init
       syncButtonsFromSelect(block);
       updateLiveRpnBlock(block);
     });
+
+    // AI suggest form varsa: fetch + reload
+    const form = document.getElementById('aiSuggestForm');
+    const btn  = document.getElementById('btn-ai-suggest');
+    if (form && btn){
+      form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+
+        const oldText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = '🤖 Çalışıyor...';
+
+        fetch(form.action, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(resp => {
+          if (!resp.ok) throw new Error("AI isteği başarısız");
+          return resp.text();
+        })
+        .then(() => window.location.reload())
+        .catch(err => {
+          console.error(err);
+          alert("AI çağrısında hata oluştu.");
+          btn.disabled = false;
+          btn.innerText = oldText;
+        });
+      });
+    }
   });
 
   // =============================
@@ -876,34 +915,6 @@
       bindRow(clone);
     });
   })();
-
-  // AI suggest form varsa: fetch + reload
-  document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('aiSuggestForm');
-    const btn  = document.getElementById('btn-ai-suggest');
-    if (!form || !btn) return;
-
-    form.addEventListener('submit', function (ev) {
-      ev.preventDefault();
-
-      const oldText = btn.innerText;
-      btn.disabled = true;
-      btn.innerText = '🤖 Çalışıyor...';
-
-      fetch(form.action, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } })
-      .then(resp => {
-        if (!resp.ok) throw new Error("AI isteği başarısız");
-        return resp.text();
-      })
-      .then(() => window.location.reload())
-      .catch(err => {
-        console.error(err);
-        alert("AI çağrısında hata oluştu.");
-        btn.disabled = false;
-        btn.innerText = oldText;
-      });
-    });
-  });
 
   // ============================================================
   // ✅ RISK DETAIL MINI PARETO (costs_settings_v1 ile ortak)
@@ -1003,7 +1014,8 @@
         eurTry: eurEl?.value || s.eurTry || "",
         oneTimePolicy: polEl?.value || s.oneTimePolicy || "1x",
         amortizeYears: yrsEl?.value || s.amortizeYears || 3,
-        paretoUseAnnual: !!annEl?.checked
+        paretoUseAnnual: !!annEl?.checked,
+        paretoGroupBy: grpEl?.value || s.paretoGroupBy || "category",
       };
       saveSettings(next);
     }
@@ -1017,6 +1029,7 @@
       if (polEl) polEl.value = s.oneTimePolicy || "1x";
       if (yrsEl) yrsEl.value = s.amortizeYears || 3;
       if (annEl) annEl.checked = (s.paretoUseAnnual ?? true);
+      if (grpEl) grpEl.value = s.paretoGroupBy || "category";
     })();
 
     let chart = null;
@@ -1079,22 +1092,11 @@
       return { ok: allOk, labels, bars, line, baseCur, useAnnual };
     }
 
-    function ensureChartJs(){
-      if (window.Chart) return Promise.resolve(true);
-      return new Promise((resolve) => {
-        const s = document.createElement("script");
-        s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
-        s.onload = () => resolve(true);
-        s.onerror = () => resolve(false);
-        document.head.appendChild(s);
-      });
-    }
-
     async function render(){
-      const ok = await ensureChartJs();
-      if (!ok || !window.Chart){
+      const okLib = await ensureChartJs();
+      if (!okLib || !window.Chart){
         empty.style.display = "block";
-        empty.textContent = "Chart.js yüklenemedi (CDN engelli olabilir).";
+        empty.textContent = "Chart.js yüklenemedi. İnternet/CDN engelli olabilir.";
         if (chart){ chart.destroy(); chart = null; }
         return;
       }
