@@ -85,15 +85,19 @@
     color: #0f766e;
   }
 
+  /* ✅ DÜZELTME: Başlık beyaz + okunaklı gölge */
   .onboard-left-title{
     font-size: clamp(2.8rem, 5.4vw, 4.2rem);
     line-height:1.05;
     font-weight: 900;
     letter-spacing:-.045em;
     margin: 0 0 14px;
-    color: #0f141a;
+    color: #fff !important;
+    text-shadow: 0 10px 30px rgba(2,6,23,.28), 0 2px 8px rgba(2,6,23,.18);
   }
-  .onboard-left-title .accent{ color: var(--primary); }
+  .onboard-left-title .accent{
+    color: #fff !important; /* accent de beyaz */
+  }
 
   .onboard-left-sub{
     max-width: 560px;
@@ -280,7 +284,7 @@
     margin-top: 10px;
   }
 
-  /* ✅ DÜZELTME: "Giriş Yap" yazısı her koşulda beyaz kalsın */
+  /* ✅ DÜZELTME: "Giriş Yap" yazısı kesin beyaz */
   .phone-btn-primary{
     display:flex;
     align-items:center;
@@ -288,7 +292,7 @@
     padding: 14px 12px;
     border-radius: 14px;
     background: var(--primary);
-    color:#fff !important;              /* <-- burada */
+    color:#fff !important;
     font-weight: 900;
     text-decoration:none;
     box-shadow: 0 12px 24px rgba(40,102,189,.20);
@@ -298,7 +302,7 @@
     filter: brightness(.96);
     transform: scale(1.02);
     text-decoration:none;
-    color:#fff !important;              /* <-- hover’da da garanti */
+    color:#fff !important;
   }
 
   .phone-btn-ghost{
@@ -425,7 +429,7 @@
       </div>
     </div>
 
-    <!-- Sağ taraf: RiskApp 3D telefon + içerik (mevcut link özelliklerin korunuyor) -->
+    <!-- Sağ taraf: RiskApp 3D telefon + içerik -->
     <div class="onboard-right" style="position:relative;">
       <div class="phone-frame phone-shadow">
         <div class="phone-notch"></div>
