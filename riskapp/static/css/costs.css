@@ -400,7 +400,6 @@
   gap:.45rem;
   justify-content:flex-end;
 }
-
 .costs-page .text-muted{
   color: var(--muted) !important;
 }

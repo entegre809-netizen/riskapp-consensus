@@ -699,5 +699,4 @@
     updateTableAndHeader();
     updateCharts();
   });
-
 })();
