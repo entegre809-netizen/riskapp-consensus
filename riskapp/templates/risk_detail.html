@@ -9,9 +9,9 @@
   @media (max-width: 1060px){ .cols{ grid-template-columns: 1fr; } }
 
   .sticky-top{
-    position: sticky; top: 8px; z-index: 5;
+    position: sticky; top: 6px; z-index: 5;
     background: var(--bg, transparent);
-    padding: 8px 0 0;
+    padding: 6px 0 0;
   }
 
   .pill{
@@ -123,23 +123,19 @@
   }
 
   /* ============================================================
-     ✅ ÜST HERO (tasarım)
-     ============================================================ */
-    /* ============================================================
-     ✅ ÜST HERO (tasarım) - KÜÇÜLTÜLMÜŞ HALİ
+     ✅ ÜST HERO (KÜÇÜLTÜLMÜŞ)
      ============================================================ */
   .hero{
-    padding: 16px 16px 12px;   /* eskisi: 22px 22px 18px */
-    border-radius: 16px;       /* eskisi: 18px */
+    padding: 14px 16px 12px;   /* ⬅️ daha küçük */
+    border-radius: 16px;
   }
-
   .crumb{
-    font-size:.72rem;          /* hafif küçült */
+    font-size:.70rem;
     letter-spacing:.08em;
     font-weight:900;
     opacity:.65;
     text-transform: uppercase;
-    margin-bottom: 4px;        /* eskisi: 6px */
+    margin-bottom: 4px;
   }
   .crumb .sep{ opacity:.45; margin: 0 .35rem; }
   .crumb .active{ color: var(--primary,#2563eb); opacity:1; }
@@ -147,23 +143,21 @@
   .hero-title{
     margin: 0;
     font-weight: 900;
-    font-size: clamp(1.55rem, 2.4vw, 2.25rem); /* eskisi: clamp(2.2rem, 3.6vw, 3.4rem) */
-    line-height: 1.12;                          /* eskisi: 1.05 */
+    font-size: clamp(1.65rem, 2.6vw, 2.45rem); /* ⬅️ daha küçük */
+    line-height: 1.08;
     letter-spacing: -0.02em;
     font-family: ui-serif, Georgia, "Times New Roman", Times, serif;
   }
-
   .hero-sub{
-    margin-top: 6px;           /* eskisi: 10px */
-    font-size: .92rem;         /* eskisi: 1rem */
+    margin-top: 6px;
+    font-size: .95rem;
     opacity:.75;
     font-weight: 600;
   }
-
   .hero-meta{
-    margin-top: 12px;          /* eskisi: 18px */
+    margin-top: 12px;
     display:flex;
-    gap:10px;                  /* eskisi: 14px */
+    gap:10px;
     flex-wrap: wrap;
     align-items:center;
   }
@@ -171,19 +165,19 @@
   .cat-pill{
     display:inline-flex;
     align-items:center;
-    gap:10px;
-    padding: .55rem .85rem;    /* eskisi: .75rem 1.05rem */
+    gap:8px;
+    padding: .5rem .75rem; /* ⬅️ daha küçük */
     border-radius: 999px;
     border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
     background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 78%, transparent);
     font-weight: 900;
     letter-spacing:.02em;
-    min-height: 40px;          /* eskisi: 46px */
+    min-height: 38px;  /* ⬅️ daha küçük */
+    font-size: .9rem;
   }
-
   .cat-pill .ico{
-    width: 28px; height: 28px; /* eskisi: 34px */
-    border-radius: 10px;       /* eskisi: 12px */
+    width: 28px; height: 28px; /* ⬅️ daha küçük */
+    border-radius: 10px;
     display:flex; align-items:center; justify-content:center;
     background: rgba(245,158,11,.15);
     border: 1px solid rgba(245,158,11,.25);
@@ -192,55 +186,53 @@
   .rpn-badge{
     display:inline-flex;
     align-items:center;
-    gap:10px;
-    padding: .55rem .85rem;    /* eskisi: .75rem 1.05rem */
+    gap:8px;
+    padding: .5rem .8rem; /* ⬅️ daha küçük */
     border-radius: 999px;
-    min-height: 40px;          /* eskisi: 46px */
+    min-height: 38px;      /* ⬅️ daha küçük */
     font-weight: 900;
     color: #fff;
     background: linear-gradient(135deg, #ef4444, #b91c1c);
-    box-shadow: 0 8px 18px rgba(185,28,28,.18); /* biraz azalt */
+    box-shadow: 0 8px 18px rgba(185,28,28,.18); /* ⬅️ daha az */
     border: 1px solid rgba(255,255,255,.15);
+    font-size: .92rem;
   }
   .rpn-badge .divider{
-    width:1px; height:18px;    /* eskisi: 20px */
+    width:1px; height:18px;
     background: rgba(255,255,255,.35);
   }
 
   .hero-actions{
-    margin-top: 12px;          /* eskisi: 18px */
+    margin-top: 12px;
     display:flex;
-    gap:10px;                  /* eskisi: 14px */
+    gap:10px;
     flex-wrap: wrap;
     align-items:center;
   }
-
   .hero-btn{
     display:inline-flex;
     align-items:center;
-    gap:10px;
-    padding: .7rem 1rem;       /* eskisi: .9rem 1.25rem */
-    border-radius: 12px;       /* eskisi: 14px */
+    gap:8px;
+    padding: .65rem .95rem; /* ⬅️ daha küçük */
+    border-radius: 12px;
     font-weight: 900;
-    font-size: .92rem;         /* ek: buton yazısı küçülsün */
+    font-size: .92rem;
     border: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 75%, transparent);
     background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
     text-decoration:none;
     cursor:pointer;
   }
-
   .hero-btn.primary{
     background: color-mix(in oklab, var(--primary,#2563eb) 92%, white 8%);
     border-color: color-mix(in oklab, var(--primary,#2563eb) 70%, black 30%);
     color:#fff;
-    box-shadow: 0 10px 20px color-mix(in oklab, var(--primary,#2563eb) 18%, transparent); /* azalt */
+    box-shadow: 0 10px 18px color-mix(in oklab, var(--primary,#2563eb) 18%, transparent);
   }
-
   .hero-btn.yellow{
     background: #facc15;
     border-color: #eab308;
     color:#111827;
-    box-shadow: 0 10px 20px rgba(250,204,21,.14); /* azalt */
+    box-shadow: 0 10px 18px rgba(250,204,21,.14);
   }
 
   [data-theme="dark"] .cat-pill{
@@ -252,6 +244,117 @@
     border-color: rgba(255,255,255,.14);
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
     color: var(--text,#e5e7eb);
+  }
+
+  /* ============================================================
+     ✅ SOL: Risk Formu (tasarım)
+     ============================================================ */
+  .rf-card{
+    padding: 14px 14px 12px;
+    border-radius: 14px;
+  }
+  .rf-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding: 6px 6px 14px;
+    border-bottom: 1px solid var(--line,#e5e7eb);
+    margin-bottom: 14px;
+  }
+  .rf-left{
+    display:flex; align-items:center; gap:10px;
+    font-weight:800;
+  }
+  .rf-ico{
+    width:30px; height:30px;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    background: color-mix(in oklab, var(--primary,#2563eb) 10%, transparent);
+    border: 1px solid color-mix(in oklab, var(--primary,#2563eb) 25%, transparent);
+  }
+  .rf-title{
+    margin:0;
+    font-size: 1.02rem;
+    font-weight: 900;
+  }
+  .rf-badge{
+    font-size:.7rem;
+    font-weight:900;
+    letter-spacing:.08em;
+    padding:.18rem .55rem;
+    border-radius: 999px;
+    color: color-mix(in oklab, var(--primary,#2563eb) 92%, black 8%);
+    background: color-mix(in oklab, var(--primary,#2563eb) 14%, transparent);
+    border:1px solid color-mix(in oklab, var(--primary,#2563eb) 22%, transparent);
+    white-space: nowrap;
+  }
+  .rf-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 900px){
+    .rf-grid{ grid-template-columns:1fr; }
+  }
+  .rf-field{ display:flex; flex-direction:column; gap:7px; }
+  .rf-field label{
+    font-size:.84rem;
+    font-weight:800;
+    color: color-mix(in oklab, var(--text,#0f172a) 90%, transparent);
+  }
+  .rf-field .input{
+    height: 42px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 85%, transparent);
+    background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
+    padding: .55rem .75rem;
+    outline: none;
+    box-shadow: 0 0 0 0 rgba(0,0,0,0);
+    transition: box-shadow .15s ease, border-color .15s ease;
+  }
+  .rf-field textarea.input{
+    height:auto;
+    min-height: 96px;
+    padding: .65rem .75rem;
+    resize: vertical;
+  }
+  .rf-field .input:focus{
+    border-color: color-mix(in oklab, var(--primary,#2563eb) 55%, var(--line,#e5e7eb) 45%);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary,#2563eb) 18%, transparent);
+  }
+  .rf-wide{ grid-column: 1 / -1; }
+  .rf-actions{
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line,#e5e7eb);
+  }
+  .rf-save{
+    width:100%;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    border-radius: 12px;
+    padding: .9rem 1rem;
+    font-weight: 900;
+    color:#fff;
+    background: color-mix(in oklab, var(--primary,#2563eb) 92%, white 8%);
+    border:1px solid color-mix(in oklab, var(--primary,#2563eb) 80%, black 20%);
+    box-shadow: 0 10px 26px color-mix(in oklab, var(--primary,#2563eb) 22%, transparent);
+    cursor:pointer;
+  }
+  .rf-save:hover{ filter: brightness(0.98); transform: translateY(-1px); }
+  .rf-save:active{ transform: translateY(0); }
+
+  [data-theme="dark"] .rf-head,
+  [data-theme="dark"] .rf-actions{
+    border-color: rgba(255,255,255,.12);
+  }
+  [data-theme="dark"] .rf-field .input{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    color: var(--text,#e5e7eb);
+  }
+  [data-theme="dark"] .rf-field label{
+    color: rgba(226,232,240,.92);
   }
 
   /* ============================================================
@@ -616,7 +719,7 @@
     </div>
 
     {% if consensus %}
-      <div class="flash info" style="margin-top:14px">
+      <div class="flash info" style="margin-top:12px">
         🔔 Konsensüs: P={{ consensus.p }}, Ş={{ consensus.s }}
         ({{ consensus.count }} oy, eşik {{ threshold }})
         <button class="btn btn-tab" type="button"
@@ -898,7 +1001,6 @@
             </div>
           {% endif %}
 
-          {# ✅ “Düzenle” gibi full özellik kaybolmasın diye detayda tam tabloyu da bıraktım #}
           <details style="margin-top:10px">
             <summary class="muted" style="cursor:pointer">Tüm maliyetleri tablo halinde gör (düzenle)</summary>
             <div style="margin-top:8px; max-height:280px; overflow:auto;">
@@ -931,9 +1033,6 @@
             </div>
           </details>
 
-          {# ===========================
-             ✅ Risk içi mini Pareto (özellik: aynen duruyor)
-             =========================== #}
           <div class="card" style="margin-top:12px">
             <div class="row" style="justify-content:space-between; align-items:flex-start;">
               <div class="grow">
@@ -1013,7 +1112,6 @@
         {% endif %}
       </div>
 
-      {# ✅ Geçmiş değerlendirmeler (özellik: aynen duruyor) #}
       <details class="history-details" style="margin-top:14px">
         <summary class="muted" style="cursor:pointer; padding:.35rem .1rem;">
           Geçmiş değerlendirmeleri göster/gizle
@@ -1062,9 +1160,6 @@
       </details>
     </div>
 
-    {# ============================================================
-       ✅ YORUMLAR ve İŞLEM GEÇMİŞİ (tasarım)
-       ============================================================ #}
     <div class="card" style="grid-column:1/-1">
       <div class="yh-header">
         <div class="yh-ico" aria-hidden="true">💬</div>
@@ -1154,7 +1249,6 @@
   </div>
 </div>
 
-{# ✅ Risk cost data: JS için JSON #}
 <script id="riskCostsData" type="application/json">
 [
 {% if risk_costs and risk_costs|length %}
@@ -1172,9 +1266,6 @@
 </script>
 
 <script>
-  // =============================
-  // ✅ Chart.js yükle (yoksa)
-  // =============================
   function ensureChartJs(){
     return new Promise((resolve) => {
       if (window.Chart) return resolve(true);
@@ -1186,9 +1277,6 @@
     });
   }
 
-  // =============================
-  // Konsensüs P/S
-  // =============================
   function applyConsensus(p, s) {
     try {
       const block = document.querySelector('.eval-block');
@@ -1210,11 +1298,9 @@
     const p = parseInt(pSel.value || '1', 10);
     const s = parseInt(sSel.value || '1', 10);
 
-    // eski pill (gizli)
     const el = block.querySelector('.liveRpn');
     if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
 
-    // yeni header'daki canlı sayı
     const num = block.querySelector('.liveRpnNum');
     if (num) num.textContent = String(p*s);
   }
@@ -1238,12 +1324,10 @@
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
-    // P/S butonları + select senkron
     document.querySelectorAll('.eval-block').forEach(block=>{
       const pSel = block.querySelector('.probSel');
       const sSel = block.querySelector('.sevSel');
 
-      // default 1
       if (pSel) pSel.value = pSel.value || "1";
       if (sSel) sSel.value = sSel.value || "1";
 
@@ -1269,9 +1353,6 @@
     });
   });
 
-  // =============================
-  // Tarih alanları → YYYY-MM
-  // =============================
   (function(){
     const startDate = document.getElementById('start_date');
     const endDate   = document.getElementById('end_date');
@@ -1297,7 +1378,6 @@
     });
   })();
 
-  // Ctrl/Cmd+S -> form kaydet
   document.addEventListener('keydown', (e)=>{
     if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
       e.preventDefault();
@@ -1305,7 +1385,6 @@
     }
   });
 
-  // Mitigation satırları: dinamik tablo (varsa)
   (function(){
     const tbody = document.getElementById('mitBody');
     const addBtn = document.getElementById('addMitRow');
@@ -1344,9 +1423,6 @@
     });
   })();
 
-  // ============================================================
-  // ✅ RISK DETAIL MINI PARETO (costs_settings_v1 ile ortak)
-  // ============================================================
   (function(){
     const LS_KEY = "costs_settings_v1";
 
@@ -1361,7 +1437,7 @@
     const canvas = document.getElementById("rdParetoChart");
     const empty  = document.getElementById("rdParetoEmpty");
 
-    if (!canvas || !empty) return; // maliyet yoksa chart da yok
+    if (!canvas || !empty) return;
 
     const nf2 = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -1414,7 +1490,7 @@
         const y = Math.max(1, parseInt(yrsEl?.value || s.amortizeYears || 3, 10));
         return 1 / y;
       }
-      return 1; // 1x
+      return 1;
     }
 
     function formatMoney(a, cur){
@@ -1448,7 +1524,6 @@
       saveSettings(next);
     }
 
-    // init UI from shared settings
     (function init(){
       const s = loadSettings();
       if (baseEl) baseEl.value = s.baseCurrency || "TRY";
