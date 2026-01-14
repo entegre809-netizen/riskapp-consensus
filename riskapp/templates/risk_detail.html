@@ -67,6 +67,7 @@
     border:1px solid var(--line,#e5e7eb);
     border-radius:8px;
     cursor:pointer;
+    user-select:none;
   }
   .btn-tab[aria-pressed="true"]{
     outline: 2px solid color-mix(in oklab, var(--primary,#6ea8ff) 80%, black 20%);
@@ -275,8 +276,8 @@
         <div>
           <label>Durum</label>
           <select class="input" name="status">
-            {% for s in ['Aktif','Değerlendirildi','Azaltıcı','kapandı'] %}
-              <option value="{{ s }}" {% if r.status == s %}selected{% endif %}>{{ s }}</option>
+            {% for s in ['Aktif','Değerlendirildi','Azaltıcı','Kapandı'] %}
+              <option value="{{ s }}" {% if (r.status or '') == s %}selected{% endif %}>{{ s }}</option>
             {% endfor %}
           </select>
         </div>
@@ -344,7 +345,7 @@
         </div>
 
         <div class="right" style="grid-column:1/-1">
-          <button class="btn btn-primary" id="saveBtn" title="Ctrl+S">Kaydet</button>
+          <button class="btn btn-primary" id="saveBtn" title="Ctrl+S" type="submit">Kaydet</button>
         </div>
       </form>
     </div>
@@ -374,7 +375,6 @@
         </div>
       </div>
 
-      {# ✅ rr undefined fix: burada rr yok, o yüzden r.id kullanıyoruz #}
       {% if ps_reco and (ps_reco.p or ps_reco.s) %}
         <div class="card" style="margin-bottom:10px">
           <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
@@ -426,7 +426,7 @@
                 </select>
                 <div class="btnbar" style="margin-top:6px">
                   {% for i in range(1,6) %}
-                    <button class="btn btn-tab" type="button" data-setp="{{i}}">{{ i }}</button>
+                    <button class="btn btn-tab pbtn" type="button" aria-pressed="false" data-setp="{{i}}">{{ i }}</button>
                   {% endfor %}
                 </div>
               </div>
@@ -439,7 +439,7 @@
                 </select>
                 <div class="btnbar" style="margin-top:6px">
                   {% for i in range(1,6) %}
-                    <button class="btn btn-tab" type="button" data-sets="{{i}}">{{ i }}</button>
+                    <button class="btn btn-tab sbtn" type="button" aria-pressed="false" data-sets="{{i}}">{{ i }}</button>
                   {% endfor %}
                 </div>
               </div>
@@ -451,7 +451,7 @@
             </div>
             <input class="input" name="comment" placeholder="Yorum (opsiyonel)">
             <div class="right">
-              <button class="btn btn-success">Değerlendirmeyi Ekle</button>
+              <button class="btn btn-success" type="submit">Değerlendirmeyi Ekle</button>
             </div>
           </form>
         </div>
@@ -688,7 +688,7 @@
           <label>Yeni Yorum</label>
           <textarea class="input" name="text" rows="2" placeholder="Güncelleme veya not girin"></textarea>
           <div class="right" style="margin-top:8px">
-            <button class="btn">Yorum Ekle</button>
+            <button class="btn" type="submit">Yorum Ekle</button>
           </div>
         </form>
 
@@ -696,7 +696,7 @@
               action="{{ url_for('risk_delete', risk_id=r.id) }}"
               onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
               style="margin-top:12px" class="right">
-          <button class="btn danger">❌ Risk Sil</button>
+          <button class="btn danger" type="submit">❌ Risk Sil</button>
         </form>
       {% endif %}
     </div>
@@ -732,7 +732,10 @@
       const sSel = block.querySelector('.sevSel');
       if (pSel) pSel.value = String(p);
       if (sSel) sSel.value = String(s);
+
+      syncButtonsFromSelect(block);
       updateLiveRpnBlock(block);
+
       block.scrollIntoView({ behavior:'smooth', block:'center' });
     } catch(e){ console.error(e); }
   }
@@ -747,27 +750,54 @@
     if(el) el.textContent = `RPN: ${p}×${s} = ${p*s}`;
   }
 
+  // select -> aria-pressed butonlarını senkronla
+  function syncButtonsFromSelect(block){
+    const pSel = block.querySelector('.probSel');
+    const sSel = block.querySelector('.sevSel');
+    const pVal = pSel ? String(pSel.value || '1') : '1';
+    const sVal = sSel ? String(sSel.value || '1') : '1';
+
+    block.querySelectorAll('.pbtn').forEach(btn=>{
+      btn.setAttribute('aria-pressed', (btn.dataset.setp === pVal) ? 'true' : 'false');
+    });
+    block.querySelectorAll('.sbtn').forEach(btn=>{
+      btn.setAttribute('aria-pressed', (btn.dataset.sets === sVal) ? 'true' : 'false');
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', ()=>{
     document.querySelectorAll('.eval-block').forEach(block=>{
       const pSel = block.querySelector('.probSel');
       const sSel = block.querySelector('.sevSel');
 
-      if (pSel) pSel.addEventListener('change', ()=>updateLiveRpnBlock(block));
-      if (sSel) sSel.addEventListener('change', ()=>updateLiveRpnBlock(block));
+      if (pSel) pSel.addEventListener('change', ()=>{
+        syncButtonsFromSelect(block);
+        updateLiveRpnBlock(block);
+      });
+      if (sSel) sSel.addEventListener('change', ()=>{
+        syncButtonsFromSelect(block);
+        updateLiveRpnBlock(block);
+      });
 
       block.querySelectorAll('[data-setp]').forEach(b=>{
         b.addEventListener('click',()=>{
           const v=b.dataset.setp;
-          if(pSel){ pSel.value=v; updateLiveRpnBlock(block); }
+          if(pSel){ pSel.value=v; }
+          syncButtonsFromSelect(block);
+          updateLiveRpnBlock(block);
         });
       });
       block.querySelectorAll('[data-sets]').forEach(b=>{
         b.addEventListener('click',()=>{
           const v=b.dataset.sets;
-          if(sSel){ sSel.value=v; updateLiveRpnBlock(block); }
+          if(sSel){ sSel.value=v; }
+          syncButtonsFromSelect(block);
+          updateLiveRpnBlock(block);
         });
       });
 
+      // ilk yükleme
+      syncButtonsFromSelect(block);
       updateLiveRpnBlock(block);
     });
   });
@@ -1049,10 +1079,22 @@
       return { ok: allOk, labels, bars, line, baseCur, useAnnual };
     }
 
-    function render(){
-      if (!window.Chart){
+    function ensureChartJs(){
+      if (window.Chart) return Promise.resolve(true);
+      return new Promise((resolve) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
+        s.onload = () => resolve(true);
+        s.onerror = () => resolve(false);
+        document.head.appendChild(s);
+      });
+    }
+
+    async function render(){
+      const ok = await ensureChartJs();
+      if (!ok || !window.Chart){
         empty.style.display = "block";
-        empty.textContent = "Chart.js yüklenmemiş. (base.html tarafında Chart.js script’i yok.)";
+        empty.textContent = "Chart.js yüklenemedi (CDN engelli olabilir).";
         if (chart){ chart.destroy(); chart = null; }
         return;
       }
@@ -1115,7 +1157,7 @@
 
     [baseEl, usdEl, eurEl, polEl, yrsEl, annEl, grpEl].filter(Boolean).forEach(el => {
       el.addEventListener("change", ()=>{ syncSettings(); render(); });
-      el.addEventListener("input", ()=>{ syncSettings(); render(); });
+      el.addEventListener("input",  ()=>{ syncSettings(); render(); });
     });
 
     render();
