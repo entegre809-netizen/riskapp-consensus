@@ -9,7 +9,8 @@
   .rp-wrap{ display:flex; flex-direction:column; gap:18px; }
 
   .rp-top{
-    display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
   }
   .rp-breadcrumb{
     display:flex; align-items:center; gap:8px;
@@ -92,11 +93,9 @@
     color: color-mix(in oklab, #ef4444 78%, var(--text));
   }
   [data-theme="dark"] .rp-chip.ok,
-  [data-theme="dark"] .rp-chip.bad{
-    color: rgba(255,255,255,.92);
-  }
+  [data-theme="dark"] .rp-chip.bad{ color: rgba(255,255,255,.92); }
 
-  /* Table shell (enterprise style) */
+  /* Table shell */
   .rp-table-card{
     border:1px solid var(--line);
     background: color-mix(in oklab, var(--card) 96%, transparent);
@@ -105,7 +104,8 @@
     box-shadow: 0 16px 36px -26px rgba(0,0,0,.35);
   }
   .rp-table-toolbar{
-    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; flex-wrap:wrap;
     padding: 12px 14px;
     border-bottom:1px solid var(--line);
     background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
@@ -113,6 +113,7 @@
   [data-theme="dark"] .rp-table-toolbar{
     background: color-mix(in oklab, var(--card-solid) 86%, transparent);
   }
+
   .rp-search{
     position:relative;
     min-width: 260px;
@@ -136,19 +137,14 @@
     font-size: 18px;
   }
 
-  /* Table tweaks on your base .table */
   .rp-table-card .table{ margin:0; min-width: 760px; }
-  .rp-table-card .table thead th{
-    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
-  }
+  .rp-table-card .table thead th{ background: color-mix(in oklab, var(--bg-soft) 92%, transparent); }
   [data-theme="dark"] .rp-table-card .table thead th{
     background: color-mix(in oklab, var(--card-solid) 86%, transparent);
   }
 
   /* Risk cell */
-  .rp-risk{
-    display:flex; flex-direction:column; gap:4px;
-  }
+  .rp-risk{ display:flex; flex-direction:column; gap:4px; }
   .rp-risk .name{ font-weight:950; letter-spacing:-.01em; }
   .rp-risk .id{
     font-size:.74rem;
@@ -170,15 +166,13 @@
     color: var(--text);
     white-space:nowrap;
   }
-  /* Simple color mapping */
   .rp-pill.op{ border-color: rgba(59,130,246,.28); background: rgba(59,130,246,.12); }
   .rp-pill.fin{ border-color: rgba(245,158,11,.30); background: rgba(245,158,11,.14); }
   .rp-pill.leg{ border-color: rgba(99,102,241,.28); background: rgba(99,102,241,.12); }
   .rp-pill.str{ border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.12); }
-
   [data-theme="dark"] .rp-pill{ color: rgba(255,255,255,.92); }
 
-  /* Score badge (circle) */
+  /* Score badge */
   .rp-score{
     width:34px; height:34px;
     display:inline-flex; align-items:center; justify-content:center;
@@ -190,7 +184,7 @@
     box-shadow: 0 12px 22px -16px color-mix(in oklab, var(--primary) 55%, transparent);
   }
 
-  /* Costs chips */
+  /* Costs */
   .rp-costs{ display:flex; flex-wrap:wrap; gap:.35rem; }
   .rp-cost{
     display:inline-flex; align-items:center;
@@ -212,7 +206,8 @@
 
   /* Footer/pagination bar */
   .rp-foot{
-    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; flex-wrap:wrap;
     padding: 12px 14px;
     border-top:1px solid var(--line);
     background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
@@ -237,9 +232,89 @@
     border-color: transparent;
     color:#fff;
   }
+
+  /* Bootstrap modal dark safety */
+  [data-theme="dark"] .modal-content{
+    background: var(--card-solid);
+    color: var(--text);
+    border-color: rgba(148,163,184,.22);
+  }
+  [data-theme="dark"] .modal-header,
+  [data-theme="dark"] .modal-footer{
+    border-color: rgba(148,163,184,.16);
+  }
 </style>
 
+{# -----------------------------
+   Query param okuma (backend-dostu)
+   ----------------------------- #}
+{% set q = request.args.get('q','') %}
+{% set f_category = request.args.get('category','') %}
+{% set f_min_score = request.args.get('min_score','') %}
+{% set f_currency = request.args.get('currency','') %}
+
+{# -----------------------------
+   KPI hesapları: cost_map'ten TRY/USD topla
+   cost_map[risk_id] -> [(cur,total),...]
+   ----------------------------- #}
+{% set _total = (total_count if total_count is defined else (risks|length if risks is defined else 0)) %}
+{% set _kritik = 0 %}
+{% set _try = 0 %}
+{% set _usd = 0 %}
+{% set _other_cur_count = 0 %}
+
+{% for r in risks %}
+  {% set _sc = r.score() %}
+  {% if _sc and (_sc is number) and _sc >= 80 %}
+    {% set _kritik = _kritik + 1 %}
+  {% endif %}
+
+  {% set totals = (cost_map.get(r.id, []) if cost_map is defined else []) %}
+  {% if totals and totals|length > 0 %}
+    {% for cur, total in totals %}
+      {% set _c = (cur or 'TRY')|upper %}
+      {% set _t = (total or 0) %}
+      {% if _c == 'TRY' %}
+        {% set _try = _try + _t %}
+      {% elif _c == 'USD' %}
+        {% set _usd = _usd + _t %}
+      {% else %}
+        {% set _other_cur_count = _other_cur_count + 1 %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+
+{# Compact number helper (K/M) #}
+{% macro compact(n) -%}
+  {%- set x = (n or 0) -%}
+  {%- if x >= 1000000 -%}
+    {{ '%.1f'|format(x / 1000000) }}M
+  {%- elif x >= 1000 -%}
+    {{ '%.0f'|format(x / 1000) }}K
+  {%- else -%}
+    {{ '%.0f'|format(x) }}
+  {%- endif -%}
+{%- endmacro %}
+
+{# Pagination (backend varsa kullan, yoksa fallback) #}
+{% set page = (page if page is defined else (request.args.get('page', 1)|int)) %}
+{% set per_page = (per_page if per_page is defined else (request.args.get('per_page', 20)|int)) %}
+{% set total_count = (total_count if total_count is defined else (risks|length if risks is defined else 0)) %}
+{% set pages = (pages if pages is defined else ((total_count + per_page - 1) // per_page)) %}
+{% set showing_from = (showing_from if showing_from is defined else ((page - 1) * per_page + 1 if total_count > 0 else 0)) %}
+{% set showing_to = (showing_to if showing_to is defined else ([page * per_page, total_count] | min)) %}
+
+{# URL builder: mevcut args + update #}
+{% set _args = request.args.to_dict(flat=True) %}
+{% macro page_url(p) -%}
+  {%- set d = _args.copy() -%}
+  {%- set _ = d.update({'page': p}) -%}
+  {{ url_for(request.endpoint, **d) }}
+{%- endmacro %}
+
 <div class="rp-wrap">
+
   <!-- Top: breadcrumb + title + actions -->
   <div class="rp-top">
     <div>
@@ -250,10 +325,12 @@
     </div>
 
     <div class="rp-actions">
-      <button class="rp-btn" type="button">
+      <button class="rp-btn" type="button" data-bs-toggle="modal" data-bs-target="#filterModal">
         <span class="material-icons-outlined" style="font-size:18px;">filter_list</span>
         Filtrele
       </button>
+
+      {# Dışa aktar endpoint'in varsa burayı bağlarız; şimdilik placeholder #}
       <a class="rp-btn" href="#" role="button">
         <span class="material-icons-outlined" style="font-size:18px;">file_download</span>
         Dışa Aktar
@@ -261,23 +338,12 @@
     </div>
   </div>
 
-  {# -----------------------------
-     KPI’lar (istersen gerçek veriye bağlarız)
-     ----------------------------- #}
-  {% set _total = (risks|length if risks is defined else 0) %}
-  {% set _kritik = 0 %}
-  {% for r in risks %}
-    {% set _sc = r.score() %}
-    {% if _sc and (_sc is number) and _sc >= 80 %}
-      {% set _kritik = _kritik + 1 %}
-    {% endif %}
-  {% endfor %}
-
+  <!-- KPI’lar -->
   <div class="rp-kpis">
     <div class="rp-kpi">
       <div class="label">Aktif Riskler</div>
       <div class="val">
-        <span>{{ _total }}</span>
+        <span>{{ total_count }}</span>
         <span class="rp-chip ok">+4%</span>
       </div>
     </div>
@@ -293,7 +359,7 @@
     <div class="rp-kpi">
       <div class="label">Toplam TRY Etki</div>
       <div class="val">
-        <span>—</span>
+        <span>{{ compact(_try) }}</span>
         <span class="material-icons-outlined" style="opacity:.45;">trending_up</span>
       </div>
     </div>
@@ -301,7 +367,7 @@
     <div class="rp-kpi">
       <div class="label">Toplam USD Etki</div>
       <div class="val">
-        <span>—</span>
+        <span>{{ compact(_usd) }}</span>
         <span class="material-icons-outlined" style="opacity:.45;">account_balance_wallet</span>
       </div>
     </div>
@@ -310,12 +376,30 @@
   <!-- Table -->
   <div class="rp-table-card">
     <div class="rp-table-toolbar">
-      <div class="rp-search">
+      <!-- Search: GET query ile (Enter) + client-side hızlı filtre (input) -->
+      <form class="rp-search" method="get" action="{{ url_for(request.endpoint) }}">
+        {# mevcut filtreleri koru #}
+        {% for k,v in _args.items() %}
+          {% if k not in ['q','page'] %}
+            <input type="hidden" name="{{k}}" value="{{v}}">
+          {% endif %}
+        {% endfor %}
         <span class="material-icons-outlined icon">search</span>
-        <input type="text" placeholder="Raporlarda ara..." oninput="window.__rpFilter?.(this.value)"/>
-      </div>
+        <input
+          id="rpQ"
+          name="q"
+          type="text"
+          value="{{ q }}"
+          placeholder="Raporlarda ara..."
+          oninput="window.__rpFilter?.(this.value)"
+        />
+      </form>
+
       <div style="display:flex; gap:8px; align-items:center;">
-        <span class="rp-muted" style="font-size:.86rem;">{{ _total }} kayıt</span>
+        {% if _other_cur_count > 0 %}
+          <span class="rp-muted" style="font-size:.86rem;">+{{ _other_cur_count }} diğer para birimi</span>
+        {% endif %}
+        <span class="rp-muted" style="font-size:.86rem;">{{ total_count }} kayıt</span>
       </div>
     </div>
 
@@ -325,8 +409,8 @@
           <tr>
             <th>Risk</th>
             <th>Kategori</th>
-            <th style="width:100px; text-align:center;">Skor (RPN)</th>
-            <th style="width:280px;">Maliyet</th>
+            <th style="width:110px; text-align:center;">Skor (RPN)</th>
+            <th style="width:300px;">Maliyet</th>
             <th style="width:140px; text-align:right;">İşlem</th>
           </tr>
         </thead>
@@ -371,7 +455,7 @@
               {% if totals and totals|length > 0 %}
                 <div class="rp-costs">
                   {% for cur, total in totals %}
-                    <span class="rp-cost">{{ cur or "TRY" }} {{ "%.2f"|format(total or 0) }}</span>
+                    <span class="rp-cost">{{ (cur or "TRY")|upper }} {{ "%.2f"|format(total or 0) }}</span>
                   {% endfor %}
                 </div>
               {% else %}
@@ -388,25 +472,101 @@
       </table>
     </div>
 
+    <!-- Pagination -->
     <div class="rp-foot">
       <span class="rp-muted" style="font-size:.86rem;">
-        Toplam {{ _total }} kayıttan gösteriliyor
+        {% if total_count > 0 %}
+          Toplam {{ total_count }} kayıttan {{ showing_from }}-{{ showing_to }} arası gösteriliyor
+        {% else %}
+          Kayıt bulunamadı
+        {% endif %}
       </span>
 
       <div class="rp-pages" aria-label="Sayfalama">
-        <a class="rp-page" href="#" aria-label="Önceki">‹</a>
-        <a class="rp-page active" href="#">1</a>
-        <a class="rp-page" href="#">2</a>
-        <a class="rp-page" href="#">3</a>
-        <a class="rp-page" href="#" aria-label="Sonraki">›</a>
+        {% if pages > 1 %}
+          <a class="rp-page" href="{{ page_url(1) }}" aria-label="İlk">«</a>
+          <a class="rp-page" href="{{ page_url(page-1 if page>1 else 1) }}" aria-label="Önceki">‹</a>
+
+          {# orta kısım: sayfa etrafı 2 #}
+          {% set start = (page - 2 if page - 2 > 1 else 1) %}
+          {% set end = (page + 2 if page + 2 < pages else pages) %}
+
+          {% for p in range(start, end+1) %}
+            <a class="rp-page {{ 'active' if p==page }}" href="{{ page_url(p) }}">{{ p }}</a>
+          {% endfor %}
+
+          <a class="rp-page" href="{{ page_url(page+1 if page<pages else pages) }}" aria-label="Sonraki">›</a>
+          <a class="rp-page" href="{{ page_url(pages) }}" aria-label="Son">»</a>
+        {% else %}
+          <span class="rp-muted" style="font-size:.86rem;">Sayfa 1 / 1</span>
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 
+<!-- =========================
+     Filter Modal (Bootstrap)
+     ========================= -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="get" action="{{ url_for(request.endpoint) }}">
+      <div class="modal-header">
+        <h5 class="modal-title" style="font-weight:950; letter-spacing:-.02em;">Filtrele</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label>Arama</label>
+          <input class="input" name="q" value="{{ q }}" placeholder="Risk adı, kategori, ID...">
+        </div>
+
+        <div>
+          <label>Kategori</label>
+          <select class="input" name="category">
+            <option value="">Tümü</option>
+            <option value="Operasyonel" {{ 'selected' if f_category=='Operasyonel' }}>Operasyonel</option>
+            <option value="Finansal" {{ 'selected' if f_category=='Finansal' }}>Finansal</option>
+            <option value="Yasal" {{ 'selected' if f_category=='Yasal' }}>Yasal</option>
+            <option value="Stratejik" {{ 'selected' if f_category=='Stratejik' }}>Stratejik</option>
+          </select>
+          <div class="rp-muted" style="font-size:.8rem; margin-top:6px;">
+            (Backend tarafında kategori filtresi uygularsan otomatik çalışır.)
+          </div>
+        </div>
+
+        <div>
+          <label>Minimum Skor (RPN)</label>
+          <input class="input" type="number" name="min_score" value="{{ f_min_score }}" min="0" step="1" placeholder="örn: 80">
+        </div>
+
+        <div>
+          <label>Para Birimi</label>
+          <select class="input" name="currency">
+            <option value="">Hepsi</option>
+            <option value="TRY" {{ 'selected' if f_currency|upper=='TRY' }}>TRY</option>
+            <option value="USD" {{ 'selected' if f_currency|upper=='USD' }}>USD</option>
+            <option value="EUR" {{ 'selected' if f_currency|upper=='EUR' }}>EUR</option>
+          </select>
+        </div>
+
+        {# filtre değişince sayfa 1’e dön #}
+        <input type="hidden" name="page" value="1">
+        <input type="hidden" name="per_page" value="{{ per_page }}">
+      </div>
+
+      <div class="modal-footer">
+        <a class="btn" href="{{ url_for(request.endpoint) }}">Sıfırla</a>
+        <button type="submit" class="btn btn-primary">Uygula</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 (function(){
-  // Basit client-side filtre: satırları data-filter üzerinden arar
+  // Client-side hızlı filtre (arka planda anında)
   window.__rpFilter = function(q){
     q = (q || '').toLowerCase().trim();
     const rows = document.querySelectorAll('#rpTable tbody tr');
@@ -415,6 +575,10 @@
       tr.style.display = (!q || hay.includes(q)) ? '' : 'none';
     });
   };
+
+  // Sayfa ilk açıldığında query'deki q varsa hızlı filtre de uygula
+  const initQ = (document.getElementById('rpQ')?.value || '').trim();
+  if (initQ) window.__rpFilter(initQ);
 })();
 </script>
 
