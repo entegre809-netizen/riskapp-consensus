@@ -102,6 +102,8 @@
     border-radius: 18px;
     overflow:hidden;
     box-shadow: 0 16px 36px -26px rgba(0,0,0,.35);
+    position: relative;
+    z-index: 1;
   }
   .rp-table-toolbar{
     display:flex; align-items:center; justify-content:space-between;
@@ -137,27 +139,23 @@
     font-size: 18px;
   }
 
-  /* ✅✅ Bootstrap .table WHITE BG override (dark mode dahil her modda) */
+  /* ✅✅ Bootstrap .table WHITE BG override (dark mode dahil) */
   .rp-table-card .table{
     margin:0;
     min-width: 760px;
     color: var(--text);
     background: transparent !important;
   }
-  /* Bootstrap 5: .table > :not(caption) > * > * hücre bg basıyor — onu ez */
   .rp-table-card .table > :not(caption) > * > *{
     background: transparent !important;
     color: inherit;
   }
-
   .rp-table-card .table thead th{
     background: color-mix(in oklab, var(--bg-soft) 92%, transparent) !important;
   }
   [data-theme="dark"] .rp-table-card .table thead th{
     background: color-mix(in oklab, var(--card-solid) 86%, transparent) !important;
   }
-
-  /* Hover satır rengi (Bootstrap hover değil, bizim) */
   .rp-table-card .table tbody tr:hover > *{
     background: color-mix(in oklab, var(--primary) 6%, transparent) !important;
   }
@@ -262,6 +260,12 @@
   [data-theme="dark"] .modal-footer{
     border-color: rgba(148,163,184,.16);
   }
+
+  /* ✅✅ Modal "altta kalıyor" FIX (z-index + scroll) */
+  .modal{ z-index: 20050 !important; }
+  .modal-backdrop{ z-index: 20040 !important; }
+  .rp-wrap{ position: relative; z-index: 1; }
+  .modal-body{ max-height: calc(100vh - 220px); overflow: auto; }
 </style>
 
 {# -----------------------------
@@ -329,31 +333,20 @@
   {{ url_for(request.endpoint, **d) }}
 {%- endmacro %}
 
-{# ✅ Dışa Aktar endpoint seçim (varsa bağla) #}
-{% set _has_ep_helper = (has_endpoint is defined) %}
-{% set _export_ep = (
-    'reports_export_xlsx' if (
-      (_has_ep_helper and has_endpoint('reports_export_xlsx')) or
-      (not _has_ep_helper and ('reports_export_xlsx' in current_app.view_functions))
-    )
-    else (
-      'risks_export_xlsx' if (
-        (_has_ep_helper and has_endpoint('risks_export_xlsx')) or
-        (not _has_ep_helper and ('risks_export_xlsx' in current_app.view_functions))
-      )
-      else None
-    )
-) %}
-
-{% if _export_ep %}
-  {% set export_url = url_for(_export_ep, **_args) %}
-{% else %}
-  {% set export_url = '#' %}
+{# ✅ Dışa Aktar: endpoint varsa bağla (query'leri de gönder) #}
+{% set _export_ep = None %}
+{% if current_app is defined and current_app.view_functions is defined %}
+  {% if 'reports_export_xlsx' in current_app.view_functions %}
+    {% set _export_ep = 'reports_export_xlsx' %}
+  {% elif 'risks_export_xlsx' in current_app.view_functions %}
+    {% set _export_ep = 'risks_export_xlsx' %}
+  {% endif %}
 {% endif %}
+{% set export_url = (url_for(_export_ep, **_args) if _export_ep else '#') %}
 
 <div class="rp-wrap">
 
-  <!-- Top: breadcrumb + title + actions -->
+  <!-- Top -->
   <div class="rp-top">
     <div>
       <div class="rp-breadcrumb">
@@ -368,14 +361,17 @@
         Filtrele
       </button>
 
-      <a class="rp-btn" href="{{ export_url }}" role="button" {% if export_url == '#' %}aria-disabled="true" style="opacity:.65; cursor:not-allowed"{% endif %}>
+      <a class="rp-btn"
+         href="{{ export_url }}"
+         role="button"
+         {% if export_url == '#' %}aria-disabled="true" style="opacity:.65; cursor:not-allowed"{% endif %}>
         <span class="material-icons-outlined" style="font-size:18px;">file_download</span>
         Dışa Aktar
       </a>
     </div>
   </div>
 
-  <!-- KPI’lar -->
+  <!-- KPI -->
   <div class="rp-kpis">
     <div class="rp-kpi">
       <div class="label">Aktif Riskler</div>
@@ -564,9 +560,6 @@
             <option value="Yasal" {{ 'selected' if f_category=='Yasal' }}>Yasal</option>
             <option value="Stratejik" {{ 'selected' if f_category=='Stratejik' }}>Stratejik</option>
           </select>
-          <div class="rp-muted" style="font-size:.8rem; margin-top:6px;">
-            (Backend tarafında kategori filtresi uygularsan otomatik çalışır.)
-          </div>
         </div>
 
         <div>
@@ -611,6 +604,13 @@
   const initQ = (document.getElementById('rpQ')?.value || '').trim();
   if (initQ) window.__rpFilter(initQ);
 
+  // ✅ Modal z-index garanti (bazı layoutlarda header/sidebar çok yüksek z-index basıyor)
+  document.addEventListener('shown.bs.modal', function(e){
+    const bd = document.querySelector('.modal-backdrop');
+    if (bd) bd.style.zIndex = '20040';
+    e.target.style.zIndex = '20050';
+  });
+
   // ✅ Filtre "Uygula" -> modal kapanıp submit olsun (takılı kalmasın)
   const form = document.getElementById('filterForm');
   const modalEl = document.getElementById('filterModal');
@@ -620,9 +620,6 @@
         if (window.bootstrap){
           const inst = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
           inst.hide();
-        } else {
-          modalEl.classList.remove('show');
-          modalEl.style.display = 'none';
         }
       }catch(e){}
     });

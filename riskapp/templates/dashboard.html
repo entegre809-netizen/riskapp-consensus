@@ -236,6 +236,43 @@
   .rm-coltitle,.rm-rowtitle{ font-weight: 900; font-size: .86rem; }
   .rm-colnum,.rm-rownum{ font-weight: 900; opacity:.6; }
 
+    /* ✅ FIX: Dark mode’da Risk Matrix başlık yazıları görünmüyor */
+  .dash-scope .rm-colhead,
+  .dash-scope .rm-rowhead{
+    color:#0f172a; /* light default */
+  }
+
+  .dash-scope .rm-coltitle,
+  .dash-scope .rm-rowtitle{
+    color:#0f172a;
+  }
+
+  .dash-scope .rm-colnum,
+  .dash-scope .rm-rownum{
+    color:#64748b;
+    opacity:.75; /* .6 dark’ta fazla soluk kalıyordu */
+  }
+
+  [data-theme="dark"] .dash-scope .rm-colhead,
+  [data-theme="dark"] .dash-scope .rm-rowhead{
+    color:#e5e7eb;
+  }
+
+  [data-theme="dark"] .dash-scope .rm-coltitle,
+  [data-theme="dark"] .dash-scope .rm-rowtitle{
+    color:#e5e7eb;
+  }
+
+  [data-theme="dark"] .dash-scope .rm-colnum,
+  [data-theme="dark"] .dash-scope .rm-rownum{
+    color:#94a3b8;
+    opacity:.9;
+  }
+
+  /* (opsiyonel) rm-cell linkleri base.html’den renk yemesin */
+  .dash-scope .rm-cell{ color: inherit; }
+
+
   .risk-matrix .rm-rowhead:first-of-type::before{
     content:"↑ Şiddet";
     position:absolute;
