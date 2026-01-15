@@ -39,6 +39,8 @@ from flask import send_file
 import time
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
+from flask import request, redirect, url_for, render_template, jsonify, flash, abort
+from sqlalchemy import or_
 
 import json
 import os as _os, sys as _sys
@@ -1090,6 +1092,7 @@ def create_app():
             db.session.add(m)
 
     # 🔼🔼🔼 BURADA BİTİYOR, SONRA ROUTE’LAR BAŞLIYOR 🔼🔼🔼
+    
 
     
 
@@ -4327,9 +4330,6 @@ def create_app():
 
 
 
-    # -------------------------------------------------
-    #  KATEGORİ YÖNETİMİ
-    # -------------------------------------------------
     @app.route("/categories", methods=["GET", "POST"])
     def categories_index():
         q = (request.args.get("q") or "").strip()
@@ -4353,13 +4353,21 @@ def create_app():
             color = (request.form.get("color") or "").strip() or None
             description = (request.form.get("description") or "").strip() or None
 
+            # İstersen name unique değilse bunu kaldırabilirsin; senin mevcut davranışın aynı kalsın diye bıraktım:
             if RiskCategory.query.filter_by(name=name).first():
                 flash("Bu isimde kategori zaten var.", "danger")
                 return redirect(url_for("categories_index", next=request.args.get("next")))
 
             cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
             db.session.add(cat)
-            db.session.commit()
+
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("Kaydedilemedi. Kod benzersiz olmalı veya veri kısıtı var.", "danger")
+                return redirect(url_for("categories_index", next=request.args.get("next")))
+
             flash("Kategori eklendi.", "success")
 
             if _should_go_identify():
@@ -4369,32 +4377,59 @@ def create_app():
 
         return render_template("categories.html", categories=categories, q=q)
 
+
     @app.route("/categories/<int:cid>/edit", methods=["POST"])
     def categories_edit(cid):
         cat = RiskCategory.query.get_or_404(cid)
-        cat.name = (request.form.get("name") or cat.name).strip()
-        cat.code = (request.form.get("code") or None)
-        cat.color = (request.form.get("color") or None)
-        cat.description = (request.form.get("description") or None)
-        cat.is_active = bool(request.form.get("is_active"))
-        db.session.commit()
+
+        name = (request.form.get("name") or cat.name).strip()
+        if not name:
+            flash("Kategori adı zorunludur.", "danger")
+            return redirect(url_for("categories_index", next=request.args.get("next")))
+
+        cat.name = name
+        cat.code = (request.form.get("code") or "").strip() or None
+        cat.color = (request.form.get("color") or "").strip() or None
+        cat.description = (request.form.get("description") or "").strip() or None
+        cat.is_active = _truthy(request.form.get("is_active"))
+
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Güncellenemedi. Kod benzersiz olmalı veya veri kısıtı var.", "danger")
+            return redirect(url_for("categories_index", next=request.args.get("next")))
+
         flash("Kategori güncellendi.", "success")
 
         if _should_go_identify():
             return redirect(url_for("risk_identify"))
         return redirect(url_for("categories_index"))
 
+
     @app.route("/categories/<int:cid>/delete", methods=["POST"])
     def categories_delete(cid):
         cat = RiskCategory.query.get_or_404(cid)
-        db.session.delete(cat)
-        db.session.commit()
-        flash("Kategori silindi.", "success")
+
+        try:
+            db.session.delete(cat)
+            db.session.commit()
+            flash("Kategori silindi.", "success")
+        except IntegrityError:
+            # kullanımda ise gerçek silme patlar -> pasif yap
+            db.session.rollback()
+            cat.is_active = False
+            db.session.commit()
+            flash("Kategori kullanımda olduğu için silinemedi, pasif yapıldı.", "warning")
 
         if _should_go_identify():
             return redirect(url_for("risk_identify"))
         return redirect(url_for("categories_index"))
-    
+
+
+    # -------------------------
+    # API (JSON) endpointler
+    # -------------------------
     @app.get("/api/categories")
     def api_categories_list():
         q = (request.args.get("q") or "").strip()
@@ -4406,8 +4441,8 @@ def create_app():
                 RiskCategory.code.ilike(like),
                 RiskCategory.description.ilike(like)
             ))
-        rows = query.order_by(RiskCategory.is_active.desc(),
-                              RiskCategory.name.asc()).all()
+        rows = query.order_by(RiskCategory.is_active.desc(), RiskCategory.name.asc()).all()
+
         return jsonify([
             {
                 "id": r.id,
@@ -4420,19 +4455,32 @@ def create_app():
             for r in rows
         ])
 
+
     @app.post("/api/categories")
     def api_categories_create():
         name = (request.form.get("name") or "").strip()
         if not name:
             return jsonify({"error": "name required"}), 400
+
         code = (request.form.get("code") or "").strip() or None
         color = (request.form.get("color") or "").strip() or None
         description = (request.form.get("description") or "").strip() or None
+
+        # Senin eski davranışın: name duplicate ise 409
         if RiskCategory.query.filter_by(name=name).first():
             return jsonify({"error": "duplicate name"}), 409
+
         cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
-        db.session.add(cat); db.session.commit()
+        db.session.add(cat)
+
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"error": "duplicate code or constraint error"}), 409
+
         return jsonify({"ok": True, "id": cat.id})
+
 
     @app.patch("/api/categories/<int:cid>")
     def api_categories_update(cid):
@@ -4441,7 +4489,7 @@ def create_app():
 
         def norm(v): return (v or "").strip()
 
-        # name zorunlu
+        # Frontend her zaman name gönderiyor; name boş olursa 400
         nm = norm(data.get("name"))
         if not nm:
             return jsonify({"error": "name required"}), 400
@@ -4451,8 +4499,7 @@ def create_app():
         cat.color = norm(data.get("color")) or None
         cat.description = norm(data.get("description")) or None
 
-        # checkbox unchecked ise JS "" gönderiyor → False olmalı
-        # (isterse hiç göndermesin: o zaman mevcut kalsın diye if kullanabilirsin)
+        # checkbox unchecked ise JS "" gönderiyor -> False
         if "is_active" in data:
             cat.is_active = _truthy(data.get("is_active"))
 
@@ -4474,7 +4521,7 @@ def create_app():
             db.session.commit()
             return jsonify({"ok": True, "deleted": True})
         except IntegrityError:
-            # kategori kullanımda → gerçek silme yerine pasif yap
+            # kullanımda ise: soft delete (pasif)
             db.session.rollback()
             cat.is_active = False
             db.session.commit()
@@ -4484,10 +4531,23 @@ def create_app():
                 "message": "Kullanımda olduğu için silinmedi; pasif yapıldı."
             }), 200
 
+
+    # --- Kategori yardımcıları (aktif adlar) ---
+    def active_category_names():
+        rows = (RiskCategory.query
+                .filter(RiskCategory.is_active == True)
+                .order_by(RiskCategory.name.asc())
+                .all())
+        return [r.name for r in rows]
+
+
     @app.get("/api/category-names")
     def api_category_names():
         return jsonify(active_category_names())
+    
+    
 
+    
     # -------------------------------------------------
     #  ADMIN — Tek seferlik prefix'e göre kategori düzeltme (opsiyonel)
     # -------------------------------------------------
@@ -6436,6 +6496,11 @@ def create_app():
 
         _PARETO_AI_CACHE[cache_key] = (now, payload)
         return jsonify(payload)
+
+
+
+def _truthy(v) -> bool:
+    return str(v or "").strip().lower() in ("on", "true", "1", "yes")
 
     
 
