@@ -2,56 +2,285 @@
 {% block title %}Sorumlu Özeti{% endblock %}
 {% block content %}
 
-<div class="card">
-  <h2>Sorumlu Özeti</h2>
-  <p class="small">Kim hangi risklerden sorumlu? Ortalama RPN’e göre sıralanmıştır.</p>
+{# ---------- SAFE ---------- #}
+{% set rows_safe = rows or [] %}
 
-  <table class="table">
-    <thead>
-      <tr>
-        <th style="width:28%">Sorumlu</th>
-        <th style="width:12%">Risk Sayısı</th>
-        <th style="width:18%">Ortalama RPN</th>
-        <th>En Kritik Risk</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in rows %}
-        <tr>
-          <td><strong>{{ row.responsible }}</strong></td>
-          <td>{{ row.count }}</td>
-          <td>
-            {% if row.avg_rpn is not none %}
-              <span class="badge">{{ '%.2f'|format(row.avg_rpn) }}</span>
-            {% else %}—{% endif %}
-          </td>
-          <td>
-            {% if row.critical %}
-  <a href="{{ url_for('risk_detail', risk_id=row.critical.id) }}">{{ row.critical.title }}</a>
-  {% set cr = row.critical.score() %}
-  {% if cr is not none %}
-    <span class="small">· RPN {{ '%.2f'|format(cr) }}</span>
-  {% endif %}
-  <div class="small" style="color:#6b7280">
-    {{ row.critical.category or '-' }} · {{ row.critical.status }}
+<style>
+  /* Sorumlu Özeti — Premium UI (base.html ile uyumlu, scoped) */
+  .rs-scope{ font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial; }
+
+  .glass-effect{
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+  .dark .glass-effect{
+    background: rgba(22, 24, 29, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .table-row-hover:hover{ background-color: rgba(34, 115, 195, 0.04); }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:.4rem;
+    padding:.25rem .6rem; border-radius:999px;
+    font-size:12px; font-weight:900; letter-spacing:.02em;
+    border:1px solid transparent;
+  }
+  .pill.red{ background: rgba(239,68,68,.12); color: #b91c1c; border-color: rgba(239,68,68,.25); }
+  .pill.amber{ background: rgba(245,158,11,.14); color:#92400e; border-color: rgba(245,158,11,.25); }
+  .pill.emerald{ background: rgba(16,185,129,.14); color:#065f46; border-color: rgba(16,185,129,.25); }
+  .dark .pill.red{ background: rgba(239,68,68,.20); color: #fca5a5; border-color: rgba(239,68,68,.25); }
+  .dark .pill.amber{ background: rgba(245,158,11,.18); color:#fcd34d; border-color: rgba(245,158,11,.25); }
+  .dark .pill.emerald{ background: rgba(16,185,129,.18); color:#6ee7b7; border-color: rgba(16,185,129,.25); }
+
+  .badge-soft{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.35rem .65rem; border-radius:999px;
+    font-size:12px; font-weight:900;
+    background: rgba(34,115,195,.10);
+    color: #2273c3;
+    border: 1px solid rgba(34,115,195,.18);
+  }
+  .dark .badge-soft{
+    background: rgba(34,115,195,.18);
+    color: #93c5fd;
+    border-color: rgba(34,115,195,.25);
+  }
+</style>
+
+<div class="rs-scope min-h-[calc(100vh-2rem)]">
+  <!-- Breadcrumbs -->
+  <nav class="flex items-center gap-2 mb-8 text-sm text-slate-500 dark:text-slate-400">
+    <a class="hover:text-[#2273c3] transition-colors" href="{{ url_for('dashboard') if 'dashboard' in (globals()|string) else '#' }}">Ana Sayfa</a>
+    <span class="opacity-60">/</span>
+    <span class="text-slate-900 dark:text-white font-semibold">Sorumlu Özeti</span>
+  </nav>
+
+  <!-- Page Heading -->
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-10">
+    <div class="flex flex-col gap-2">
+      <h2 class="text-slate-900 dark:text-white text-4xl font-black tracking-tight">Sorumlu Özeti</h2>
+      <p class="text-slate-500 dark:text-slate-400 text-lg max-w-2xl">
+        Kim hangi risklerden sorumlu? Ortalama RPN’e göre sıralanmıştır.
+      </p>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="button"
+              class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-2.5 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all">
+        <span class="material-symbols-outlined text-lg">filter_list</span>
+        <span>Filtrele</span>
+      </button>
+
+      <button type="button"
+              class="flex items-center gap-2 bg-[#2273c3] text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-[#2273c3]/25 hover:opacity-90 transition-all">
+        <span class="material-symbols-outlined text-lg">download</span>
+        <span>Raporu İndir</span>
+      </button>
+    </div>
+  </header>
+
+  {# ---- KPI cards (rows'tan türetildi, backend değiştirmeden) ---- #}
+  {% set total_resp = rows_safe|length %}
+  {% set total_risks = (rows_safe|map(attribute='count')|sum) if total_resp > 0 else 0 %}
+  {% set avg_list = rows_safe|selectattr('avg_rpn')|map(attribute='avg_rpn')|list %}
+  {% set overall_avg = (avg_list|sum / (avg_list|length)) if (avg_list|length) > 0 else none %}
+
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+      <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Toplam Sorumlu</p>
+      <h3 class="text-2xl font-bold dark:text-white">{{ total_resp }}</h3>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+      <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Toplam Risk</p>
+      <h3 class="text-2xl font-bold dark:text-white">{{ total_risks }}</h3>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+      <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Ortalama RPN</p>
+      <h3 class="text-2xl font-bold text-amber-500">
+        {% if overall_avg is not none %}{{ '%.2f'|format(overall_avg) }}{% else %}—{% endif %}
+      </h3>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+      <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Kritik Atamalar</p>
+      <h3 class="text-2xl font-bold text-red-500">
+        {{ rows_safe|selectattr('critical')|list|length }}
+      </h3>
+    </div>
   </div>
-{% else %}
-  —
-{% endif %}
 
-          </td>
-        </tr>
-      {% else %}
-        <tr>
-          <td colspan="4">Sorumlusu atanmış risk bulunamadı.</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- Main Glass Card -->
+  <div class="glass-effect rounded-2xl shadow-2xl overflow-hidden border border-white/40 dark:border-white/10">
+    <!-- Search/Action Bar (UI only — backend filtre yok, ama görünüm premium) -->
+    <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center">
+      <div class="relative w-full max-w-md">
+        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+        <input id="rsSearch"
+               class="w-full bg-slate-100/80 dark:bg-slate-900 border-none rounded-xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-[#2273c3]/20 transition-all placeholder:text-slate-500"
+               placeholder="Sorumlu veya kritik risk ara..."
+               type="text"/>
+      </div>
 
-  <div class="small" style="margin-top:8px">
-    Not: Ortalama RPN, her sorumlunun üzerindeki risklerin <em>mevcut ortalama RPN</em> değerlerinden hesaplanır.
+      <div class="flex gap-2 ml-auto">
+        <button type="button"
+                id="rsClear"
+                class="p-2.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Temizle">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        <button type="button"
+                class="p-2.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Yenile">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+            <th class="px-8 py-5 text-left text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest" style="width:28%">Sorumlu</th>
+            <th class="px-8 py-5 text-left text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest" style="width:12%">Risk Sayısı</th>
+            <th class="px-8 py-5 text-center text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest" style="width:18%">Ortalama RPN</th>
+            <th class="px-8 py-5 text-left text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">En Kritik Risk</th>
+            <th class="px-8 py-5 text-right"></th>
+          </tr>
+        </thead>
+
+        <tbody id="rsBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for row in rows_safe %}
+            {% set avg = row.avg_rpn %}
+            {# basit renk kuralı: avg >=80 kritik, >=40 orta, else düşük #}
+            {% set pill_cls = 'emerald' %}
+            {% set pill_txt = 'DÜŞÜK' %}
+            {% if avg is not none %}
+              {% if avg >= 80 %}
+                {% set pill_cls = 'red' %}
+                {% set pill_txt = 'KRİTİK' %}
+              {% elif avg >= 40 %}
+                {% set pill_cls = 'amber' %}
+                {% set pill_txt = 'ORTA' %}
+              {% else %}
+                {% set pill_cls = 'emerald' %}
+                {% set pill_txt = 'DÜŞÜK' %}
+              {% endif %}
+            {% endif %}
+
+            <tr class="table-row-hover transition-colors group"
+                data-search="{{ (row.responsible or '')|lower }} {{ (row.critical and row.critical.title or '')|lower }}">
+              <td class="px-8 py-6">
+                <div class="flex items-center gap-4">
+                  {# Avatar: initial #}
+                  {% set initials = (row.responsible or '?')[:2]|upper %}
+                  <div class="size-10 rounded-full bg-[#2273c3]/10 flex items-center justify-center text-[#2273c3] font-black text-sm border-2 border-white dark:border-slate-700 shadow-sm">
+                    {{ initials }}
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-slate-900 dark:text-white">{{ row.responsible }}</p>
+                    <p class="text-xs text-slate-500 font-medium">Sorumlu</p>
+                  </div>
+                </div>
+              </td>
+
+              <td class="px-8 py-6">
+                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ row.count }}</span>
+              </td>
+
+              <td class="px-8 py-6 text-center">
+                {% if avg is not none %}
+                  <span class="pill {{ pill_cls }}">
+                    {{ '%.2f'|format(avg) }} · {{ pill_txt }}
+                  </span>
+                {% else %}
+                  <span class="text-slate-400">—</span>
+                {% endif %}
+              </td>
+
+              <td class="px-8 py-6">
+                {% if row.critical %}
+                  <div>
+                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-200">
+                      <a class="hover:text-[#2273c3] transition-colors"
+                         href="{{ url_for('risk_detail', risk_id=row.critical.id) }}">
+                        {{ row.critical.title }}
+                      </a>
+                    </p>
+
+                    {% set cr = row.critical.score() %}
+                    <div class="flex flex-wrap items-center gap-2 mt-1">
+                      <span class="text-[10px] uppercase font-black text-slate-400 tracking-wider">
+                        {{ row.critical.category or '-' }}
+                      </span>
+                      <span class="text-[10px] uppercase font-black text-slate-400 tracking-wider">•</span>
+                      <span class="text-[10px] uppercase font-black text-slate-500 dark:text-slate-300 tracking-wider">
+                        {{ row.critical.status or '—' }}
+                      </span>
+                      {% if cr is not none %}
+                        <span class="badge-soft">RPN {{ '%.2f'|format(cr) }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% else %}
+                  <span class="text-slate-400">—</span>
+                {% endif %}
+              </td>
+
+              <td class="px-8 py-6 text-right">
+                <span class="material-symbols-outlined text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  arrow_forward
+                </span>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5" class="px-8 py-8 text-slate-500 dark:text-slate-400">
+                Sorumlusu atanmış risk bulunamadı.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="p-6 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        {{ total_resp }} sorumlu listeleniyor
+      </p>
+
+      <p class="text-xs text-slate-400 dark:text-slate-500">
+        Not: Ortalama RPN, her sorumlunun üzerindeki risklerin <em>mevcut ortalama RPN</em> değerlerinden hesaplanır.
+      </p>
+    </div>
   </div>
+
 </div>
+
+<script>
+(function(){
+  // UI-only arama (backend değiştirmeden)
+  const input = document.getElementById('rsSearch');
+  const clear = document.getElementById('rsClear');
+  const body  = document.getElementById('rsBody');
+  if(!input || !body) return;
+
+  const rows = Array.from(body.querySelectorAll('tr[data-search]'));
+  const apply = () => {
+    const q = (input.value || '').trim().toLowerCase();
+    rows.forEach(r => {
+      const hay = (r.getAttribute('data-search') || '');
+      r.style.display = (!q || hay.includes(q)) ? '' : 'none';
+    });
+  };
+
+  input.addEventListener('input', apply);
+  clear && clear.addEventListener('click', () => { input.value=''; apply(); input.focus(); });
+})();
+</script>
 
 {% endblock %}
