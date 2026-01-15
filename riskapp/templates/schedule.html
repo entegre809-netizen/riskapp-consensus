@@ -1,791 +1,1006 @@
 {% extends "base.html" %}
 {% block title %}Zaman Çizelgesi{% endblock %}
 {% block content %}
-<div class="card">
-  <h2 style="margin:0 0 .35rem">Risk Zaman Çizelgesi</h2>
-  <p class="small" style="margin:.15rem 0 1rem">
-    Risklerin başlangıç/bitiş tarihine göre <strong>tablo</strong> veya <strong>aylık takvim</strong> görünümü.
-  </p>
 
-  {# ---------- FORM/STATE ---------- #}
-  {% set view = request.args.get('view','table') %}
-  {% set cur_m = (request.args.get('month') or current_month or 1)|int %}
-  {% set cur_y = (request.args.get('year')  or current_year  or 2025)|int %}
-  {% set month_names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'] %}
+{# ---------- FORM/STATE ---------- #}
+{% set view = request.args.get('view','table') %}
+{% set cur_m = (request.args.get('month') or current_month or 1)|int %}
+{% set cur_y = (request.args.get('year')  or current_year  or 2025)|int %}
+{% set month_names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'] %}
 
-  {# Seviye etiketleri (backend "grade" filtresi için) #}
-  {% set grade_labels = {
-    'critical':   'Çok yüksek',
-    'moderate':   'Yüksek',
-    'low':        'Orta',
-    'acceptable': 'Düşük',
-    'very_low':   'Çok düşük'
-  } %}
+{# Seviye etiketleri (backend "grade" filtresi için) #}
+{% set grade_labels = {
+  'critical':   'Çok yüksek',
+  'moderate':   'Yüksek',
+  'low':        'Orta',
+  'acceptable': 'Düşük',
+  'very_low':   'Çok düşük'
+} %}
 
-  {# ---------- GÜVENLİ YEDEKLER ---------- #}
-  {% set rows_safe   = rows   or [] %}
-  {% set months_safe = months or month_names %}
+{# ---------- GÜVENLİ YEDEKLER ---------- #}
+{% set rows_safe   = rows   or [] %}
+{% set months_safe = months or month_names %}
 
-  {# ---------- FİLTRELER ---------- #}
-  <form method="get" class="noprint"
-        style="margin-bottom:12px; display:grid; gap:8px; grid-template-columns: repeat(6, minmax(0,1fr)); align-items:end">
-    <div>
-      <label>Arama</label>
-      <input class="input" type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Başlık, kategori, sorumlu...">
+<style>
+  /* ==========================================================
+     Risk Timeline — Premium UI (Tailwind-look, base.html uyumlu)
+     ========================================================== */
+
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+  .tl-scope{
+    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
+  }
+
+  .tl-shell{
+    border-radius: 16px;
+    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
+    box-shadow: var(--elev-1);
+    padding: 14px;
+  }
+
+  .tl-head{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    margin-bottom: 12px;
+  }
+  .tl-title{
+    font-size: 1.55rem; font-weight: 900; letter-spacing: -.02em; margin:0;
+  }
+  .tl-sub{
+    margin:.25rem 0 0; color: var(--muted); font-weight: 600;
+  }
+
+  .tl-filterbar{
+    position: sticky; top: 8px; z-index: 20;
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+    padding: 10px;
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--card) 75%, transparent);
+    border:1px solid color-mix(in oklab, var(--line) 78%, transparent);
+    box-shadow: var(--elev-1);
+    backdrop-filter: blur(10px);
+  }
+
+  .tl-chip{
+    display:flex; align-items:center; gap:10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+  }
+  .tl-chip .k{
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .tl-chip select,
+  .tl-chip input{
+    border:0 !important;
+    outline: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    height:auto !important;
+    min-height: 22px;
+    font-weight: 800;
+  }
+  .tl-chip input[type="text"]{ min-width: 220px; }
+  .tl-chip select{ min-width: 120px; }
+
+  .tl-filterbar .grow{ flex:1 }
+  .tl-actions{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+
+  .tl-toggle{
+    display:flex; gap:4px;
+    padding: 4px;
+    border-radius: 12px;
+    border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+  }
+  .tl-toggle button{
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-weight: 900;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  .tl-toggle button.active{
+    background: color-mix(in oklab, var(--card) 85%, transparent);
+    color: var(--primary);
+    box-shadow: var(--elev-1);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar{ width: 8px; height: 8px; }
+  .custom-scrollbar::-webkit-scrollbar-track{ background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb{
+    background: color-mix(in oklab, var(--line) 80%, transparent);
+    border-radius: 999px;
+  }
+
+  .gantt-grid{
+    background-size: 40px 100%;
+    background-image: linear-gradient(to right,
+      color-mix(in oklab, var(--line) 55%, transparent) 1px,
+      transparent 1px
+    );
+  }
+
+  :root{ --cal-scale: 1; }
+  .cal-zoom-shell{ width:100%; overflow:auto; }
+
+  .gx-critical{ background:#fecaca; outline:1px solid #b91c1c; }
+  .gx-moderate{ background:#fed7aa; outline:1px solid #b45309; }
+  .gx-low{ background:#fef3c7; outline:1px solid #a16207; }
+  .gx-acceptable{ background:#bbf7d0; outline:1px solid #15803d; }
+  .gx-very_low{ background:#e5e7eb; outline:1px solid #4b5563; }
+
+  .risk-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:.18rem .55rem;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:600;
+    color:#fff;
+    border:1px solid transparent;
+  }
+  .risk-chip.critical{ background:#b91c1c; border-color:#7f1d1d; }
+  .risk-chip.moderate{ background:#b45309; border-color:#92400e; }
+  .risk-chip.low{ background:#a16207; border-color:#854d0e; }
+  .risk-chip.acceptable{ background:#15803d; border-color:#166534; }
+  .risk-chip.very_low{ background:#374151; border-color:#1f2937; }
+
+  .icon-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid rgba(0,0,0,.08);
+    background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(245,248,255,.9));
+    padding:.25rem .5rem;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:12px;
+  }
+  .icon-btn:hover{ filter:brightness(1.02) }
+
+  .gantt-shell{
+    display:flex;
+    border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    border-radius: 14px;
+    overflow:hidden;
+    background: color-mix(in oklab, var(--card) 90%, transparent);
+  }
+  .gantt-left{
+    width: 420px;
+    flex-shrink:0;
+    border-right:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    background: color-mix(in oklab, var(--card) 95%, transparent);
+  }
+  .gantt-right{
+    flex: 1;
+    overflow-x:auto;
+  }
+
+  .gantt-left table,
+  .gantt-right table{
+    width:100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .gantt-left thead th,
+  .gantt-right thead th{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    border-bottom:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 10px;
+    font-weight: 900;
+    color: var(--muted);
+    height: 44px;
+  }
+  .gantt-left tbody tr,
+  .gantt-right tbody tr{ height: 64px; }
+
+  .gantt-left tbody tr:hover td,
+  .gantt-right tbody tr:hover td{
+    background: color-mix(in oklab, var(--bg) 96%, transparent);
+  }
+
+  .gantt-left td,
+  .gantt-left th{
+    padding: 10px 12px;
+    border-bottom:1px solid color-mix(in oklab, var(--line) 70%, transparent);
+  }
+  .gantt-right td,
+  .gantt-right th{
+    padding: 8px 10px;
+    border-bottom:1px solid color-mix(in oklab, var(--line) 70%, transparent);
+    border-right:1px solid color-mix(in oklab, var(--line) 55%, transparent);
+    text-align:center;
+  }
+  .gantt-right tbody td{ background: transparent; }
+  .gantt-right thead th{ text-align:center; }
+
+  .risk-title{
+    max-width: 260px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-weight: 900;
+  }
+  .risk-meta{ color:var(--muted); font-size:12px; font-weight:600; }
+
+  .tl-bar{
+    height: 18px;
+    border-radius: 999px;
+    cursor:pointer;
+    margin: 0 auto;
+    max-width: 92%;
+  }
+
+  .calendar-wrap{
+    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    border-radius:12px; overflow:hidden;
+    transform: scale(var(--cal-scale));
+    transform-origin: top left;
+    width:100%;
+    background: color-mix(in oklab, var(--card) 95%, transparent);
+  }
+  .cal-header{
+    display:grid; grid-template-columns: repeat(7, 1fr);
+    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
+    border-bottom:1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  }
+  .cal-header div{
+    padding:.7rem .5rem;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    text-align:center
+  }
+  .cal-grid{
+    display:grid; grid-template-columns: repeat(7, 1fr);
+    margin-bottom: calc(20px * var(--cal-scale));
+  }
+  .cal-cell{
+    min-height:140px;
+    border-right:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    border-bottom:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    position:relative; padding:10px
+  }
+  .cal-cell:nth-child(7n){ border-right:0 }
+  .cal-date{ font-size:12px; color:var(--muted); position:absolute; top:10px; right:10px }
+  .cal-badge{
+    position:relative;
+    margin-top:22px;
+    padding:.35rem .55rem;
+    border-radius:10px;
+    font-size:13px; line-height:1.25;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    cursor:grab
+  }
+  .cal-badge .lvl{ font-weight:900; margin-right:6px; text-transform:uppercase; }
+  .cal-badge:active{ cursor:grabbing; }
+
+  .cal-more{ position:absolute; bottom:8px; left:8px; right:8px; font-size:12px; color:var(--muted); cursor:pointer }
+
+  .cal-pop{
+    position:absolute; left:8px; right:8px; bottom:34px;
+    background: var(--card-solid);
+    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    border-radius:10px; padding:8px; box-shadow: var(--elev-card);
+    max-height:220px; overflow:auto; z-index:5; font-size:12px;
+  }
+  .cal-pop .cal-badge{ margin:4px 0; display:block; }
+  .cal-pop .head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--muted) }
+  .cal-pop .close{ cursor:pointer; padding:2px 6px; border-radius:6px; border:1px solid color-mix(in oklab, var(--line) 80%, transparent) }
+
+  .muted-day{ opacity:.45 }
+  @media (max-width: 980px){
+    .cal-cell{ min-height:110px; }
+    .gantt-left{ width: 360px; }
+    .risk-title{ max-width: 220px; }
+    .tl-chip input[type="text"]{ min-width: 160px; }
+  }
+
+  .modal-backdrop{
+    position:fixed; inset:0; background: rgba(0,0,0,.35);
+    display:none; align-items:center; justify-content:center; z-index:50;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:var(--card-solid);
+    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    border-radius:14px; padding:14px;
+    width:min(460px, 92vw); box-shadow: var(--elev-card);
+  }
+  .modal h3{ margin:.2rem 0 .5rem }
+</style>
+
+<div class="tl-scope">
+  <div class="tl-shell">
+
+    <div class="tl-head">
+      <div>
+        <h2 class="tl-title">Zaman Çizelgesi</h2>
+        <p class="tl-sub">
+          Risklerin başlangıç/bitiş tarihine göre <strong>tablo</strong> veya <strong>aylık takvim</strong> görünümü.
+        </p>
+      </div>
+
+      <div class="tl-actions noprint">
+        <a class="btn" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+        <a class="btn" href="{{ url_for('risk_select') }}">Risk Kütüphanesi</a>
+        <a class="btn"
+           href="{{ url_for(
+              'schedule_pdf',
+              q=request.args.get('q',''),
+              category=request.args.get('category',''),
+              owner=request.args.get('owner',''),
+              status=request.args.get('status',''),
+              grade=request.args.get('grade',''),
+              month=cur_m,
+              year=cur_y,
+              view=view
+           ) }}"
+           target="_blank" rel="noopener">📄 PDF</a>
+      </div>
     </div>
-    <div>
-      <label>Kategori</label>
-      <select class="input" name="category">
-        <option value="">Tümü</option>
-        {% for c in (categories or []) %}
-          <option value="{{ c }}" {{ 'selected' if request.args.get('category')==c }}>{{ c }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label>Sorumlu</label>
-      <select class="input" name="owner">
-        <option value="">Tümü</option>
-        {% for o in (owners or []) %}
-          <option value="{{ o }}" {{ 'selected' if request.args.get('owner')==o }}>{{ o }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label>Seviye</label>
-      <select class="input" name="grade">
-        <option value="">Tümü</option>
-        {% for g in ['critical','moderate','low','acceptable','very_low'] %}
-          <option value="{{ g }}"
-                  {{ 'selected' if request.args.get('grade')==g }}>
-            {{ grade_labels.get(g, g|capitalize) }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label>Durum</label>
-      <select class="input" name="status">
-        <option value="">Tümü</option>
-        {% for s in (statuses or ['Yeni','Açık','İlerliyor','Kapalı']) %}
-          <option value="{{ s }}" {{ 'selected' if request.args.get('status')==s }}>{{ s }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div style="display:flex; gap:6px">
-      <div style="flex:1">
-        <label>Ay</label>
-        <select class="input" name="month">
+
+    {# ---- SAFE querystring: view toggle artık JS + hidden input ile ---- #}
+    <form method="get" class="tl-filterbar noprint" id="filtersForm">
+      <input type="hidden" name="view" id="viewField" value="{{ view }}"/>
+
+      <div class="tl-chip" style="flex:1; min-width:240px">
+        <span class="k">Arama</span>
+        <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Başlık, kategori, sorumlu...">
+      </div>
+
+      <div class="tl-chip">
+        <span class="k">Kategori</span>
+        <select name="category">
+          <option value="">Hepsi</option>
+          {% for c in (categories or []) %}
+            <option value="{{ c }}" {{ 'selected' if request.args.get('category')==c }}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="tl-chip">
+        <span class="k">Sahip</span>
+        <select name="owner">
+          <option value="">Tümü</option>
+          {% for o in (owners or []) %}
+            <option value="{{ o }}" {{ 'selected' if request.args.get('owner')==o }}>{{ o }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="tl-chip">
+        <span class="k">Seviye</span>
+        <select name="grade">
+          <option value="">Tümü</option>
+          {% for g in ['critical','moderate','low','acceptable','very_low'] %}
+            <option value="{{ g }}" {{ 'selected' if request.args.get('grade')==g }}>
+              {{ grade_labels.get(g, g|capitalize) }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="tl-chip">
+        <span class="k">Durum</span>
+        <select name="status">
+          <option value="">Tümü</option>
+          {% for s in (statuses or ['Yeni','Açık','İlerliyor','Kapalı']) %}
+            <option value="{{ s }}" {{ 'selected' if request.args.get('status')==s }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="tl-chip">
+        <span class="k">Ay</span>
+        <select name="month">
           {% for name in month_names %}
             <option value="{{ loop.index }}" {{ 'selected' if cur_m==loop.index }}>{{ name }}</option>
           {% endfor %}
         </select>
       </div>
-      <div style="width:110px">
-        <label>Yıl</label>
-        <input class="input" type="number" name="year" value="{{ cur_y }}">
-      </div>
-    </div>
 
-    <div style="grid-column: 1 / -1; display:flex; gap:8px; align-items:center; justify-content:space-between">
-      <div style="display:flex; gap:8px">
-        <a class="btn" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
-        <a class="btn" href="{{ url_for('risk_select') }}">Risk Kütüphanesi</a>
+      <div class="tl-chip" style="min-width:120px">
+        <span class="k">Yıl</span>
+        <input type="number" name="year" value="{{ cur_y }}" style="min-width:84px">
       </div>
-      <div style="display:flex; gap:10px; align-items:center">
-        {% if view == 'calendar' %}
-        <div class="icon-btn" style="gap:8px">
-          🔎 Boyut
+
+      <div class="grow"></div>
+
+      {% if view == 'calendar' %}
+        <div class="tl-chip" style="gap:8px">
+          <span class="k">Boyut</span>
           <input id="calZoom" type="range" min="1" max="1.6" step="0.05" value="1" style="width:140px">
           <span id="calZoomLbl" class="small" style="min-width:42px;text-align:right">100%</span>
         </div>
-        {% endif %}
-        <label style="margin:0">Görünüm</label>
-        <select class="input" name="view" onchange="this.form.submit()" style="width:150px">
-          <option value="table" {{ 'selected' if view=='table' }}>Tablo</option>
-          <option value="calendar" {{ 'selected' if view=='calendar' }}>Takvim</option>
-        </select>
-        <button class="btn btn-primary" type="submit">Uygula</button>
+      {% endif %}
 
-        {# ---- PDF Export butonu ---- #}
-        <a class="btn"
-           href="{{ url_for(
-                    'schedule_pdf',
-                    q=request.args.get('q',''),
-                    category=request.args.get('category',''),
-                    owner=request.args.get('owner',''),
-                    status=request.args.get('status',''),
-                    grade=request.args.get('grade',''),
-                    month=cur_m,
-                    year=cur_y,
-                    view=view
-                ) }}"
-           target="_blank"
-           rel="noopener">
-          📄 PDF
-        </a>
+      <div class="tl-toggle" aria-label="Görünüm">
+        <button type="button"
+                class="{{ 'active' if view=='table' }}"
+                data-set-view="table">☰ Tablo</button>
+        <button type="button"
+                class="{{ 'active' if view=='calendar' }}"
+                data-set-view="calendar">🗓 Takvim</button>
       </div>
-    </div>
-  </form>
 
-  <style>
-    :root{ --cal-scale: 1; }
-    .cal-zoom-shell{ width:100%; overflow:auto; }
+      <button class="btn btn-primary" type="submit">Uygula</button>
+    </form>
 
-    /* Timeline / takvim bar renkleri */
-    .gx-critical{
-      background:#fecaca;
-      outline:1px solid #b91c1c;
-    }
-    .gx-moderate{
-      background:#fed7aa;
-      outline:1px solid #b45309;
-    }
-    .gx-low{
-      background:#fef3c7;
-      outline:1px solid #a16207;
-    }
-    .gx-acceptable{
-      background:#bbf7d0;
-      outline:1px solid #15803d;
-    }
-    .gx-very_low{
-      background:#e5e7eb;
-      outline:1px solid #4b5563;
-    }
+    {% if view == 'table' %}
+      <div class="gantt-shell">
+        <div class="gantt-left">
+          <table aria-label="Risk listesi (sabit kolon)">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding-left:14px">Risk Başlığı</th>
+                <th style="width:90px">RPN</th>
+                <th style="width:110px; padding-right:14px">Seviye</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows_safe %}
+                {% set r = row.risk %}
 
-    /* Seviye chip’leri */
-    .risk-chip{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:.18rem .55rem;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:600;
-      color:#fff;
-      border:1px solid transparent;
-    }
-    .risk-chip.critical{
-      background:#b91c1c;
-      border-color:#7f1d1d;
-    }
-    .risk-chip.moderate{
-      background:#b45309;
-      border-color:#92400e;
-    }
-    .risk-chip.low{
-      background:#a16207;
-      border-color:#854d0e;
-    }
-    .risk-chip.acceptable{
-      background:#15803d;
-      border-color:#166534;
-    }
-    .risk-chip.very_low{
-      background:#374151;
-      border-color:#1f2937;
-    }
-
-    .icon-btn{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      border:1px solid rgba(0,0,0,.08);
-      background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(245,248,255,.9));
-      padding:.25rem .5rem;
-      border-radius:8px;
-      cursor:pointer;
-      font-size:12px;
-    }
-    .icon-btn:hover{ filter:brightness(1.02) }
-
-    .table-scroll{
-      overflow:auto;
-      border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
-      border-radius:12px;
-      background:transparent;
-    }
-    .timeline-table {
-      border-collapse: collapse;
-      width:100%;
-      table-layout: fixed;
-      min-width:760px;
-      background:#ffffff;
-    }
-    .timeline-table th,
-    .timeline-table td {
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      padding:8px;
-      font-size: 12px;
-    }
-    .timeline-table thead th{
-      position:sticky;
-      top:0;
-      background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-      z-index:1;
-    }
-    .timeline-table th.month { text-align:center; white-space:nowrap; }
-
-    .timeline-table tbody td{
-      background:#ffffff !important;
-    }
-
-    .tl-bar { height: 18px; border-radius: 999px; cursor:pointer; }
-    .risk-title { max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700 }
-    .risk-meta { color:var(--muted); font-size:12px; }
-
-    .calendar-wrap{
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      border-radius:12px; overflow:hidden;
-      transform: scale(var(--cal-scale));
-      transform-origin: top left;
-      width:100%;
-    }
-    .cal-header{ display:grid; grid-template-columns: repeat(7, 1fr); background: color-mix(in oklab, var(--bg-soft) 96%, transparent); border-bottom:1px solid color-mix(in oklab, var(--line) 85%, transparent); }
-    .cal-header div{ padding:.6rem .5rem; font-size:12px; font-weight:800; text-transform:uppercase; color:var(--muted); text-align:center }
-    .cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); margin-bottom: calc(20px * var(--cal-scale)); }
-    .cal-cell{ min-height:140px; border-right:1px solid color-mix(in oklab, var(--line) 75%, transparent); border-bottom:1px solid color-mix(in oklab, var(--line) 75%, transparent); position:relative; padding:10px }
-    .cal-cell:nth-child(7n){ border-right:0 }
-    .cal-date{ font-size:12px; color:var(--muted); position:absolute; top:10px; right:10px }
-    .cal-badge{ position:relative; margin-top:22px; padding:.35rem .55rem; border-radius:10px; font-size:13px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:grab }
-    .cal-badge .lvl{ font-weight:800; margin-right:4px; text-transform:uppercase; }
-    .cal-badge:active{ cursor:grabbing; }
-    .cal-more{ position:absolute; bottom:8px; left:8px; right:8px; font-size:12px; color:var(--muted); cursor:pointer }
-
-    .cal-pop{
-      position:absolute; left:8px; right:8px; bottom:34px;
-      background: var(--card-solid);
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      border-radius:10px; padding:8px; box-shadow: var(--elev-card);
-      max-height:220px; overflow:auto; z-index:5; font-size:12px;
-    }
-    .cal-pop .cal-badge{ margin:4px 0; display:block; }
-    .cal-pop .head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--muted) }
-    .cal-pop .close{ cursor:pointer; padding:2px 6px; border-radius:6px; border:1px solid color-mix(in oklab, var(--line) 80%, transparent) }
-
-    .muted-day{ opacity:.45 }
-    @media (max-width: 980px){
-      .cal-cell{ min-height:110px; }
-      .risk-title{ max-width:240px; }
-    }
-
-    .modal-backdrop{
-      position:fixed; inset:0; background: rgba(0,0,0,.35);
-      display:none; align-items:center; justify-content:center; z-index:50;
-    }
-    .modal-backdrop.show{
-      display:flex;
-    }
-    .modal{
-      background:var(--card-solid);
-      border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-      border-radius:14px; padding:14px;
-      width:min(460px, 92vw); box-shadow: var(--elev-card);
-    }
-    .modal h3{ margin:.2rem 0 .5rem }
-  </style>
-
-  {% if view == 'table' %}
-  <div class="table-scroll">
-    <table class="timeline-table" role="table" aria-label="Risk Zaman Çizelgesi">
-      <thead>
-        <tr>
-          <th style="width:340px">Risk</th>
-          {% for m in months_safe %}
-            <th class="month">{{ m }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows_safe %}
-          {% set r = row.risk %}
-
-          {# --- P×S skorunu ve seviyeyi hesapla (dashboard ile aynı) --- #}
-          {% set sc = None %}
-          {% if r.score is not none %}
-            {% set _tmp = r.score() %}
-            {% if _tmp is not none %}
-              {% set sc = _tmp %}
-            {% endif %}
-          {% endif %}
-          {% if sc is none %}
-            {% set ap = r.avg_prob() %}
-            {% set asv = r.avg_sev() %}
-            {% if ap is not none and asv is not none %}
-              {% set sc = ap * asv %}
-            {% endif %}
-          {% endif %}
-
-          {% set lvl_label = "—" %}
-          {% set lvl_class = "acceptable" %}
-          {% if sc is not none %}
-            {% set sc = sc|float %}
-            {% if sc <= 4 %}
-              {% set lvl_label = "Düşük" %}
-              {% set lvl_class = "acceptable" %}
-            {% elif sc <= 10 %}
-              {% set lvl_label = "Orta" %}
-              {% set lvl_class = "low" %}
-            {% elif sc <= 15 %}
-              {% set lvl_label = "Yüksek" %}
-              {% set lvl_class = "moderate" %}
-            {% else %}
-              {% set lvl_label = "Çok Yüksek" %}
-              {% set lvl_class = "critical" %}
-            {% endif %}
-          {% endif %}
-
-          <tr>
-            <td>
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
-                <div>
-                  <div class="risk-title">
-                    <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
-                  </div>
-                  <div class="risk-meta">
-                    {{ r.category or '-' }}
-                    · RPN: {{ sc is not none and ('%.2f'|format(sc)) or '—' }}
-                    · {{ r.status or '—' }}
-                  </div>
-                  <div class="small" style="margin-top:4px">
-                    <span class="risk-chip {{ lvl_class }}">
-                      {{ lvl_label }}
-                    </span>
-                    {% if r.start_month or r.end_month %}
-                      · <span>{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
-                    {% endif %}
-                  </div>
-                </div>
-                <div style="display:flex; gap:6px; align-items:center">
-                  <a class="icon-btn" href="{{ url_for('risk_detail', risk_id=r.id) }}">📄 Detay</a>
-                  <button class="icon-btn"
-                          data-open-reminder
-                          data-risk-id="{{ r.id }}"
-                          data-risk-title="{{ r.title }}">🔔 Hatırlat</button>
-                </div>
-              </div>
-            </td>
-            {% for m in months_safe %}
-              {% set active = (m in (row.active or [])) %}
-              <td>
-                {% if active %}
-                  <div class="tl-bar gx-{{ lvl_class }}"
-                       title="{{ r.title }} · {{ m }}"
-                       data-open-reminder
-                       data-risk-title="{{ r.title }}"></div>
+                {% set sc = None %}
+                {% if r.score is not none %}
+                  {% set _tmp = r.score() %}
+                  {% if _tmp is not none %}{% set sc = _tmp %}{% endif %}
                 {% endif %}
-              </td>
-            {% endfor %}
-          </tr>
-        {% else %}
-          <tr><td colspan="{{ 1 + months_safe|length }}">Kayıtlı risk yok.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
+                {% if sc is none %}
+                  {% set ap = r.avg_prob() %}
+                  {% set asv = r.avg_sev() %}
+                  {% if ap is not none and asv is not none %}{% set sc = ap * asv %}{% endif %}
+                {% endif %}
 
-  {% if view == 'calendar' %}
-    {% set can_calendar = (rows_safe|selectattr('startYM')|list) or (rows_safe|selectattr('endYM')|list) %}
-    {% if not can_calendar %}
-      <div class="flash info" style="margin-top:8px">
-        Takvim için her riskte <strong>başlangıç</strong> ve/veya <strong>bitiş</strong> ayı olmalı
-        (örn. <code>start_month</code> / <code>end_month</code> → YYYY-MM).
-      </div>
-    {% else %}
-      <div class="cal-zoom-shell">
-        <div class="calendar-wrap" id="calendarRoot"
-             data-month="{{ cur_m }}" data-year="{{ cur_y }}"
-             data-detail-pattern="{{ url_for('risk_detail', risk_id=0) }}">
-          <div class="cal-header">
-            {% for d in ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'] %}
-              <div>{{ d }}</div>
-            {% endfor %}
+                {% set lvl_label = "—" %}
+                {% set lvl_class = "acceptable" %}
+                {% if sc is not none %}
+                  {% set sc = sc|float %}
+                  {% if sc <= 4 %}
+                    {% set lvl_label = "Düşük" %}
+                    {% set lvl_class = "acceptable" %}
+                  {% elif sc <= 10 %}
+                    {% set lvl_label = "Orta" %}
+                    {% set lvl_class = "low" %}
+                  {% elif sc <= 15 %}
+                    {% set lvl_label = "Yüksek" %}
+                    {% set lvl_class = "moderate" %}
+                  {% else %}
+                    {% set lvl_label = "Çok Yüksek" %}
+                    {% set lvl_class = "critical" %}
+                  {% endif %}
+                {% endif %}
+
+                <tr>
+                  <td style="text-align:left; padding-left:14px">
+                    <div class="risk-title">
+                      <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                    </div>
+                    <div class="risk-meta">
+                      {{ r.category or '-' }} · {{ r.owner or '-' }} · {{ r.status or '—' }}
+                    </div>
+                    <div class="small" style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center">
+                      <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
+                      {% if r.start_month or r.end_month %}
+                        <span class="risk-meta">{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
+                      {% endif %}
+                      <button class="icon-btn"
+                              style="margin-left:auto"
+                              data-open-reminder
+                              data-risk-id="{{ r.id }}"
+                              data-risk-title="{{ r.title }}">🔔 Hatırlat</button>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="risk-meta" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'">
+                      {{ sc is not none and ('%.2f'|format(sc)) or '—' }}
+                    </span>
+                  </td>
+                  <td style="padding-right:14px">
+                    <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
+                  </td>
+                </tr>
+              {% else %}
+                <tr><td colspan="3" style="padding:14px">Kayıtlı risk yok.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="gantt-right custom-scrollbar gantt-grid">
+          {% set gantt_minw = (months_safe|length > 0) and (months_safe|length * 140) or 900 %}
+          {# ✅ Jinja'yı style içinden çıkardık: VSCode CSS lint susar #}
+          <div class="gantt-minw" data-minw="{{ gantt_minw }}">
+            <table aria-label="Risk zaman çizelgesi (aylar)">
+              <thead>
+                <tr>
+                  {% for m in months_safe %}
+                    <th class="month">{{ m }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in rows_safe %}
+                  {% set r = row.risk %}
+
+                  {% set sc = None %}
+                  {% if r.score is not none %}
+                    {% set _tmp = r.score() %}
+                    {% if _tmp is not none %}{% set sc = _tmp %}{% endif %}
+                  {% endif %}
+                  {% if sc is none %}
+                    {% set ap = r.avg_prob() %}
+                    {% set asv = r.avg_sev() %}
+                    {% if ap is not none and asv is not none %}{% set sc = ap * asv %}{% endif %}
+                  {% endif %}
+
+                  {% set lvl_class = "acceptable" %}
+                  {% if sc is not none %}
+                    {% set sc = sc|float %}
+                    {% if sc <= 4 %}
+                      {% set lvl_class = "acceptable" %}
+                    {% elif sc <= 10 %}
+                      {% set lvl_class = "low" %}
+                    {% elif sc <= 15 %}
+                      {% set lvl_class = "moderate" %}
+                    {% else %}
+                      {% set lvl_class = "critical" %}
+                    {% endif %}
+                  {% endif %}
+
+                  <tr>
+                    {% for m in months_safe %}
+                      {% set active = (m in (row.active or [])) %}
+                      <td>
+                        {% if active %}
+                          <div class="tl-bar gx-{{ lvl_class }}"
+                               title="{{ r.title }} · {{ m }}"
+                               data-open-reminder
+                               data-risk-title="{{ r.title }}"></div>
+                        {% endif %}
+                      </td>
+                    {% endfor %}
+                  </tr>
+                {% else %}
+                  <tr><td colspan="{{ months_safe|length }}">Kayıtlı risk yok.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-          <div class="cal-grid" id="calGrid"></div>
         </div>
       </div>
-
-      <script type="application/json" id="risks-json">
-      [
-        {% for row in rows_safe %}
-          {% set r = row.risk %}
-
-          {# Aynı P×S seviye hesabı (takvim renkleri için) #}
-          {% set sc = None %}
-          {% if r.score is not none %}
-            {% set _tmp = r.score() %}
-            {% if _tmp is not none %}
-              {% set sc = _tmp %}
-            {% endif %}
-          {% endif %}
-          {% if sc is none %}
-            {% set ap = r.avg_prob() %}
-            {% set asv = r.avg_sev() %}
-            {% if ap is not none and asv is not none %}
-              {% set sc = ap * asv %}
-            {% endif %}
-          {% endif %}
-
-          {% set lvl_class = "acceptable" %}
-          {% if sc is not none %}
-            {% set sc = sc|float %}
-            {% if sc <= 4 %}
-              {% set lvl_class = "acceptable" %}
-            {% elif sc <= 10 %}
-              {% set lvl_class = "low" %}
-            {% elif sc <= 15 %}
-              {% set lvl_class = "moderate" %}
-            {% else %}
-              {% set lvl_class = "critical" %}
-            {% endif %}
-          {% endif %}
-
-          {
-            "id": {{ r.id|int }},
-            "title": {{ (r.title or '')|tojson }},
-            "startYM": {{ (row.startYM or r.start_month or '')|tojson }},
-            "endYM":   {{ (row.endYM   or r.end_month   or '')|tojson }},
-            "grade":   {{ lvl_class|tojson }},
-            "category": {{ (r.category or '-')|tojson }},
-            "status":   {{ (r.status or '-')|tojson }}
-          }{% if not loop.last %},{% endif %}
-        {% endfor %}
-      ]
-      </script>
-
-      <script>
-      (function(){
-        const dataTag = document.getElementById('risks-json');
-        const risksRaw = dataTag ? JSON.parse(dataTag.textContent) : [];
-        const root = document.getElementById('calendarRoot');
-        const grid = document.getElementById('calGrid');
-        if(!root || !grid) return;
-
-        const month = parseInt(root.dataset.month, 10) || (new Date().getMonth()+1);
-        const year  = parseInt(root.dataset.year, 10) || (new Date().getFullYear());
-
-        const detailPattern = root.dataset.detailPattern || '/risks/0';
-        const toDetail = (id) => detailPattern.replace('/0', `/${id}`);
-        const goDetail = (id, newTab=false) =>
-          newTab ? window.open(toDetail(id), '_blank', 'noopener')
-                 : (window.location.href = toDetail(id));
-
-        const toFirst = (ym) => {
-          if(!ym) return null;
-          const [Y,M] = ym.split('-').map(x => parseInt(x,10));
-          if(!Y || !M) return null;
-          return new Date(Y, M-1, 1);
-        };
-        const toLast = (ym) => {
-          if(!ym) return null;
-          const [Y,M] = ym.split('-').map(x => parseInt(x,10));
-          if(!Y || !M) return null;
-          return new Date(Y, M, 0);
-        };
-
-        const startOfMonth = new Date(year, month-1, 1);
-        const endOfMonth   = new Date(year, month, 0);
-        const dow = (d) => (d.getDay() + 6) % 7;
-
-        const firstPad = dow(startOfMonth);
-        const totalDays = endOfMonth.getDate();
-        const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
-
-        grid.innerHTML = "";
-        for(let i=0; i<totalCells; i++){
-          const cell = document.createElement('div');
-          cell.className = 'cal-cell';
-          cell.addEventListener('dragover', ev => ev.preventDefault());
-          cell.addEventListener('drop', async (ev) => {
-            ev.preventDefault();
-            const rid = ev.dataTransfer.getData('text/risk-id');
-            if(!rid) return;
-            const ym = `${year}-${String(month).padStart(2,'0')}`;
-            const onlyStart = ev.altKey;
-            const onlyEnd   = ev.shiftKey;
-            let payload = {};
-            if (onlyStart) payload.start_month = ym;
-            else if (onlyEnd) payload.end_month = ym;
-            else payload = { start_month: ym, end_month: ym };
-
-            try{
-              const resp = await fetch(`/api/risks/${rid}/set-months`, {
-                method: 'POST',
-                headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                body: new URLSearchParams(payload).toString()
-              });
-              const js = await resp.json();
-              if(!js.ok){ alert('Güncellenemedi.'); return; }
-              window.location.reload();
-            }catch(e){ alert('Ağ hatası: ' + e); }
-          });
-
-          const dayNum = i - firstPad + 1;
-          const inMonth = (dayNum >= 1 && dayNum <= totalDays);
-          if(!inMonth) cell.classList.add('muted-day');
-
-          const dateEl = document.createElement('div');
-          dateEl.className = 'cal-date';
-          dateEl.textContent = inMonth ? dayNum : '';
-          cell.appendChild(dateEl);
-
-          grid.appendChild(cell);
-        }
-
-        const risks = risksRaw.map(r => {
-          const sFirst = toFirst(r.startYM);
-          const eLast  = toLast(r.endYM);
-          const s = sFirst || toFirst(r.endYM);
-          const e = eLast  || toLast(r.startYM);
-          return { ...r, s, e };
-        });
-
-        const cells = Array.from(grid.children);
-        risks.forEach(r => {
-          if(!r.s || !r.e) return;
-
-          const s = new Date(Math.max(r.s, startOfMonth));
-          const e = new Date(Math.min(r.e, endOfMonth));
-          if (s > e) return;
-
-          for(let dt = new Date(s); dt <= e; dt.setDate(dt.getDate()+1)){
-            const idx = dow(startOfMonth) + dt.getDate()-1;
-            const cell = cells[idx];
-            if(!cell) continue;
-
-            const badge = document.createElement('div');
-            badge.className = `cal-badge gx-${r.grade}`;
-            badge.title = `${r.title} • ${r.category} • ${r.status}`;
-            badge.setAttribute('data-open-reminder','');
-            badge.setAttribute('data-risk-title', r.title || 'Risk Hatırlatıcı');
-            badge.dataset.riskId = r.id;
-            badge.draggable = true;
-            badge.addEventListener('dragstart', (ev) => {
-              ev.dataTransfer.setData('text/risk-id', String(r.id));
-            });
-            badge.addEventListener('click', (ev) => {
-              goDetail(r.id, (ev.ctrlKey || ev.metaKey));
-            });
-
-            const letter = (r.grade||'a')[0].toUpperCase();
-            badge.innerHTML = `<span class="lvl">${letter}</span> ${r.title}`;
-
-            const shown = parseInt(cell.dataset.shown || "0", 10);
-            if (shown < 3) {
-              cell.appendChild(badge);
-              cell.dataset.shown = String(shown + 1);
-            } else {
-              let more = cell.querySelector('.cal-more');
-              if (!more) {
-                more = document.createElement('div');
-                more.className = 'cal-more';
-                more.dataset.count = "1";
-                more.dataset.items = JSON.stringify([]);
-                more.textContent = '+1 daha';
-                cell.appendChild(more);
-              } else {
-                const n = parseInt(more.dataset.count || "1", 10) + 1;
-                more.dataset.count = String(n);
-                more.textContent = `+${n} daha`;
-              }
-              const payload = { id: r.id, title: r.title, grade: r.grade, category: r.category, status: r.status };
-              const items = JSON.parse(more.dataset.items || '[]');
-              items.push(payload);
-              more.dataset.items = JSON.stringify(items);
-            }
-          }
-        });
-
-        grid.addEventListener('click', (ev)=>{
-          const more = ev.target.closest('.cal-more');
-          if(!more) return;
-
-          const parent = more.parentElement;
-          const existing = parent.querySelector('.cal-pop');
-          if(existing){ existing.remove(); return; }
-
-          const items = JSON.parse(more.dataset.items || '[]');
-          const pop = document.createElement('div');
-          pop.className = 'cal-pop';
-
-          const head = document.createElement('div');
-          head.className = 'head';
-          head.innerHTML = `<span>Gizli kayıtlar (${items.length})</span><span class="close">Kapat</span>`;
-          pop.appendChild(head);
-
-          items.forEach(it=>{
-            const b = document.createElement('div');
-            b.className = `cal-badge gx-${it.grade || 'acceptable'}`;
-            b.setAttribute('data-open-reminder','');
-            b.setAttribute('data-risk-title', it.title || 'Risk Hatırlatıcı');
-            b.title = `${it.title} • ${it.category || '-'} • ${it.status || '-'}`;
-            b.dataset.riskId = it.id;
-            b.innerHTML = `<span class="lvl">${(it.grade||'a')[0].toUpperCase()}</span> ${it.title}`;
-            b.addEventListener('click', (ev)=> goDetail(it.id, (ev.ctrlKey||ev.metaKey)));
-            pop.appendChild(b);
-          });
-
-          parent.appendChild(pop);
-          pop.querySelector('.close').addEventListener('click', ()=> pop.remove());
-        });
-
-        document.addEventListener('click', (e)=>{
-          if(e.target.closest('.cal-pop') || e.target.closest('.cal-more')) return;
-          document.querySelectorAll('.cal-pop').forEach(p=>p.remove());
-        });
-      })();
-      </script>
     {% endif %}
-  {% endif %}
 
-  {# ---------- HATIRLATICI MODALI ---------- #}
-  <div class="modal-backdrop" id="remModal">
-    <div class="modal">
-      <h3>🔔 Hatırlatıcı oluştur</h3>
-      <div class="small" style="margin-bottom:8px;color:var(--muted)">
-        Etkinlik takviminize <code>.ics</code> olarak eklenecek.
-      </div>
+    {% if view == 'calendar' %}
+      {% set can_calendar = (rows_safe|selectattr('startYM')|list) or (rows_safe|selectattr('endYM')|list) %}
+      {% if not can_calendar %}
+        <div class="flash info" style="margin-top:8px">
+          Takvim için her riskte <strong>başlangıç</strong> ve/veya <strong>bitiş</strong> ayı olmalı
+          (örn. <code>start_month</code> / <code>end_month</code> → YYYY-MM).
+        </div>
+      {% else %}
+        <div class="cal-zoom-shell">
+          <div class="calendar-wrap" id="calendarRoot"
+               data-month="{{ cur_m }}" data-year="{{ cur_y }}"
+               data-detail-pattern="{{ url_for('risk_detail', risk_id=0) }}">
+            <div class="cal-header">
+              {% for d in ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'] %}
+                <div>{{ d }}</div>
+              {% endfor %}
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+        </div>
 
-      <div style="display:grid; gap:8px; grid-template-columns:1fr 1fr">
-        <div>
-          <label>Başlık</label>
-          <input class="input" id="remTitle" placeholder="Örn: Risk gözden geçirme">
-        </div>
-        <div>
-          <label>Tarih</label>
-          <input class="input" id="remDate" type="date">
-        </div>
-        <div>
-          <label>Başlangıç (saat)</label>
-          <input class="input" id="remTimeStart" type="time" value="09:00">
-        </div>
-        <div>
-          <label>Süre (dakika)</label>
-          <input class="input" id="remDuration" type="number" value="60" min="10" step="5">
-        </div>
-      </div>
+        <script type="application/json" id="risks-json">
+        [
+          {% for row in rows_safe %}
+            {% set r = row.risk %}
 
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
-        <button class="btn" id="remCancel">Vazgeç</button>
-        <button class="btn btn-primary" id="remSave">Takvime ekle (.ics)</button>
+            {% set sc = None %}
+            {% if r.score is not none %}
+              {% set _tmp = r.score() %}
+              {% if _tmp is not none %}{% set sc = _tmp %}{% endif %}
+            {% endif %}
+            {% if sc is none %}
+              {% set ap = r.avg_prob() %}
+              {% set asv = r.avg_sev() %}
+              {% if ap is not none and asv is not none %}{% set sc = ap * asv %}{% endif %}
+            {% endif %}
+
+            {% set lvl_class = "acceptable" %}
+            {% if sc is not none %}
+              {% set sc = sc|float %}
+              {% if sc <= 4 %}
+                {% set lvl_class = "acceptable" %}
+              {% elif sc <= 10 %}
+                {% set lvl_class = "low" %}
+              {% elif sc <= 15 %}
+                {% set lvl_class = "moderate" %}
+              {% else %}
+                {% set lvl_class = "critical" %}
+              {% endif %}
+            {% endif %}
+
+            {
+              "id": {{ r.id|int }},
+              "title": {{ (r.title or '')|tojson }},
+              "startYM": {{ (row.startYM or r.start_month or '')|tojson }},
+              "endYM":   {{ (row.endYM   or r.end_month   or '')|tojson }},
+              "grade":   {{ lvl_class|tojson }},
+              "category": {{ (r.category or '-')|tojson }},
+              "status":   {{ (r.status or '-')|tojson }}
+            }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ]
+        </script>
+
+        <script>
+        (function(){
+          const dataTag = document.getElementById('risks-json');
+          const risksRaw = dataTag ? JSON.parse(dataTag.textContent) : [];
+          const root = document.getElementById('calendarRoot');
+          const grid = document.getElementById('calGrid');
+          if(!root || !grid) return;
+
+          const month = parseInt(root.dataset.month, 10) || (new Date().getMonth()+1);
+          const year  = parseInt(root.dataset.year, 10) || (new Date().getFullYear());
+
+          const detailPattern = root.dataset.detailPattern || '/risks/0';
+          const toDetail = (id) => detailPattern.replace('/0', `/${id}`);
+          const goDetail = (id, newTab=false) =>
+            newTab ? window.open(toDetail(id), '_blank', 'noopener')
+                   : (window.location.href = toDetail(id));
+
+          const toFirst = (ym) => {
+            if(!ym) return null;
+            const [Y,M] = ym.split('-').map(x => parseInt(x,10));
+            if(!Y || !M) return null;
+            return new Date(Y, M-1, 1);
+          };
+          const toLast = (ym) => {
+            if(!ym) return null;
+            const [Y,M] = ym.split('-').map(x => parseInt(x,10));
+            if(!Y || !M) return null;
+            return new Date(Y, M, 0);
+          };
+
+          const startOfMonth = new Date(year, month-1, 1);
+          const endOfMonth   = new Date(year, month, 0);
+          const dow = (d) => (d.getDay() + 6) % 7;
+
+          const firstPad = dow(startOfMonth);
+          const totalDays = endOfMonth.getDate();
+          const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
+
+          grid.innerHTML = "";
+          for(let i=0; i<totalCells; i++){
+            const cell = document.createElement('div');
+            cell.className = 'cal-cell';
+            cell.addEventListener('dragover', ev => ev.preventDefault());
+            cell.addEventListener('drop', async (ev) => {
+              ev.preventDefault();
+              const rid = ev.dataTransfer.getData('text/risk-id');
+              if(!rid) return;
+
+              const ym = `${year}-${String(month).padStart(2,'0')}`;
+
+              const onlyStart = ev.altKey;
+              const onlyEnd   = ev.shiftKey;
+              let payload = {};
+              if (onlyStart) payload.start_month = ym;
+              else if (onlyEnd) payload.end_month = ym;
+              else payload = { start_month: ym, end_month: ym };
+
+              try{
+                const resp = await fetch(`/api/risks/${rid}/set-months`, {
+                  method: 'POST',
+                  headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                  body: new URLSearchParams(payload).toString()
+                });
+                const js = await resp.json();
+                if(!js.ok){ alert('Güncellenemedi.'); return; }
+                window.location.reload();
+              }catch(e){ alert('Ağ hatası: ' + e); }
+            });
+
+            const dayNum = i - firstPad + 1;
+            const inMonth = (dayNum >= 1 && dayNum <= totalDays);
+            if(!inMonth) cell.classList.add('muted-day');
+
+            const dateEl = document.createElement('div');
+            dateEl.className = 'cal-date';
+            dateEl.textContent = inMonth ? dayNum : '';
+            cell.appendChild(dateEl);
+
+            grid.appendChild(cell);
+          }
+
+          const risks = risksRaw.map(r => {
+            const sFirst = toFirst(r.startYM);
+            const eLast  = toLast(r.endYM);
+            const s = sFirst || toFirst(r.endYM);
+            const e = eLast  || toLast(r.startYM);
+            return { ...r, s, e };
+          });
+
+          const cells = Array.from(grid.children);
+          risks.forEach(r => {
+            if(!r.s || !r.e) return;
+
+            const s = new Date(Math.max(r.s, startOfMonth));
+            const e = new Date(Math.min(r.e, endOfMonth));
+            if (s > e) return;
+
+            for(let dt = new Date(s); dt <= e; dt.setDate(dt.getDate()+1)){
+              const idx = dow(startOfMonth) + dt.getDate()-1;
+              const cell = cells[idx];
+              if(!cell) continue;
+
+              const badge = document.createElement('div');
+              badge.className = `cal-badge gx-${r.grade}`;
+              badge.title = `${r.title} • ${r.category} • ${r.status}`;
+              badge.setAttribute('data-open-reminder','');
+              badge.setAttribute('data-risk-title', r.title || 'Risk Hatırlatıcı');
+              badge.dataset.riskId = r.id;
+              badge.draggable = true;
+              badge.addEventListener('dragstart', (ev) => {
+                ev.dataTransfer.setData('text/risk-id', String(r.id));
+              });
+              badge.addEventListener('click', (ev) => {
+                goDetail(r.id, (ev.ctrlKey || ev.metaKey));
+              });
+
+              const letter = (r.grade||'a')[0].toUpperCase();
+              badge.innerHTML = `<span class="lvl">${letter}</span> ${r.title}`;
+
+              const shown = parseInt(cell.dataset.shown || "0", 10);
+              if (shown < 3) {
+                cell.appendChild(badge);
+                cell.dataset.shown = String(shown + 1);
+              } else {
+                let more = cell.querySelector('.cal-more');
+                if (!more) {
+                  more = document.createElement('div');
+                  more.className = 'cal-more';
+                  more.dataset.count = "1";
+                  more.dataset.items = JSON.stringify([]);
+                  more.textContent = '+1 daha';
+                  cell.appendChild(more);
+                } else {
+                  const n = parseInt(more.dataset.count || "1", 10) + 1;
+                  more.dataset.count = String(n);
+                  more.textContent = `+${n} daha`;
+                }
+                const payload = { id: r.id, title: r.title, grade: r.grade, category: r.category, status: r.status };
+                const items = JSON.parse(more.dataset.items || '[]');
+                items.push(payload);
+                more.dataset.items = JSON.stringify(items);
+              }
+            }
+          });
+
+          grid.addEventListener('click', (ev)=>{
+            const more = ev.target.closest('.cal-more');
+            if(!more) return;
+
+            const parent = more.parentElement;
+            const existing = parent.querySelector('.cal-pop');
+            if(existing){ existing.remove(); return; }
+
+            const items = JSON.parse(more.dataset.items || '[]');
+            const pop = document.createElement('div');
+            pop.className = 'cal-pop';
+
+            const head = document.createElement('div');
+            head.className = 'head';
+            head.innerHTML = `<span>Gizli kayıtlar (${items.length})</span><span class="close">Kapat</span>`;
+            pop.appendChild(head);
+
+            items.forEach(it=>{
+              const b = document.createElement('div');
+              b.className = `cal-badge gx-${it.grade || 'acceptable'}`;
+              b.setAttribute('data-open-reminder','');
+              b.setAttribute('data-risk-title', it.title || 'Risk Hatırlatıcı');
+              b.title = `${it.title} • ${it.category || '-'} • ${it.status || '-'}`;
+              b.dataset.riskId = it.id;
+              b.innerHTML = `<span class="lvl">${(it.grade||'a')[0].toUpperCase()}</span> ${it.title}`;
+              b.addEventListener('click', (ev)=> goDetail(it.id, (ev.ctrlKey||ev.metaKey)));
+              pop.appendChild(b);
+            });
+
+            parent.appendChild(pop);
+            pop.querySelector('.close').addEventListener('click', ()=> pop.remove());
+          });
+
+          document.addEventListener('click', (e)=>{
+            if(e.target.closest('.cal-pop') || e.target.closest('.cal-more')) return;
+            document.querySelectorAll('.cal-pop').forEach(p=>p.remove());
+          });
+        })();
+        </script>
+      {% endif %}
+    {% endif %}
+
+    <div class="modal-backdrop" id="remModal">
+      <div class="modal">
+        <h3>🔔 Hatırlatıcı oluştur</h3>
+        <div class="small" style="margin-bottom:8px;color:var(--muted)">
+          Etkinlik takviminize <code>.ics</code> olarak eklenecek.
+        </div>
+
+        <div style="display:grid; gap:8px; grid-template-columns:1fr 1fr">
+          <div>
+            <label>Başlık</label>
+            <input class="input" id="remTitle" placeholder="Örn: Risk gözden geçirme">
+          </div>
+          <div>
+            <label>Tarih</label>
+            <input class="input" id="remDate" type="date">
+          </div>
+          <div>
+            <label>Başlangıç (saat)</label>
+            <input class="input" id="remTimeStart" type="time" value="09:00">
+          </div>
+          <div>
+            <label>Süre (dakika)</label>
+            <input class="input" id="remDuration" type="number" value="60" min="10" step="5">
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+          <button class="btn" id="remCancel" type="button">Vazgeç</button>
+          <button class="btn btn-primary" id="remSave" type="button">Takvime ekle (.ics)</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script>
-  (function(){
-    const modal  = document.getElementById('remModal');
-    const title  = document.getElementById('remTitle');
-    const dateEl = document.getElementById('remDate');
-    const tStart = document.getElementById('remTimeStart');
-    const durEl  = document.getElementById('remDuration');
-    const btnOk  = document.getElementById('remSave');
-    const btnNo  = document.getElementById('remCancel');
+    <script>
+    (function(){
+      // ✅ min-width'i data'dan al, style'a JS ile bas (VSCode CSS lint susar)
+      const minwEl = document.querySelector('.gantt-minw');
+      if (minwEl) {
+        const w = parseInt(minwEl.dataset.minw || '900', 10);
+        minwEl.style.minWidth = (isNaN(w) ? 900 : w) + 'px';
+      }
 
-    function openModal(prefill){
-      modal.classList.add('show');
-      title.value = prefill?.title || '';
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth()+1).padStart(2,'0');
-      const dd = String(today.getDate()).padStart(2,'0');
-      dateEl.value = prefill?.date || `${yyyy}-${mm}-${dd}`;
-      tStart.value = prefill?.time || '09:00';
-      durEl.value  = prefill?.dur  || 60;
-    }
-    function closeModal(){ modal.classList.remove('show'); }
-
-    function createICS({title, startISO, endISO, description=""}){
-      const ics = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//RiskApp//Schedule//TR',
-        'CALSCALE:GREGORIAN',
-        'BEGIN:VEVENT',
-        `UID:${(crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2))}@riskapp`,
-        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z`,
-        `DTSTART:${startISO}`,
-        `DTEND:${endISO}`,
-        `SUMMARY:${(title||'').replace(/\n/g,' ')}`,
-        `DESCRIPTION:${description.replace(/\n/g,' ')}`,
-        'END:VEVENT',
-        'END:VCALENDAR'
-      ].join('\r\n');
-
-      const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8;'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = (title || 'hatirlatma') + '.ics';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
-    }
-
-    document.addEventListener('click', (e)=>{
-      const btn = e.target.closest('[data-open-reminder]');
-      if(!btn) return;
-      const rTitle = btn.dataset.riskTitle || 'Risk Hatırlatıcı';
-      openModal({ title: rTitle });
-    });
-
-    modal.addEventListener('click', (e)=>{ if(e.target === modal){ closeModal(); }});
-    btnNo.addEventListener('click', closeModal);
-
-    btnOk.addEventListener('click', ()=>{
-      const ttl = title.value?.trim() || 'Risk Hatırlatıcı';
-      const d   = dateEl.value;
-      const ts  = tStart.value || '09:00';
-      const dur = Math.max(parseInt(durEl.value||'60',10), 10);
-      if(!d){ alert('Tarih seçmelisin.'); return; }
-
-      const start = new Date(d + 'T' + ts + ':00');
-      const end   = new Date(start.getTime() + dur*60000);
-      const toICS = (dt)=> new Date(dt.getTime() - dt.getTimezoneOffset()*60000)
-                          .toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
-
-      createICS({
-        title: ttl,
-        startISO: toICS(start),
-        endISO: toICS(end),
-        description: 'Risk uygulamasından oluşturuldu.'
+      // View toggle -> hidden input + submit
+      const form = document.getElementById('filtersForm');
+      const viewField = document.getElementById('viewField');
+      document.querySelectorAll('[data-set-view]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const v = btn.getAttribute('data-set-view');
+          if(viewField) viewField.value = v;
+          form && form.submit();
+        });
       });
-      closeModal();
-    });
-  })();
-  </script>
 
-  {% if view == 'calendar' %}
-  <script>
-  (function(){
-    const root = document.querySelector(':root');
-    const z = document.getElementById('calZoom');
-    const lbl = document.getElementById('calZoomLbl');
-    if(!root || !z) return;
+      const modal  = document.getElementById('remModal');
+      const title  = document.getElementById('remTitle');
+      const dateEl = document.getElementById('remDate');
+      const tStart = document.getElementById('remTimeStart');
+      const durEl  = document.getElementById('remDuration');
+      const btnOk  = document.getElementById('remSave');
+      const btnNo  = document.getElementById('remCancel');
 
-    const KEY = 'riskapp.cal.scale';
-    const clamp = v => Math.min(1.6, Math.max(1.0, v));
+      function openModal(prefill){
+        modal.classList.add('show');
+        title.value = prefill?.title || '';
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth()+1).padStart(2,'0');
+        const dd = String(today.getDate()).padStart(2,'0');
+        dateEl.value = prefill?.date || `${yyyy}-${mm}-${dd}`;
+        tStart.value = prefill?.time || '09:00';
+        durEl.value  = prefill?.dur  || 60;
+      }
+      function closeModal(){ modal.classList.remove('show'); }
 
-    const saved = parseFloat(localStorage.getItem(KEY) || '1');
-    const init = clamp(isNaN(saved) ? 1 : saved);
+      function createICS({title, startISO, endISO, description=""}){
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//RiskApp//Schedule//TR',
+          'CALSCALE:GREGORIAN',
+          'BEGIN:VEVENT',
+          `UID:${(crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2))}@riskapp`,
+          `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z`,
+          `DTSTART:${startISO}`,
+          `DTEND:${endISO}`,
+          `SUMMARY:${(title||'').replace(/\n/g,' ')}`,
+          `DESCRIPTION:${description.replace(/\n/g,' ')}`,
+          'END:VEVENT',
+          'END:VCALENDAR'
+        ].join('\r\n');
 
-    const apply = (val) => {
-      root.style.setProperty('--cal-scale', String(val));
-      if(lbl) lbl.textContent = Math.round(val * 100) + '%';
-    };
+        const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8;'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (title || 'hatirlatma') + '.ics';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+      }
 
-    z.value = init;
-    apply(init);
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-open-reminder]');
+        if(!btn) return;
+        const rTitle = btn.dataset.riskTitle || 'Risk Hatırlatıcı';
+        openModal({ title: rTitle });
+      });
 
-    z.addEventListener('input', () => {
-      const v = clamp(parseFloat(z.value || '1'));
-      apply(v);
-      localStorage.setItem(KEY, String(v));
-    });
-  })();
-  </script>
-  {% endif %}
+      modal && modal.addEventListener('click', (e)=>{ if(e.target === modal){ closeModal(); }});
+      btnNo && btnNo.addEventListener('click', closeModal);
 
+      btnOk && btnOk.addEventListener('click', ()=>{
+        const ttl = title.value?.trim() || 'Risk Hatırlatıcı';
+        const d   = dateEl.value;
+        const ts  = tStart.value || '09:00';
+        const dur = Math.max(parseInt(durEl.value||'60',10), 10);
+        if(!d){ alert('Tarih seçmelisin.'); return; }
+
+        const start = new Date(d + 'T' + ts + ':00');
+        const end   = new Date(start.getTime() + dur*60000);
+        const toICS = (dt)=> new Date(dt.getTime() - dt.getTimezoneOffset()*60000)
+                            .toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+
+        createICS({
+          title: ttl,
+          startISO: toICS(start),
+          endISO: toICS(end),
+          description: 'Risk uygulamasından oluşturuldu.'
+        });
+        closeModal();
+      });
+    })();
+    </script>
+
+    {% if view == 'calendar' %}
+    <script>
+    (function(){
+      const root = document.querySelector(':root');
+      const z = document.getElementById('calZoom');
+      const lbl = document.getElementById('calZoomLbl');
+      if(!root || !z) return;
+
+      const KEY = 'riskapp.cal.scale';
+      const clamp = v => Math.min(1.6, Math.max(1.0, v));
+
+      const saved = parseFloat(localStorage.getItem(KEY) || '1');
+      const init = clamp(isNaN(saved) ? 1 : saved);
+
+      const apply = (val) => {
+        root.style.setProperty('--cal-scale', String(val));
+        if(lbl) lbl.textContent = Math.round(val * 100) + '%';
+      };
+
+      z.value = init;
+      apply(init);
+
+      z.addEventListener('input', () => {
+        const v = clamp(parseFloat(z.value || '1'));
+        apply(v);
+        localStorage.setItem(KEY, String(v));
+      });
+    })();
+    </script>
+    {% endif %}
+
+  </div>
 </div>
+
 {% endblock %}
