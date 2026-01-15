@@ -6499,8 +6499,7 @@ def create_app():
 
 
 
-def _truthy(v) -> bool:
-    return str(v or "").strip().lower() in ("on", "true", "1", "yes")
+
 
     
 
@@ -6511,6 +6510,8 @@ def _truthy(v) -> bool:
 
     
     return app
+def _truthy(v) -> bool:
+    return str(v or "").strip().lower() in ("on", "true", "1", "yes")
 
 
 # -------------------------------------------------
