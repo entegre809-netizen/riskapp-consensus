@@ -2,11 +2,9 @@
 {% block title %}Sorumlu Özeti{% endblock %}
 {% block content %}
 
-{# ---------- SAFE ---------- #}
 {% set rows_safe = rows or [] %}
 
 <style>
-  /* Sorumlu Özeti — Premium UI (base.html ile uyumlu, scoped) */
   .rs-scope{ font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial; }
 
   .glass-effect{
@@ -49,9 +47,10 @@
 </style>
 
 <div class="rs-scope min-h-[calc(100vh-2rem)]">
+
   <!-- Breadcrumbs -->
   <nav class="flex items-center gap-2 mb-8 text-sm text-slate-500 dark:text-slate-400">
-    <a class="hover:text-[#2273c3] transition-colors" href="{{ url_for('dashboard') if 'dashboard' in (globals()|string) else '#' }}">Ana Sayfa</a>
+    <a class="hover:text-[#2273c3] transition-colors" href="{{ url_for('dashboard') }}">Ana Sayfa</a>
     <span class="opacity-60">/</span>
     <span class="text-slate-900 dark:text-white font-semibold">Sorumlu Özeti</span>
   </nav>
@@ -80,7 +79,7 @@
     </div>
   </header>
 
-  {# ---- KPI cards (rows'tan türetildi, backend değiştirmeden) ---- #}
+  {# KPI'lar (backend değiştirmeden rows'tan türetildi) #}
   {% set total_resp = rows_safe|length %}
   {% set total_risks = (rows_safe|map(attribute='count')|sum) if total_resp > 0 else 0 %}
   {% set avg_list = rows_safe|selectattr('avg_rpn')|map(attribute='avg_rpn')|list %}
@@ -114,7 +113,7 @@
 
   <!-- Main Glass Card -->
   <div class="glass-effect rounded-2xl shadow-2xl overflow-hidden border border-white/40 dark:border-white/10">
-    <!-- Search/Action Bar (UI only — backend filtre yok, ama görünüm premium) -->
+    <!-- Search/Action Bar -->
     <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center">
       <div class="relative w-full max-w-md">
         <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
@@ -155,7 +154,7 @@
         <tbody id="rsBody" class="divide-y divide-slate-100 dark:divide-slate-800">
           {% for row in rows_safe %}
             {% set avg = row.avg_rpn %}
-            {# basit renk kuralı: avg >=80 kritik, >=40 orta, else düşük #}
+
             {% set pill_cls = 'emerald' %}
             {% set pill_txt = 'DÜŞÜK' %}
             {% if avg is not none %}
@@ -175,7 +174,6 @@
                 data-search="{{ (row.responsible or '')|lower }} {{ (row.critical and row.critical.title or '')|lower }}">
               <td class="px-8 py-6">
                 <div class="flex items-center gap-4">
-                  {# Avatar: initial #}
                   {% set initials = (row.responsible or '?')[:2]|upper %}
                   <div class="size-10 rounded-full bg-[#2273c3]/10 flex items-center justify-center text-[#2273c3] font-black text-sm border-2 border-white dark:border-slate-700 shadow-sm">
                     {{ initials }}
@@ -258,12 +256,10 @@
       </p>
     </div>
   </div>
-
 </div>
 
 <script>
 (function(){
-  // UI-only arama (backend değiştirmeden)
   const input = document.getElementById('rsSearch');
   const clear = document.getElementById('rsClear');
   const body  = document.getElementById('rsBody');
@@ -279,7 +275,11 @@
   };
 
   input.addEventListener('input', apply);
-  clear && clear.addEventListener('click', () => { input.value=''; apply(); input.focus(); });
+  if(clear){
+    clear.addEventListener('click', () => {
+      input.value=''; apply(); input.focus();
+    });
+  }
 })();
 </script>
 
