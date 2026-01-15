@@ -2,94 +2,71 @@
 {% block title %}Kullanıcı Yönetimi{% endblock %}
 
 {% block content %}
+{% set users_safe = users or [] %}
+{% set totals_safe = totals or None %}
+
 <style>
   /* ============================================================
-     ✅ RiskDetail tasarım diline uyarlama
-     - primary/line/card değişkenleri (base.html'den gelebilir)
-     - light/dark desteği
-     - cam/soft card, premium table, pill/badge
+     Kullanıcı Yönetimi — Premium Glass UI (Sorumlu Özeti vibe)
+     ✅ İşlev aynı: form action/name/hidden alanlar değişmedi
+     ✅ Scoped: sadece .um-scope içinde etkili
      ============================================================ */
 
-  .page{ display:grid; gap:12px; }
-  .sticky-top{
-    position: sticky; top: 8px; z-index: 5;
-    background: var(--bg, transparent);
-    padding: 8px 0 0;
+  .um-scope{
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
   }
 
-  .muted { opacity:.78; font-size:.92rem; color: color-mix(in oklab, var(--text,#0f172a) 55%, transparent); }
-  [data-theme="dark"] .muted{ color: rgba(226,232,240,.72); opacity:1; }
-
-  .row{ display:flex; gap:10px; align-items:center; }
-  .grow{ flex:1; }
-  .right{ display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
-
-  /* ===== Card (RiskDetail vibe) ===== */
-  .um-card{
-    padding: 14px;
-    border-radius: 14px;
-    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
-    background: color-mix(in oklab, var(--card,#fff) 96%, transparent);
-    box-shadow: 0 12px 28px rgba(0,0,0,.06);
-  }
-  [data-theme="dark"] .um-card{
-    border-color: rgba(255,255,255,.14);
-    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-    box-shadow: 0 16px 34px rgba(0,0,0,.35);
-  }
-
-  .um-head{
+  .um-wrap{
     display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:10px;
-    padding: 6px 6px 14px;
-    border-bottom: 1px solid var(--line,#e5e7eb);
-    margin-bottom: 14px;
+    flex-direction:column;
+    gap: 18px;
   }
-  [data-theme="dark"] .um-head{ border-color: rgba(255,255,255,.12); }
 
+  /* Breadcrumbs */
+  .um-bc{
+    display:flex; align-items:center; gap:10px;
+    color: color-mix(in oklab, var(--text,#0f172a) 45%, transparent);
+    font-size: .92rem;
+  }
+  [data-theme="dark"] .um-bc{
+    color: rgba(226,232,240,.70);
+  }
+  .um-bc a{
+    color: inherit;
+    text-decoration:none;
+    font-weight:800;
+  }
+  .um-bc a:hover{ color: var(--primary,#2273c3); }
+  .um-bc .sep{ opacity:.55; }
+
+  /* Head */
+  .um-head{
+    display:flex; flex-wrap:wrap; gap:14px;
+    align-items:flex-end; justify-content:space-between;
+  }
   .um-title{
     margin:0;
-    font-size: 1.05rem;
-    font-weight: 900;
-    display:flex;
-    align-items:center;
-    gap:10px;
+    font-size: 2.05rem;
+    font-weight: 1000;
+    letter-spacing: -.02em;
+    color: color-mix(in oklab, var(--text,#0f172a) 92%, transparent);
   }
-  .um-ico{
-    width:32px; height:32px;
-    border-radius: 10px;
-    display:flex; align-items:center; justify-content:center;
-    background: color-mix(in oklab, var(--primary,#2563eb) 10%, transparent);
-    border:1px solid color-mix(in oklab, var(--primary,#2563eb) 25%, transparent);
-  }
+  [data-theme="dark"] .um-title{ color: rgba(255,255,255,.92); }
 
-  /* ===== Toolbar / Chips ===== */
-  .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .pill{
-    display:inline-flex; align-items:center; gap:8px;
-    padding:.28rem .6rem;
-    border-radius:999px;
-    font-size:.82rem;
-    border:1px solid var(--line,#e5e7eb);
-    background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
-    font-weight:800;
-    white-space:nowrap;
+  .um-sub{
+    margin:.35rem 0 0;
+    max-width: 72ch;
+    color: color-mix(in oklab, var(--text,#0f172a) 55%, transparent);
+    font-weight:700;
+    line-height: 1.45;
   }
-  [data-theme="dark"] .pill{
-    border-color: rgba(255,255,255,.14);
-    background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-    color: var(--text,#e5e7eb);
-  }
+  [data-theme="dark"] .um-sub{ color: rgba(226,232,240,.68); }
 
-  .dot{ width:8px; height:8px; border-radius:999px; background:#94a3b8; }
-
-  /* ===== Buttons (base.html'deki btn'lerle çakışmasın diye uyumlu) ===== */
-  .btn{
+  /* Buttons (scoped) */
+  .um-scope .btn{
     display:inline-flex; align-items:center; gap:8px;
     border-radius: 12px;
-    padding: .55rem .75rem;
+    padding: .60rem .85rem;
     font-weight: 900;
     border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 75%, transparent);
     background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
@@ -100,223 +77,373 @@
     transition: transform .12s ease, filter .12s ease, box-shadow .12s ease, border-color .12s ease;
     white-space:nowrap;
   }
-  .btn:hover{ filter: brightness(.98); transform: translateY(-1px); border-color: color-mix(in oklab, var(--primary,#2563eb) 28%, var(--line,#e5e7eb) 72%); }
-  .btn:active{ transform: translateY(0); }
-  .btn:disabled, .btn[disabled]{ opacity:.55; cursor:not-allowed; transform:none; }
-
-  .btn-primary{
-    background: color-mix(in oklab, var(--primary,#2563eb) 92%, white 8%);
-    border-color: color-mix(in oklab, var(--primary,#2563eb) 80%, black 20%);
-    color:#fff;
-    box-shadow: 0 12px 28px color-mix(in oklab, var(--primary,#2563eb) 22%, transparent);
+  .um-scope .btn:hover{
+    filter: brightness(.98);
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--primary,#2273c3) 28%, var(--line,#e5e7eb) 72%);
   }
-  .btn-danger{
+  .um-scope .btn:active{ transform: translateY(0); }
+  .um-scope .btn:disabled,
+  .um-scope .btn[disabled]{ opacity:.55; cursor:not-allowed; transform:none; }
+
+  .um-scope .btn-primary{
+    background: color-mix(in oklab, var(--primary,#2273c3) 92%, white 8%);
+    border-color: color-mix(in oklab, var(--primary,#2273c3) 80%, black 20%);
+    color:#fff;
+    box-shadow: 0 14px 30px color-mix(in oklab, var(--primary,#2273c3) 22%, transparent);
+  }
+  .um-scope .btn-danger{
     background: color-mix(in oklab, #ef4444 16%, transparent);
     border-color: color-mix(in oklab, #ef4444 30%, transparent);
     color: color-mix(in oklab, #991b1b 92%, black 8%);
   }
-  [data-theme="dark"] .btn{
+  [data-theme="dark"] .um-scope .btn{
     border-color: rgba(255,255,255,.14);
     background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
     color: rgba(226,232,240,.92);
   }
-  [data-theme="dark"] .btn:hover{ border-color: color-mix(in oklab, var(--primary,#6ea8ff) 30%, rgba(255,255,255,.14) 70%); }
-  [data-theme="dark"] .btn-danger{
+  [data-theme="dark"] .um-scope .btn:hover{
+    border-color: color-mix(in oklab, var(--primary,#6ea8ff) 30%, rgba(255,255,255,.14) 70%);
+  }
+  [data-theme="dark"] .um-scope .btn-danger{
     background: color-mix(in oklab, #ef4444 12%, transparent);
     border-color: color-mix(in oklab, #ef4444 22%, transparent);
     color:#fecaca;
   }
-
-  .btn.tiny{ padding:.35rem .55rem; font-size:.82rem; border-radius: 10px; font-weight:900; }
-
-  /* ===== Inputs ===== */
-  .input{
-    height: 40px;
+  .um-scope .btn.tiny{
+    padding:.38rem .58rem;
+    font-size:.82rem;
     border-radius: 10px;
-    border: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 85%, transparent);
+    font-weight: 950;
+  }
+
+  /* KPI cards */
+  .um-kpis{
+    display:grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 14px;
+  }
+  @media (max-width: 1100px){
+    .um-kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+  @media (max-width: 640px){
+    .um-kpis{ grid-template-columns: 1fr; }
+  }
+  .um-kpi{
+    border-radius: 16px;
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
     background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
-    padding: .45rem .65rem;
+    box-shadow: 0 10px 22px rgba(0,0,0,.05);
+    padding: 14px 14px;
+  }
+  [data-theme="dark"] .um-kpi{
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    box-shadow: 0 16px 34px rgba(0,0,0,.35);
+  }
+  .um-kpi .k{ font-size:.82rem; font-weight:800; opacity:.75; }
+  .um-kpi .v{ font-size:1.55rem; font-weight: 1000; margin-top:6px; }
+  .um-dot{ width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:8px; }
+
+  /* Glass main */
+  .um-glass{
+    border-radius: 20px;
+    overflow:hidden;
+    border: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+    background: color-mix(in oklab, var(--card,#fff) 78%, transparent);
+    box-shadow: 0 22px 55px rgba(0,0,0,.10);
+    backdrop-filter: blur(12px);
+  }
+  [data-theme="dark"] .um-glass{
+    border-color: rgba(255,255,255,.14);
+    background: rgba(22,24,29,.55);
+    box-shadow: 0 24px 64px rgba(0,0,0,.45);
+  }
+
+  /* Toolbar */
+  .um-bar{
+    padding: 14px;
+    border-bottom:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+    display:flex; flex-wrap:wrap; gap:10px;
+    align-items:center;
+  }
+  [data-theme="dark"] .um-bar{
+    border-bottom-color: rgba(255,255,255,.10);
+  }
+  .um-search{
+    position:relative;
+    flex: 1;
+    min-width: 260px;
+    max-width: 520px;
+  }
+  .um-search .ico{
+    position:absolute; left:12px; top:50%;
+    transform: translateY(-50%);
+    opacity:.65;
+    font-size: 18px;
+  }
+  .um-input{
+    height: 42px;
+    width:100%;
+    border-radius: 14px;
+    border: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 85%, transparent);
+    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 72%, transparent);
+    padding: .50rem .75rem .50rem 42px;
     outline:none;
-    min-width: 140px;
+    font-weight: 800;
     transition: box-shadow .15s ease, border-color .15s ease;
   }
-  .input:focus{
-    border-color: color-mix(in oklab, var(--primary,#2563eb) 55%, var(--line,#e5e7eb) 45%);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary,#2563eb) 18%, transparent);
+  .um-input:focus{
+    border-color: color-mix(in oklab, var(--primary,#2273c3) 55%, var(--line,#e5e7eb) 45%);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary,#2273c3) 18%, transparent);
   }
-  [data-theme="dark"] .input{
+  [data-theme="dark"] .um-input{
     border-color: rgba(255,255,255,.14);
-    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    background: rgba(255,255,255,.04);
     color: rgba(226,232,240,.92);
   }
-
-  /* ===== Flash ===== */
-  .flash{
-    margin:10px 0;
-    padding:10px 12px;
-    border-radius:12px;
-    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
-    background: color-mix(in oklab, var(--card,#fff) 94%, transparent);
-    font-weight:700;
-  }
-  [data-theme="dark"] .flash{
-    border-color: rgba(255,255,255,.12);
-    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  .um-bar .right{
+    margin-left:auto;
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
   }
 
-  /* ===== Table ===== */
-  .table-wrap{
-    overflow:auto;
-    border-radius: 14px;
-    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
-    background: color-mix(in oklab, var(--card,#fff) 96%, transparent);
-  }
-  [data-theme="dark"] .table-wrap{
-    border-color: rgba(255,255,255,.14);
-    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
-  }
-
-  table.table-modern{ width:100%; border-collapse:separate; border-spacing:0; }
-  table.table-modern thead th{
-    position: sticky; top: 0; z-index: 1;
-    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 90%, transparent);
-    border-bottom:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
-    font-size:.72rem;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    opacity:.78;
-    padding: 12px 10px;
+  /* Table */
+  .um-table-wrap{ overflow:auto; }
+  table.um-table{ width:100%; border-collapse:collapse; }
+  table.um-table thead th{
+    position: sticky; top: 0; z-index: 2;
+    padding: 14px 14px;
     text-align:left;
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform: uppercase;
+    font-weight: 950;
+    opacity: .78;
+    background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 80%, transparent);
+    border-bottom: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
     white-space:nowrap;
   }
-  [data-theme="dark"] table.table-modern thead th{
+  [data-theme="dark"] table.um-table thead th{
     background: rgba(255,255,255,.04);
     border-bottom-color: rgba(255,255,255,.10);
     opacity:.9;
   }
-
-  table.table-modern td{
-    padding: 12px 10px;
+  table.um-table tbody td{
+    padding: 14px 14px;
+    border-bottom: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 55%, transparent);
     vertical-align: top;
-    border-bottom:1px solid color-mix(in oklab, var(--line,#e5e7eb) 55%, transparent);
   }
-  table.table-modern tbody tr:last-child td{ border-bottom:none; }
-
-  .row-actions{
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    flex-wrap:wrap;
+  table.um-table tbody tr:hover td{
+    background: color-mix(in oklab, var(--primary,#2273c3) 4%, transparent);
   }
-  .table-actions{ width: 520px; }
-  @media (max-width: 1200px){ .table-actions{ width:auto; } }
+  [data-theme="dark"] table.um-table tbody tr:hover td{
+    background: rgba(34,115,195,.08);
+  }
 
-  /* ===== Badges ===== */
-  .badge{
-    display:inline-flex;
-    align-items:center;
-    padding:.28rem .58rem;
+  .um-name{ font-weight: 1000; }
+  .um-muted{
+    opacity:.78;
+    font-size:.90rem;
+    color: color-mix(in oklab, var(--text,#0f172a) 55%, transparent);
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  [data-theme="dark"] .um-muted{ color: rgba(226,232,240,.68); opacity:1; }
+
+  .um-badges{
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  }
+  .um-badge{
+    display:inline-flex; align-items:center;
+    padding:.28rem .62rem;
     border-radius: 999px;
     font-size:.78rem;
-    font-weight:900;
+    font-weight: 950;
     border:1px solid transparent;
+    white-space:nowrap;
   }
-  .badge-role-admin{
-    background: color-mix(in oklab, var(--primary,#2563eb) 14%, transparent);
-    border-color: color-mix(in oklab, var(--primary,#2563eb) 22%, transparent);
-    color: color-mix(in oklab, var(--primary,#2563eb) 92%, black 8%);
+  .um-role-admin{
+    background: color-mix(in oklab, var(--primary,#2273c3) 14%, transparent);
+    border-color: color-mix(in oklab, var(--primary,#2273c3) 22%, transparent);
+    color: color-mix(in oklab, var(--primary,#2273c3) 92%, black 8%);
   }
-  .badge-role-uzman{
+  .um-role-uzman{
     background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
     border-color: color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
     color: color-mix(in oklab, var(--text,#0f172a) 75%, transparent);
   }
-  [data-theme="dark"] .badge-role-uzman{
+  [data-theme="dark"] .um-role-uzman{
     background: rgba(255,255,255,.04);
     border-color: rgba(255,255,255,.12);
     color: rgba(226,232,240,.85);
   }
 
-  .badge-status-active{
+  .um-st-active{
     background: color-mix(in oklab, #22c55e 14%, transparent);
     border-color: color-mix(in oklab, #22c55e 24%, transparent);
     color: color-mix(in oklab, #137a3a 90%, black 10%);
   }
-  .badge-status-pending{
+  .um-st-pending{
     background: color-mix(in oklab, #f59e0b 16%, transparent);
     border-color: color-mix(in oklab, #f59e0b 24%, transparent);
     color: color-mix(in oklab, #9a6700 92%, black 8%);
   }
-  .badge-status-disabled{
+  .um-st-disabled{
     background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 88%, transparent);
     border-color: color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
     color: color-mix(in oklab, var(--text,#0f172a) 50%, transparent);
   }
-  [data-theme="dark"] .badge-status-disabled{
+  [data-theme="dark"] .um-st-disabled{
     background: rgba(255,255,255,.04);
     border-color: rgba(255,255,255,.12);
     color: rgba(226,232,240,.65);
   }
 
-  code{
-    padding:.12rem .35rem;
-    border-radius:8px;
+  .um-forms{
+    display:flex; flex-wrap:wrap; gap:10px;
+    align-items:flex-start;
+  }
+  .um-forms form{
+    display:flex; flex-wrap:wrap; gap:8px;
+    align-items:center;
+  }
+
+  /* select/input (row actions) */
+  .um-scope select.input,
+  .um-scope input.input{
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--line,#e5e7eb) 85%, transparent);
+    background: color-mix(in oklab, var(--card,#fff) 92%, transparent);
+    padding: .45rem .65rem;
+    outline:none;
+    min-width: 140px;
+    font-weight: 850;
+    transition: box-shadow .15s ease, border-color .15s ease;
+  }
+  .um-scope select.input:focus,
+  .um-scope input.input:focus{
+    border-color: color-mix(in oklab, var(--primary,#2273c3) 55%, var(--line,#e5e7eb) 45%);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary,#2273c3) 18%, transparent);
+  }
+  [data-theme="dark"] .um-scope select.input,
+  [data-theme="dark"] .um-scope input.input{
+    border-color: rgba(255,255,255,.14);
+    background: rgba(255,255,255,.04);
+    color: rgba(226,232,240,.92);
+  }
+
+  .um-code{
+    padding:.12rem .42rem;
+    border-radius: 10px;
     border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 65%, transparent);
     background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 92%, transparent);
-    font-weight:800;
+    font-weight: 950;
     font-size:.86rem;
+    display:inline-flex;
   }
-  [data-theme="dark"] code{
+  [data-theme="dark"] .um-code{
     border-color: rgba(255,255,255,.12);
     background: rgba(255,255,255,.04);
     color: rgba(226,232,240,.92);
   }
+
+  /* Flash */
+  .um-flash{
+    margin: 12px 14px 0;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+    background: color-mix(in oklab, var(--card,#fff) 94%, transparent);
+    font-weight: 850;
+  }
+  [data-theme="dark"] .um-flash{
+    border-color: rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+  }
+
+  .um-foot{
+    padding: 14px;
+    border-top:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+    display:flex; flex-wrap:wrap; gap:10px;
+    align-items:center; justify-content:space-between;
+  }
+  [data-theme="dark"] .um-foot{ border-top-color: rgba(255,255,255,.10); }
 </style>
 
-<div class="container page">
-  <div class="card sticky-top">
-    <div class="row" style="justify-content:space-between; align-items:flex-start;">
-      <div class="grow">
-        <div class="row" style="gap:10px; flex-wrap:wrap">
-          <h2 style="margin:0">Kullanıcı Yönetimi</h2>
-          <span class="pill" title="Yönetim ekranı">
-            <span style="font-weight:900">👤</span> Hesaplar
-          </span>
-        </div>
-        <div class="muted" style="margin-top:6px">
-          Rolleri, durumları ve ref kodlarını buradan yönetebilirsin.
-        </div>
-      </div>
+<div class="um-scope container um-wrap">
 
-      <div class="toolbar noprint">
-        <a class="btn" href="{{ url_for('dashboard') }}">← Dashboard</a>
-      </div>
+  <!-- Breadcrumbs -->
+  <nav class="um-bc">
+    <a href="{{ url_for('dashboard') }}">Ana Sayfa</a>
+    <span class="sep">/</span>
+    <span style="font-weight:900; color: color-mix(in oklab, var(--text,#0f172a) 78%, transparent);" class="um-bc-cur">
+      Kullanıcı Yönetimi
+    </span>
+  </nav>
+
+  <!-- Heading -->
+  <header class="um-head">
+    <div>
+      <h2 class="um-title">Kullanıcı Yönetimi</h2>
+      <p class="um-sub">Rolleri, durumları ve ref kodlarını buradan yönetebilirsin.</p>
     </div>
 
-    {% if totals %}
-      <div class="toolbar" style="margin-top:10px">
-        <span class="pill"><span class="dot" style="background:#94a3b8"></span> Toplam: {{ totals.all }}</span>
-        <span class="pill"><span class="dot" style="background:#16a34a"></span> Aktif: {{ totals.active }}</span>
-        <span class="pill"><span class="dot" style="background:#f59e0b"></span> Bekleyen: {{ totals.pending }}</span>
-        <span class="pill"><span class="dot" style="background:#6b7280"></span> Devre dışı: {{ totals.disabled }}</span>
-        <span class="pill"><span class="dot" style="background:color-mix(in oklab, var(--primary,#2563eb) 85%, black 15%)"></span> Admin: {{ totals.admins }}</span>
-      </div>
-    {% endif %}
-  </div>
+    <div class="right noprint">
+      <a class="btn" href="{{ url_for('dashboard') }}">← Dashboard</a>
+    </div>
+  </header>
 
-  <div class="um-card">
+  <!-- KPI cards -->
+  {% if totals_safe %}
+    <section class="um-kpis">
+      <div class="um-kpi">
+        <div class="k"><span class="um-dot" style="background:#94a3b8"></span>Toplam</div>
+        <div class="v">{{ totals_safe.all }}</div>
+      </div>
+      <div class="um-kpi">
+        <div class="k"><span class="um-dot" style="background:#16a34a"></span>Aktif</div>
+        <div class="v">{{ totals_safe.active }}</div>
+      </div>
+      <div class="um-kpi">
+        <div class="k"><span class="um-dot" style="background:#f59e0b"></span>Bekleyen</div>
+        <div class="v">{{ totals_safe.pending }}</div>
+      </div>
+      <div class="um-kpi">
+        <div class="k"><span class="um-dot" style="background:color-mix(in oklab, var(--primary,#2273c3) 85%, black 15%)"></span>Admin</div>
+        <div class="v">{{ totals_safe.admins }}</div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Main glass card -->
+  <section class="um-glass">
+
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for c,m in messages %}
-          <div class="flash {{c}}">
-            {{m}}
-          </div>
+          <div class="um-flash {{ c }}">{{ m }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
-    <div class="table-wrap">
-      <table class="table-modern">
+    <!-- Search / actions bar -->
+    <div class="um-bar noprint">
+      <div class="um-search">
+        <span class="ico">🔎</span>
+        <input id="umSearch"
+               class="um-input"
+               type="text"
+               placeholder="Ad, e-posta, ref kod veya rol ara...">
+      </div>
+      <div class="right">
+        <button type="button" class="btn" id="umClear">Temizle</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="um-table-wrap">
+      <table class="um-table">
         <thead>
           <tr>
             <th>Ad Soyad</th>
@@ -325,163 +452,153 @@
             <th>Rol</th>
             <th>Durum</th>
             <th>Ref Kodu</th>
-            <th class="table-actions">İşlem</th>
+            <th style="min-width:520px">İşlem</th>
           </tr>
         </thead>
-        <tbody>
-          {% for u in users %}
+
+        <tbody id="umBody">
+          {% for u in users_safe %}
             {% set st = (u.status or 'pending') %}
             {% set is_self = (u.id == session.get('account_id')) %}
-            <tr>
-              <td style="min-width:200px;">
-                <div style="font-weight:900">{{ u.contact_name }}</div>
+
+            <tr data-search="{{ (u.contact_name or '')|lower }} {{ (u.email or '')|lower }} {{ (u.contact_title or '')|lower }} {{ (u.role or 'uzman')|lower }} {{ st|lower }} {{ (u.ref_code or '')|lower }}">
+              <td style="min-width:220px">
+                <div class="um-name">{{ u.contact_name }}</div>
                 {% if is_self %}
-                  <div class="muted" style="font-size:.86rem;">(Siz)</div>
+                  <div class="um-muted">(Siz)</div>
                 {% endif %}
               </td>
 
-              <td style="min-width:240px;">{{ u.email }}</td>
-              <td style="min-width:170px;">{{ u.contact_title or '—' }}</td>
+              <td style="min-width:260px">{{ u.email }}</td>
+              <td style="min-width:180px">{{ u.contact_title or '—' }}</td>
 
-              <td style="min-width:120px;">
-                {% if (u.role or 'uzman') == 'admin' %}
-                  <span class="badge badge-role-admin">admin</span>
-                {% else %}
-                  <span class="badge badge-role-uzman">uzman</span>
-                {% endif %}
+              <td style="min-width:140px">
+                <div class="um-badges">
+                  {% if (u.role or 'uzman') == 'admin' %}
+                    <span class="um-badge um-role-admin">admin</span>
+                  {% else %}
+                    <span class="um-badge um-role-uzman">uzman</span>
+                  {% endif %}
+                </div>
               </td>
 
-              <td style="min-width:140px;">
-                <span class="badge
-                  {{ 'badge-status-active' if st=='active'
-                     else 'badge-status-pending' if st=='pending'
-                     else 'badge-status-disabled' }}">
+              <td style="min-width:160px">
+                <span class="um-badge
+                  {{ 'um-st-active' if st=='active'
+                     else 'um-st-pending' if st=='pending'
+                     else 'um-st-disabled' }}">
                   {{ st }}
                 </span>
               </td>
 
-              <td style="min-width:190px;">
+              <td style="min-width:200px">
                 {% if u.ref_code %}
-                  <code>{{ u.ref_code }}</code>
+                  <span class="um-code">{{ u.ref_code }}</span>
                 {% else %}
-                  <span class="muted">—</span>
+                  <span class="um-muted">—</span>
                 {% endif %}
               </td>
 
               <td>
-                <div class="row-actions">
-                  {# Rol güncelle #}
-                  <form method="post" action="{{ url_for('admin_users') }}"
-                        class="toolbar" style="gap:8px">
+                <div class="um-forms">
+
+                  {# Rol güncelle — İŞLEV AYNI #}
+                  <form method="post" action="{{ url_for('admin_users') }}">
                     <input type="hidden" name="user_id" value="{{ u.id }}">
                     <input type="hidden" name="action" value="set_role">
+
                     <select name="new_role" class="input" aria-label="Rol"
                             {% if is_self %}disabled{% endif %}>
-                      <option value="uzman"
-                        {{ 'selected' if (u.role or 'uzman')=='uzman' }}>uzman</option>
-                      <option value="admin"
-                        {{ 'selected' if u.role=='admin' }}>admin</option>
+                      <option value="uzman" {{ 'selected' if (u.role or 'uzman')=='uzman' }}>uzman</option>
+                      <option value="admin" {{ 'selected' if u.role=='admin' }}>admin</option>
                     </select>
+
                     <button class="btn btn-primary" title="Rolü güncelle"
                             {% if is_self %}disabled{% endif %}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M4 12h16M4 6h16M4 18h10"
-                              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      </svg>
                       Güncelle
                     </button>
                   </form>
 
-                  {# Durum güncelle #}
-                  <form method="post" action="{{ url_for('admin_users') }}"
-                        class="toolbar" style="gap:8px">
+                  {# Durum güncelle — İŞLEV AYNI #}
+                  <form method="post" action="{{ url_for('admin_users') }}">
                     <input type="hidden" name="user_id" value="{{ u.id }}">
                     <input type="hidden" name="action" value="set_status">
+
                     <select name="new_status" class="input" aria-label="Durum"
-                            {{ 'disabled' if is_self }}>
+                            {% if is_self %}disabled{% endif %}>
                       {% for st_opt in ['pending','active','disabled'] %}
-                        <option value="{{ st_opt }}"
-                          {{ 'selected' if st==st_opt else '' }}>
+                        <option value="{{ st_opt }}" {{ 'selected' if st==st_opt else '' }}>
                           {{ st_opt }}
                         </option>
                       {% endfor %}
                     </select>
-                    <button class="btn" {{ 'disabled' if is_self }}
-                            title="Durumu güncelle">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="m4 12 4 4 12-12"
-                              stroke="currentColor" stroke-width="2"
-                              stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
+
+                    <button class="btn" {% if is_self %}disabled{% endif %} title="Durumu güncelle">
                       Kaydet
                     </button>
+
                     {% if is_self %}
-                      <span class="muted" style="font-size:.88rem;">
+                      <span class="um-muted" style="max-width:420px">
                         Kendi hesabınızın rol ve durumunu buradan değiştiremezsiniz.
                       </span>
                     {% endif %}
                   </form>
 
-                  {# Ref ata / e-posta bildir #}
-                  <form method="post" action="{{ url_for('admin_users') }}"
-                        class="toolbar" style="gap:8px">
+                  {# Ref ata / e-posta bildir — İŞLEV AYNI #}
+                  <form method="post" action="{{ url_for('admin_users') }}">
                     <input type="hidden" name="user_id" value="{{ u.id }}">
                     <input type="hidden" name="action" value="assign_ref">
+
                     <input class="input" name="ref_code"
                            placeholder="Kod (boş: üret)"
-                           value="{{ u.ref_code or '' }}" style="width:170px">
-                    <label style="display:inline-flex; gap:8px; align-items:center; font-size:.9rem; font-weight:800;">
+                           value="{{ u.ref_code or '' }}" style="width:180px">
+
+                    <label style="display:inline-flex; gap:8px; align-items:center; font-size:.92rem; font-weight:850;">
                       <input type="checkbox" name="notify_email" value="1">
                       e-posta gönder
                     </label>
+
                     <button class="btn" title="Ref kod ata veya güncelle">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 5v14M5 12h14"
-                              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      </svg>
                       Ref Ata/Güncelle
                     </button>
                   </form>
 
-                  {# Gmail'de hazır mail aç #}
+                  {# Gmail'de hazır mail aç — İŞLEV AYNI #}
                   {% if u.ref_code and u.email %}
                     <a class="btn tiny" href="{{ url_for('admin_compose_ref', uid=u.id) }}"
-                       target="_blank" title="Gmail'de hazır mail aç">
+                       target="_blank" rel="noopener" title="Gmail'de hazır mail aç">
                       Gmail ile Gönder
                     </a>
                   {% endif %}
 
-                  {# Ref kod temizle #}
+                  {# Ref kod temizle — İŞLEV AYNI #}
                   {% if u.ref_code %}
                   <form method="post" action="{{ url_for('admin_users') }}"
                         onsubmit="return confirm('Ref kodu silinsin mi?');">
                     <input type="hidden" name="user_id" value="{{ u.id }}">
                     <input type="hidden" name="action" value="clear_ref">
                     <button class="btn btn-danger tiny" title="Ref kodu temizle">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M6 6l12 12M6 18 18 6"
-                              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      </svg>
                       Ref Sil
                     </button>
                   </form>
                   {% endif %}
+
                 </div>
 
-                <div class="muted" style="margin-top:10px;">
+                <div class="um-muted" style="margin-top:10px;">
                   {% if st != 'active' %}
-                    Not: Bu kullanıcı giriş yapabilmek için <em>active</em> olmalı
-                    ve kendisine bir <em>ref kodu</em> atanmalıdır.
+                    Not: Bu kullanıcı giriş yapabilmek için <em>active</em> olmalı ve kendisine bir <em>ref kodu</em> atanmalıdır.
                   {% else %}
                     Not: Girişte e-posta + şifre + <em>ref kodu</em> gereklidir.
                   {% endif %}
                 </div>
               </td>
             </tr>
+
           {% else %}
             <tr>
-              <td colspan="7" style="padding:18px; text-align:center" class="muted">
-                Kayıtlı kullanıcı bulunamadı.
+              <td colspan="7" style="padding:18px; text-align:center">
+                <span class="um-muted">Kayıtlı kullanıcı bulunamadı.</span>
               </td>
             </tr>
           {% endfor %}
@@ -489,9 +606,36 @@
       </table>
     </div>
 
-    <div class="toolbar" style="margin-top:14px">
+    <div class="um-foot noprint">
+      <div class="um-muted">
+        Toplam kullanıcı: <strong style="opacity:1">{{ users_safe|length }}</strong>
+      </div>
       <a class="btn" href="{{ url_for('dashboard') }}">← Geri</a>
     </div>
-  </div>
+
+  </section>
 </div>
+
+<script>
+(function(){
+  // Sadece UI: client-side search (işlev değiştirmez)
+  const inp = document.getElementById('umSearch');
+  const btn = document.getElementById('umClear');
+  const body = document.getElementById('umBody');
+  if(!inp || !body) return;
+
+  const rows = Array.from(body.querySelectorAll('tr[data-search]'));
+  const apply = () => {
+    const q = (inp.value || '').trim().toLowerCase();
+    rows.forEach(r => {
+      const hay = (r.getAttribute('data-search') || '');
+      r.style.display = (!q || hay.includes(q)) ? '' : 'none';
+    });
+  };
+
+  inp.addEventListener('input', apply);
+  btn && btn.addEventListener('click', () => { inp.value=''; apply(); inp.focus(); });
+})();
+</script>
+
 {% endblock %}
