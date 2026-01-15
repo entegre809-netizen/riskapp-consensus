@@ -3,19 +3,12 @@
 {% block content %}
 
 <style>
-  /* ================================
-     RiskApp Dashboard — Tailwind-look
-     (SIFIR feature kaybı: aynı Jinja/JS)
-     ================================ */
-
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
-  /* Bu sayfa özel tipografi */
   .dash-scope{
     font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
   }
 
-  /* --- Bu sayfada buton/rozetleri tailwind gibi yap (base’i bozma) --- */
   .dash-scope .btn{
     display:inline-flex;
     align-items:center;
@@ -64,7 +57,6 @@
     background: rgba(30,33,38,.55);
   }
 
-  /* Base’teki score-low/mid/high varsa yine çalışır, yoksa fallback */
   .dash-scope .score-low { background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.35); color: #166534; }
   .dash-scope .score-mid { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.38); color: #854d0e; }
   .dash-scope .score-high{ background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.35); color: #7f1d1d; }
@@ -72,7 +64,6 @@
   [data-theme="dark"] .dash-scope .score-mid { color:#fde68a; }
   [data-theme="dark"] .dash-scope .score-high{ color:#fecaca; }
 
-  /* 🔧 Legend için “Yüksek(11–15)” uyumlu rozet */
   .dash-scope .score-hi{
     background: rgba(251,146,60,.18);
     border-color: rgba(251,146,60,.38);
@@ -80,7 +71,7 @@
   }
   [data-theme="dark"] .dash-scope .score-hi{ color:#fed7aa; }
 
-  /* --- KPI’ler --- */
+  /* ===== KPIs (1. görsel style) ===== */
   .kpis{
     display:grid;
     grid-template-columns: repeat(6, minmax(0,1fr));
@@ -92,43 +83,82 @@
   @media (max-width: 520px){  .kpis{ grid-template-columns: 1fr; } }
 
   .kpi{
-    padding: 16px;
+    position: relative;
+    padding: 14px 16px;
     border-radius: 16px;
-    border: 1px solid rgba(226,232,240,.9);
-    background: rgba(255,255,255,.92);
-    box-shadow: 0 14px 40px -26px rgba(15,23,42,.22);
+    border: 1px solid rgba(226,232,240,.95);
+    background: #fff;
+    box-shadow: 0 12px 34px -28px rgba(15,23,42,.22);
+    min-height: 86px;
     display:flex;
     flex-direction:column;
-    gap: 10px;
-    min-height: 88px;
+    justify-content:space-between;
+    overflow:hidden;
   }
   [data-theme="dark"] .kpi{
     background: rgba(30,33,38,.72);
     border-color: rgba(51,65,85,.55);
   }
-  .kpi .label{
-    font-size: .72rem;
+  .kpi::before{
+    content:"";
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width: 4px;
+    background: transparent;
+    border-radius: 16px 0 0 16px;
+  }
+  .kpi-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .kpi-label{
+    font-size: .70rem;
     text-transform: uppercase;
-    letter-spacing: .12em;
+    letter-spacing: .14em;
+    font-weight: 900;
     color: #64748b;
-    font-weight: 900;
   }
-  [data-theme="dark"] .kpi .label{ color:#94a3b8; }
-  .kpi .value{
-    font-size: 1.65rem;
-    font-weight: 900;
+  [data-theme="dark"] .kpi-label{ color:#94a3b8; }
+  .kpi-value{
+    font-size: 1.75rem;
+    font-weight: 950;
     letter-spacing: -0.02em;
-    display:flex; align-items:center; justify-content:space-between;
+    color:#0f172a;
+    line-height: 1.1;
   }
+  [data-theme="dark"] .kpi-value{ color:#e5e7eb; }
 
-  .kpi.primary{
-    background: #2866bd;
-    border-color: #2866bd;
-    color: #fff;
-    box-shadow: 0 18px 50px -28px rgba(40,102,189,.75);
+  .kpi--total::before   { background: rgba(148,163,184,.7); }
+  .kpi--critical::before{ background: #ef4444; }
+  .kpi--high::before    { background: #fb923c; }
+  .kpi--medium::before  { background: #f59e0b; }
+  .kpi--low::before     { background: #22c55e; }
+
+  .kpi--avg{
+    background: #2b69c3;
+    border-color: #2b69c3;
+    box-shadow: 0 18px 50px -30px rgba(40,102,189,.75);
   }
-  .kpi.primary .label{ color: rgba(255,255,255,.55); }
-  .kpi.primary .value{ color:#fff; }
+  .kpi--avg::before{ display:none; }
+  .kpi--avg .kpi-label{ color: rgba(255,255,255,.70); }
+  .kpi--avg .kpi-value{ color:#fff; }
+  .kpi-avg-foot{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top: 6px;
+    opacity:.9;
+  }
+  .kpi-avg-ico{
+    width: 22px; height: 22px;
+    border-radius: 8px;
+    display:grid; place-items:center;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.18);
+  }
 
   /* --- Kartlar --- */
   .card{
@@ -215,7 +245,6 @@
     font-weight: 900;
   }
 
-  /* ✅ FIX: skor ortada, adet sağ-altta; üst üste binme yok */
   .rm-cell{
     position:relative;
     border-radius: 14px;
@@ -255,7 +284,6 @@
     border-color: rgba(255,255,255,.14);
   }
 
-  /* renk eşikleri */
   html[data-theme="light"] .rm-cell.low  { background:#d1fae5; border-color:#9fe3c9; color:#0d3a2c; }
   html[data-theme="light"] .rm-cell.mid  { background:#fde68a; border-color:#f3c24f; color:#5a3f00; }
   html[data-theme="light"] .rm-cell.hi   { background:#fdba74; border-color:#f59e0b; color:#4a2500; }
@@ -266,7 +294,6 @@
   [data-theme="dark"] .rm-cell.hi   { background:#4b2400; border-color:#a24e0a; color:#ffd7b5; }
   [data-theme="dark"] .rm-cell.crit { background:#3b0b0b; border-color:#7f1d1d; color:#ffd0d0; }
 
-  /* Donut alanları */
   .donut-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
   @media (max-width: 980px){ .donut-grid{ grid-template-columns: 1fr; } }
   .donut-card{
@@ -291,10 +318,12 @@
     padding: 4px 10px;
     font-weight: 900;
     font-size: .86rem;
+    color:#0f172a;
   }
   [data-theme="dark"] .legend-chip{
     border-color: rgba(51,65,85,.55);
     background: rgba(30,33,38,.45);
+    color:#fff;
   }
   .chip-dot{ width:10px; height:10px; border-radius:999px; }
 
@@ -315,18 +344,6 @@
     color:#94a3b8;
   }
 
-  /* ✅ FIX: Dark temada legend yazıları beyaz (dot rengi bozulmasın) */
-  [data-theme="dark"] .dash-scope .legend-chip{
-    color:#fff !important;
-  }
-  [data-theme="dark"] .dash-scope .legend-chip .chip-dot{
-  background: inherit;
-}
-
-
-  /* ================================
-     ✅ General Overview (screenshot style)
-     ================================ */
   .go-head{
     display:flex;
     align-items:center;
@@ -448,7 +465,6 @@
     color:#e5e7eb;
   }
 
-  /* ✅ Impact Score bar (4. görsel gibi) — artı: sayısal değer 1–25 */
   .impact{
     display:flex;
     align-items:center;
@@ -509,9 +525,6 @@
   }
   [data-theme="dark"] .go-updated{ color:#64748b; }
 
-  /* ================================
-     ✅ Quick Actions (screenshot style)
-     ================================ */
   .qa-card{ padding: 14px 16px; }
   .qa-top{
     display:flex;
@@ -576,18 +589,13 @@
 
 <div class="dash-scope">
 
-  {# ==== KPI hesap: her risk için Risk.score() normalize edilerek 1–25'e çekilir ==== #}
   {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
   {% for r in risks or [] %}
     {% set sc_raw = r.score() %}
     {% if sc_raw is not none %}
-      {# ✅ normalize: bazı projelerde 0–100 geliyor (48.0 gibi) -> 1–25'e indir #}
       {% set sc = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
-
       {% set ns.sum  = ns.sum + sc %}
       {% set ns.have = ns.have + 1 %}
-
-      {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
       {% if sc <= 4 %}
         {% set ns.low = ns.low + 1 %}
       {% elif sc <= 10 %}
@@ -602,43 +610,47 @@
   {% endfor %}
   {% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
 
-  <!-- ===== KPIs ===== -->
   <div class="kpis" role="list" aria-label="Özet göstergeler">
-    <div class="kpi" role="listitem">
-      <div class="label">Total Risk</div>
-      <div class="value">{{ ns.total }}</div>
+    <div class="kpi kpi--total" role="listitem">
+      <div class="kpi-head"><div class="kpi-label">TOTAL RISK</div></div>
+      <div class="kpi-value">{{ ns.total }}</div>
     </div>
 
-    <div class="kpi" role="listitem">
-      <div class="label">Critical</div>
-      <div class="value"><span class="badge score-high">{{ ns.crit }}</span></div>
+    <div class="kpi kpi--critical" role="listitem">
+      <div class="kpi-head"><div class="kpi-label">CRITICAL</div></div>
+      <div class="kpi-value">{{ ns.crit }}</div>
     </div>
 
-    <div class="kpi" role="listitem">
-      <div class="label">High</div>
-      <div class="value"><span class="badge score-high">{{ ns.high }}</span></div>
+    <div class="kpi kpi--high" role="listitem">
+      <div class="kpi-head"><div class="kpi-label">HIGH</div></div>
+      <div class="kpi-value">{{ ns.high }}</div>
     </div>
 
-    <div class="kpi" role="listitem">
-      <div class="label">Medium</div>
-      <div class="value"><span class="badge score-mid">{{ ns.mid }}</span></div>
+    <div class="kpi kpi--medium" role="listitem">
+      <div class="kpi-head"><div class="kpi-label">MEDIUM</div></div>
+      <div class="kpi-value">{{ ns.mid }}</div>
     </div>
 
-    <div class="kpi" role="listitem">
-      <div class="label">Low</div>
-      <div class="value"><span class="badge score-low">{{ ns.low }}</span></div>
+    <div class="kpi kpi--low" role="listitem">
+      <div class="kpi-head"><div class="kpi-label">LOW</div></div>
+      <div class="kpi-value">{{ ns.low }}</div>
     </div>
 
-    <div class="kpi primary" role="listitem">
-      <div class="label">Avg Score</div>
-      <div class="value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
+    <div class="kpi kpi--avg" role="listitem">
+      <div class="kpi-head"><div class="kpi-label">AVG SCORE</div></div>
+      <div class="kpi-value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
+      <div class="kpi-avg-foot" aria-hidden="true">
+        <span class="kpi-avg-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M6 16V8m6 8V5m6 11v-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </div>
     </div>
   </div>
 
-  <!-- ===== ÜST İKİLİ: General Overview + Risk Matrix ===== -->
   <div class="grid grid-2">
 
-    <!-- ✅ Sol: General Overview -->
     <div class="card" aria-labelledby="genelTitle">
       <div class="go-head">
         <h3 id="genelTitle" class="go-title">
@@ -649,7 +661,6 @@
           </span>
           General Overview
         </h3>
-
         <a class="go-link" href="{{ url_for('risk_select') }}">View All Risks</a>
       </div>
 
@@ -668,21 +679,12 @@
 
             <tbody>
               {% for r in risks[:8] %}
-                {# ===========================
-                   ✅ Impact Score: 1–25 aralığı
-                   - sc_raw: modelden ne gelirse (48.0 olabilir)
-                   - sc25: 1–25 normalize
-                   - pct: bar genişliği (0–100)
-                   =========================== #}
                 {% set sc_raw = r.score() %}
                 {% if sc_raw is not none %}
                   {% set sc25 = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
-
                   {% if sc25 < 0 %}{% set sc25 = 0 %}{% endif %}
                   {% if sc25 > 25 %}{% set sc25 = 25 %}{% endif %}
-
                   {% set pct = (sc25 / 25) * 100 %}
-
                   {% set lvl =
                       'fill-low' if sc25 <= 4 else
                       'fill-mid' if sc25 <= 10 else
@@ -775,12 +777,9 @@
       {% endif %}
     </div>
 
-    <!-- Sağ: Risk Matrisi -->
     <div class="card" aria-labelledby="matrixTitle">
       <div class="card-head">
         <h3 id="matrixTitle" class="card-title"><span class="pill">▦</span>Risk Matrix</h3>
-
-        {# ✅ Legend: tam istediğin gibi (1–4 / 5–10 / 11–15 / 16–25) #}
         <div style="display:flex; gap:8px; flex-wrap:wrap">
           <span class="badge score-low">1–4</span>
           <span class="badge score-mid">5–10</span>
@@ -795,7 +794,6 @@
       <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
         <div class="rm-corner" aria-hidden="true"></div>
 
-        {# Olasılık: 5 → 1 (Çok Yüksek → Çok Düşük) #}
         {% for p in range(5,0,-1) %}
           <div class="rm-colhead" role="columnheader" aria-label="Olasılık {{p}}: {{ prob_labels[p-1] }}">
             <div class="rm-coltitle">{{ prob_labels[p-1] }}</div>
@@ -803,7 +801,6 @@
           </div>
         {% endfor %}
 
-        {# Satırlar: Şiddet 5 → 1 #}
         {% for s in range(5,0,-1) %}
           <div class="rm-rowhead" role="rowheader" aria-label="Şiddet {{s}}: {{ sev_labels[s-1] }}" style="position:relative">
             <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
@@ -844,7 +841,6 @@
     </div>
   </div>
 
-  <!-- ===== Donut’lar ===== -->
   <div class="card" style="margin-top:12px" aria-labelledby="donutTitle">
     <div class="card-head">
       <h3 id="donutTitle" class="card-title"><span class="pill">◎</span>Category & Risk Distribution</h3>
@@ -880,11 +876,9 @@
           const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
           const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
 
-          // 🔧 1. renk primary (#2866bd) — marka tutarlılığı
           const PALETTE = ['#2866bd','#60a5fa','#34d399','#f59e0b','#ef4444','#a78bfa','#f472b6','#22d3ee','#84cc16','#fb7185','#f97316'];
           const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
 
-          // 1) Kategori Donut
           const catLabels = rows.map(r => r.cat);
           const catCounts = rows.map(r => Number(r.total)||0);
           const catColors = catLabels.map((_,i)=> PALETTE[i % PALETTE.length]);
@@ -914,7 +908,6 @@
             legendCats.appendChild(el);
           });
 
-          // 2) Seviye Donut
           const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
           const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
           const lvlKeys   = ['low','mid','high','vhigh'];
@@ -947,7 +940,6 @@
     {% endif %}
   </div>
 
-  <!-- ===== Quick Actions ===== -->
   <div class="card qa-card" style="margin-top:12px">
     <div class="qa-top">
       <div class="qa-label">QUICK ACTIONS</div>
