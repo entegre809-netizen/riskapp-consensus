@@ -38,7 +38,7 @@ from datetime import date
 from flask import send_file
 import time
 from datetime import datetime, timedelta
-
+from sqlalchemy.exc import IntegrityError
 
 import json
 import os as _os, sys as _sys
@@ -4438,32 +4438,51 @@ def create_app():
     def api_categories_update(cid):
         cat = RiskCategory.query.get_or_404(cid)
         data = request.form
+
         def norm(v): return (v or "").strip()
-        if "name" in data:
-            nm = norm(data.get("name"))
-            if not nm: return jsonify({"error": "name required"}), 400
-            cat.name = nm
-        if "code" in data: cat.code = norm(data.get("code")) or None
-        if "color" in data: cat.color = norm(data.get("color")) or None
-        if "description" in data: cat.description = norm(data.get("description")) or None
+
+        # name zorunlu
+        nm = norm(data.get("name"))
+        if not nm:
+            return jsonify({"error": "name required"}), 400
+
+        cat.name = nm
+        cat.code = norm(data.get("code")) or None
+        cat.color = norm(data.get("color")) or None
+        cat.description = norm(data.get("description")) or None
+
+        # checkbox unchecked ise JS "" gönderiyor → False olmalı
+        # (isterse hiç göndermesin: o zaman mevcut kalsın diye if kullanabilirsin)
         if "is_active" in data:
-            cat.is_active = data.get("is_active") in ("on", "true", "1", "yes")
-        db.session.commit()
+            cat.is_active = _truthy(data.get("is_active"))
+
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"error": "duplicate code or constraint error"}), 409
+
         return jsonify({"ok": True})
+
 
     @app.delete("/api/categories/<int:cid>")
     def api_categories_delete(cid):
         cat = RiskCategory.query.get_or_404(cid)
-        db.session.delete(cat); db.session.commit()
-        return jsonify({"ok": True})
 
-    # --- Kategori yardımcıları (aktif adlar) ---
-    def active_category_names():
-        rows = (RiskCategory.query
-                .filter(RiskCategory.is_active == True)
-                .order_by(RiskCategory.name.asc())
-                .all())
-        return [r.name for r in rows]
+        try:
+            db.session.delete(cat)
+            db.session.commit()
+            return jsonify({"ok": True, "deleted": True})
+        except IntegrityError:
+            # kategori kullanımda → gerçek silme yerine pasif yap
+            db.session.rollback()
+            cat.is_active = False
+            db.session.commit()
+            return jsonify({
+                "ok": True,
+                "deleted": False,
+                "message": "Kullanımda olduğu için silinmedi; pasif yapıldı."
+            }), 200
 
     @app.get("/api/category-names")
     def api_category_names():
