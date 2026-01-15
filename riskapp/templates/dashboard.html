@@ -315,6 +315,15 @@
     color:#94a3b8;
   }
 
+  /* ✅ FIX: Dark temada legend yazıları beyaz (dot rengi bozulmasın) */
+  [data-theme="dark"] .dash-scope .legend-chip{
+    color:#fff !important;
+  }
+  [data-theme="dark"] .dash-scope .legend-chip .chip-dot{
+  background: inherit;
+}
+
+
   /* ================================
      ✅ General Overview (screenshot style)
      ================================ */
