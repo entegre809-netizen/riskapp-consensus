@@ -243,6 +243,33 @@
   [data-theme="dark"] .modal-footer{
     border-color: rgba(148,163,184,.16);
   }
+
+  /* =========================================================
+     ✅ FIX: Dark mode table body beyaz kalmasın (Bootstrap override)
+     ========================================================= */
+  .rp-table-card .table tbody td{
+    background: transparent; /* light modda parent rengi görünsün */
+  }
+
+  [data-theme="dark"] .rp-table-card{
+    background: var(--card-solid) !important; /* kart tamamen koyu */
+  }
+
+  [data-theme="dark"] .rp-table-card .table tbody td{
+    background: color-mix(in oklab, var(--card-solid) 96%, transparent) !important;
+    color: var(--text);
+  }
+
+  [data-theme="dark"] .rp-table-card .table tbody tr:hover td{
+    background: color-mix(in oklab, var(--primary) 10%, var(--card-solid)) !important;
+  }
+
+  /* (Opsiyonel) Bootstrap table değişkenlerini de karart */
+  [data-theme="dark"] .rp-table-card .table{
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: transparent;
+    --bs-table-hover-bg: transparent;
+  }
 </style>
 
 {# -----------------------------
