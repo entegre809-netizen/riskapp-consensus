@@ -439,7 +439,7 @@
     color:#e5e7eb;
   }
 
-  /* ✅ Impact Score bar (4. görsel gibi) */
+  /* ✅ Impact Score bar (4. görsel gibi) — artı: sayısal değer 1–25 */
   .impact{
     display:flex;
     align-items:center;
@@ -460,7 +460,7 @@
   .impact-num{
     font-weight: 900;
     font-variant-numeric: tabular-nums;
-    min-width: 38px;
+    min-width: 42px;
     text-align:right;
   }
 
@@ -567,13 +567,17 @@
 
 <div class="dash-scope">
 
-  {# ==== KPI hesap: her risk için Risk.score() (detaydakiyle aynı) ==== #}
+  {# ==== KPI hesap: her risk için Risk.score() normalize edilerek 1–25'e çekilir ==== #}
   {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
   {% for r in risks or [] %}
-    {% set sc = r.score() %}
-    {% if sc is not none %}
+    {% set sc_raw = r.score() %}
+    {% if sc_raw is not none %}
+      {# ✅ normalize: bazı projelerde 0–100 geliyor (48.0 gibi) -> 1–25'e indir #}
+      {% set sc = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
+
       {% set ns.sum  = ns.sum + sc %}
       {% set ns.have = ns.have + 1 %}
+
       {# 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
       {% if sc <= 4 %}
         {% set ns.low = ns.low + 1 %}
@@ -656,26 +660,30 @@
             <tbody>
               {% for r in risks[:8] %}
                 {# ===========================
-                   ✅ Impact Score (AKTİF)
-                   - r.score(): 0–25
-                   - impact100: 0–100 (4. görsel bar gibi)
+                   ✅ Impact Score: 1–25 aralığı
+                   - sc_raw: modelden ne gelirse (48.0 olabilir)
+                   - sc25: 1–25 normalize
+                   - pct: bar genişliği (0–100)
                    =========================== #}
-                {% set sc = r.score() %}
-                {% if sc is not none %}
-                  {% set impact100 = (sc * 4) %}
-                  {% if impact100 < 0 %}{% set impact100 = 0 %}{% endif %}
-                  {% if impact100 > 100 %}{% set impact100 = 100 %}{% endif %}
+                {% set sc_raw = r.score() %}
+                {% if sc_raw is not none %}
+                  {% set sc25 = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
+
+                  {% if sc25 < 0 %}{% set sc25 = 0 %}{% endif %}
+                  {% if sc25 > 25 %}{% set sc25 = 25 %}{% endif %}
+
+                  {% set pct = (sc25 / 25) * 100 %}
 
                   {% set lvl =
-                      'fill-low' if impact100 <= 20 else
-                      'fill-mid' if impact100 <= 40 else
-                      'fill-hi'  if impact100 <= 70 else
+                      'fill-low' if sc25 <= 4 else
+                      'fill-mid' if sc25 <= 10 else
+                      'fill-hi'  if sc25 <= 15 else
                       'fill-crit'
                   %}
                   {% set numc =
-                      'num-low' if impact100 <= 20 else
-                      'num-mid' if impact100 <= 40 else
-                      'num-hi'  if impact100 <= 70 else
+                      'num-low' if sc25 <= 4 else
+                      'num-mid' if sc25 <= 10 else
+                      'num-hi'  if sc25 <= 15 else
                       'num-crit'
                   %}
                 {% endif %}
@@ -683,7 +691,7 @@
                 {% set st = (r.status or '')|lower %}
                 {% set st_class =
                     'st-active' if ('active' in st)
-                    else ('st-mitigated' if ('mitig' in st or 'closed' in st)
+                    else ('st-mitigated' if ('mitig' in st or 'closed' in st or 'kapand' in st)
                     else ('st-pending' if ('pending' in st or 'review' in st)
                     else 'st-other'))
                 %}
@@ -703,12 +711,12 @@
                   <td><span class="go-chip">{{ r.category or "-" }}</span></td>
 
                   <td>
-                    {% if sc is not none %}
-                      <div class="impact" title="Skor: {{ '%.2f'|format(sc) }} / 25 (≈ {{ impact100 }} / 100)">
+                    {% if sc_raw is not none %}
+                      <div class="impact" title="Skor: {{ '%.2f'|format(sc25) }} / 25">
                         <div class="impact-track" aria-hidden="true">
-                          <div class="impact-fill {{ lvl }}" style="--w: {{ impact100 }}%"></div>
+                          <div class="impact-fill {{ lvl }}" style="--w: {{ '%.0f'|format(pct) }}%"></div>
                         </div>
-                        <div class="impact-num {{ numc }}">{{ impact100 }}</div>
+                        <div class="impact-num {{ numc }}">{{ '%.0f'|format(sc25) }}</div>
                       </div>
                     {% else %}
                       <span class="go-updated">—</span>
@@ -762,6 +770,8 @@
     <div class="card" aria-labelledby="matrixTitle">
       <div class="card-head">
         <h3 id="matrixTitle" class="card-title"><span class="pill">▦</span>Risk Matrix</h3>
+
+        {# ✅ Legend: tam istediğin gibi (1–4 / 5–10 / 11–15 / 16–25) #}
         <div style="display:flex; gap:8px; flex-wrap:wrap">
           <span class="badge score-low">1–4</span>
           <span class="badge score-mid">5–10</span>
