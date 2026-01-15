@@ -137,10 +137,29 @@
     font-size: 18px;
   }
 
-  .rp-table-card .table{ margin:0; min-width: 760px; }
-  .rp-table-card .table thead th{ background: color-mix(in oklab, var(--bg-soft) 92%, transparent); }
+  /* ✅✅ Bootstrap .table WHITE BG override (dark mode dahil her modda) */
+  .rp-table-card .table{
+    margin:0;
+    min-width: 760px;
+    color: var(--text);
+    background: transparent !important;
+  }
+  /* Bootstrap 5: .table > :not(caption) > * > * hücre bg basıyor — onu ez */
+  .rp-table-card .table > :not(caption) > * > *{
+    background: transparent !important;
+    color: inherit;
+  }
+
+  .rp-table-card .table thead th{
+    background: color-mix(in oklab, var(--bg-soft) 92%, transparent) !important;
+  }
   [data-theme="dark"] .rp-table-card .table thead th{
-    background: color-mix(in oklab, var(--card-solid) 86%, transparent);
+    background: color-mix(in oklab, var(--card-solid) 86%, transparent) !important;
+  }
+
+  /* Hover satır rengi (Bootstrap hover değil, bizim) */
+  .rp-table-card .table tbody tr:hover > *{
+    background: color-mix(in oklab, var(--primary) 6%, transparent) !important;
   }
 
   /* Risk cell */
@@ -243,37 +262,10 @@
   [data-theme="dark"] .modal-footer{
     border-color: rgba(148,163,184,.16);
   }
-
-  /* =========================================================
-     ✅ FIX: Dark mode table body beyaz kalmasın (Bootstrap override)
-     ========================================================= */
-  .rp-table-card .table tbody td{
-    background: transparent; /* light modda parent rengi görünsün */
-  }
-
-  [data-theme="dark"] .rp-table-card{
-    background: var(--card-solid) !important; /* kart tamamen koyu */
-  }
-
-  [data-theme="dark"] .rp-table-card .table tbody td{
-    background: color-mix(in oklab, var(--card-solid) 96%, transparent) !important;
-    color: var(--text);
-  }
-
-  [data-theme="dark"] .rp-table-card .table tbody tr:hover td{
-    background: color-mix(in oklab, var(--primary) 10%, var(--card-solid)) !important;
-  }
-
-  /* (Opsiyonel) Bootstrap table değişkenlerini de karart */
-  [data-theme="dark"] .rp-table-card .table{
-    --bs-table-bg: transparent;
-    --bs-table-striped-bg: transparent;
-    --bs-table-hover-bg: transparent;
-  }
 </style>
 
 {# -----------------------------
-   Query param okuma (backend-dostu)
+   Query param okuma
    ----------------------------- #}
 {% set q = request.args.get('q','') %}
 {% set f_category = request.args.get('category','') %}
@@ -281,10 +273,8 @@
 {% set f_currency = request.args.get('currency','') %}
 
 {# -----------------------------
-   KPI hesapları: cost_map'ten TRY/USD topla
-   cost_map[risk_id] -> [(cur,total),...]
+   KPI hesapları
    ----------------------------- #}
-{% set _total = (total_count if total_count is defined else (risks|length if risks is defined else 0)) %}
 {% set _kritik = 0 %}
 {% set _try = 0 %}
 {% set _usd = 0 %}
@@ -312,7 +302,6 @@
   {% endif %}
 {% endfor %}
 
-{# Compact number helper (K/M) #}
 {% macro compact(n) -%}
   {%- set x = (n or 0) -%}
   {%- if x >= 1000000 -%}
@@ -340,6 +329,28 @@
   {{ url_for(request.endpoint, **d) }}
 {%- endmacro %}
 
+{# ✅ Dışa Aktar endpoint seçim (varsa bağla) #}
+{% set _has_ep_helper = (has_endpoint is defined) %}
+{% set _export_ep = (
+    'reports_export_xlsx' if (
+      (_has_ep_helper and has_endpoint('reports_export_xlsx')) or
+      (not _has_ep_helper and ('reports_export_xlsx' in current_app.view_functions))
+    )
+    else (
+      'risks_export_xlsx' if (
+        (_has_ep_helper and has_endpoint('risks_export_xlsx')) or
+        (not _has_ep_helper and ('risks_export_xlsx' in current_app.view_functions))
+      )
+      else None
+    )
+) %}
+
+{% if _export_ep %}
+  {% set export_url = url_for(_export_ep, **_args) %}
+{% else %}
+  {% set export_url = '#' %}
+{% endif %}
+
 <div class="rp-wrap">
 
   <!-- Top: breadcrumb + title + actions -->
@@ -357,8 +368,7 @@
         Filtrele
       </button>
 
-      {# Dışa aktar endpoint'in varsa burayı bağlarız; şimdilik placeholder #}
-      <a class="rp-btn" href="#" role="button">
+      <a class="rp-btn" href="{{ export_url }}" role="button" {% if export_url == '#' %}aria-disabled="true" style="opacity:.65; cursor:not-allowed"{% endif %}>
         <span class="material-icons-outlined" style="font-size:18px;">file_download</span>
         Dışa Aktar
       </a>
@@ -403,9 +413,7 @@
   <!-- Table -->
   <div class="rp-table-card">
     <div class="rp-table-toolbar">
-      <!-- Search: GET query ile (Enter) + client-side hızlı filtre (input) -->
       <form class="rp-search" method="get" action="{{ url_for(request.endpoint) }}">
-        {# mevcut filtreleri koru #}
         {% for k,v in _args.items() %}
           {% if k not in ['q','page'] %}
             <input type="hidden" name="{{k}}" value="{{v}}">
@@ -499,7 +507,6 @@
       </table>
     </div>
 
-    <!-- Pagination -->
     <div class="rp-foot">
       <span class="rp-muted" style="font-size:.86rem;">
         {% if total_count > 0 %}
@@ -514,7 +521,6 @@
           <a class="rp-page" href="{{ page_url(1) }}" aria-label="İlk">«</a>
           <a class="rp-page" href="{{ page_url(page-1 if page>1 else 1) }}" aria-label="Önceki">‹</a>
 
-          {# orta kısım: sayfa etrafı 2 #}
           {% set start = (page - 2 if page - 2 > 1 else 1) %}
           {% set end = (page + 2 if page + 2 < pages else pages) %}
 
@@ -537,7 +543,7 @@
      ========================= -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <form class="modal-content" method="get" action="{{ url_for(request.endpoint) }}">
+    <form id="filterForm" class="modal-content" method="get" action="{{ url_for(request.endpoint) }}">
       <div class="modal-header">
         <h5 class="modal-title" style="font-weight:950; letter-spacing:-.02em;">Filtrele</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
@@ -578,7 +584,6 @@
           </select>
         </div>
 
-        {# filtre değişince sayfa 1’e dön #}
         <input type="hidden" name="page" value="1">
         <input type="hidden" name="per_page" value="{{ per_page }}">
       </div>
@@ -593,7 +598,7 @@
 
 <script>
 (function(){
-  // Client-side hızlı filtre (arka planda anında)
+  // Client-side hızlı filtre
   window.__rpFilter = function(q){
     q = (q || '').toLowerCase().trim();
     const rows = document.querySelectorAll('#rpTable tbody tr');
@@ -603,9 +608,25 @@
     });
   };
 
-  // Sayfa ilk açıldığında query'deki q varsa hızlı filtre de uygula
   const initQ = (document.getElementById('rpQ')?.value || '').trim();
   if (initQ) window.__rpFilter(initQ);
+
+  // ✅ Filtre "Uygula" -> modal kapanıp submit olsun (takılı kalmasın)
+  const form = document.getElementById('filterForm');
+  const modalEl = document.getElementById('filterModal');
+  if (form && modalEl){
+    form.addEventListener('submit', function(){
+      try{
+        if (window.bootstrap){
+          const inst = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+          inst.hide();
+        } else {
+          modalEl.classList.remove('show');
+          modalEl.style.display = 'none';
+        }
+      }catch(e){}
+    });
+  }
 })();
 </script>
 
