@@ -439,6 +439,7 @@
     color:#e5e7eb;
   }
 
+  /* ✅ Impact Score bar (4. görsel gibi) */
   .impact{
     display:flex;
     align-items:center;
@@ -453,13 +454,13 @@
   }
   .impact-fill{
     height: 100%;
-    width: 0%;
     border-radius: 999px;
+    width: var(--w, 0%);
   }
   .impact-num{
     font-weight: 900;
     font-variant-numeric: tabular-nums;
-    min-width: 36px;
+    min-width: 38px;
     text-align:right;
   }
 
@@ -467,6 +468,11 @@
   .fill-mid{ background:#f59e0b; }
   .fill-hi{  background:#fb923c; }
   .fill-crit{background:#ef4444; }
+
+  .num-low{ color:#16a34a; }
+  .num-mid{ color:#b45309; }
+  .num-hi{  color:#c2410c; }
+  .num-crit{color:#dc2626; }
 
   .status-pill{
     display:inline-flex;
@@ -619,7 +625,7 @@
   <!-- ===== ÜST İKİLİ: General Overview + Risk Matrix ===== -->
   <div class="grid grid-2">
 
-    <!-- ✅ Sol: General Overview (NEW screenshot style) -->
+    <!-- ✅ Sol: General Overview -->
     <div class="card" aria-labelledby="genelTitle">
       <div class="go-head">
         <h3 id="genelTitle" class="go-title">
@@ -649,9 +655,30 @@
 
             <tbody>
               {% for r in risks[:8] %}
+                {# ===========================
+                   ✅ Impact Score (AKTİF)
+                   - r.score(): 0–25
+                   - impact100: 0–100 (4. görsel bar gibi)
+                   =========================== #}
                 {% set sc = r.score() %}
-                {% set pct = ((sc / 25) * 100) if sc is not none else 0 %}
-                {% set lvl = 'fill-low' if (sc is not none and sc<=4) else ('fill-mid' if (sc is not none and sc<=10) else ('fill-hi' if (sc is not none and sc<=15) else 'fill-crit')) %}
+                {% if sc is not none %}
+                  {% set impact100 = (sc * 4) %}
+                  {% if impact100 < 0 %}{% set impact100 = 0 %}{% endif %}
+                  {% if impact100 > 100 %}{% set impact100 = 100 %}{% endif %}
+
+                  {% set lvl =
+                      'fill-low' if impact100 <= 20 else
+                      'fill-mid' if impact100 <= 40 else
+                      'fill-hi'  if impact100 <= 70 else
+                      'fill-crit'
+                  %}
+                  {% set numc =
+                      'num-low' if impact100 <= 20 else
+                      'num-mid' if impact100 <= 40 else
+                      'num-hi'  if impact100 <= 70 else
+                      'num-crit'
+                  %}
+                {% endif %}
 
                 {% set st = (r.status or '')|lower %}
                 {% set st_class =
@@ -677,12 +704,11 @@
 
                   <td>
                     {% if sc is not none %}
-                      <div class="impact" title="Skor: {{ '%.2f'|format(sc) }} / 25">
+                      <div class="impact" title="Skor: {{ '%.2f'|format(sc) }} / 25 (≈ {{ impact100 }} / 100)">
                         <div class="impact-track" aria-hidden="true">
-                          <div class="impact-fill {{ lvl }}" data-w="{{ '%.0f'|format(pct) }}"></div>
-
+                          <div class="impact-fill {{ lvl }}" style="--w: {{ impact100 }}%"></div>
                         </div>
-                        <div class="impact-num">{{ '%.0f'|format(sc) }}</div>
+                        <div class="impact-num {{ numc }}">{{ impact100 }}</div>
                       </div>
                     {% else %}
                       <span class="go-updated">—</span>
@@ -902,7 +928,7 @@
     {% endif %}
   </div>
 
-  <!-- ===== Quick Actions (NEW - screenshot style) ===== -->
+  <!-- ===== Quick Actions ===== -->
   <div class="card qa-card" style="margin-top:12px">
     <div class="qa-top">
       <div class="qa-label">QUICK ACTIONS</div>

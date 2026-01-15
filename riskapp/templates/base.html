@@ -420,36 +420,65 @@
 
     /* ==========================================================
        AUTH MODE (✅ /forgot, /login, /welcome vs. için FIX)
-       - Sidebar kapat
-       - Layout tek kolon
-       - Main full width + ortalı
-       - Base panel kabuğunu sayfaya bırak (ister sayfa override eder)
        ========================================================== */
     .layout.auth{ grid-template-columns:1fr !important; }
     .auth .sidebar{ display:none !important; }
     .auth #sidebarToggle{ display:none !important; }
 
-    /* auth sayfalarında main'in padding/width ayarları */
     .auth .main{
       padding: 24px 16px 40px !important;
       width: 100%;
       max-width: 100% !important;
       margin: 0 auto !important;
     }
-
-    /* auth sayfalarında panel'i ortala + genişliği kontrol et */
     .auth .panel{
       width: 100%;
       max-width: 720px;
       margin: 0 auto;
     }
-
-    /* auth sayfalarında flash mesajları çok yayılmasın */
     .auth .flash{
       max-width: 720px;
       margin-left: auto;
       margin-right: auto;
     }
+
+    /* ==========================================================
+       ✅ IMPACT SCORE (aktif bar + renkli sayı)
+       Dashboard template bunu kullanacak
+       ========================================================== */
+    .impact-cell{ display:flex; align-items:center; gap:10px; }
+    .impact-track{
+      width: 92px; height: 6px;
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+      overflow:hidden;
+    }
+    .impact-fill{ height:100%; border-radius:999px; width: var(--w, 50%); }
+    .impact-val{
+      font-weight: 900;
+      min-width: 32px;
+      text-align: right;
+      letter-spacing: -.01em;
+    }
+
+    .impact-green .impact-fill{ background: #22c55e; }
+    .impact-green .impact-val{ color: #16a34a; }
+
+    .impact-yellow .impact-fill{ background: #fbbf24; }
+    .impact-yellow .impact-val{ color: #b45309; }
+
+    .impact-orange .impact-fill{ background: #fb923c; }
+    .impact-orange .impact-val{ color: #c2410c; }
+
+    .impact-red .impact-fill{ background: #ef4444; }
+    .impact-red .impact-val{ color: #dc2626; }
+
+    /* (Opsiyonel) Status pill renkleri */
+    .pill{ display:inline-flex; align-items:center; padding:.28rem .6rem; border-radius:999px; font-weight:900; font-size:.78rem; border:1px solid var(--line,#e5e7eb); background: color-mix(in oklab, var(--card) 92%, transparent); }
+    .pill.green{ background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.25); color:#15803d; }
+    .pill.yellow{ background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.28); color:#92400e; }
+    .pill.orange{ background: rgba(251,146,60,.16); border-color: rgba(251,146,60,.30); color:#9a3412; }
+    .pill.red{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.28); color:#b91c1c; }
   </style>
 </head>
 
@@ -633,12 +662,8 @@
   const btnTheme = () => document.getElementById('themeToggle');
 
   function applyTheme(t){
-    // 1) data-theme (senin CSS tokenları için)
     root.setAttribute('data-theme', t);
-
-    // 2) Tailwind dark class (şablonların için)
     root.classList.toggle('dark', t === 'dark');
-
     try{ localStorage.setItem(KEY, t); }catch(e){}
 
     const btn = btnTheme();
@@ -661,7 +686,6 @@
     return window.matchMedia && window.matchMedia('(max-width: 980px)').matches;
   }
 
-  // Desktop için sidebar collapsed state'ini yükle
   (function initSidebarPref(){
     if (!sidebar) return;
     let collapsed = false;
@@ -671,7 +695,6 @@
     }
   })();
 
-  // Sidebar toggle (mobil + desktop)
   if (sidebarToggle && sidebar){
     sidebarToggle.addEventListener('click', () => {
       if (isMobile()){
@@ -685,7 +708,6 @@
       }
     });
 
-    // Mobilde dışa tıklayınca kapat
     document.addEventListener('click', (e)=>{
       if (!isMobile()) return;
       if (!sidebar.classList.contains('open')) return;
@@ -693,7 +715,6 @@
       if (!within) sidebar.classList.remove('open');
     });
 
-    // Resize: mobil>desktop geçişinde açık sidebar'ı kapat
     window.addEventListener('resize', ()=>{
       if (!isMobile()){
         sidebar.classList.remove('open');
@@ -703,7 +724,6 @@
 })();
 </script>
 
-<!-- ✅ Modal/backdrop kilitlenme sigortası (ek, bir şey eksiltmez) -->
 <script>
 (function(){
   function cleanupBackdrops(){
