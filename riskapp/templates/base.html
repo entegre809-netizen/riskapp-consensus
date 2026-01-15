@@ -69,6 +69,7 @@
 
       --text: #0f172a;
       --text-dim:#64748b;
+      --text-soft:#94a3b8;
 
       --line: #e5e7eb;
 
@@ -96,20 +97,25 @@
     }
 
     /* ====================
-       Tokenlar (DARK)
+       Tokenlar (DARK)  ✅ OKUNURLUK FIX
        ==================== */
     [data-theme="dark"]{
-      --bg: #17191c;
-      --bg-soft: #121820;
-      --surface: #121820;
+      /* Arka planları biraz daha "katmanlı" yap: yazı netleşir */
+      --bg: #0b1220;          /* eski: #17191c */
+      --bg-soft: #0f172a;     /* eski: #121820 */
+      --surface: #0f172a;
 
-      --card: #1e2126;
-      --card-solid:#1e2126;
+      /* Kartlar: az şeffaf + daha dolu => sis azalır */
+      --card: rgba(17, 24, 39, .78);
+      --card-solid: #111827;
 
-      --text: #eaf0ff;
-      --text-dim:#9aa4b2;
+      /* Metin: dim'i güçlendir (asıl sorun buydu) */
+      --text: rgba(255,255,255,.92);
+      --text-dim: rgba(255,255,255,.74);
+      --text-soft: rgba(255,255,255,.58);
 
-      --line: rgba(255,255,255,.10);
+      /* Çizgiler: biraz daha görünür */
+      --line: rgba(148, 163, 184, .20);
 
       --primary: #2866bd;
       --primary-2:#60a5fa;
@@ -120,8 +126,8 @@
 
       --ring: rgba(96,165,250,.35);
 
-      --elev: 0 10px 40px -10px rgba(0,0,0,0.35);
-      --elev-card: 0 16px 40px rgba(0,0,0,.35);
+      --elev: 0 10px 40px -10px rgba(0,0,0,0.45);
+      --elev-card: 0 16px 40px rgba(0,0,0,.45);
       --glass-blur: saturate(140%) blur(10px);
 
       --radius-2xl: 18px;
@@ -236,6 +242,8 @@
       padding: 14px 0;
       box-shadow: var(--elev);
       transition: transform .28s var(--ease);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
     }
     @media (max-width: 980px){
       .sidebar{
@@ -306,12 +314,16 @@
       color: var(--text);
       outline:none;
       font-weight:600;
-      transition:.2s border-color, .2s box-shadow;
+      transition:.2s border-color, .2s box-shadow, .2s background;
     }
-    .input::placeholder{ color: color-mix(in oklab, var(--text-dim) 90%, transparent); }
+    .input::placeholder{
+      color: var(--text-soft);
+      opacity: 1;
+    }
     .input:focus{
       border-color: color-mix(in oklab, var(--primary) 70%, transparent);
       box-shadow: 0 0 0 4px var(--ring);
+      background: color-mix(in oklab, var(--card) 92%, transparent);
     }
 
     /* Buttons */
@@ -361,6 +373,7 @@
       text-align:left;
       font-size:.96rem;
       vertical-align:top;
+      color: var(--text); /* ✅ dark'ta td yazısı sabit okunur */
     }
     .table thead th{
       font-size:.82rem;
@@ -368,12 +381,18 @@
       letter-spacing:.09em;
       color:var(--text-dim);
       position:sticky; top:0; z-index:1;
-      background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
+      background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
       backdrop-filter: blur(8px);
       font-weight:900;
     }
+    /* ✅ dark'ta thead arka planını daha dolu yap */
+    [data-theme="dark"] .table thead th{
+      background: color-mix(in oklab, var(--card-solid) 86%, transparent);
+      border-bottom-color: rgba(148,163,184,.22);
+    }
+
     .table tbody tr:hover td{
-      background: color-mix(in oklab, var(--primary) 6%, transparent);
+      background: color-mix(in oklab, var(--primary) 8%, transparent);
     }
 
     /* Flash/Badge */
@@ -459,8 +478,10 @@
       min-width: 32px;
       text-align: right;
       letter-spacing: -.01em;
+      color: var(--text); /* ✅ sayı asla sönmesin */
     }
 
+    /* Light için aynı kalsın */
     .impact-green .impact-fill{ background: #22c55e; }
     .impact-green .impact-val{ color: #16a34a; }
 
@@ -473,12 +494,46 @@
     .impact-red .impact-fill{ background: #ef4444; }
     .impact-red .impact-val{ color: #dc2626; }
 
+    /* ✅ Dark modda: renkli sayıların tonu aç (koyu kahverengiler patlıyordu) */
+    [data-theme="dark"] .impact-green .impact-val{ color: rgba(34,197,94,.95); }
+    [data-theme="dark"] .impact-yellow .impact-val{ color: rgba(251,191,36,.95); }
+    [data-theme="dark"] .impact-orange .impact-val{ color: rgba(251,146,60,.95); }
+    [data-theme="dark"] .impact-red .impact-val{ color: rgba(248,113,113,.95); }
+
     /* (Opsiyonel) Status pill renkleri */
-    .pill{ display:inline-flex; align-items:center; padding:.28rem .6rem; border-radius:999px; font-weight:900; font-size:.78rem; border:1px solid var(--line,#e5e7eb); background: color-mix(in oklab, var(--card) 92%, transparent); }
+    .pill{
+      display:inline-flex; align-items:center;
+      padding:.28rem .6rem;
+      border-radius:999px;
+      font-weight:900;
+      font-size:.78rem;
+      border:1px solid var(--line,#e5e7eb);
+      background: color-mix(in oklab, var(--card) 92%, transparent);
+      color: var(--text);
+    }
+
+    /* Light tonlar */
     .pill.green{ background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.25); color:#15803d; }
     .pill.yellow{ background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.28); color:#92400e; }
     .pill.orange{ background: rgba(251,146,60,.16); border-color: rgba(251,146,60,.30); color:#9a3412; }
     .pill.red{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.28); color:#b91c1c; }
+
+    /* ✅ Dark mod: pill yazıları beyaz/aydınlık olsun (okunurluk) */
+    [data-theme="dark"] .pill.green{ color: rgba(255,255,255,.92); background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.30); }
+    [data-theme="dark"] .pill.yellow{ color: rgba(255,255,255,.92); background: rgba(245,158,11,.20); border-color: rgba(245,158,11,.34); }
+    [data-theme="dark"] .pill.orange{ color: rgba(255,255,255,.92); background: rgba(251,146,60,.20); border-color: rgba(251,146,60,.34); }
+    [data-theme="dark"] .pill.red{ color: rgba(255,255,255,.92); background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.34); }
+
+    /* ✅ Bootstrap modal içi yazılar da dark'ta bazen sönüyor — güvenlik kemeri */
+    [data-theme="dark"] .modal-content{
+      background: #0f172a;
+      color: var(--text);
+      border-color: rgba(148,163,184,.22);
+    }
+    [data-theme="dark"] .modal-header, 
+    [data-theme="dark"] .modal-footer{
+      border-color: rgba(148,163,184,.16);
+    }
   </style>
 </head>
 
