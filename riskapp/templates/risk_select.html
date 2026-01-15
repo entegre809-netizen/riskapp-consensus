@@ -3,283 +3,633 @@
 {% block content %}
 
 <style>
-  .toolbar{
-    position: sticky; top: 8px; z-index: 2;
-    display:flex; flex-wrap:wrap; gap:.6rem; align-items:end;
-    padding:.75rem; margin:0 0 .8rem;
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-    border-radius: var(--radius);
-    box-shadow: var(--elev-1);
-  }
-  .toolbar .group{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:end }
-  .toolbar .fill{ flex:1 }
-  .input, select.input{ height:40px; padding:.5rem .75rem }
-  .table{ width:100%; border-collapse:separate; border-spacing:0; border-radius:12px; overflow:hidden }
-  .table th,.table td{ padding:.6rem .7rem; border-bottom:1px solid color-mix(in oklab, var(--line) 85%, transparent) }
-  .table thead th{
-    text-transform:uppercase; font-size:.74rem; letter-spacing:.08em; font-weight:900; color:var(--muted);
-    background: linear-gradient(180deg, color-mix(in oklab, var(--bg-soft) 96%, transparent), transparent);
-    position:sticky; top:0; z-index:1;
-  }
-  .table tbody tr:nth-child(even) td{ background: color-mix(in oklab, var(--bg) 96%, transparent) }
-  .score-badge{
-    display:inline-flex; align-items:center; justify-content:center; min-width:2.2rem; padding:.2rem .45rem;
-    border-radius:999px; font-weight:800;
-    background: color-mix(in oklab, var(--primary) 12%, transparent);
-    border:1px solid color-mix(in oklab, var(--primary) 35%, transparent);
-  }
-  .muted{ color:var(--muted) }
-  .pager{ display:flex; gap:.5rem; justify-content:flex-end; flex-wrap:wrap; margin-top:.6rem }
-  .pager .btn[aria-disabled="true"]{ opacity:.5; pointer-events:none }
-  .empty{ border:1px dashed var(--line); border-radius:12px; padding:28px; text-align:center; color:var(--muted) }
+  /* ==========================================================
+     Risk Seçimi — “Premium Tailwind” hissi (base ile uyumlu)
+     Ama: Senin mevcut Jinja/JS/route mantığını BOZMADAN
+     ========================================================== */
 
-  .danger{ background:#ef4444; border-color:transparent; color:#fff; }
+  /* ---- Token fallback (base'de varsa bunlar zaten var) ---- */
+  :root{
+    --rs-primary: #16649c;
+    --rs-bg: #ffffff;
+    --rs-canvas: #f6f7f8;
+    --rs-line: #e8eef3;
+    --rs-muted: #507895;
+    --rs-shadow: 0 4px 10px rgba(15, 23, 42, .06);
+    --rs-radius-xl: 16px;
+    --rs-radius-lg: 12px;
+  }
+  /* Dark mode base'in class'ına göre uyum (base’de dark yönetimi varsa otomatik) */
+  html.dark :root{
+    --rs-bg: #0f172a;         /* slate-900 benzeri */
+    --rs-canvas:#111a21;
+    --rs-line: rgba(148,163,184,.20);
+    --rs-muted: rgba(148,163,184,.85);
+    --rs-shadow: 0 10px 25px rgba(0,0,0,.35);
+  }
 
-  /* ✅ yeni: maliyet badge */
-  .cost-badge{
-    display:inline-flex; align-items:center; justify-content:flex-end;
-    padding:.22rem .55rem;
-    border-radius:999px;
-    font-weight:900;
-    background: color-mix(in oklab, var(--success) 12%, transparent);
-    border:1px solid color-mix(in oklab, var(--success) 28%, transparent);
+  /* Page wrapper (base’de card varsa dokunma; biz içeride modernleştiriyoruz) */
+  .rs-wrap{ display:block; }
+
+  /* ---- Toolbar (sticky filtre kartı) ---- */
+  .rs-toolbar{
+    position: sticky;
+    top: 8px;                 /* header sticky ise base'e göre ayarla */
+    z-index: 8;
+    margin: 0 0 .9rem;
+    padding: .9rem;
+    border-radius: var(--rs-radius-xl);
+    border: 1px solid color-mix(in oklab, var(--rs-line) 100%, transparent);
+    background: color-mix(in oklab, var(--rs-bg) 92%, transparent);
+    box-shadow: var(--rs-shadow);
+    display:flex; flex-wrap:wrap; gap:.9rem; align-items:end;
+    backdrop-filter: blur(8px);
+  }
+  html.dark .rs-toolbar{
+    background: color-mix(in oklab, var(--rs-bg) 88%, transparent);
+  }
+
+  .rs-group{ display:flex; flex-wrap:wrap; gap:.65rem; align-items:end; }
+  .rs-fill{ flex:1; min-width: 40px; }
+
+  .rs-label{
+    display:block;
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rs-muted);
+    margin: 0 0 .25rem;
+    user-select:none;
+  }
+
+  /* input/select (soft background, borderless, focus ring) */
+  .rs-input{
+    height: 44px;
+    padding: .55rem .8rem;
+    border-radius: var(--rs-radius-lg);
+    border: 1px solid transparent;
+    background: color-mix(in oklab, var(--rs-canvas) 92%, transparent);
+    color: inherit;
+    outline: none;
+    box-shadow: none;
+    transition: .15s ease;
+    min-width: 160px;
+  }
+  .rs-input:focus{
+    border-color: color-mix(in oklab, var(--rs-primary) 25%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--rs-primary) 18%, transparent);
+    background: color-mix(in oklab, var(--rs-canvas) 86%, transparent);
+  }
+  .rs-input[type="date"]{ min-width: 170px; }
+
+  .rs-search{
+    min-width: 320px;
+    padding-left: 2.45rem;
+  }
+  .rs-search-wrap{ position:relative; min-width:320px; }
+  .rs-search-ic{
+    position:absolute; left:.8rem; top:50%; transform:translateY(-50%);
+    font-size: 18px;
+    color: var(--rs-muted);
+    opacity:.95;
+    pointer-events:none;
+  }
+
+  /* ---- Buttons: base .btn’i bozma; rs-btn ile modernize ---- */
+  .rs-btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+    height:44px;
+    padding: 0 .95rem;
+    border-radius: var(--rs-radius-lg);
+    font-weight: 900;
+    border: 1px solid transparent;
+    cursor:pointer;
+    transition:.15s ease;
+    user-select:none;
+    text-decoration:none;
     white-space:nowrap;
+  }
+  .rs-btn:hover{ transform: translateY(-1px); }
+  .rs-btn:active{ transform: translateY(0px); }
+
+  .rs-btn-primary{
+    background: var(--rs-primary);
+    color:#fff;
+    box-shadow: 0 8px 18px color-mix(in oklab, var(--rs-primary) 22%, transparent);
+  }
+  .rs-btn-primary:hover{ filter: brightness(.95); }
+
+  .rs-btn-ghost{
+    background: transparent;
+    border-color: color-mix(in oklab, var(--rs-line) 95%, transparent);
+    color: inherit;
+  }
+  .rs-btn-ghost:hover{
+    background: color-mix(in oklab, var(--rs-canvas) 88%, transparent);
+  }
+
+  .rs-btn-soft{
+    background: color-mix(in oklab, var(--rs-primary) 12%, transparent);
+    color: var(--rs-primary);
+    border-color: color-mix(in oklab, var(--rs-primary) 20%, transparent);
+  }
+  .rs-btn-soft:hover{
+    background: color-mix(in oklab, var(--rs-primary) 18%, transparent);
+  }
+
+  .rs-btn-danger{
+    background: #ef4444;
+    color:#fff;
+    border-color: transparent;
+  }
+  .rs-btn-danger:hover{ filter: brightness(.95); }
+
+  /* disabled mimic */
+  .rs-btn[disabled]{ opacity:.55; pointer-events:none; transform:none; }
+
+  /* ---- Admin action bar ---- */
+  .rs-adminbar{
+    margin: -.2rem 0 .9rem;
+    display:flex; justify-content:space-between; gap:.75rem; flex-wrap:wrap; align-items:center;
+    padding: .25rem .1rem;
+  }
+  .rs-adminhint{ color: var(--rs-muted); font-size:.82rem; font-weight:700; }
+
+  /* ---- Table ---- */
+  .rs-tablewrap{
+    overflow-x:auto;
+    border-radius: var(--rs-radius-xl);
+    border: 1px solid color-mix(in oklab, var(--rs-line) 100%, transparent);
+    background: color-mix(in oklab, var(--rs-bg) 96%, transparent);
+  }
+  .rs-table{
+    width:100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 920px; /* tabloda kırılmayı azalt */
+  }
+  .rs-table th, .rs-table td{
+    padding: .9rem .95rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--rs-line) 95%, transparent);
+    vertical-align: middle;
+  }
+  .rs-table thead th{
+    position: sticky; top: 0; z-index: 2;
+    background: color-mix(in oklab, var(--rs-canvas) 88%, transparent);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: .73rem;
+    font-weight: 900;
+    color: var(--rs-muted);
+  }
+  html.dark .rs-table thead th{
+    background: color-mix(in oklab, var(--rs-bg) 92%, transparent);
+  }
+
+  .rs-row{
+    transition: background .15s ease;
+  }
+  .rs-row:hover{
+    background: color-mix(in oklab, var(--rs-canvas) 86%, transparent);
+  }
+
+  /* Title + description */
+  .rs-title{
+    font-weight: 900;
+    line-height: 1.1;
+    color: inherit;
+    text-decoration:none;
+  }
+  .rs-desc{
+    margin-top: .25rem;
+    max-width: 72ch;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .78rem;
+    color: var(--rs-muted);
+  }
+
+  /* Category chip */
+  .rs-chip{
+    display:inline-flex; align-items:center;
+    padding: .28rem .65rem;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: .75rem;
+    background: color-mix(in oklab, var(--rs-line) 22%, transparent);
+    color: color-mix(in oklab, var(--rs-muted) 95%, #000);
+    border: 1px solid color-mix(in oklab, var(--rs-line) 65%, transparent);
+    white-space:nowrap;
+  }
+
+  /* Score circle badge (premium) */
+  .rs-score{
+    width: 42px; height: 42px;
+    border-radius: 999px;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-weight: 950;
+    border: 2px solid transparent;
+    white-space:nowrap;
+  }
+  .rs-score--hi{ background: color-mix(in oklab, #0ea5e9 10%, transparent); color: #16649c; border-color: color-mix(in oklab, #0ea5e9 22%, transparent); }
+  .rs-score--mid{ background: color-mix(in oklab, #f97316 12%, transparent); color: #ea580c; border-color: color-mix(in oklab, #f97316 25%, transparent); }
+  .rs-score--low{ background: color-mix(in oklab, #22c55e 12%, transparent); color: #16a34a; border-color: color-mix(in oklab, #22c55e 25%, transparent); }
+  .rs-score--crit{ background: color-mix(in oklab, #ef4444 12%, transparent); color: #dc2626; border-color: color-mix(in oklab, #ef4444 25%, transparent); }
+
+  /* Cost badge */
+  .rs-cost{
+    display:inline-flex; align-items:center; justify-content:flex-end;
+    padding: .28rem .7rem;
+    border-radius: 999px;
+    font-weight: 950;
+    font-size: .78rem;
+    background: color-mix(in oklab, #22c55e 12%, transparent);
+    border: 1px solid color-mix(in oklab, #22c55e 24%, transparent);
+    color: color-mix(in oklab, #16a34a 85%, #000);
+    white-space:nowrap;
+  }
+
+  /* Checkbox align */
+  .rs-checkcell{ width: 44px; text-align:center; }
+  .rs-check{ width: 16px; height:16px; accent-color: var(--rs-primary); }
+
+  /* Actions: hover reveal like premium table */
+  .rs-actions{
+    display:flex; justify-content:flex-end; gap:.25rem;
+    opacity: .0;
+    transform: translateY(1px);
+    transition: .15s ease;
+  }
+  .rs-row:hover .rs-actions{
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .rs-iconbtn{
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    display:inline-flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    color: var(--rs-muted);
+    transition: .15s ease;
+  }
+  .rs-iconbtn:hover{
+    background: color-mix(in oklab, var(--rs-line) 22%, transparent);
+    color: var(--rs-primary);
+  }
+  .rs-iconbtn.danger:hover{
+    background: color-mix(in oklab, #ef4444 14%, transparent);
+    color: #ef4444;
+  }
+  .rs-icon{
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  /* ---- Pager ---- */
+  .rs-pager{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:.75rem;
+    padding: .85rem .95rem;
+    border-top: 1px solid color-mix(in oklab, var(--rs-line) 95%, transparent);
+    background: color-mix(in oklab, var(--rs-canvas) 88%, transparent);
+  }
+  html.dark .rs-pager{
+    background: color-mix(in oklab, var(--rs-bg) 92%, transparent);
+  }
+  .rs-pager-left{
+    color: var(--rs-muted);
+    font-weight: 800;
+    font-size: .9rem;
+  }
+  .rs-pager-right{ display:flex; gap:.45rem; flex-wrap:wrap; justify-content:flex-end; }
+
+  .rs-a[aria-disabled="true"]{
+    opacity:.55;
+    pointer-events:none;
+    transform:none !important;
+  }
+
+  /* Empty state */
+  .rs-empty{
+    border: 1px dashed color-mix(in oklab, var(--rs-line) 100%, transparent);
+    border-radius: var(--rs-radius-xl);
+    padding: 34px 18px;
+    text-align:center;
+    color: var(--rs-muted);
+    background: color-mix(in oklab, var(--rs-bg) 92%, transparent);
   }
 </style>
 
-<div class="card">
-  <h2 style="margin:.2rem 0 .6rem">Riskler</h2>
+<div class="rs-wrap">
+  <div class="card">
+    <h2 style="margin:.2rem 0 .6rem; font-weight:950;">Riskler</h2>
 
-  <!-- Yapışkan filtre/aksiyon çubuğu -->
-  <form class="toolbar" method="get" action="{{ request.path }}" id="filterForm">
-    <div class="group" style="min-width:260px">
-      <div>
-        <label class="small" for="q">Ara</label>
-        <input id="q" class="input" name="q" value="{{ q or '' }}" placeholder="Başlık / kategori / açıklama">
+    <!-- Sticky filtre/aksiyon çubuğu -->
+    <form class="rs-toolbar" method="get" action="{{ request.path }}" id="filterForm">
+
+      <div class="rs-group" style="min-width:300px;">
+        <div class="rs-search-wrap">
+          <label class="rs-label" for="q">Ara</label>
+          <span class="material-symbols-outlined rs-search-ic">search</span>
+          <input id="q" class="rs-input rs-search" name="q" value="{{ q or '' }}"
+                 placeholder="Başlık / kategori / açıklama">
+        </div>
+
+        <div>
+          <label class="rs-label" for="cat">Kategori</label>
+          <select id="cat" class="rs-input" name="cat" style="min-width:200px;">
+            <option value="">— Tümü —</option>
+            {% for cname in (cats or []) %}
+              <option value="{{ cname }}" {% if cname == (cat or '') %}selected{% endif %}>{{ cname }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
-      <div>
-        <label class="small" for="cat">Kategori</label>
-        <select id="cat" class="input" name="cat">
-          <option value="">— Tümü —</option>
-          {% for cname in (cats or []) %}
-            <option value="{{ cname }}" {% if cname == (cat or '') %}selected{% endif %}>{{ cname }}</option>
-          {% endfor %}
-        </select>
+
+      <div class="rs-group">
+        <div>
+          <label class="rs-label" for="score_min">Skor min</label>
+          <input id="score_min" class="rs-input" type="number" name="score_min" min="1" max="25"
+                 value="{{ score_min or '' }}" placeholder="1" style="min-width:110px;">
+        </div>
+        <div>
+          <label class="rs-label" for="score_max">Skor max</label>
+          <input id="score_max" class="rs-input" type="number" name="score_max" min="1" max="25"
+                 value="{{ score_max or '' }}" placeholder="25" style="min-width:110px;">
+        </div>
+        <div>
+          <label class="rs-label" for="dmin">Güncel ≥</label>
+          <input id="dmin" class="rs-input" type="date" name="dmin" value="{{ dmin or '' }}">
+        </div>
+        <div>
+          <label class="rs-label" for="dmax">Güncel ≤</label>
+          <input id="dmax" class="rs-input" type="date" name="dmax" value="{{ dmax or '' }}">
+        </div>
       </div>
-    </div>
 
-    <div class="group">
-      <div>
-        <label class="small" for="score_min">Skor min</label>
-        <input id="score_min" class="input" type="number" name="score_min" min="1" max="25" value="{{ score_min or '' }}" placeholder="1">
+      <div class="rs-group">
+        <div>
+          <label class="rs-label" for="sort">Sırala</label>
+          <select id="sort" class="rs-input" name="sort" style="min-width:220px;">
+            {% set s = sort or 'updated_desc' %}
+            <option value="updated_desc" {% if s=='updated_desc' %}selected{% endif %}>Güncel (Yeni→Eski)</option>
+            <option value="updated_asc"  {% if s=='updated_asc' %}selected{% endif %}>Güncel (Eski→Yeni)</option>
+            <option value="score_desc"   {% if s=='score_desc' %}selected{% endif %}>Skor (Yüksek→Düşük)</option>
+            <option value="score_asc"    {% if s=='score_asc' %}selected{% endif %}>Skor (Düşük→Yüksek)</option>
+            <option value="title_asc"    {% if s=='title_asc' %}selected{% endif %}>Başlık (A→Z)</option>
+            <option value="title_desc"   {% if s=='title_desc' %}selected{% endif %}>Başlık (Z→A)</option>
+          </select>
+        </div>
       </div>
-      <div>
-        <label class="small" for="score_max">Skor max</label>
-        <input id="score_max" class="input" type="number" name="score_max" min="1" max="25" value="{{ score_max or '' }}" placeholder="25">
+
+      <div class="rs-fill"></div>
+
+      <div class="rs-group">
+        <div>
+          <label class="rs-label">&nbsp;</label>
+          <button class="rs-btn rs-btn-soft" type="submit">
+            <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
+            Uygula
+          </button>
+        </div>
+
+        {% if q or cat or score_min or score_max or dmin or dmax or sort %}
+        <div>
+          <label class="rs-label">&nbsp;</label>
+          <a class="rs-btn rs-btn-ghost" href="{{ url_for('risk_select') }}">
+            <span class="material-symbols-outlined" style="font-size:20px;">restart_alt</span>
+            Sıfırla
+          </a>
+        </div>
+        {% endif %}
+
+        <div>
+          <label class="rs-label">&nbsp;</label>
+          <a class="rs-btn rs-btn-primary" href="{{ url_for('risk_new') }}">
+            <span class="material-symbols-outlined" style="font-size:20px;">add</span>
+            Yeni Risk
+          </a>
+        </div>
       </div>
-      <div>
-        <label class="small" for="dmin">Güncel ≥</label>
-        <input id="dmin" class="input" type="date" name="dmin" value="{{ dmin or '' }}">
-      </div>
-      <div>
-        <label class="small" for="dmax">Güncel ≤</label>
-        <input id="dmax" class="input" type="date" name="dmax" value="{{ dmax or '' }}">
-      </div>
-    </div>
+    </form>
 
-    <div class="group">
-      <div>
-        <label class="small" for="sort">Sırala</label>
-        <select id="sort" class="input" name="sort">
-          {% set s = sort or 'updated_desc' %}
-          <option value="updated_desc" {% if s=='updated_desc' %}selected{% endif %}>Güncel (Yeni→Eski)</option>
-          <option value="updated_asc"  {% if s=='updated_asc' %}selected{% endif %}>Güncel (Eski→Yeni)</option>
-          <option value="score_desc"   {% if s=='score_desc' %}selected{% endif %}>Skor (Yüksek→Düşük)</option>
-          <option value="score_asc"    {% if s=='score_asc' %}selected{% endif %}>Skor (Düşük→Yüksek)</option>
-          <option value="title_asc"    {% if s=='title_asc' %}selected{% endif %}>Başlık (A→Z)</option>
-          <option value="title_desc"   {% if s=='title_desc' %}selected{% endif %}>Başlık (Z→A)</option>
-        </select>
-      </div>
-    </div>
+    {# Birleştirme + Tüm riskleri sil (sadece admin) #}
+    {% if session.get('role') == 'admin' and risks and risks|length > 0 %}
+      <div class="rs-adminbar">
+        <form method="post"
+              action="{{ url_for('risks_merge') }}"
+              onsubmit="return confirm('Seçili riskleri tek bir raporda birleştirmek istediğinize emin misiniz?');"
+              style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
+          <input type="hidden" name="risk_ids" id="merge-ids">
+          <span class="rs-adminhint">Seçili riskleri tek bir raporda birleştir.</span>
+          <button type="submit" class="rs-btn rs-btn-soft" id="merge-submit" disabled>
+            <span class="material-symbols-outlined" style="font-size:20px;">stacks</span>
+            Seçilenleri Birleştir
+          </button>
+        </form>
 
-    <div class="fill"></div>
-
-    <div class="group">
-      <div>
-        <label class="small">&nbsp;</label>
-        <button class="btn" type="submit">Uygula</button>
-      </div>
-      {% if q or cat or score_min or score_max or dmin or dmax or sort %}
-      <div>
-        <label class="small">&nbsp;</label>
-        <a class="btn btn-ghost" href="{{ url_for('risk_select') }}">Sıfırla</a>
-      </div>
-      {% endif %}
-      <div>
-        <label class="small">&nbsp;</label>
-        <a class="btn btn-primary" href="{{ url_for('risk_new') }}">Yeni Risk</a>
-      </div>
-    </div>
-  </form>
-
-  {# Birleştirme + Tüm riskleri sil (sadece admin) #}
-  {% if session.get('role') == 'admin' and risks and risks|length > 0 %}
-    <div style="margin:-.3rem 0 .8rem; display:flex; justify-content:space-between; gap:.5rem; flex-wrap:wrap;">
-      <form method="post"
-            action="{{ url_for('risks_merge') }}"
-            onsubmit="return confirm('Seçili riskleri tek bir raporda birleştirmek istediğinize emin misiniz?');"
-            style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
-        <input type="hidden" name="risk_ids" id="merge-ids">
-        <span class="small muted">Seçili riskleri tek bir raporda birleştir.</span>
-        <button type="submit" class="btn" id="merge-submit" disabled>Seçilenleri Birleştir</button>
-      </form>
-
-      <form method="post"
-            action="{{ url_for('risks_delete_all') }}"
-            onsubmit="return confirm('TÜM riskleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');"
-            style="display:flex; justify-content:flex-end;">
-        <button type="submit" class="btn danger">Tüm Riskleri Sil</button>
-      </form>
-    </div>
-  {% endif %}
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for c,m in messages %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
-  {% endwith %}
-
-  {% if risks and risks|length > 0 %}
-    <div class="table-wrap" style="overflow-x:auto">
-      <table class="table">
-        <thead>
-          <tr>
-            {% if session.get('role') == 'admin' %}
-              <th style="width:34px; text-align:center;">
-                <input type="checkbox" id="check-all" onclick="toggleSelectAll(this)">
-              </th>
-            {% endif %}
-            <th>Başlık</th>
-            <th style="width:200px">Kategori</th>
-            <th style="width:100px; text-align:center">Skor</th>
-
-            <!-- ✅ YENİ SÜTUN -->
-            <th style="width:160px; text-align:right">Maliyet (TRY)</th>
-
-            <th style="width:160px">Güncel</th>
-            <th style="width:150px; text-align:right">İşlem</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in risks %}
-          <tr>
-            {% if session.get('role') == 'admin' %}
-              <td style="text-align:center">
-                <input type="checkbox"
-                       class="risk-check"
-                       value="{{ r.id }}"
-                       onchange="updateMergeIds()">
-              </td>
-            {% endif %}
-            <td>
-              <a href="{{ url_for('risk_detail', risk_id=r.id) }}">
-                {{ r.title }}
-              </a>
-              {% if r.description %}
-                <div class="muted small" style="margin-top:2px; max-width:72ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                  {{ r.description }}
-                </div>
-              {% endif %}
-            </td>
-            <td>{{ r.category or "—" }}</td>
-            <td style="text-align:center">
-              {% set sc = r.score() %}
-              {% if sc %}
-                <span class="score-badge" title="P x S">
-                  {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
-                </span>
-              {% else %}
-                —
-              {% endif %}
-            </td>
-
-            <!-- ✅ MALİYET HÜCRESİ -->
-            <td style="text-align:right">
-              {% set v = (cost_map.get(r.id) if cost_map is defined else None) %}
-              {% if v and v > 0 %}
-                <span class="cost-badge" title="Bu riske bağlı TRY maliyet toplamı">
-                  {{ "{:,.2f}".format(v).replace(",", "X").replace(".", ",").replace("X", ".") }} ₺
-                </span>
-              {% else %}
-                —
-              {% endif %}
-            </td>
-
-            <td>
-              {% if r.updated_at %}
-                {{ r.updated_at.strftime("%Y-%m-%d %H:%M") }}
-              {% else %}—{% endif %}
-            </td>
-            <td style="text-align:right">
-              {% if session.get('role') == 'admin' %}
-
-                {# AYIR: description içinde '---' varsa göster #}
-                {% if '---' in (r.description or '') %}
-                  <form method="post"
-                        action="{{ url_for('risk_split', risk_id=r.id) }}"
-                        onsubmit="return confirm('Bu risk açıklaması içindeki bloklara göre ayrı kayıtlara bölünecek. Devam edilsin mi?');"
-                        style="display:inline; margin-right:.25rem;">
-                    <button type="submit"
-                            class="btn btn-ghost"
-                            style="padding:.15rem .55rem; font-size:.78rem;">
-                      Ayır
-                    </button>
-                  </form>
-                {% endif %}
-
-                <form method="post"
-                      action="{{ url_for('risk_delete', risk_id=r.id) }}"
-                      onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
-                      style="display:inline">
-                  <button type="submit" class="btn danger" style="padding:.15rem .55rem; font-size:.78rem;">
-                    Sil
-                  </button>
-                </form>
-              {% else %}
-                <span class="muted">—</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    {% if pages and pages > 1 %}
-      <div class="pager">
-        <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
-           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=1) }}">« İlk</a>
-        <a class="btn" aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
-           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page-1 if page>1 else 1)) }}">‹ Önceki</a>
-        <span class="muted" style="align-self:center">Sayfa {{ page }}/{{ pages }}{% if total is defined %} · Toplam {{ total }} kayıt{% endif %}</span>
-        <a class="btn" aria-disabled="{{ 'true' if page >= pages else 'false' }}"
-           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page+1 if page<pages else pages)) }}">Sonraki ›</a>
-        <a class="btn" aria-disabled="{{ 'true' if page >= pages else 'false' }}"
-           href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=pages) }}">Son »</a>
+        <form method="post"
+              action="{{ url_for('risks_delete_all') }}"
+              onsubmit="return confirm('TÜM riskleri kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');"
+              style="display:flex; justify-content:flex-end;">
+          <button type="submit" class="rs-btn rs-btn-danger">
+            <span class="material-symbols-outlined" style="font-size:20px;">delete_forever</span>
+            Tüm Riskleri Sil
+          </button>
+        </form>
       </div>
     {% endif %}
 
-  {% else %}
-    <div class="empty">
-      <h4 style="margin:0 0 .3rem">Kayıt bulunamadı</h4>
-      <div class="small">Filtreleri gevşetmeyi deneyin veya yeni bir risk oluşturun.</div>
-      <div style="margin-top:.6rem">
-        <a class="btn btn-primary" href="{{ url_for('risk_new') }}">Yeni Risk</a>
-        {% if (q or cat or score_min or score_max or dmin or dmax or sort) %}
-          <a class="btn btn-ghost" href="{{ url_for('risk_select') }}">Filtreleri temizle</a>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for c,m in messages %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+
+    {% if risks and risks|length > 0 %}
+      <div class="rs-tablewrap">
+        <table class="rs-table">
+          <thead>
+            <tr>
+              {% if session.get('role') == 'admin' %}
+                <th class="rs-checkcell">
+                  <input type="checkbox" class="rs-check" id="check-all" onclick="toggleSelectAll(this)">
+                </th>
+              {% endif %}
+              <th>Risk Bilgisi</th>
+              <th style="width:220px;">Kategori</th>
+              <th style="width:110px; text-align:center;">Skor</th>
+              <th style="width:170px; text-align:right;">Maliyet (TRY)</th>
+              <th style="width:190px;">Son Güncelleme</th>
+              <th style="width:170px; text-align:right;">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in risks %}
+            <tr class="rs-row">
+              {% if session.get('role') == 'admin' %}
+                <td class="rs-checkcell">
+                  <input type="checkbox"
+                         class="rs-check risk-check"
+                         value="{{ r.id }}"
+                         onchange="updateMergeIds()">
+                </td>
+              {% endif %}
+
+              <td>
+                <a class="rs-title" href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                {% if r.description %}
+                  <div class="rs-desc">{{ r.description }}</div>
+                {% endif %}
+              </td>
+
+              <td>
+                <span class="rs-chip">{{ r.category or "—" }}</span>
+              </td>
+
+              <td style="text-align:center;">
+                {% set sc = r.score() %}
+                {% if sc %}
+                  {% set scn = (sc if sc is number else (sc|float if sc is string else 0)) %}
+                  {# burada basit eşik: 80+ hi, 50-79 mid, 30-49 low, <30 crit (senin skala farklıysa değiştir) #}
+                  {% if scn >= 80 %}
+                    {% set sc_cls = "rs-score rs-score--hi" %}
+                  {% elif scn >= 50 %}
+                    {% set sc_cls = "rs-score rs-score--mid" %}
+                  {% elif scn >= 30 %}
+                    {% set sc_cls = "rs-score rs-score--low" %}
+                  {% else %}
+                    {% set sc_cls = "rs-score rs-score--crit" %}
+                  {% endif %}
+
+                  <span class="{{ sc_cls }}" title="P x S">
+                    {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
+                  </span>
+                {% else %}
+                  <span style="color:var(--rs-muted); font-weight:800;">—</span>
+                {% endif %}
+              </td>
+
+              <td style="text-align:right;">
+                {% set v = (cost_map.get(r.id) if cost_map is defined else None) %}
+                {% if v and v > 0 %}
+                  <span class="rs-cost" title="Bu riske bağlı TRY maliyet toplamı">
+                    {{ "{:,.2f}".format(v).replace(",", "X").replace(".", ",").replace("X", ".") }} ₺
+                  </span>
+                {% else %}
+                  <span style="color:var(--rs-muted); font-weight:800;">—</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if r.updated_at %}
+                  <span style="color:var(--rs-muted); font-weight:800;">
+                    {{ r.updated_at.strftime("%Y-%m-%d %H:%M") }}
+                  </span>
+                {% else %}
+                  <span style="color:var(--rs-muted); font-weight:800;">—</span>
+                {% endif %}
+              </td>
+
+              <td style="text-align:right;">
+                {% if session.get('role') == 'admin' %}
+                  <div class="rs-actions">
+
+                    {# AYIR: description içinde '---' varsa göster #}
+                    {% if '---' in (r.description or '') %}
+                      <form method="post"
+                            action="{{ url_for('risk_split', risk_id=r.id) }}"
+                            onsubmit="return confirm('Bu risk açıklaması içindeki bloklara göre ayrı kayıtlara bölünecek. Devam edilsin mi?');"
+                            style="display:inline;">
+                        <button type="submit" class="rs-iconbtn" title="Ayır">
+                          <span class="material-symbols-outlined rs-icon">call_split</span>
+                        </button>
+                      </form>
+                    {% endif %}
+
+                    <a class="rs-iconbtn" href="{{ url_for('risk_detail', risk_id=r.id) }}" title="Detay">
+                      <span class="material-symbols-outlined rs-icon">open_in_new</span>
+                    </a>
+
+                    <form method="post"
+                          action="{{ url_for('risk_delete', risk_id=r.id) }}"
+                          onsubmit="return confirm('Bu riski kalıcı olarak silmek istediğinize emin misiniz?');"
+                          style="display:inline;">
+                      <button type="submit" class="rs-iconbtn danger" title="Sil">
+                        <span class="material-symbols-outlined rs-icon">delete</span>
+                      </button>
+                    </form>
+
+                  </div>
+                {% else %}
+                  <span style="color:var(--rs-muted); font-weight:800;">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        {% if pages and pages > 1 %}
+          <div class="rs-pager">
+            <div class="rs-pager-left">
+              Sayfa {{ page }}/{{ pages }}{% if total is defined %} · Toplam {{ total }} kayıt{% endif %}
+            </div>
+
+            <div class="rs-pager-right">
+              <a class="rs-btn rs-btn-ghost rs-a"
+                 aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
+                 href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=1) }}">
+                « İlk
+              </a>
+
+              <a class="rs-btn rs-btn-ghost rs-a"
+                 aria-disabled="{{ 'true' if page <= 1 else 'false' }}"
+                 href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page-1 if page>1 else 1)) }}">
+                ‹ Önceki
+              </a>
+
+              <a class="rs-btn rs-btn-soft rs-a"
+                 aria-disabled="{{ 'true' if page >= pages else 'false' }}"
+                 href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=(page+1 if page<pages else pages)) }}">
+                Sonraki ›
+              </a>
+
+              <a class="rs-btn rs-btn-ghost rs-a"
+                 aria-disabled="{{ 'true' if page >= pages else 'false' }}"
+                 href="{{ url_for('risk_select', q=(q or None), cat=(cat or None), score_min=(score_min or None), score_max=(score_max or None), dmin=(dmin or None), dmax=(dmax or None), sort=(sort or None), page=pages) }}">
+                Son »
+              </a>
+            </div>
+          </div>
         {% endif %}
       </div>
-    </div>
-  {% endif %}
+
+    {% else %}
+      <div class="rs-empty">
+        <h4 style="margin:0 0 .35rem; font-weight:950; color:inherit;">Kayıt bulunamadı</h4>
+        <div style="font-weight:700;">Filtreleri gevşetmeyi deneyin veya yeni bir risk oluşturun.</div>
+        <div style="margin-top:.9rem; display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap;">
+          <a class="rs-btn rs-btn-primary" href="{{ url_for('risk_new') }}">
+            <span class="material-symbols-outlined" style="font-size:20px;">add</span>
+            Yeni Risk
+          </a>
+          {% if (q or cat or score_min or score_max or dmin or dmax or sort) %}
+            <a class="rs-btn rs-btn-ghost" href="{{ url_for('risk_select') }}">
+              <span class="material-symbols-outlined" style="font-size:20px;">restart_alt</span>
+              Filtreleri temizle
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
 </div>
 
 <script>
