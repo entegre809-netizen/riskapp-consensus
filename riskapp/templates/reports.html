@@ -3,68 +3,419 @@
 {% block content %}
 
 <style>
-  .tag{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:2px 10px; border-radius:999px;
-    border:1px solid color-mix(in oklab, var(--line) 85%, transparent);
-    background:#fff;
-    font-size:12px; font-weight:700; white-space:nowrap;
+  /* =========================
+     Reports UI (page-scoped)
+     ========================= */
+  .rp-wrap{ display:flex; flex-direction:column; gap:18px; }
+
+  .rp-top{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;
   }
-  .cost-wrap{
-    display:flex; flex-wrap:wrap; gap:.35rem; justify-content:flex-start;
+  .rp-breadcrumb{
+    display:flex; align-items:center; gap:8px;
+    font-size:.78rem;
+    color: var(--text-dim);
+    font-weight:700;
   }
-  .muted{ color:var(--muted) }
+  .rp-breadcrumb .sep{ opacity:.6; }
+  .rp-title{
+    margin:4px 0 0;
+    font-size: 2rem;
+    font-weight: 950;
+    letter-spacing: -.02em;
+    line-height: 1.15;
+  }
+  .rp-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+  .rp-btn{
+    display:inline-flex; align-items:center; gap:.5rem;
+    padding:.62rem .9rem;
+    border-radius: 12px;
+    border:1px solid var(--line);
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    color: var(--text);
+    font-weight:900;
+    text-decoration:none;
+    line-height:1;
+    transition: filter .15s ease, transform .08s ease;
+  }
+  .rp-btn:hover{ filter:brightness(1.03); }
+  .rp-btn:active{ transform: translateY(1px); }
+
+  /* KPI grid */
+  .rp-kpis{
+    display:grid; gap:12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  @media (max-width: 980px){ .rp-kpis{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px){ .rp-kpis{ grid-template-columns: 1fr; } }
+
+  .rp-kpi{
+    border:1px solid var(--line);
+    background: color-mix(in oklab, var(--card) 96%, transparent);
+    border-radius: 16px;
+    padding: 14px 14px;
+    box-shadow: 0 10px 24px -18px rgba(0,0,0,.22);
+  }
+  .rp-kpi .label{
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-weight:900;
+    color: var(--text-dim);
+  }
+  .rp-kpi .val{
+    margin-top:8px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-weight:950;
+    font-size: 1.6rem;
+    letter-spacing: -.02em;
+  }
+  .rp-chip{
+    font-size: .72rem;
+    font-weight: 900;
+    padding: .18rem .55rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    color: var(--text);
+    white-space:nowrap;
+  }
+  .rp-chip.ok{
+    border-color: rgba(34,197,94,.28);
+    background: rgba(34,197,94,.14);
+    color: color-mix(in oklab, #22c55e 78%, var(--text));
+  }
+  .rp-chip.bad{
+    border-color: rgba(239,68,68,.28);
+    background: rgba(239,68,68,.14);
+    color: color-mix(in oklab, #ef4444 78%, var(--text));
+  }
+  [data-theme="dark"] .rp-chip.ok,
+  [data-theme="dark"] .rp-chip.bad{
+    color: rgba(255,255,255,.92);
+  }
+
+  /* Table shell (enterprise style) */
+  .rp-table-card{
+    border:1px solid var(--line);
+    background: color-mix(in oklab, var(--card) 96%, transparent);
+    border-radius: 18px;
+    overflow:hidden;
+    box-shadow: 0 16px 36px -26px rgba(0,0,0,.35);
+  }
+  .rp-table-toolbar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    padding: 12px 14px;
+    border-bottom:1px solid var(--line);
+    background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
+  }
+  [data-theme="dark"] .rp-table-toolbar{
+    background: color-mix(in oklab, var(--card-solid) 86%, transparent);
+  }
+  .rp-search{
+    position:relative;
+    min-width: 260px;
+    flex: 1;
+    max-width: 520px;
+  }
+  .rp-search input{
+    width:100%;
+    padding:.68rem .85rem .68rem 2.2rem;
+    border-radius: 12px;
+    border:1px solid var(--line);
+    background: color-mix(in oklab, var(--card) 95%, transparent);
+    color: var(--text);
+    outline:none;
+    font-weight:700;
+  }
+  .rp-search .icon{
+    position:absolute; left:12px; top:50%;
+    transform: translateY(-50%);
+    opacity:.55;
+    font-size: 18px;
+  }
+
+  /* Table tweaks on your base .table */
+  .rp-table-card .table{ margin:0; min-width: 760px; }
+  .rp-table-card .table thead th{
+    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
+  }
+  [data-theme="dark"] .rp-table-card .table thead th{
+    background: color-mix(in oklab, var(--card-solid) 86%, transparent);
+  }
+
+  /* Risk cell */
+  .rp-risk{
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .rp-risk .name{ font-weight:950; letter-spacing:-.01em; }
+  .rp-risk .id{
+    font-size:.74rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color: var(--text-dim);
+    font-weight:800;
+  }
+
+  /* Category pill */
+  .rp-pill{
+    display:inline-flex; align-items:center;
+    padding:.25rem .55rem;
+    border-radius: 999px;
+    border:1px solid var(--line);
+    font-size:.78rem;
+    font-weight:900;
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    color: var(--text);
+    white-space:nowrap;
+  }
+  /* Simple color mapping */
+  .rp-pill.op{ border-color: rgba(59,130,246,.28); background: rgba(59,130,246,.12); }
+  .rp-pill.fin{ border-color: rgba(245,158,11,.30); background: rgba(245,158,11,.14); }
+  .rp-pill.leg{ border-color: rgba(99,102,241,.28); background: rgba(99,102,241,.12); }
+  .rp-pill.str{ border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.12); }
+
+  [data-theme="dark"] .rp-pill{ color: rgba(255,255,255,.92); }
+
+  /* Score badge (circle) */
+  .rp-score{
+    width:34px; height:34px;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:999px;
+    background: var(--primary);
+    color:#fff;
+    font-weight:950;
+    font-size:.82rem;
+    box-shadow: 0 12px 22px -16px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+
+  /* Costs chips */
+  .rp-costs{ display:flex; flex-wrap:wrap; gap:.35rem; }
+  .rp-cost{
+    display:inline-flex; align-items:center;
+    padding:.22rem .55rem;
+    border-radius: 10px;
+    border:1px solid var(--line);
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    font-size:.74rem;
+    font-weight:900;
+    color: var(--text-dim);
+    white-space:nowrap;
+  }
+  [data-theme="dark"] .rp-cost{
+    color: rgba(255,255,255,.72);
+    background: color-mix(in oklab, var(--card-solid) 82%, transparent);
+  }
+
+  .rp-muted{ color: var(--text-dim); font-weight:700; }
+
+  /* Footer/pagination bar */
+  .rp-foot{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    padding: 12px 14px;
+    border-top:1px solid var(--line);
+    background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
+  }
+  [data-theme="dark"] .rp-foot{
+    background: color-mix(in oklab, var(--card-solid) 86%, transparent);
+  }
+
+  .rp-pages{ display:flex; gap:6px; align-items:center; }
+  .rp-page{
+    width:34px; height:34px;
+    display:grid; place-items:center;
+    border-radius: 10px;
+    border:1px solid var(--line);
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    color: var(--text);
+    font-weight:900;
+    text-decoration:none;
+  }
+  .rp-page.active{
+    background: var(--primary);
+    border-color: transparent;
+    color:#fff;
+  }
 </style>
 
-<div class="card">
-  <h3>Raporlar</h3>
+<div class="rp-wrap">
+  <!-- Top: breadcrumb + title + actions -->
+  <div class="rp-top">
+    <div>
+      <div class="rp-breadcrumb">
+        <span>Portal</span><span class="sep">/</span><span style="color:var(--primary)">Raporlar</span>
+      </div>
+      <h1 class="rp-title">Raporlar</h1>
+    </div>
 
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Risk</th>
-        <th>Kategori</th>
-        <th style="width:90px; text-align:center;">Skor</th>
-        <th style="width:240px;">Maliyet</th>
-        <th style="width:120px;"></th>
-      </tr>
-    </thead>
+    <div class="rp-actions">
+      <button class="rp-btn" type="button">
+        <span class="material-icons-outlined" style="font-size:18px;">filter_list</span>
+        Filtrele
+      </button>
+      <a class="rp-btn" href="#" role="button">
+        <span class="material-icons-outlined" style="font-size:18px;">file_download</span>
+        Dışa Aktar
+      </a>
+    </div>
+  </div>
 
-    <tbody>
-      {% for r in risks %}
-      <tr>
-        <td>{{ r.title }}</td>
-        <td>{{ r.category or "-" }}</td>
+  {# -----------------------------
+     KPI’lar (istersen gerçek veriye bağlarız)
+     ----------------------------- #}
+  {% set _total = (risks|length if risks is defined else 0) %}
+  {% set _kritik = 0 %}
+  {% for r in risks %}
+    {% set _sc = r.score() %}
+    {% if _sc and (_sc is number) and _sc >= 80 %}
+      {% set _kritik = _kritik + 1 %}
+    {% endif %}
+  {% endfor %}
 
-        <td style="text-align:center;">
+  <div class="rp-kpis">
+    <div class="rp-kpi">
+      <div class="label">Aktif Riskler</div>
+      <div class="val">
+        <span>{{ _total }}</span>
+        <span class="rp-chip ok">+4%</span>
+      </div>
+    </div>
+
+    <div class="rp-kpi">
+      <div class="label">Kritik Skorlar</div>
+      <div class="val">
+        <span>{{ _kritik }}</span>
+        <span class="rp-chip bad">+2</span>
+      </div>
+    </div>
+
+    <div class="rp-kpi">
+      <div class="label">Toplam TRY Etki</div>
+      <div class="val">
+        <span>—</span>
+        <span class="material-icons-outlined" style="opacity:.45;">trending_up</span>
+      </div>
+    </div>
+
+    <div class="rp-kpi">
+      <div class="label">Toplam USD Etki</div>
+      <div class="val">
+        <span>—</span>
+        <span class="material-icons-outlined" style="opacity:.45;">account_balance_wallet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="rp-table-card">
+    <div class="rp-table-toolbar">
+      <div class="rp-search">
+        <span class="material-icons-outlined icon">search</span>
+        <input type="text" placeholder="Raporlarda ara..." oninput="window.__rpFilter?.(this.value)"/>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="rp-muted" style="font-size:.86rem;">{{ _total }} kayıt</span>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="border-radius:0;">
+      <table class="table" id="rpTable">
+        <thead>
+          <tr>
+            <th>Risk</th>
+            <th>Kategori</th>
+            <th style="width:100px; text-align:center;">Skor (RPN)</th>
+            <th style="width:280px;">Maliyet</th>
+            <th style="width:140px; text-align:right;">İşlem</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for r in risks %}
           {% set sc = r.score() %}
-          {% if sc %}
-            {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
-          {% else %}
-            —
-          {% endif %}
-        </td>
+          {% set cat = (r.category or '-') %}
+          {% set cat_l = (cat|string|lower) %}
+          {% set cat_class = (
+              'op' if ('operasyon' in cat_l) else
+              'fin' if ('finans' in cat_l) else
+              'leg' if ('yasal' in cat_l or 'uyum' in cat_l or 'kvkk' in cat_l) else
+              'str' if ('stratej' in cat_l) else
+              ''
+          ) %}
 
-        <td>
-          {% set totals = (cost_map.get(r.id, []) if cost_map is defined else []) %}
-          {% if totals and totals|length > 0 %}
-            <div class="cost-wrap">
-              {% for cur, total in totals %}
-                <span class="tag">{{ cur or "TRY" }} {{ "%.2f"|format(total or 0) }}</span>
-              {% endfor %}
-            </div>
-          {% else %}
-            <span class="muted">—</span>
-          {% endif %}
-        </td>
+          <tr data-filter="{{ (r.title ~ ' ' ~ cat ~ ' ' ~ (r.id|string))|lower }}">
+            <td>
+              <div class="rp-risk">
+                <div class="name">{{ r.title }}</div>
+                <div class="id">ID-{{ r.id }}</div>
+              </div>
+            </td>
 
-        <td style="text-align:right;">
-          <a class="btn" href="{{ url_for('report_view', risk_id=r.id) }}">Görüntüle</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+            <td>
+              <span class="rp-pill {{cat_class}}">{{ cat }}</span>
+            </td>
+
+            <td style="text-align:center;">
+              {% if sc %}
+                <span class="rp-score">
+                  {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
+                </span>
+              {% else %}
+                <span class="rp-muted">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% set totals = (cost_map.get(r.id, []) if cost_map is defined else []) %}
+              {% if totals and totals|length > 0 %}
+                <div class="rp-costs">
+                  {% for cur, total in totals %}
+                    <span class="rp-cost">{{ cur or "TRY" }} {{ "%.2f"|format(total or 0) }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="rp-muted">—</span>
+              {% endif %}
+            </td>
+
+            <td style="text-align:right;">
+              <a class="btn" href="{{ url_for('report_view', risk_id=r.id) }}">Görüntüle</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rp-foot">
+      <span class="rp-muted" style="font-size:.86rem;">
+        Toplam {{ _total }} kayıttan gösteriliyor
+      </span>
+
+      <div class="rp-pages" aria-label="Sayfalama">
+        <a class="rp-page" href="#" aria-label="Önceki">‹</a>
+        <a class="rp-page active" href="#">1</a>
+        <a class="rp-page" href="#">2</a>
+        <a class="rp-page" href="#">3</a>
+        <a class="rp-page" href="#" aria-label="Sonraki">›</a>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+(function(){
+  // Basit client-side filtre: satırları data-filter üzerinden arar
+  window.__rpFilter = function(q){
+    q = (q || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#rpTable tbody tr');
+    rows.forEach(tr => {
+      const hay = (tr.getAttribute('data-filter') || '');
+      tr.style.display = (!q || hay.includes(q)) ? '' : 'none';
+    });
+  };
+})();
+</script>
 
 {% endblock %}
