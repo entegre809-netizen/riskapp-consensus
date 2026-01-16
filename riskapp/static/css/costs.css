@@ -687,3 +687,48 @@
   pointer-events: none !important; /* <-- kilidi açan satır */
 }
 
+/* ==========================================================
+   BOOTSTRAP MODAL — “tıklanmıyor / donuyor” kesin fix
+   (backdrop veya overlay tıklamayı çalıyorsa)
+   ========================================================== */
+
+/* Modal her zaman viewport’a sabitlensin + ortalansın */
+.modal{
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow-y: auto !important;
+
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+
+  /* Bootstrap bazen display yönetimini şaşırıyor */
+  display: none;
+}
+
+/* Açık modalı kesin ortala */
+.modal.show{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1.25rem !important;
+}
+
+/* Dialog tıklanabilir olsun */
+.modal-dialog{
+  margin: 0 !important;
+  pointer-events: auto !important;
+  width: min(900px, 100%) !important;
+}
+
+/* İçerik tıklanabilir olsun */
+.modal-content{
+  pointer-events: auto !important;
+}
+
+/* Backdrop tıklama çalmasın */
+.modal-backdrop{
+  z-index: 9990 !important;
+  pointer-events: none !important; /* <-- kilidi açan satır */
+}
