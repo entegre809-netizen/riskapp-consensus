@@ -562,3 +562,58 @@
   color: rgba(226,232,240,.60) !important;
 }
 
+/* ==========================================================
+   FIX PACK — Table action buttons (edit/sil) + dark contrast
+   (dosyanın EN ALTINA ekle)
+   ========================================================== */
+
+/* 1) Tablo aksiyon alanı: her zaman yatay ve görünür */
+.costs-page .actions-wrap{
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .45rem;
+  flex-wrap: nowrap;
+}
+
+/* 2) Icon butonlar: bootstrap padding/line-height override */
+.costs-page .btn-icon{
+  width: 34px;
+  height: 34px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  line-height: 1 !important;
+  border-radius: 12px;
+}
+
+/* 3) Flex içinde <form> bazen “uzayıp” bozar -> sıkılaştır */
+.costs-page .actions-wrap form{
+  margin: 0 !important;
+  display: inline-flex !important;
+}
+
+/* 4) Glass card pseudo overlay varsa tıklamayı öldürmesin */
+.costs-page .glass-card{ position: relative; }
+.costs-page .glass-card::before,
+.costs-page .glass-card::after{ pointer-events: none; }
+
+/* 5) Dark mode: outline-danger/secondary kontrastını düzelt */
+[data-theme="dark"] .costs-page .btn-outline-danger{
+  color: rgba(255,190,190,.95);
+  border-color: rgba(220,53,69,.45);
+  background: rgba(220,53,69,.08);
+}
+[data-theme="dark"] .costs-page .btn-outline-danger:hover{
+  background: rgba(220,53,69,.14);
+}
+
+[data-theme="dark"] .costs-page .btn-outline-secondary{
+  color: rgba(226,232,240,.88);
+  border-color: rgba(255,255,255,.18);
+  background: rgba(255,255,255,.04);
+}
+[data-theme="dark"] .costs-page .btn-outline-secondary:hover{
+  background: rgba(255,255,255,.08);
+}
