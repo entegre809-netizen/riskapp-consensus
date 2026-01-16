@@ -307,8 +307,10 @@
 /* ===== Table styling (tailwind-ish) ===== */
 .costs-page .table-responsive{
   border-radius: var(--r-lg);
-  overflow: hidden;
+  overflow-x: auto;   /* scroll geri gelsin */
+  overflow-y: hidden; /* dikey taşmayı kırp */
 }
+
 
 #costTable{
   margin-bottom: 0;
