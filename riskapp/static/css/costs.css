@@ -403,3 +403,162 @@
 .costs-page .text-muted{
   color: var(--muted) !important;
 }
+/* ==========================================================
+   Costs page — Dark mode fixes (base.html data-theme="dark")
+   ========================================================== */
+
+/* Genel zemin / yazı */
+[data-theme="dark"] .costs-page{
+  color: rgba(226,232,240,.92);
+}
+
+/* Glass card koyu cam */
+[data-theme="dark"] .costs-page .glass-card{
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,.06),
+    rgba(255,255,255,.03)
+  );
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 18px 50px rgba(0,0,0,.35);
+}
+
+/* Card header kontrast */
+[data-theme="dark"] .costs-page .card-header{
+  background: rgba(255,255,255,.04);
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  color: rgba(226,232,240,.92);
+}
+
+/* FX panel */
+[data-theme="dark"] .costs-page .fx-panel{
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+/* Chip */
+[data-theme="dark"] .costs-page .chip{
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  color: rgba(226,232,240,.92);
+}
+
+/* ----------------------------------------------------------
+   Form controls (Bootstrap)
+   ---------------------------------------------------------- */
+[data-theme="dark"] .costs-page .form-control,
+[data-theme="dark"] .costs-page .form-select,
+[data-theme="dark"] .costs-page .input-group-text{
+  background: rgba(15,23,42,.55);
+  border: 1px solid rgba(255,255,255,.10);
+  color: rgba(226,232,240,.92);
+}
+
+[data-theme="dark"] .costs-page .form-control::placeholder{
+  color: rgba(226,232,240,.45);
+}
+
+[data-theme="dark"] .costs-page .form-control:focus,
+[data-theme="dark"] .costs-page .form-select:focus{
+  box-shadow: 0 0 0 .25rem rgba(34,115,195,.18);
+  border-color: rgba(34,115,195,.40);
+}
+
+/* Input-group divider */
+[data-theme="dark"] .costs-page .input-group-text{
+  color: rgba(226,232,240,.70);
+}
+
+/* ----------------------------------------------------------
+   Table (Bootstrap table white-body fix)
+   ---------------------------------------------------------- */
+[data-theme="dark"] .costs-page .table-responsive{
+  background: transparent;
+}
+
+[data-theme="dark"] .costs-page table.table{
+  color: rgba(226,232,240,.92);
+  --bs-table-bg: transparent;
+  --bs-table-color: rgba(226,232,240,.92);
+  --bs-table-border-color: rgba(255,255,255,.10);
+}
+
+/* thead */
+[data-theme="dark"] .costs-page .table thead th{
+  background: rgba(255,255,255,.05) !important;
+  color: rgba(226,232,240,.75);
+  border-bottom-color: rgba(255,255,255,.10);
+}
+
+/* tbody td -> beyazlığı kıran asıl darbe */
+[data-theme="dark"] .costs-page .table tbody td{
+  background: transparent !important;
+  border-top-color: rgba(255,255,255,.06);
+}
+
+/* zebra + hover */
+[data-theme="dark"] .costs-page .table tbody tr{
+  background: rgba(255,255,255,.02);
+}
+[data-theme="dark"] .costs-page .table tbody tr:nth-child(even){
+  background: rgba(255,255,255,.015);
+}
+[data-theme="dark"] .costs-page .table tbody tr:hover td{
+  background: rgba(34,115,195,.12) !important;
+}
+
+/* tfoot */
+[data-theme="dark"] .costs-page .table tfoot th{
+  background: rgba(255,255,255,.04);
+  border-top: 1px solid rgba(255,255,255,.10);
+  color: rgba(226,232,240,.80);
+}
+
+/* Collapse açıklama satırı */
+[data-theme="dark"] .costs-page .desc-row .collapse .p-3{
+  background: rgba(15,23,42,.45);
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+/* ----------------------------------------------------------
+   Buttons (outline’lar darkta sönük kalmasın)
+   ---------------------------------------------------------- */
+[data-theme="dark"] .costs-page .btn-outline-secondary{
+  color: rgba(226,232,240,.85);
+  border-color: rgba(255,255,255,.18);
+}
+[data-theme="dark"] .costs-page .btn-outline-secondary:hover{
+  background: rgba(255,255,255,.06);
+}
+
+[data-theme="dark"] .costs-page .btn-outline-primary{
+  color: rgba(180,220,255,.95);
+  border-color: rgba(34,115,195,.40);
+}
+[data-theme="dark"] .costs-page .btn-outline-primary:hover{
+  background: rgba(34,115,195,.16);
+}
+
+/* ----------------------------------------------------------
+   Modals (Bootstrap modal beyaz kalıyor)
+   ---------------------------------------------------------- */
+[data-theme="dark"] .modal-content{
+  background: rgba(15,23,42,.92);
+  color: rgba(226,232,240,.92);
+  border: 1px solid rgba(255,255,255,.10);
+}
+[data-theme="dark"] .modal-header{
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+[data-theme="dark"] .modal-footer{
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+[data-theme="dark"] .btn-close{
+  filter: invert(1) grayscale(1);
+}
+
+/* küçük text */
+[data-theme="dark"] .costs-page .text-muted{
+  color: rgba(226,232,240,.60) !important;
+}
+
