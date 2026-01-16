@@ -619,3 +619,24 @@
 [data-theme="dark"] .costs-page .btn-outline-secondary:hover{
   background: rgba(255,255,255,.08);
 }
+
+/* ==========================================================
+   Bootstrap Modal click/freeze fix (z-index + pointer-events)
+   ========================================================== */
+
+/* Modal her şeyin üstünde olsun */
+.modal{
+  z-index: 5000 !important;
+  pointer-events: auto !important;
+}
+
+/* Backdrop modalın altında kalsın */
+.modal-backdrop{
+  z-index: 4990 !important;
+}
+
+/* İçeriğe tıklama kesin çalışsın */
+.modal-dialog,
+.modal-content{
+  pointer-events: auto !important;
+}
