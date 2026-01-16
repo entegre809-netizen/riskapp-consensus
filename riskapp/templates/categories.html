@@ -200,6 +200,74 @@
     color: color-mix(in oklab, var(--text) 90%, var(--primary));
   }
   .hint strong{ font-weight:900 }
+
+  /* =========================
+   Dark mode table fixes
+   ========================= */
+[data-theme="dark"] .table-wrap{
+  background: color-mix(in oklab, var(--card) 70%, #0b1220);
+  border-color: rgba(255,255,255,.10);
+}
+
+/* Header */
+[data-theme="dark"] .table thead th{
+  color: rgba(226,232,240,.82);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 75%, #0b1220),
+    color-mix(in oklab, var(--surface) 88%, #0b1220)
+  );
+  border-bottom-color: rgba(255,255,255,.10);
+  backdrop-filter: blur(10px);
+}
+
+/* Cells + borders */
+[data-theme="dark"] .table th,
+[data-theme="dark"] .table td{
+  border-bottom-color: rgba(255,255,255,.08);
+  color: rgba(226,232,240,.92);
+}
+
+/* IMPORTANT: Beyazlığı kıran kısım */
+[data-theme="dark"] .table tbody td{
+  background: transparent; /* bazı base.css'ler td'ye beyaz basıyor */
+}
+
+/* Row backgrounds (subtle zebra) */
+[data-theme="dark"] .table tbody tr{
+  background: rgba(255,255,255,.03);
+}
+[data-theme="dark"] .table tbody tr:nth-child(even){
+  background: rgba(255,255,255,.02);
+}
+
+/* Hover */
+[data-theme="dark"] .table tbody tr:hover td{
+  background: color-mix(in oklab, var(--primary) 14%, rgba(255,255,255,.04));
+}
+
+/* Table "no result" row text */
+[data-theme="dark"] .table tbody td.small{
+  color: rgba(226,232,240,.70);
+}
+
+/* Badge’ler darkta daha okunur olsun (base.html'in badge'ini ezebilir) */
+[data-theme="dark"] .badge{
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(226,232,240,.92);
+}
+[data-theme="dark"] .badge.score-low{ /* Aktif */
+  background: rgba(16,185,129,.16);
+  border-color: rgba(16,185,129,.28);
+  color: rgba(167,243,208,.95);
+}
+[data-theme="dark"] .badge.score-mid{ /* Pasif */
+  background: rgba(148,163,184,.14);
+  border-color: rgba(148,163,184,.22);
+  color: rgba(226,232,240,.85);
+}
+
 </style>
 
 <!-- yükleniyor -->
