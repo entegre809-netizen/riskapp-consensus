@@ -4,32 +4,27 @@
 
 <style>
   /* ==========================================================
-     Kategori Yönetimi · 2026 Modern UI (base.html ile uyumlu)
-     (İşlevler korunarak görsel iyileştirme + daha düzenli yapı)
+     Kategori Yönetimi · 2026 Modern UI
+     ✅ PATCH/DELETE yok → edit/delete POST ile çalışır
      ========================================================== */
 
-  /* Sayfa üst alan */
   .toolbar{
     display:flex; gap:.9rem; flex-wrap:wrap; align-items:center; justify-content:space-between;
     margin-bottom: .9rem;
   }
   .toolbar h2{ margin:0; font-weight:900; letter-spacing:-.02em }
-  .small{ font-size:.92rem; color: var(--text-dim) }
-
   .subline{
     margin:.28rem 0 0;
     color: var(--text-dim);
     max-width: 70ch;
   }
 
-  /* Layout grid */
   .grid{ display:grid; gap:14px }
   .grid-2{ grid-template-columns: 360px 1fr }
   @media (max-width: 980px){
     .grid-2{ grid-template-columns: 1fr }
   }
 
-  /* Top “search” bar: daha premium */
   .searchbar{
     display:flex; gap:.55rem; flex-wrap:wrap; align-items:center;
     padding:.45rem;
@@ -41,7 +36,6 @@
   }
   .searchbar .input{ min-width:260px; flex:1 1 260px }
 
-  /* Sol kart: “dashed” modern */
   .card-lite{
     background: color-mix(in oklab, var(--card) 90%, transparent);
     border:1px dashed color-mix(in oklab, var(--line) 75%, transparent);
@@ -49,7 +43,6 @@
     padding:14px;
   }
 
-  /* Sağ kartın içindeki tablo wrap */
   .table-wrap{
     overflow:auto;
     border-radius:14px;
@@ -74,11 +67,9 @@
     letter-spacing:.08em;
     font-weight:900;
     color: var(--text-dim);
-
     position: sticky;
     top: 0;
     z-index: 1;
-
     background: color-mix(in oklab, var(--surface) 84%, transparent);
     border-bottom:1px solid color-mix(in oklab, var(--line) 80%, transparent);
     backdrop-filter: blur(5px);
@@ -87,7 +78,6 @@
     background: color-mix(in oklab, var(--primary) 7%, transparent);
   }
 
-  /* details/edit action */
   .actions{
     display:flex;
     gap:.5rem;
@@ -102,17 +92,13 @@
     display:inline-flex;
     align-items:center;
     gap:.45rem;
-
     padding:.58rem .82rem;
     border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
     border-radius:12px;
-
     background: linear-gradient(180deg, #fff, #f7faff);
     font-weight:900;
   }
-  /* summary ok’u gizlemek için */
   details > summary::-webkit-details-marker{ display:none; }
-
   [data-theme="dark"] details > summary{
     border-color: rgba(255,255,255,.14);
     background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
@@ -127,7 +113,6 @@
     background: color-mix(in oklab, var(--card) 96%, transparent);
   }
 
-  /* Renk rozetleri */
   .swatch{
     display:inline-flex;
     align-items:center;
@@ -146,14 +131,12 @@
     flex: 0 0 14px;
   }
 
-  /* Flash/bildirim */
   #flash{
     display:none;
     margin:.6rem 0;
     padding:.86rem 1rem;
     border-radius:12px;
     font-weight:800;
-
     border:1px solid #dbe6ff;
     background: linear-gradient(180deg, #f5f9ff, #eef4ff);
     color:#17223a;
@@ -168,8 +151,12 @@
     background:linear-gradient(180deg, #ffefef, #ffe3e3);
     color:#5a1c1c;
   }
+  #flash.warning{
+    border-color:#ffe6a6;
+    background:linear-gradient(180deg, #fff7e0, #fff0c5);
+    color:#5a3b00;
+  }
 
-  /* Loading mask */
   .loading{
     position:fixed;
     inset:0;
@@ -190,7 +177,6 @@
   }
   @keyframes spin{ to{ transform: rotate(360deg) } }
 
-  /* Ufak kalite dokunuşları */
   .hint{
     margin-top:.75rem;
     padding:.9rem 1rem;
@@ -201,76 +187,34 @@
   }
   .hint strong{ font-weight:900 }
 
-  /* =========================
-   Dark mode table fixes
-   ========================= */
-[data-theme="dark"] .table-wrap{
-  background: color-mix(in oklab, var(--card) 70%, #0b1220);
-  border-color: rgba(255,255,255,.10);
-}
-
-/* Header */
-[data-theme="dark"] .table thead th{
-  color: rgba(226,232,240,.82);
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--surface) 75%, #0b1220),
-    color-mix(in oklab, var(--surface) 88%, #0b1220)
-  );
-  border-bottom-color: rgba(255,255,255,.10);
-  backdrop-filter: blur(10px);
-}
-
-/* Cells + borders */
-[data-theme="dark"] .table th,
-[data-theme="dark"] .table td{
-  border-bottom-color: rgba(255,255,255,.08);
-  color: rgba(226,232,240,.92);
-}
-
-/* IMPORTANT: Beyazlığı kıran kısım */
-[data-theme="dark"] .table tbody td{
-  background: transparent; /* bazı base.css'ler td'ye beyaz basıyor */
-}
-
-/* Row backgrounds (subtle zebra) */
-[data-theme="dark"] .table tbody tr{
-  background: rgba(255,255,255,.03);
-}
-[data-theme="dark"] .table tbody tr:nth-child(even){
-  background: rgba(255,255,255,.02);
-}
-
-/* Hover */
-[data-theme="dark"] .table tbody tr:hover td{
-  background: color-mix(in oklab, var(--primary) 14%, rgba(255,255,255,.04));
-}
-
-/* Table "no result" row text */
-[data-theme="dark"] .table tbody td.small{
-  color: rgba(226,232,240,.70);
-}
-
-/* Badge’ler darkta daha okunur olsun (base.html'in badge'ini ezebilir) */
-[data-theme="dark"] .badge{
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.12);
-  color: rgba(226,232,240,.92);
-}
-[data-theme="dark"] .badge.score-low{ /* Aktif */
-  background: rgba(16,185,129,.16);
-  border-color: rgba(16,185,129,.28);
-  color: rgba(167,243,208,.95);
-}
-[data-theme="dark"] .badge.score-mid{ /* Pasif */
-  background: rgba(148,163,184,.14);
-  border-color: rgba(148,163,184,.22);
-  color: rgba(226,232,240,.85);
-}
-
+  /* Dark fixes */
+  [data-theme="dark"] .table-wrap{
+    background: color-mix(in oklab, var(--card) 70%, #0b1220);
+    border-color: rgba(255,255,255,.10);
+  }
+  [data-theme="dark"] .table thead th{
+    color: rgba(226,232,240,.82);
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface) 75%, #0b1220),
+      color-mix(in oklab, var(--surface) 88%, #0b1220)
+    );
+    border-bottom-color: rgba(255,255,255,.10);
+    backdrop-filter: blur(10px);
+  }
+  [data-theme="dark"] .table th,
+  [data-theme="dark"] .table td{
+    border-bottom-color: rgba(255,255,255,.08);
+    color: rgba(226,232,240,.92);
+  }
+  [data-theme="dark"] .table tbody td{ background: transparent; }
+  [data-theme="dark"] .table tbody tr{ background: rgba(255,255,255,.03); }
+  [data-theme="dark"] .table tbody tr:nth-child(even){ background: rgba(255,255,255,.02); }
+  [data-theme="dark"] .table tbody tr:hover td{
+    background: color-mix(in oklab, var(--primary) 14%, rgba(255,255,255,.04));
+  }
 </style>
 
-<!-- yükleniyor -->
 <div class="loading" id="loading">
   <div class="spinner" role="status" aria-label="Yükleniyor"></div>
 </div>
@@ -283,7 +227,6 @@
     </p>
   </div>
 
-  <!-- next=identify ise görünür -->
   <a id="backToIdentify"
      href="{{ url_for('risk_identify') }}"
      class="btn"
@@ -292,10 +235,8 @@
   </a>
 </div>
 
-<!-- bildirim alanı -->
 <div id="flash" role="status" aria-live="polite"></div>
 
-<!-- arama -->
 <form id="searchForm" class="searchbar" autocomplete="off">
   <input class="input" id="q" name="q" placeholder="Ara: ad, kod, açıklama…" inputmode="search" />
   <div style="display:flex; gap:.5rem">
@@ -311,16 +252,17 @@
     <div class="card-lite">
       <h3 style="margin:0 0 .55rem; font-weight:900; letter-spacing:-.01em">Yeni Kategori</h3>
 
-      <form id="createForm" autocomplete="off">
+      <!-- ✅ Bu form backend’in /categories POST’una gitsin -->
+      <form id="createForm" method="post" action="{{ url_for('categories_index', next=request.args.get('next')) }}" autocomplete="off">
         <div>
           <label>Ad *</label>
-          <input class="input" name="name" required placeholder="Örn: DİZAYN TASARIM RİSKLERİ" maxlength="80">
+          <input class="input" name="name" required placeholder="Örn: DİZAYN TASARIM RİSKLERİ" maxlength="120">
         </div>
 
         <div class="grid grid-2" style="margin-top:.55rem">
           <div>
             <label>Kod</label>
-            <input class="input" name="code" placeholder="Örn: DTR" maxlength="16">
+            <input class="input" name="code" placeholder="Örn: DTR" maxlength="32">
           </div>
 
           <div>
@@ -371,12 +313,11 @@
 
 <script>
 /* ==========================================================
-   Global state + yardımcılar
+   State + helpers
    ========================================================== */
 let CATS = [];
 
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
-const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
 const flashEl = $("#flash");
 const loadingEl = $("#loading");
 
@@ -412,7 +353,7 @@ function makeColorBadge(color){
 }
 
 /* ==========================================================
-   API helpers
+   API: sadece listeyi JSON'dan çekiyoruz (GET)
    ========================================================== */
 async function loadCategories(q=""){
   showLoading(true);
@@ -423,31 +364,17 @@ async function loadCategories(q=""){
     CATS = await res.json();
   } finally { showLoading(false); }
 }
-async function createCategory(fd){
+
+/* ==========================================================
+   POST Edit/Delete: backend route'larına gönder
+   ========================================================== */
+async function postForm(url, fd){
   showLoading(true);
   try{
-    const res = await fetch("/api/categories", { method:"POST", body: fd });
-    const j = await res.json().catch(()=>null);
-    if(!res.ok) throw new Error((j && j.error) || "Kaydedilemedi");
-    return j;
-  } finally { showLoading(false); }
-}
-async function updateCategory(id, fd){
-  showLoading(true);
-  try{
-    const res = await fetch(`/api/categories/${id}`, { method:"PATCH", body: fd });
-    const j = await res.json().catch(()=>null);
-    if(!res.ok) throw new Error((j && j.error) || "Güncellenemedi");
-    return j;
-  } finally { showLoading(false); }
-}
-async function deleteCategory(id){
-  showLoading(true);
-  try{
-    const res = await fetch(`/api/categories/${id}`, { method:"DELETE" });
-    const j = await res.json().catch(()=>null);
-    if(!res.ok) throw new Error((j && j.error) || "Silinemedi");
-    return j;
+    const res = await fetch(url, { method:"POST", body: fd, headers:{ "Accept":"text/html" }});
+    // Bu endpoint HTML redirect dönecek; fetch redirect'i izler ama body gerekmiyor.
+    if(!res.ok) throw new Error("İşlem başarısız");
+    return true;
   } finally { showLoading(false); }
 }
 
@@ -469,12 +396,18 @@ function renderTable(){
   if(!list.length){
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 7; td.className = "small"; td.style.textAlign = "center";
+    td.colSpan = 7;
+    td.className = "small";
+    td.style.textAlign = "center";
     td.style.padding = "1.2rem .9rem";
     td.textContent = "Kategori bulunamadı.";
-    tr.appendChild(td); tbody.appendChild(tr);
+    tr.appendChild(td);
+    tbody.appendChild(tr);
     return;
   }
+
+  const nextParam = (getParam("next") || "").toLowerCase();
+  const nextQs = nextParam ? `?next=${encodeURIComponent(nextParam)}` : "";
 
   for (const c of list){
     const tr = document.createElement("tr");
@@ -522,6 +455,7 @@ function renderTable(){
     const inner = document.createElement("div");
     inner.className = "inner-card";
 
+    // ✅ Edit form → /categories/<id>/edit (POST)
     const form = document.createElement("form");
     form.className = "grid grid-2 js-edit";
     form.dataset.id = String(c.id);
@@ -530,13 +464,13 @@ function renderTable(){
     g1.style.gridColumn = "1 / -1";
     g1.innerHTML = `
       <label>Ad *</label>
-      <input class="input" name="name" required maxlength="80" value="${c.name || ''}">
+      <input class="input" name="name" required maxlength="120" value="${(c.name || '').replaceAll('"','&quot;')}">
     `;
 
     const g2 = document.createElement("div");
     g2.innerHTML = `
       <label>Kod</label>
-      <input class="input" name="code" maxlength="16" value="${c.code || ''}">
+      <input class="input" name="code" maxlength="32" value="${(c.code || '').replaceAll('"','&quot;')}">
     `;
 
     const g3 = document.createElement("div");
@@ -545,12 +479,17 @@ function renderTable(){
     rowColor.style.display="flex"; rowColor.style.gap=".5rem"; rowColor.style.alignItems="center";
 
     const inpColor = document.createElement("input");
-    inpColor.className="input"; inpColor.type="color"; inpColor.name="color";
-    inpColor.style.width="64px"; inpColor.style.padding="0";
+    inpColor.className="input";
+    inpColor.type="color";
+    inpColor.name="color";
+    inpColor.style.width="64px";
+    inpColor.style.padding="0";
     inpColor.value = c.color || "#0ea371";
 
     const inpHex = document.createElement("input");
-    inpHex.className="input"; inpHex.type="text"; inpHex.maxLength=9;
+    inpHex.className="input";
+    inpHex.type="text";
+    inpHex.maxLength=9;
     inpHex.value = c.color || "#0ea371";
 
     rowColor.appendChild(inpColor); rowColor.appendChild(inpHex);
@@ -558,7 +497,8 @@ function renderTable(){
 
     inpColor.addEventListener("input", ()=>{ inpHex.value = inpColor.value; });
     inpHex.addEventListener("input", ()=>{
-      if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(inpHex.value)) inpColor.value = inpHex.value;
+      const v = normalize(inpHex.value);
+      if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) inpColor.value = v;
     });
 
     const g4 = document.createElement("div");
@@ -583,19 +523,24 @@ function renderTable(){
     g6.style.gridColumn="1 / -1"; g6.className="actions";
 
     const btnSave = document.createElement("button");
-    btnSave.className="btn btn-primary"; btnSave.type="submit"; btnSave.textContent="Kaydet";
+    btnSave.className="btn btn-primary";
+    btnSave.type="submit";
+    btnSave.textContent="Kaydet";
     g6.appendChild(btnSave);
 
     form.appendChild(g1); form.appendChild(g2); form.appendChild(g3);
     form.appendChild(g4); form.appendChild(g5); form.appendChild(g6);
 
+    // ✅ Delete form → /categories/<id>/delete (POST)
     const delForm = document.createElement("form");
     delForm.className="js-delete actions";
     delForm.dataset.id=String(c.id);
     delForm.style.marginTop=".55rem";
 
     const btnDel = document.createElement("button");
-    btnDel.className="btn btn-danger"; btnDel.type="submit"; btnDel.textContent="Sil";
+    btnDel.className="btn btn-danger";
+    btnDel.type="submit";
+    btnDel.textContent="Sil";
     delForm.appendChild(btnDel);
 
     inner.appendChild(form);
@@ -610,7 +555,7 @@ function renderTable(){
 }
 
 /* ==========================================================
-   Olaylar
+   Events
    ========================================================== */
 function debounce(fn, t=250){ let h; return (...a)=>{ clearTimeout(h); h=setTimeout(()=>fn(...a), t); } }
 
@@ -628,37 +573,26 @@ $("#clearSearch").addEventListener("click", async ()=>{
   catch(err){ flash(err.message || "Kategoriler alınamadı","danger"); }
 });
 
-// Ekle
-$("#createForm").addEventListener("submit", async (e)=>{
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const name = normalize(fd.get("name"));
+// ✅ Create: artık normal form POST (fetch değil) — ama renk hex senkronu kalsın
+(function bindCreateColorSync(){
+  const colorPicker = document.querySelector('#createForm input[type="color"][name="color"]');
+  const hexInput = document.querySelector('#colorHex');
+  if(!colorPicker || !hexInput) return;
 
-  let color = normalize(fd.get("color")) || "#0ea371";
-  const hexInput = $("#colorHex");
-  if (hexInput && normalize(hexInput.value)) color = hexInput.value;
-  fd.set("color", color);
+  colorPicker.addEventListener("input", ()=>{ hexInput.value = colorPicker.value; });
+  hexInput.addEventListener("input", ()=>{
+    const v = normalize(hexInput.value);
+    if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) colorPicker.value = v;
+  });
 
-  if(!name){ flash("Kategori adı zorunlu.","danger"); return; }
+  // form submit olurken hex'i color field'a bas
+  $("#createForm").addEventListener("submit", ()=>{
+    const v = normalize(hexInput.value);
+    if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) colorPicker.value = v;
+  });
+})();
 
-  try{
-    await createCategory(fd);
-    e.target.reset();
-    $("#colorHex").value = "#0ea371";
-
-    if (shouldGoIdentify()){
-      flash("Kategori eklendi, yönlendiriliyor…","success");
-      window.location.href = "{{ url_for('risk_identify') }}";
-      return;
-    }
-
-    await loadCategories(normalize($("#q").value));
-    renderTable();
-    flash("Kategori eklendi.","success");
-  }catch(err){ flash(err.message || "Hata","danger"); }
-});
-
-// Düzenle / Sil (delegation)
+// ✅ Edit/Delete delegation: POST at, sonra listeyi yenile
 document.addEventListener("submit", async (e)=>{
   const editForm = e.target.closest(".js-edit");
   if (editForm){
@@ -668,16 +602,19 @@ document.addEventListener("submit", async (e)=>{
 
     if(!normalize(fd.get("name"))){ flash("Ad zorunlu.","danger"); return; }
 
-    // checkbox unchecked ise (FormData'da gelmez), backend uyumu bozulmasın
-    if(!fd.get("is_active")) fd.set("is_active", "");
+    // checkbox unchecked ise formdata'da hiç gelmez → backend _truthy(None) False ise ok
+    // ama biz netleştirelim:
+    if(!fd.get("is_active")) fd.set("is_active","");
 
-    // hex text öncelikli kalsın
+    // hex input öncelikli
     const hex = editForm.querySelector('input[type="text"]');
-    const col = editForm.querySelector('input[type="color"]');
-    if (hex && col && normalize(hex.value)) fd.set("color", hex.value);
+    if (hex && normalize(hex.value)) fd.set("color", hex.value);
+
+    const nextParam = (getParam("next") || "").toLowerCase();
+    const url = `/categories/${id}/edit${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`;
 
     try{
-      await updateCategory(id, fd);
+      await postForm(url, fd);
 
       if (shouldGoIdentify()){
         flash("Kategori güncellendi, yönlendiriliyor…","success");
@@ -696,10 +633,14 @@ document.addEventListener("submit", async (e)=>{
   if (delForm){
     e.preventDefault();
     const id = Number(delForm.dataset.id);
-    if(!confirm("Silinsin mi? Kullanımda ise pasif yapmayı düşünebilirsin.")) return;
+    if(!confirm("Silinsin mi? Kullanımda ise otomatik pasif yapılabilir.")) return;
+
+    const fd = new FormData(); // boş
+    const nextParam = (getParam("next") || "").toLowerCase();
+    const url = `/categories/${id}/delete${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`;
 
     try{
-      await deleteCategory(id);
+      await postForm(url, fd);
 
       if (shouldGoIdentify()){
         flash("Kategori silindi, yönlendiriliyor…","success");
@@ -715,22 +656,7 @@ document.addEventListener("submit", async (e)=>{
 });
 
 /* ==========================================================
-   Sol form renk senkronu
-   ========================================================== */
-(function bindCreateColorSync(){
-  const colorPicker = document.querySelector('#createForm input[type="color"][name="color"]');
-  const hexInput = document.querySelector('#colorHex');
-  if(!colorPicker || !hexInput) return;
-
-  colorPicker.addEventListener("input", ()=>{ hexInput.value = colorPicker.value; });
-  hexInput.addEventListener("input", ()=>{
-    const v = normalize(hexInput.value);
-    if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) colorPicker.value = v;
-  });
-})();
-
-/* ==========================================================
-   İlk yükleme
+   Init
    ========================================================== */
 (async function init(){
   const url = new URL(window.location.href);
@@ -750,4 +676,3 @@ document.addEventListener("submit", async (e)=>{
 </script>
 
 {% endblock %}
-/* 
