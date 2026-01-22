@@ -4546,6 +4546,28 @@ def create_app():
     @app.get("/api/category-names")
     def api_category_names():
         return jsonify(active_category_names())
+    @app.post("/api/categories/<int:cid>/delete")
+    def api_categories_delete_post(cid):
+            cat = RiskCategory.query.get_or_404(cid)
+
+            try:
+                db.session.delete(cat)
+                db.session.commit()
+                return jsonify({"ok": True, "deleted": True})
+            except IntegrityError:
+                # kullanımda ise: soft delete (pasif)
+                db.session.rollback()
+                cat.is_active = False
+                db.session.commit()
+                return jsonify({
+                    "ok": True,
+                    "deleted": False,
+                    "message": "Kullanımda olduğu için silinmedi; pasif yapıldı."
+                }), 200
+
+    
+    
+
     
 
     
@@ -4578,28 +4600,7 @@ def create_app():
         return jsonify({"ok": True})
 
 
-        @app.post("/api/categories/<int:cid>/delete")
-        def api_categories_delete_post(cid):
-            cat = RiskCategory.query.get_or_404(cid)
-
-            try:
-                db.session.delete(cat)
-                db.session.commit()
-                return jsonify({"ok": True, "deleted": True})
-            except IntegrityError:
-                # kullanımda ise: soft delete (pasif)
-                db.session.rollback()
-                cat.is_active = False
-                db.session.commit()
-                return jsonify({
-                    "ok": True,
-                    "deleted": False,
-                    "message": "Kullanımda olduğu için silinmedi; pasif yapıldı."
-                }), 200
-
-    
-    
-
+        
     
     # -------------------------------------------------
     #  ADMIN — Tek seferlik prefix'e göre kategori düzeltme (opsiyonel)
