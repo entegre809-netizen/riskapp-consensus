@@ -252,8 +252,11 @@
     <div class="card-lite">
       <h3 style="margin:0 0 .55rem; font-weight:900; letter-spacing:-.01em">Yeni Kategori</h3>
 
-      <!-- ✅ Bu form backend’in /categories POST’una gitsin -->
-      <form id="createForm" method="post" action="{{ url_for('categories_index', next=request.args.get('next')) }}" autocomplete="off">
+      <!-- ✅ Create = klasik POST -->
+      <form id="createForm"
+            method="post"
+            action="{{ url_for('categories_index', next=request.args.get('next')) }}"
+            autocomplete="off">
         <div>
           <label>Ad *</label>
           <input class="input" name="name" required placeholder="Örn: DİZAYN TASARIM RİSKLERİ" maxlength="120">
@@ -322,7 +325,7 @@ const flashEl = $("#flash");
 const loadingEl = $("#loading");
 
 function showLoading(on=true){ loadingEl.classList.toggle('show', !!on); }
-function flash(msg, type="info", dur=2200){
+function flash(msg, type="info", dur=2400){
   flashEl.className = type;
   flashEl.textContent = msg;
   flashEl.style.display = "block";
@@ -339,6 +342,16 @@ function getParam(name){
   return url.searchParams.get(name);
 }
 const shouldGoIdentify = ()=> (getParam("next")||"").toLowerCase()==="identify";
+
+/* ---- güvenli string basma (HTML inject / bozulma engeli) ---- */
+function escHtml(s){
+  return (s ?? "").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
 
 function makeColorBadge(color){
   const wrap = document.createElement("span");
@@ -366,14 +379,28 @@ async function loadCategories(q=""){
 }
 
 /* ==========================================================
-   POST Edit/Delete: backend route'larına gönder
+   POST helper (edit/delete) — redirect vs login yakalama
    ========================================================== */
 async function postForm(url, fd){
   showLoading(true);
   try{
-    const res = await fetch(url, { method:"POST", body: fd, headers:{ "Accept":"text/html" }});
-    // Bu endpoint HTML redirect dönecek; fetch redirect'i izler ama body gerekmiyor.
-    if(!res.ok) throw new Error("İşlem başarısız");
+    const res = await fetch(url, {
+      method:"POST",
+      body: fd,
+      redirect: "follow",
+      headers:{ "Accept":"text/html" }
+    });
+
+    // Eğer login sayfasına yönlendirdiyse genelde URL değişir.
+    // Render / auth akışlarında bu çok olur.
+    const finalUrl = (res && res.url) ? res.url.toLowerCase() : "";
+    if(finalUrl.includes("login")){
+      throw new Error("Oturum düşmüş gibi görünüyor (login). Tekrar giriş yap.");
+    }
+
+    if(!res.ok){
+      throw new Error("İşlem başarısız (" + res.status + ")");
+    }
     return true;
   } finally { showLoading(false); }
 }
@@ -405,9 +432,6 @@ function renderTable(){
     tbody.appendChild(tr);
     return;
   }
-
-  const nextParam = (getParam("next") || "").toLowerCase();
-  const nextQs = nextParam ? `?next=${encodeURIComponent(nextParam)}` : "";
 
   for (const c of list){
     const tr = document.createElement("tr");
@@ -446,7 +470,6 @@ function renderTable(){
     tr.appendChild(tdStatus);
 
     const tdActions = document.createElement("td");
-
     const details = document.createElement("details");
     const summary = document.createElement("summary");
     summary.textContent = "Düzenle";
@@ -455,7 +478,7 @@ function renderTable(){
     const inner = document.createElement("div");
     inner.className = "inner-card";
 
-    // ✅ Edit form → /categories/<id>/edit (POST)
+    /* ---- Edit form ---- */
     const form = document.createElement("form");
     form.className = "grid grid-2 js-edit";
     form.dataset.id = String(c.id);
@@ -464,13 +487,13 @@ function renderTable(){
     g1.style.gridColumn = "1 / -1";
     g1.innerHTML = `
       <label>Ad *</label>
-      <input class="input" name="name" required maxlength="120" value="${(c.name || '').replaceAll('"','&quot;')}">
+      <input class="input" name="name" required maxlength="120" value="${escHtml(c.name || '')}">
     `;
 
     const g2 = document.createElement("div");
     g2.innerHTML = `
       <label>Kod</label>
-      <input class="input" name="code" maxlength="32" value="${(c.code || '').replaceAll('"','&quot;')}">
+      <input class="input" name="code" maxlength="32" value="${escHtml(c.code || '')}">
     `;
 
     const g3 = document.createElement("div");
@@ -503,25 +526,31 @@ function renderTable(){
 
     const g4 = document.createElement("div");
     g4.style.gridColumn="1 / -1";
-    g4.innerHTML = `
-      <label>Açıklama</label>
-      <textarea class="input" name="description" rows="2" maxlength="240">${c.description || ''}</textarea>
-    `;
+    // textarea içine güvenli bas: textContent ile set edeceğiz (innerHTML değil)
+    const label4 = document.createElement("label");
+    label4.textContent = "Açıklama";
+    const ta = document.createElement("textarea");
+    ta.className="input";
+    ta.name="description";
+    ta.rows=2;
+    ta.maxLength=240;
+    ta.textContent = c.description || ""; // ✅ en güvenlisi
+    g4.appendChild(label4);
+    g4.appendChild(ta);
 
     const g5 = document.createElement("div");
     g5.style.display="flex"; g5.style.alignItems="center"; g5.style.gap=".4rem";
-
     const chk = document.createElement("input");
-    chk.type="checkbox"; chk.id="ia_"+c.id; chk.name="is_active"; chk.checked=!!c.is_active;
-
+    chk.type="checkbox";
+    chk.id="ia_"+c.id;
+    chk.name="is_active";
+    chk.checked=!!c.is_active;
     const lbl = document.createElement("label");
     lbl.htmlFor=chk.id; lbl.style.margin="0"; lbl.textContent="Aktif";
-
     g5.appendChild(chk); g5.appendChild(lbl);
 
     const g6 = document.createElement("div");
     g6.style.gridColumn="1 / -1"; g6.className="actions";
-
     const btnSave = document.createElement("button");
     btnSave.className="btn btn-primary";
     btnSave.type="submit";
@@ -531,12 +560,11 @@ function renderTable(){
     form.appendChild(g1); form.appendChild(g2); form.appendChild(g3);
     form.appendChild(g4); form.appendChild(g5); form.appendChild(g6);
 
-    // ✅ Delete form → /categories/<id>/delete (POST)
+    /* ---- Delete form ---- */
     const delForm = document.createElement("form");
     delForm.className="js-delete actions";
     delForm.dataset.id=String(c.id);
     delForm.style.marginTop=".55rem";
-
     const btnDel = document.createElement("button");
     btnDel.className="btn btn-danger";
     btnDel.type="submit";
@@ -546,7 +574,6 @@ function renderTable(){
     inner.appendChild(form);
     inner.appendChild(delForm);
     details.appendChild(inner);
-
     tdActions.appendChild(details);
     tr.appendChild(tdActions);
 
@@ -557,7 +584,10 @@ function renderTable(){
 /* ==========================================================
    Events
    ========================================================== */
-function debounce(fn, t=250){ let h; return (...a)=>{ clearTimeout(h); h=setTimeout(()=>fn(...a), t); } }
+function debounce(fn, t=250){
+  let h;
+  return (...a)=>{ clearTimeout(h); h=setTimeout(()=>fn(...a), t); }
+}
 
 $("#searchForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -573,7 +603,7 @@ $("#clearSearch").addEventListener("click", async ()=>{
   catch(err){ flash(err.message || "Kategoriler alınamadı","danger"); }
 });
 
-// ✅ Create: artık normal form POST (fetch değil) — ama renk hex senkronu kalsın
+/* ---- Create renk senkronu ---- */
 (function bindCreateColorSync(){
   const colorPicker = document.querySelector('#createForm input[type="color"][name="color"]');
   const hexInput = document.querySelector('#colorHex');
@@ -585,14 +615,13 @@ $("#clearSearch").addEventListener("click", async ()=>{
     if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) colorPicker.value = v;
   });
 
-  // form submit olurken hex'i color field'a bas
   $("#createForm").addEventListener("submit", ()=>{
     const v = normalize(hexInput.value);
     if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) colorPicker.value = v;
   });
 })();
 
-// ✅ Edit/Delete delegation: POST at, sonra listeyi yenile
+/* ---- Edit/Delete delegation ---- */
 document.addEventListener("submit", async (e)=>{
   const editForm = e.target.closest(".js-edit");
   if (editForm){
@@ -602,11 +631,10 @@ document.addEventListener("submit", async (e)=>{
 
     if(!normalize(fd.get("name"))){ flash("Ad zorunlu.","danger"); return; }
 
-    // checkbox unchecked ise formdata'da hiç gelmez → backend _truthy(None) False ise ok
-    // ama biz netleştirelim:
+    // unchecked checkbox = formdata'da gelmez → backend false yapar; ama biz net:
     if(!fd.get("is_active")) fd.set("is_active","");
 
-    // hex input öncelikli
+    // hex input varsa color'a bas
     const hex = editForm.querySelector('input[type="text"]');
     if (hex && normalize(hex.value)) fd.set("color", hex.value);
 
@@ -625,7 +653,9 @@ document.addEventListener("submit", async (e)=>{
       await loadCategories(normalize($("#q").value));
       renderTable();
       flash("Kategori güncellendi.","success");
-    }catch(err){ flash(err.message || "Hata","danger"); }
+    }catch(err){
+      flash(err.message || "Hata","danger", 4000);
+    }
     return;
   }
 
@@ -635,7 +665,7 @@ document.addEventListener("submit", async (e)=>{
     const id = Number(delForm.dataset.id);
     if(!confirm("Silinsin mi? Kullanımda ise otomatik pasif yapılabilir.")) return;
 
-    const fd = new FormData(); // boş
+    const fd = new FormData();
     const nextParam = (getParam("next") || "").toLowerCase();
     const url = `/categories/${id}/delete${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`;
 
@@ -651,7 +681,9 @@ document.addEventListener("submit", async (e)=>{
       await loadCategories(normalize($("#q").value));
       renderTable();
       flash("Kategori silindi.","success");
-    }catch(err){ flash(err.message || "Hata","danger"); }
+    }catch(err){
+      flash(err.message || "Hata","danger", 4000);
+    }
   }
 });
 
@@ -670,7 +702,7 @@ document.addEventListener("submit", async (e)=>{
     await loadCategories(qParam);
     renderTable();
   }catch(_){
-    flash("Kategoriler yüklenemedi.","danger");
+    flash("Kategoriler yüklenemedi.","danger", 4000);
   }
 })();
 </script>
