@@ -43,6 +43,7 @@ from flask import request, redirect, url_for, render_template, jsonify, flash, a
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from flask import request, jsonify
+from sqlalchemy.exc import IntegrityError
 
 import json
 import os as _os, sys as _sys
@@ -4436,23 +4437,31 @@ def create_app():
 
     @app.route("/categories/<int:cid>/delete", methods=["POST"])
     def categories_delete(cid):
+        # 1) kategoriyi al
         cat = RiskCategory.query.get_or_404(cid)
 
         try:
+            # 2) hard delete dene
             db.session.delete(cat)
             db.session.commit()
             flash("Kategori silindi.", "success")
+
         except IntegrityError:
-            # kullanımda ise gerçek silme patlar -> pasif yap
+            # 3) FK vb. yüzden silinemedi -> rollback
             db.session.rollback()
-            cat.is_active = False
-            db.session.commit()
+
+            # ✅ KRİTİK: objeyi yeniden yükle (rollback sonrası state karışmasın)
+            cat2 = RiskCategory.query.get(cid)
+            if cat2:
+                cat2.is_active = False
+                db.session.commit()
+
             flash("Kategori kullanımda olduğu için silinemedi, pasif yapıldı.", "warning")
 
+        # 4) nereye dönecek?
         if _should_go_identify():
             return redirect(url_for("risk_identify"))
         return redirect(url_for("categories_index"))
-
 
     # -------------------------
     # API (JSON) endpointler
