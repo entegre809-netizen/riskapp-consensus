@@ -1799,13 +1799,15 @@ def create_app():
                 .filter(RiskCategory.is_active == True)
                 .order_by(RiskCategory.name.asc())
                 .all())
-        filter_cat_names = [r.name for r in rcats]
+        filter_cat_names = [ (r.name or "").strip() for r in rcats if (r.name or "").strip() ]
+
         if not filter_cat_names:
             raw = [x[0] for x in db.session.query(Suggestion.category).distinct().all()]
-        filter_cat_names = sorted(
-            [r.strip() for r in raw if r and r.strip()],
-            key=lambda s: s.lower()
-)
+            filter_cat_names = sorted(
+                [r.strip() for r in raw if r and r.strip()],
+                key=lambda s: s.lower()
+            )
+
 
 
         # -----------------------------
