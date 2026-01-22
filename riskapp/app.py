@@ -1787,7 +1787,10 @@ def create_app():
         # 1) Filtre / arama / sayfalama
         # -----------------------------
         q        = (request.args.get("q") or "").strip()
-        cat      = (request.args.get("cat") or "").strip()   # "__all__" | "" (Genel) | gerçek kategori adı
+        cat_param_present = ("cat" in request.args)
+        cat = request.args.get("cat", "__all__")
+        cat = (cat if cat is not None else "__all__").strip()
+ 
         page     = int(request.args.get("page", 1) or 1)
         per_page = 175  # ihtiyacına göre 25/100 yapabilirsin
 
@@ -1799,7 +1802,11 @@ def create_app():
         filter_cat_names = [r.name for r in rcats]
         if not filter_cat_names:
             raw = [x[0] for x in db.session.query(Suggestion.category).distinct().all()]
-            filter_cat_names = sorted([(r or "") for r in raw], key=lambda s: s.lower())
+        filter_cat_names = sorted(
+            [r.strip() for r in raw if r and r.strip()],
+            key=lambda s: s.lower()
+)
+
 
         # -----------------------------
         # 2) Liste sorgusu (Suggestion)
@@ -1807,11 +1814,13 @@ def create_app():
         base_q = Suggestion.query
 
         # Kategori filtresi
-        if cat and cat != "__all__":
+        # Kategori filtresi (Suggestion)
+        if cat != "__all__" and cat_param_present:
             if cat == "":  # "Genel / Kategorisiz"
                 base_q = base_q.filter((Suggestion.category.is_(None)) | (Suggestion.category == ""))
             else:
                 base_q = base_q.filter(Suggestion.category == cat)
+
 
         # Arama filtresi
         if q:
@@ -4384,11 +4393,15 @@ def create_app():
     def categories_edit(cid):
         cat = RiskCategory.query.get_or_404(cid)
 
+        # ✅ Eski adı yakala (Suggestion.category güncellemesi için)
+        old_name = (cat.name or "").strip()
+
         name = (request.form.get("name") or cat.name).strip()
         if not name:
             flash("Kategori adı zorunludur.", "danger")
             return redirect(url_for("categories_index", next=request.args.get("next")))
 
+        # form alanlarını güncelle
         cat.name = name
         cat.code = (request.form.get("code") or "").strip() or None
         cat.color = (request.form.get("color") or "").strip() or None
@@ -4396,7 +4409,16 @@ def create_app():
         cat.is_active = _truthy(request.form.get("is_active"))
 
         try:
+            # ✅ kategori adı değiştiyse Suggestion.category string’lerini de taşı
+            new_name = (cat.name or "").strip()
+            if old_name and new_name and old_name != new_name:
+                Suggestion.query.filter(Suggestion.category == old_name).update(
+                    {Suggestion.category: new_name},
+                    synchronize_session=False
+                )
+
             db.session.commit()
+
         except IntegrityError:
             db.session.rollback()
             flash("Güncellenemedi. Kod benzersiz olmalı veya veri kısıtı var.", "danger")
@@ -4407,6 +4429,7 @@ def create_app():
         if _should_go_identify():
             return redirect(url_for("risk_identify"))
         return redirect(url_for("categories_index"))
+
 
 
     @app.route("/categories/<int:cid>/delete", methods=["POST"])
