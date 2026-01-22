@@ -41,6 +41,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from flask import request, redirect, url_for, render_template, jsonify, flash, abort
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
+from flask import request, jsonify
 
 import json
 import os as _os, sys as _sys
@@ -4544,6 +4546,57 @@ def create_app():
     @app.get("/api/category-names")
     def api_category_names():
         return jsonify(active_category_names())
+    
+
+    
+
+    @app.post("/api/categories/<int:cid>/update")
+    def api_categories_update_post(cid):
+        cat = RiskCategory.query.get_or_404(cid)
+
+        def norm(v): 
+            return (v or "").strip()
+
+        nm = norm(request.form.get("name"))
+        if not nm:
+            return jsonify({"error": "name required"}), 400
+
+        cat.name = nm
+        cat.code = norm(request.form.get("code")) or None
+        cat.color = norm(request.form.get("color")) or None
+        cat.description = norm(request.form.get("description")) or None
+
+        # checkbox gelmezse False say
+        cat.is_active = _truthy(request.form.get("is_active"))
+
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"error": "duplicate code or constraint error"}), 409
+
+        return jsonify({"ok": True})
+
+
+        @app.post("/api/categories/<int:cid>/delete")
+        def api_categories_delete_post(cid):
+            cat = RiskCategory.query.get_or_404(cid)
+
+            try:
+                db.session.delete(cat)
+                db.session.commit()
+                return jsonify({"ok": True, "deleted": True})
+            except IntegrityError:
+                # kullanımda ise: soft delete (pasif)
+                db.session.rollback()
+                cat.is_active = False
+                db.session.commit()
+                return jsonify({
+                    "ok": True,
+                    "deleted": False,
+                    "message": "Kullanımda olduğu için silinmedi; pasif yapıldı."
+                }), 200
+
     
     
 
