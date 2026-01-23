@@ -27,7 +27,7 @@ from io import BytesIO
 from .models import CostItem, CostTemplate
 from flask import session
 from riskapp.models import db, Risk, Evaluation, CostItem
-from riskapp.models import RiskEvaluation as Eval
+
 
 try:
     from riskapp.models import Cost  # beklenen isim
@@ -246,23 +246,38 @@ def _guess_wkhtmltopdf_path() -> str | None:
 
 def _pick_eval_model():
     """
-    Projedeki evaluation modelinin adını otomatik bulmaya çalışır.
-    Sende hangisi varsa onu yakalar:
-    RiskEvaluation / Evaluation / RiskEval / RiskEvaluationModel ...
+    Projede evaluation modelinin adını otomatik bulmaya çalışır.
+    models.py içinde hangi sınıf varsa onu yakalar.
     """
+    try:
+        import riskapp.models as m
+    except Exception:
+        return None
+
     candidates = [
         "RiskEvaluation",
         "Evaluation",
         "RiskEval",
         "RiskEvaluationModel",
         "RiskEvaluationEntry",
+        "RiskScore",
+        "RiskAssessment",
     ]
-    g = globals()
     for name in candidates:
-        m = g.get(name)
-        if m is not None:
-            return m
+        obj = getattr(m, name, None)
+        if obj is not None:
+            return obj
+
+    # Son çare: SQLAlchemy model olup __tablename__ olanları tara
+    for name in dir(m):
+        obj = getattr(m, name, None)
+        if hasattr(obj, "__tablename__"):
+            tn = str(getattr(obj, "__tablename__", "")).lower()
+            if "eval" in tn or "assessment" in tn or "score" in tn:
+                return obj
+
     return None
+
 
 
 
