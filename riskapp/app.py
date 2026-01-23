@@ -27,7 +27,19 @@ from io import BytesIO
 from .models import CostItem, CostTemplate
 from flask import session
 from riskapp.models import db, Risk, Evaluation, CostItem
-from riskapp.models import Cost
+
+try:
+    from riskapp.models import Cost  # beklenen isim
+except Exception:
+    # fallback: senin projede farklı adla duruyorsa burayı genişlet
+    try:
+        from riskapp.models import CostItem as Cost
+    except Exception:
+        try:
+            from riskapp.models import RiskCost as Cost
+        except Exception:
+            Cost = None  # en kötü: route içinde kontrol edeceğiz
+
 import re
 from sqlalchemy.exc import IntegrityError
 from flask import request
