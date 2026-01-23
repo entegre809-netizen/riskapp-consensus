@@ -126,7 +126,7 @@
      ✅ ÜST HERO (KÜÇÜLTÜLMÜŞ)
      ============================================================ */
   .hero{
-    padding: 14px 16px 12px;   /* ⬅️ daha küçük */
+    padding: 14px 16px 12px;
     border-radius: 16px;
   }
   .crumb{
@@ -143,7 +143,7 @@
   .hero-title{
     margin: 0;
     font-weight: 900;
-    font-size: clamp(1.65rem, 2.6vw, 2.45rem); /* ⬅️ daha küçük */
+    font-size: clamp(1.65rem, 2.6vw, 2.45rem);
     line-height: 1.08;
     letter-spacing: -0.02em;
     font-family: ui-serif, Georgia, "Times New Roman", Times, serif;
@@ -166,17 +166,17 @@
     display:inline-flex;
     align-items:center;
     gap:8px;
-    padding: .5rem .75rem; /* ⬅️ daha küçük */
+    padding: .5rem .75rem;
     border-radius: 999px;
     border:1px solid color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
     background: color-mix(in oklab, var(--bg-soft,#f3f4f6) 78%, transparent);
     font-weight: 900;
     letter-spacing:.02em;
-    min-height: 38px;  /* ⬅️ daha küçük */
+    min-height: 38px;
     font-size: .9rem;
   }
   .cat-pill .ico{
-    width: 28px; height: 28px; /* ⬅️ daha küçük */
+    width: 28px; height: 28px;
     border-radius: 10px;
     display:flex; align-items:center; justify-content:center;
     background: rgba(245,158,11,.15);
@@ -187,13 +187,13 @@
     display:inline-flex;
     align-items:center;
     gap:8px;
-    padding: .5rem .8rem; /* ⬅️ daha küçük */
+    padding: .5rem .8rem;
     border-radius: 999px;
-    min-height: 38px;      /* ⬅️ daha küçük */
+    min-height: 38px;
     font-weight: 900;
     color: #fff;
     background: linear-gradient(135deg, #ef4444, #b91c1c);
-    box-shadow: 0 8px 18px rgba(185,28,28,.18); /* ⬅️ daha az */
+    box-shadow: 0 8px 18px rgba(185,28,28,.18);
     border: 1px solid rgba(255,255,255,.15);
     font-size: .92rem;
   }
@@ -213,7 +213,7 @@
     display:inline-flex;
     align-items:center;
     gap:8px;
-    padding: .65rem .95rem; /* ⬅️ daha küçük */
+    padding: .65rem .95rem;
     border-radius: 12px;
     font-weight: 900;
     font-size: .92rem;
@@ -517,6 +517,32 @@
   [data-theme="dark"] .rd-cost-table td{ border-bottom-color: rgba(255,255,255,.10); }
   [data-theme="dark"] .rd-money{ color:#fca5a5; }
 
+  /* ✅ Cost unlink button (silmez, sadece riskten çıkarır) */
+  .rd-unlink{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:32px;
+    height:32px;
+    border-radius:10px;
+    border:1px solid color-mix(in oklab, var(--primary,#2563eb) 28%, var(--line,#e5e7eb) 72%);
+    background: color-mix(in oklab, var(--primary,#2563eb) 10%, transparent);
+    color: color-mix(in oklab, var(--primary,#2563eb) 80%, black 20%);
+    cursor:pointer;
+    font-weight:900;
+    text-decoration:none;
+  }
+  .rd-unlink:hover{
+    background: color-mix(in oklab, var(--primary,#2563eb) 14%, transparent);
+    transform: translateY(-1px);
+  }
+  .rd-unlink:active{ transform: translateY(0); }
+  [data-theme="dark"] .rd-unlink{
+    border-color: color-mix(in oklab, var(--primary,#6ea8ff) 28%, rgba(255,255,255,.14) 72%);
+    background: color-mix(in oklab, var(--primary,#6ea8ff) 14%, transparent);
+    color:#bfdbfe;
+  }
+
   /* ============================================================
      ✅ Yorumlar ve İşlem Geçmişi (tasarım)
      ============================================================ */
@@ -625,32 +651,6 @@
   [data-theme="dark"] .yh-deletebox{
     border-color: rgba(255,255,255,.12);
     background: color-mix(in oklab, #ef4444 10%, transparent);
-  }
-
-    /* ✅ Cost delete button */
-  .rd-del{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:32px;
-    height:32px;
-    border-radius:10px;
-    border:1px solid color-mix(in oklab, #ef4444 35%, var(--line,#e5e7eb) 65%);
-    background: color-mix(in oklab, #ef4444 10%, transparent);
-    color:#b91c1c;
-    cursor:pointer;
-    font-weight:900;
-    text-decoration:none;
-  }
-  .rd-del:hover{
-    background: color-mix(in oklab, #ef4444 16%, transparent);
-    transform: translateY(-1px);
-  }
-  .rd-del:active{ transform: translateY(0); }
-  [data-theme="dark"] .rd-del{
-    border-color: rgba(239,68,68,.35);
-    background: color-mix(in oklab, #ef4444 14%, transparent);
-    color:#fecaca;
   }
 </style>
 
@@ -828,8 +828,6 @@
           </p>
         </div>
 
-        {# Mitigation tablon varsa buraya koy. JS aşağıda mitBody/addMitRow arıyor. #}
-
         <div class="rf-field">
           <label>Başlangıç Tarihi</label>
           <input class="input" type="date" id="start_date"
@@ -881,7 +879,6 @@
         </div>
       </div>
 
-      {# ✅ rr undefined fix: burada rr yok, o yüzden r.id kullanıyoruz #}
       {% if ps_reco and (ps_reco.p or ps_reco.s) %}
         <div class="card" style="margin: 0 0 12px; padding:12px">
           <div class="row" style="justify-content:space-between; gap:10px; align-items:center;">
@@ -935,7 +932,6 @@
               <div class="rd-score-block">
                 <label>Olasılık Derecesi (Probability)</label>
 
-                {# select: form submit için (gizli) #}
                 <select class="input probSel" name="probability" style="display:none">
                   {% for i in range(1,6) %}
                     <option value="{{ i }}">{{ i }}</option>
@@ -952,7 +948,6 @@
               <div class="rd-score-block">
                 <label>Şiddet Derecesi (Severity)</label>
 
-                {# select: form submit için (gizli) #}
                 <select class="input sevSel" name="severity" style="display:none">
                   {% for i in range(1,6) %}
                     <option value="{{ i }}">{{ i }}</option>
@@ -969,7 +964,6 @@
 
             <div class="row" style="margin-top:10px">
               <input class="input grow" name="evaluator" placeholder="Değerlendiren (opsiyonel)">
-              {# eski canlı pill: JS bunu da update ediyor (gizli) #}
               <span class="pill nowrap liveRpn" style="display:none">RPN: 1×1 = 1</span>
             </div>
 
@@ -994,43 +988,41 @@
 
         {% if risk_costs and risk_costs|length > 0 %}
           <table class="rd-cost-table">
-  <thead>
-    <tr>
-      <th>Öge</th>
-      <th class="nowrap">Maliyet</th>
-      <th class="nowrap">Tarih</th>
-      <th class="nowrap" style="text-align:right">İşlem</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for c in risk_costs[:8] %}
-      <tr>
-        <td>{{ c.title or '—' }}</td>
+            <thead>
+              <tr>
+                <th>Öge</th>
+                <th class="nowrap">Maliyet</th>
+                <th class="nowrap">Tarih</th>
+                <th class="nowrap" style="text-align:right">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in risk_costs[:8] %}
+                <tr>
+                  <td>{{ c.title or '—' }}</td>
 
-        <td class="rd-money">
-          {{ '%.2f'|format((c.total or 0)|float) }} {{ (c.currency or 'TRY')|upper }}
-        </td>
+                  <td class="rd-money">
+                    {{ '%.2f'|format((c.total or 0)|float) }} {{ (c.currency or 'TRY')|upper }}
+                  </td>
 
-        <td class="rd-date">
-          {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '-' }}
-        </td>
+                  <td class="rd-date">
+                    {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '-' }}
+                  </td>
 
-        <td class="nowrap" style="text-align:right">
-          <form method="post"
-                action="{{ url_for('cost_delete', cost_id=c.id) }}"
-                style="display:inline"
-                onsubmit="return confirm('Bu maliyeti silmek istiyor musun?');">
-            {# CSRF varsa #}
-            {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
-
-            <button type="submit" class="rd-del" title="Sil" aria-label="Sil">🗑️</button>
-          </form>
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
+                  <td class="nowrap" style="text-align:right">
+                    {# ✅ SİLME YOK: SADECE RİSKTEN ÇIKAR (UNLINK) #}
+                    <form method="post"
+                          action="{{ url_for('risk_cost_unlink', risk_id=r.id, cost_id=c.id) }}"
+                          style="display:inline"
+                          onsubmit="return confirm('Bu maliyeti SİLMEYECEĞİZ. Sadece bu riskten çıkaracağız. Devam?');">
+                      {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                      <button type="submit" class="rd-unlink" title="Riskten çıkar" aria-label="Riskten çıkar">🧷</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
 
           {% if cost_totals %}
             <div style="margin-top:10px">
@@ -1066,17 +1058,16 @@
                       <td class="nowrap">{{ c.frequency or 'Tek Sefer' }}</td>
                       <td class="nowrap">{{ c.currency or 'TRY' }}</td>
                       <td class="nowrap" style="display:flex; gap:8px; justify-content:flex-end;">
-  <a class="btn btn-sm" href="{{ url_for('cost_edit', cost_id=c.id) }}">Düzenle</a>
+                        <a class="btn btn-sm" href="{{ url_for('cost_edit', cost_id=c.id) }}">Düzenle</a>
 
-  <form method="post"
-        action="{{ url_for('cost_delete', cost_id=c.id) }}"
-        style="margin:0"
-        onsubmit="return confirm('Bu maliyeti silmek istiyor musun?');">
-    {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
-    <button type="submit" class="rd-del" title="Sil" aria-label="Sil">🗑️</button>
-  </form>
-</td>
-
+                        <form method="post"
+                              action="{{ url_for('risk_cost_unlink', risk_id=r.id, cost_id=c.id) }}"
+                              style="margin:0"
+                              onsubmit="return confirm('Bu maliyeti SİLMEYECEĞİZ. Sadece bu riskten çıkaracağız. Devam?');">
+                          {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                          <button type="submit" class="rd-unlink" title="Riskten çıkar" aria-label="Riskten çıkar">🧷</button>
+                        </form>
+                      </td>
                     </tr>
                   {% endfor %}
                 </tbody>

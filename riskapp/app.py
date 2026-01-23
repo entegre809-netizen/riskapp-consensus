@@ -46,7 +46,7 @@ from flask import request, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask import request, redirect, url_for, abort, flash
 from riskapp.models import Cost
-
+from flask import request, redirect, url_for, abort, flash, session
 import json
 import os as _os, sys as _sys
 PKG_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
@@ -6142,6 +6142,23 @@ def create_app():
             return jsonify({"ok": True, "moved": 0, "copied": copied})
 
         return jsonify({"ok": False, "error": "mode move|copy olmalı"}), 400
+    
+    @app.post("/risks/<int:risk_id>/costs/<int:cost_id>/unlink")
+    def cost_unlink_from_risk(risk_id, cost_id):
+        if session.get("role") != "admin":
+            abort(403)
+
+        c = Cost.query.get_or_404(cost_id)
+
+        # Güvenlik: bu maliyet gerçekten bu riske mi bağlı?
+        if c.risk_id != risk_id:
+            abort(403)
+
+        c.risk_id = None
+        db.session.commit()
+
+        flash("Maliyet bu riskten çıkarıldı (silinmedi).", "success")
+        return redirect(request.referrer or url_for("risk_detail", risk_id=risk_id))
 
         
  
