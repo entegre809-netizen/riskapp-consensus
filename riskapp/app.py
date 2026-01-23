@@ -27,7 +27,7 @@ from io import BytesIO
 from .models import CostItem, CostTemplate
 from flask import session
 from riskapp.models import db, Risk, Evaluation, CostItem
-from riskapp.models import CostItem, CostTemplate
+from riskapp.models import Cost
 import re
 from sqlalchemy.exc import IntegrityError
 from flask import request
@@ -45,7 +45,7 @@ from sqlalchemy.exc import IntegrityError
 from flask import request, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask import request, redirect, url_for, abort, flash
-from riskapp.models import Cost
+
 from flask import request, redirect, url_for, abort, flash, session
 import json
 import os as _os, sys as _sys
