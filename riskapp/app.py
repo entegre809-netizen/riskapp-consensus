@@ -6155,24 +6155,7 @@ def create_app():
 
         return jsonify({"ok": False, "error": "mode move|copy olmalı"}), 400
     
-    @app.post("/risks/<int:risk_id>/costs/<int:cost_id>/unlink")
-    def cost_unlink_from_risk(risk_id, cost_id):
-        if session.get("role") != "admin":
-            abort(403)
-
-        c = Cost.query.get_or_404(cost_id)
-
-        # Güvenlik: bu maliyet gerçekten bu riske mi bağlı?
-        if c.risk_id != risk_id:
-            abort(403)
-
-        c.risk_id = None
-        db.session.commit()
-
-        flash("Maliyet bu riskten çıkarıldı (silinmedi).", "success")
-        return redirect(request.referrer or url_for("risk_detail", risk_id=risk_id))
-
-        
+    
  
 
 
@@ -6761,6 +6744,29 @@ def create_app():
 
         _PARETO_AI_CACHE[cache_key] = (now, payload)
         return jsonify(payload)
+    
+    from flask import redirect, url_for, flash, request
+# db ve modeller zaten sende var
+
+    @app.post("/risks/<int:risk_id>/costs/<int:cost_id>/unlink")
+    def risk_cost_unlink(risk_id, cost_id):
+        # Burada senin ilişki yapına göre 2 ihtimal var:
+
+        # 1) Cost tablosunda risk_id kolonu varsa: sadece risk_id'yi boşalt
+        try:
+            c = Cost.query.get_or_404(cost_id)
+            if getattr(c, "risk_id", None) == risk_id:
+                c.risk_id = None
+                db.session.commit()
+                flash("Maliyet riske bağlı olmaktan çıkarıldı.", "success")
+            else:
+                flash("Bu maliyet bu riske bağlı değil.", "warning")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Hata: {e}", "danger")
+
+        return redirect(url_for("risk_detail", risk_id=risk_id))
+
 
 
 
