@@ -100,6 +100,8 @@ except Exception:
     pdfkit = None
 
 import re as _re  # importlar arasında yoksa ekle
+from flask import jsonify
+from sqlalchemy import or_
 
 # Ref No formatı (örn: R-PRJ12-2025-0034)
 _REF_PATTERN = _re.compile(r"^R-[A-Z0-9]{2,10}-\d{4}-\d{3,6}$")
@@ -5715,7 +5717,51 @@ def create_app():
             cost_categories=cost_categories,
         )
 
+# -------------------------------------------------
+# COSTS: BULK ATTACH (POST)
+# -------------------------------------------------
+    @app.post("/costs/attach")
+    def costs_attach():
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje yok.", "warning")
+            return redirect(url_for("dashboard"))
 
+        risk_id_raw = (request.form.get("risk_id") or "").strip()
+        if not risk_id_raw.isdigit():
+            flash("Risk seçilemedi.", "danger")
+            return redirect(url_for("costs"))
+
+        risk_id = int(risk_id_raw)
+
+        # risk bu projeye ait mi?
+        r = Risk.query.filter(Risk.id == risk_id, Risk.project_id == project_id).first()
+        if not r:
+            flash("Bu risk bu projeye ait değil.", "danger")
+            return redirect(url_for("costs"))
+
+        ids = request.form.getlist("cost_ids")
+        ids = [int(x) for x in ids if str(x).isdigit()]
+        if not ids:
+            flash("Hiç maliyet seçmedin.", "warning")
+            return redirect(url_for("costs", risk_id=risk_id))
+
+        # sadece bu projeye ait costlar
+        items = CostItem.query.filter(
+            CostItem.project_id == project_id,
+            CostItem.id.in_(ids)
+        ).all()
+
+        if not items:
+            flash("Seçilen maliyetler bulunamadı.", "warning")
+            return redirect(url_for("costs", risk_id=risk_id))
+
+        for c in items:
+            c.risk_id = risk_id  # bağla (mevcut bağlıysa da yeniden bağlar)
+
+        db.session.commit()
+        flash(f"{len(items)} maliyet bu riske bağlandı.", "success")
+        return redirect(url_for("risk_detail", risk_id=risk_id))
 
     # -------------------------------------------------
     # COST EDIT (POST)
@@ -5996,6 +6042,103 @@ def create_app():
         currency = (request.args.get("currency") or "TRY").upper()
         return render_template("pareto_view.html", currency=currency)
     
+    @app.get("/api/cost-items")
+    def api_cost_items():
+        project_id = _active_project_id()
+        if not project_id:
+            return jsonify({"items": []})
+
+        q = (request.args.get("q") or "").strip()
+        only_unlinked = request.args.get("unlinked", "1") == "1"
+        limit = min(int(request.args.get("limit", 80)), 200)
+
+        qry = CostItem.query.filter(CostItem.project_id == project_id)
+
+        if only_unlinked:
+            qry = qry.filter(CostItem.risk_id.is_(None))
+
+        if q:
+            like = f"%{q}%"
+            qry = qry.filter(or_(
+                CostItem.title.ilike(like),
+                CostItem.category.ilike(like),
+                CostItem.currency.ilike(like),
+                CostItem.unit.ilike(like),
+            ))
+
+        items = []
+        for c in qry.order_by(CostItem.id.desc()).limit(limit).all():
+            items.append({
+                "id": c.id,
+                "title": c.title,
+                "category": c.category,
+                "unit": c.unit,
+                "currency": c.currency,
+                "frequency": c.frequency,
+                "qty": float(c.qty or 0),
+                "unit_price": float(c.unit_price or 0),
+                "total": float(c.total or 0),
+                "risk_id": c.risk_id,
+            })
+
+        return jsonify({"items": items})
+    
+    @app.post("/api/risks/<int:risk_id>/cost-items/attach")
+    def api_attach_cost_items(risk_id):
+        project_id = _active_project_id()
+        if not project_id:
+            return jsonify({"ok": False, "error": "Aktif proje yok"}), 400
+
+        r = Risk.query.filter(Risk.id == risk_id, Risk.project_id == project_id).first()
+        if not r:
+            return jsonify({"ok": False, "error": "Risk bulunamadı / proje dışı"}), 404
+
+        data = request.get_json(force=True) or {}
+        ids = data.get("cost_ids") or []
+        mode = (data.get("mode") or "move").lower()  # move | copy
+
+        if not ids:
+            return jsonify({"ok": False, "error": "cost_ids boş"}), 400
+
+        costs = (CostItem.query
+                .filter(CostItem.project_id == project_id, CostItem.id.in_(ids))
+                .all())
+
+        moved = 0
+        copied = 0
+
+        if mode == "move":
+            # güvenlik: istersen sadece boşta olanları taşı
+            for c in costs:
+                if c.risk_id is None:
+                    c.risk_id = risk_id
+                    moved += 1
+            db.session.commit()
+            return jsonify({"ok": True, "moved": moved, "copied": 0})
+
+        if mode == "copy":
+            for c in costs:
+                newc = CostItem(
+                    project_id=project_id,
+                    risk_id=risk_id,
+                    title=c.title,
+                    category=c.category,
+                    unit=c.unit,
+                    currency=c.currency,
+                    frequency=c.frequency,
+                    qty=c.qty,
+                    unit_price=c.unit_price,
+                    description=c.description,
+                    total=c.total,
+                )
+                db.session.add(newc)
+                copied += 1
+            db.session.commit()
+            return jsonify({"ok": True, "moved": 0, "copied": copied})
+
+        return jsonify({"ok": False, "error": "mode move|copy olmalı"}), 400
+
+        
  
 
 

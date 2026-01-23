@@ -7,7 +7,13 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/costs.css') }}">
 
-<div class="costs-page">
+{# ✅ risk_detail'den gelince ?risk_id=... ile gelir #}
+{% set ctx_risk_id = request.args.get('risk_id', '') %}
+{% set selection_mode = (ctx_risk_id and ctx_risk_id|length > 0) %}
+
+<div class="costs-page"
+     data-selection-mode="{% if selection_mode %}1{% else %}0{% endif %}"
+     data-ctx-risk-id="{{ ctx_risk_id|e }}">
   <div class="container py-4">
 
     <!-- Header -->
@@ -17,6 +23,20 @@
         <div class="page-sub">
           Şablondan seç, maliyet gir, açıklamasını yaz; sonra Pareto/Pareto Front ile nereye odaklanacağını gör.
         </div>
+
+        {% if selection_mode %}
+          <div class="alert alert-info mt-3 mb-0">
+            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+              <div>
+                <strong>Seçim Modu:</strong> Mevcut maliyetlerden seçip <strong>Risk #{{ ctx_risk_id }}</strong> ile bağlayabilirsin.
+                <div class="small text-muted mt-1">
+                  İpucu: Aşağıdaki tabloda checkbox’lardan seç → “Seçilileri Bu Riske Bağla”.
+                </div>
+              </div>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('costs') }}">Seçim modundan çık</a>
+            </div>
+          </div>
+        {% endif %}
 
         <!-- FX panel -->
         <div class="fx-panel mt-3">
@@ -367,7 +387,7 @@
                     <option value="">— Risk seçme (boş bırak) —</option>
                     {% if risks and risks|length > 0 %}
                       {% for r in risks %}
-                        <option value="{{ r.id }}">
+                        <option value="{{ r.id }}" {% if selection_mode and (ctx_risk_id|string) == (r.id|string) %}selected{% endif %}>
                           #{{ r.id }} • {{ r.title }}{% if r.category %} • {{ r.category }}{% endif %}
                         </option>
                       {% endfor %}
@@ -443,11 +463,39 @@
             </div>
           </div>
 
+          {# ✅ seçim modunda bulk attach bar #}
+          {% if selection_mode %}
+            <div class="px-3 py-2 border-bottom d-flex flex-wrap gap-2 align-items-center justify-content-between">
+              <div class="small text-muted">
+                Risk #{{ ctx_risk_id }} için seç: <strong id="pickedCount">0</strong>
+              </div>
+
+              <form method="post" action="{{ url_for('costs_attach') }}" id="attachForm" class="d-flex gap-2 align-items-center m-0">
+                <input type="hidden" name="risk_id" value="{{ ctx_risk_id }}">
+                <div id="attachHiddenInputs"></div>
+
+                <button type="submit" class="btn btn-sm btn-primary" id="attachBtn" disabled>
+                  Seçilileri Bu Riske Bağla
+                </button>
+
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('risk_detail', risk_id=ctx_risk_id) }}">
+                  ← Risk Detayına Dön
+                </a>
+              </form>
+            </div>
+          {% endif %}
+
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table mb-0 align-middle" id="costTable">
                 <thead>
                   <tr>
+                    {% if selection_mode %}
+                      <th style="width:44px;" class="text-center">
+                        <input type="checkbox" id="pickAll" title="Hepsini seç">
+                      </th>
+                    {% endif %}
+
                     <th role="button" class="sortable" data-sort="title">Başlık</th>
                     <th role="button" class="sortable" data-sort="category">Kategori</th>
                     <th role="button" class="sortable text-end" data-sort="qty">Miktar</th>
@@ -473,6 +521,13 @@
                           data-unit_price="{{ c.unit_price if c.unit_price is not none else 0 }}"
                           data-total="{{ c.total if c.total is not none else ((c.qty or 0) * (c.unit_price or 0)) }}"
                           data-risk-id="{{ c.risk_id if c.risk_id is not none else '' }}">
+
+                        {% if selection_mode %}
+                          <td class="text-center">
+                            <input class="pickCost" type="checkbox" value="{{ c.id }}">
+                          </td>
+                        {% endif %}
+
                         <td class="fw-semibold">{{ c.title }}</td>
                         <td>{{ c.category }}</td>
                         <td class="text-end">{{ c.qty }}</td>
@@ -513,7 +568,7 @@
 
                       {% if c.description %}
                         <tr class="desc-row">
-                          <td colspan="8" class="p-0">
+                          <td colspan="{% if selection_mode %}9{% else %}8{% endif %}" class="p-0">
                             <div class="collapse" id="desc_{{ loop.index }}">
                               <div class="p-3 small">
                                 <span class="fw-semibold">Açıklama:</span>
@@ -526,7 +581,7 @@
                     {% endfor %}
                   {% else %}
                     <tr>
-                      <td colspan="8" class="text-center text-muted py-4">
+                      <td colspan="{% if selection_mode %}9{% else %}8{% endif %}" class="text-center text-muted py-4">
                         Henüz maliyet yok.
                       </td>
                     </tr>
@@ -535,7 +590,7 @@
 
                 <tfoot>
                   <tr>
-                    <th colspan="4" class="text-end">Görünen satırların toplamı</th>
+                    <th colspan="{% if selection_mode %}5{% else %}4{% endif %}" class="text-end">Görünen satırların toplamı</th>
                     <th class="text-end" id="tableTotalCell">0</th>
                     <th class="text-end small text-muted">Baz</th>
                     <th class="text-end" id="tableTotalBaseCell" title="">0</th>
@@ -730,9 +785,63 @@
 
 {% endblock %}
 
-
 {% block scripts %}
   {{ super() }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="{{ url_for('static', filename='js/costs.js') }}"></script>
+
+  {# ✅ seçim modu JS (costs.js'e dokunmadan, VS Code hatası yok) #}
+  <script>
+    (function(){
+      const page = document.querySelector(".costs-page");
+      if(!page) return;
+
+      const selectionMode = page.dataset.selectionMode === "1";
+      if(!selectionMode) return;
+
+      const pickAll = document.getElementById("pickAll");
+      const picks = Array.from(document.querySelectorAll(".pickCost"));
+      const pickedCount = document.getElementById("pickedCount");
+      const attachBtn = document.getElementById("attachBtn");
+      const hiddenBox = document.getElementById("attachHiddenInputs");
+
+      function rebuildHidden(){
+        if(!hiddenBox) return;
+        hiddenBox.innerHTML = "";
+        const chosen = picks.filter(x => x.checked).map(x => x.value);
+
+        chosen.forEach(id => {
+          const inp = document.createElement("input");
+          inp.type = "hidden";
+          inp.name = "cost_ids";
+          inp.value = id;
+          hiddenBox.appendChild(inp);
+        });
+
+        const n = chosen.length;
+        if(pickedCount) pickedCount.textContent = String(n);
+        if(attachBtn) attachBtn.disabled = (n === 0);
+      }
+
+      if(pickAll){
+        pickAll.addEventListener("change", () => {
+          const on = !!pickAll.checked;
+          picks.forEach(cb => { cb.checked = on; });
+          rebuildHidden();
+        });
+      }
+
+      picks.forEach(cb => cb.addEventListener("change", () => {
+        if(pickAll){
+          const allOn = picks.length > 0 && picks.every(x => x.checked);
+          const anyOn = picks.some(x => x.checked);
+          pickAll.checked = allOn;
+          pickAll.indeterminate = (!allOn && anyOn);
+        }
+        rebuildHidden();
+      }));
+
+      rebuildHidden();
+    })();
+  </script>
 {% endblock %}
