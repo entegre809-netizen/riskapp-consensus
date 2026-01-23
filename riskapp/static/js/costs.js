@@ -95,6 +95,113 @@
     };
   }
 
+  // ============================
+  // ✅ SEÇİM MODU (bulk attach)
+  // ============================
+  const pageEl = document.querySelector(".costs-page");
+  const selectionMode = (pageEl?.dataset?.selectionMode === "1");
+
+  function getPickAllEl(){ return document.getElementById("pickAll"); }
+  function getPickedCountEl(){ return document.getElementById("pickedCount"); }
+  function getAttachBtnEl(){ return document.getElementById("attachBtn"); }
+  function getHiddenBoxEl(){ return document.getElementById("attachHiddenInputs"); }
+
+  function getAllPickCbs(){
+    return Array.from(document.querySelectorAll(".pickCost"));
+  }
+
+  function cbToRow(cb){
+    // checkbox -> ilgili .cost-row <tr>
+    return cb?.closest?.("tr.cost-row") || null;
+  }
+
+  function isRowVisibleForPick(cb){
+    const tr = cbToRow(cb);
+    if (!tr) return false;
+    return !tr.classList.contains("d-none");
+  }
+
+  function rebuildHiddenInputs(){
+    if (!selectionMode) return;
+
+    const hiddenBox = getHiddenBoxEl();
+    const pickedCount = getPickedCountEl();
+    const attachBtn = getAttachBtnEl();
+    if (!hiddenBox) return;
+
+    hiddenBox.innerHTML = "";
+
+    const picks = getAllPickCbs();
+    const chosen = picks.filter(x => x.checked).map(x => x.value);
+
+    chosen.forEach(id => {
+      const inp = document.createElement("input");
+      inp.type = "hidden";
+      inp.name = "cost_ids";
+      inp.value = id;
+      hiddenBox.appendChild(inp);
+    });
+
+    const n = chosen.length;
+    if (pickedCount) pickedCount.textContent = String(n);
+    if (attachBtn) attachBtn.disabled = (n === 0);
+
+    updatePickAllState(); // pickedCount sonrası pickAll UI da güncel kalsın
+  }
+
+  function updatePickAllState(){
+    if (!selectionMode) return;
+
+    const pickAll = getPickAllEl();
+    if (!pickAll) return;
+
+    const picks = getAllPickCbs();
+
+    // pickAll: sadece GÖRÜNÜR satırlar üzerinden hesap
+    const visible = picks.filter(isRowVisibleForPick);
+
+    if (visible.length === 0){
+      pickAll.checked = false;
+      pickAll.indeterminate = false;
+      return;
+    }
+
+    const allOn = visible.every(x => x.checked);
+    const anyOn = visible.some(x => x.checked);
+
+    pickAll.checked = allOn;
+    pickAll.indeterminate = (!allOn && anyOn);
+  }
+
+  function bindSelectionMode(){
+    if (!selectionMode) return;
+
+    // pickAll değişimi: sadece görünür satırları seç
+    const pickAll = getPickAllEl();
+    if (pickAll){
+      pickAll.addEventListener("change", () => {
+        const on = !!pickAll.checked;
+        const picks = getAllPickCbs();
+        picks.forEach(cb => {
+          if (isRowVisibleForPick(cb)) cb.checked = on;
+        });
+        rebuildHiddenInputs();
+      });
+    }
+
+    // tek tek seçim
+    document.addEventListener("change", (e) => {
+      const cb = e.target;
+      if (!(cb instanceof HTMLInputElement)) return;
+      if (!cb.classList.contains("pickCost")) return;
+
+      rebuildHiddenInputs();
+    });
+
+    // ilk yüklemede
+    rebuildHiddenInputs();
+  }
+
   // --- FORM live totals (Yeni maliyet formu) ---
   function updateFormLive(){
     const qty = safeNum($("#qty")?.value, 0);
@@ -267,6 +374,9 @@
       ? "Kur girilmemişse USD/EUR dönüşümü hesaplanamaz."
       : `Baz: ${base}, USD/TRY=${fx.usdtry}, EUR/TRY=${fx.eurtry}`;
     $("#tableTotalBaseCell") && ($("#tableTotalBaseCell").title = tip);
+
+    // ✅ Seçim modu UI (filtre/sort sonrası pickAll indeterminate doğru kalsın)
+    if (selectionMode) updatePickAllState();
   }
 
   // --- Templates: search/filter + apply to form + edit modal ---
@@ -624,22 +734,26 @@
     $("#tableSearch")?.addEventListener("input", () => {
       updateTableAndHeader();
       updateCharts();
+      if (selectionMode) updatePickAllState();
     });
 
     $("#tableCurrency")?.addEventListener("change", () => {
       updateTableAndHeader();
       updateCharts();
+      if (selectionMode) updatePickAllState();
     });
 
     $("#tableFrequency")?.addEventListener("change", () => {
       updateTableAndHeader();
       updateCharts();
+      if (selectionMode) updatePickAllState();
     });
 
     $("#tableClearSearch")?.addEventListener("click", () => {
       $("#tableSearch").value = "";
       updateTableAndHeader();
       updateCharts();
+      if (selectionMode) updatePickAllState();
     });
 
     $("#exportCsv")?.addEventListener("click", exportVisibleCsv);
@@ -675,6 +789,7 @@
       updateTableAndHeader();
       updateCharts();
       updateFormLive();
+      if (selectionMode) updatePickAllState();
     };
 
     ["#baseCurrency","#oneTimePolicy","#amortizeYears","#paretoUseAnnual","#fxUSDTRY","#fxEURTRY"]
@@ -695,8 +810,14 @@
     bindForm();
     bindTableControls();
 
+    // ✅ seçim modu bağla (varsa)
+    bindSelectionMode();
+
     applyTplFilters();
     updateTableAndHeader();
     updateCharts();
+
+    // ilk durumda pickAll state düzgün olsun
+    if (selectionMode) updatePickAllState();
   });
 })();
