@@ -626,6 +626,32 @@
     border-color: rgba(255,255,255,.12);
     background: color-mix(in oklab, #ef4444 10%, transparent);
   }
+
+    /* ✅ Cost delete button */
+  .rd-del{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:32px;
+    height:32px;
+    border-radius:10px;
+    border:1px solid color-mix(in oklab, #ef4444 35%, var(--line,#e5e7eb) 65%);
+    background: color-mix(in oklab, #ef4444 10%, transparent);
+    color:#b91c1c;
+    cursor:pointer;
+    font-weight:900;
+    text-decoration:none;
+  }
+  .rd-del:hover{
+    background: color-mix(in oklab, #ef4444 16%, transparent);
+    transform: translateY(-1px);
+  }
+  .rd-del:active{ transform: translateY(0); }
+  [data-theme="dark"] .rd-del{
+    border-color: rgba(239,68,68,.35);
+    background: color-mix(in oklab, #ef4444 14%, transparent);
+    color:#fecaca;
+  }
 </style>
 
 <div class="page">
@@ -968,27 +994,43 @@
 
         {% if risk_costs and risk_costs|length > 0 %}
           <table class="rd-cost-table">
-            <thead>
-              <tr>
-                <th>Öge</th>
-                <th class="nowrap">Maliyet</th>
-                <th class="nowrap">Tarih</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for c in risk_costs[:8] %}
-                <tr>
-                  <td>{{ c.title or '—' }}</td>
-                  <td class="rd-money">
-                    {{ '%.2f'|format((c.total or 0)|float) }} {{ (c.currency or 'TRY')|upper }}
-                  </td>
-                  <td class="rd-date">
-                    {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '-' }}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <thead>
+    <tr>
+      <th>Öge</th>
+      <th class="nowrap">Maliyet</th>
+      <th class="nowrap">Tarih</th>
+      <th class="nowrap" style="text-align:right">İşlem</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in risk_costs[:8] %}
+      <tr>
+        <td>{{ c.title or '—' }}</td>
+
+        <td class="rd-money">
+          {{ '%.2f'|format((c.total or 0)|float) }} {{ (c.currency or 'TRY')|upper }}
+        </td>
+
+        <td class="rd-date">
+          {{ c.created_at.strftime('%d.%m.%Y') if c.created_at else '-' }}
+        </td>
+
+        <td class="nowrap" style="text-align:right">
+          <form method="post"
+                action="{{ url_for('cost_delete', cost_id=c.id) }}"
+                style="display:inline"
+                onsubmit="return confirm('Bu maliyeti silmek istiyor musun?');">
+            {# CSRF varsa #}
+            {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+
+            <button type="submit" class="rd-del" title="Sil" aria-label="Sil">🗑️</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
 
           {% if cost_totals %}
             <div style="margin-top:10px">
@@ -1023,9 +1065,18 @@
                       <td class="nowrap">{{ '%.2f'|format((c.total or 0)|float) }}</td>
                       <td class="nowrap">{{ c.frequency or 'Tek Sefer' }}</td>
                       <td class="nowrap">{{ c.currency or 'TRY' }}</td>
-                      <td class="nowrap">
-                        <a class="btn btn-sm" href="{{ url_for('cost_edit', cost_id=c.id) }}">Düzenle</a>
-                      </td>
+                      <td class="nowrap" style="display:flex; gap:8px; justify-content:flex-end;">
+  <a class="btn btn-sm" href="{{ url_for('cost_edit', cost_id=c.id) }}">Düzenle</a>
+
+  <form method="post"
+        action="{{ url_for('cost_delete', cost_id=c.id) }}"
+        style="margin:0"
+        onsubmit="return confirm('Bu maliyeti silmek istiyor musun?');">
+    {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+    <button type="submit" class="rd-del" title="Sil" aria-label="Sil">🗑️</button>
+  </form>
+</td>
+
                     </tr>
                   {% endfor %}
                 </tbody>

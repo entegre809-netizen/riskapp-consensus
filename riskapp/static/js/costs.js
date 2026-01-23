@@ -98,8 +98,8 @@
   // ============================
   // ✅ SEÇİM MODU (bulk attach)
   // ============================
-  const pageEl = document.querySelector(".costs-page");
-  const selectionMode = (pageEl?.dataset?.selectionMode === "1");
+  // ⚠️ DOM gelmeden hesaplamamak için selectionMode onReady'de set edilecek
+  let selectionMode = false;
 
   function getPickAllEl(){ return document.getElementById("pickAll"); }
   function getPickedCountEl(){ return document.getElementById("pickedCount"); }
@@ -119,6 +119,28 @@
     const tr = cbToRow(cb);
     if (!tr) return false;
     return !tr.classList.contains("d-none");
+  }
+
+  function updatePickAllState(){
+    if (!selectionMode) return;
+
+    const pickAll = getPickAllEl();
+    if (!pickAll) return;
+
+    const picks = getAllPickCbs();
+    const visible = picks.filter(isRowVisibleForPick);
+
+    if (visible.length === 0){
+      pickAll.checked = false;
+      pickAll.indeterminate = false;
+      return;
+    }
+
+    const allOn = visible.every(x => x.checked);
+    const anyOn = visible.some(x => x.checked);
+
+    pickAll.checked = allOn;
+    pickAll.indeterminate = (!allOn && anyOn);
   }
 
   function rebuildHiddenInputs(){
@@ -146,31 +168,7 @@
     if (pickedCount) pickedCount.textContent = String(n);
     if (attachBtn) attachBtn.disabled = (n === 0);
 
-    updatePickAllState(); // pickedCount sonrası pickAll UI da güncel kalsın
-  }
-
-  function updatePickAllState(){
-    if (!selectionMode) return;
-
-    const pickAll = getPickAllEl();
-    if (!pickAll) return;
-
-    const picks = getAllPickCbs();
-
-    // pickAll: sadece GÖRÜNÜR satırlar üzerinden hesap
-    const visible = picks.filter(isRowVisibleForPick);
-
-    if (visible.length === 0){
-      pickAll.checked = false;
-      pickAll.indeterminate = false;
-      return;
-    }
-
-    const allOn = visible.every(x => x.checked);
-    const anyOn = visible.some(x => x.checked);
-
-    pickAll.checked = allOn;
-    pickAll.indeterminate = (!allOn && anyOn);
+    updatePickAllState();
   }
 
   function bindSelectionMode(){
@@ -247,7 +245,15 @@
       const hitQ = !q || (`${r.title} ${r.category}`.toLowerCase().includes(q));
       const hitC = !cur || r.currency === cur;
       const hitF = !fr || r.frequency === fr;
-      r.tr.classList.toggle("d-none", !(hitQ && hitC && hitF));
+
+      const hide = !(hitQ && hitC && hitF);
+      r.tr.classList.toggle("d-none", hide);
+
+      // ✅ FIX: desc-row da beraber gizlensin
+      const desc = r.tr.nextElementSibling;
+      if (desc && desc.classList.contains("desc-row")){
+        desc.classList.toggle("d-none", hide);
+      }
     });
   }
 
@@ -805,6 +811,10 @@
   }
 
   onReady(() => {
+    // ✅ selectionMode’u DOM hazırken hesapla (kritik fix)
+    const pageEl = document.querySelector(".costs-page");
+    selectionMode = (pageEl?.dataset?.selectionMode === "1");
+
     bindFxPanel();
     bindTemplateEvents();
     bindForm();

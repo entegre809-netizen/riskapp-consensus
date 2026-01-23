@@ -44,6 +44,8 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from flask import request, jsonify
 from sqlalchemy.exc import IntegrityError
+from flask import request, redirect, url_for, abort, flash
+from riskapp.models import Cost
 
 import json
 import os as _os, sys as _sys
@@ -5762,6 +5764,24 @@ def create_app():
         db.session.commit()
         flash(f"{len(items)} maliyet bu riske bağlandı.", "success")
         return redirect(url_for("risk_detail", risk_id=risk_id))
+    
+
+    @app.post("/costs/<int:cost_id>/delete")
+    def cost_delete(cost_id):
+        # Yetki: sen admin ile kısıtlamak istiyorsan aç:
+        if session.get("role") != "admin":
+            abort(403)
+
+        c = Cost.query.get_or_404(cost_id)
+
+        # Ekstra güvenlik: gerçekten bir riske bağlı mı? (istersen)
+        # if not c.risk_id: abort(400)
+
+        db.session.delete(c)
+        db.session.commit()
+        flash("Maliyet silindi.", "success")
+
+        return redirect(request.referrer or url_for("index"))
 
     # -------------------------------------------------
     # COST EDIT (POST)
