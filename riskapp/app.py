@@ -27,6 +27,7 @@ from io import BytesIO
 from .models import CostItem, CostTemplate
 from flask import session
 from riskapp.models import db, Risk, Evaluation, CostItem
+from riskapp.models import RiskEvaluation as Eval
 
 try:
     from riskapp.models import Cost  # beklenen isim
@@ -242,6 +243,27 @@ def _guess_wkhtmltopdf_path() -> str | None:
         if Path(p).exists():
             return p
     return "wkhtmltopdf"  # PATH'te bulunabiliyorsa çalışır
+
+def _pick_eval_model():
+    """
+    Projedeki evaluation modelinin adını otomatik bulmaya çalışır.
+    Sende hangisi varsa onu yakalar:
+    RiskEvaluation / Evaluation / RiskEval / RiskEvaluationModel ...
+    """
+    candidates = [
+        "RiskEvaluation",
+        "Evaluation",
+        "RiskEval",
+        "RiskEvaluationModel",
+        "RiskEvaluationEntry",
+    ]
+    g = globals()
+    for name in candidates:
+        m = g.get(name)
+        if m is not None:
+            return m
+    return None
+
 
 
 # -------------------------------------------------
@@ -6052,8 +6074,206 @@ def create_app():
             "top_80_count": len(top_80),
             "items": items,
         })
-    
-    
+
+
+    # ============================================================
+    # ✅ YENİ: RPN (Risk Puanı) PARETO
+    # - Son evaluation (max id) baz alınır
+    # - value = RPN (P*S)
+    # ============================================================
+    @app.get("/analytics/pareto/rpn")
+    def pareto_rpn():
+        pid = _get_active_project_id()
+        limit = int(request.args.get("limit") or 50)
+
+        Eval = _pick_eval_model()
+        if Eval is None:
+            return jsonify({
+                "mode": "rpn",
+                "items": [],
+                "total": 0,
+                "note": "Evaluation model not found. (RiskEvaluation/Evaluation/RiskEval?)"
+            })
+
+        # Risk scope (aktif proje)
+        rq = Risk.query
+        if pid:
+            rq = rq.filter(Risk.project_id == pid)
+
+        risk_ids = [r.id for r in rq.with_entities(Risk.id).all()]
+        if not risk_ids:
+            return jsonify({"mode": "rpn", "items": [], "total": 0, "note": "No risks in scope"})
+
+        # Her risk için son evaluation id (max)
+        last_eval_sq = (
+            db.session.query(
+                Eval.risk_id.label("risk_id"),
+                func.max(Eval.id).label("last_id"),
+            )
+            .filter(Eval.risk_id.in_(risk_ids))
+            .group_by(Eval.risk_id)
+            .subquery()
+        )
+
+        # Son evaluation + risk join
+        rows = (
+            db.session.query(
+                Risk.id.label("risk_id"),
+                Risk.title.label("title"),
+                Risk.category.label("category"),
+                Risk.responsible.label("owner"),
+                Eval.probability.label("p"),
+                Eval.severity.label("s"),
+                (Eval.probability * Eval.severity).label("rpn"),
+            )
+            .join(last_eval_sq, last_eval_sq.c.risk_id == Risk.id)
+            .join(Eval, Eval.id == last_eval_sq.c.last_id)
+            .filter(Risk.id.in_(risk_ids))
+            .order_by((Eval.probability * Eval.severity).desc())
+            .limit(limit)
+            .all()
+        )
+
+        if not rows:
+            return jsonify({"mode": "rpn", "items": [], "total": 0, "note": "No evaluations in scope"})
+
+        # Pareto shape
+        items = []
+        total = 0.0
+        for r in rows:
+            v = float(r.rpn or 0)
+            if v <= 0:
+                continue
+            total += v
+            items.append({
+                "risk_id": int(r.risk_id),
+                "title": r.title or f"Risk #{r.risk_id}",
+                "category": r.category,
+                "owner": r.owner,
+                "p": int(r.p or 0),
+                "s": int(r.s or 0),
+                "value": round(v, 2),  # Pareto "value" = RPN
+            })
+
+        # pct + cum_pct
+        running = 0.0
+        for it in items:
+            running += it["value"]
+            it["pct"] = round((it["value"] / total) * 100, 2) if total else 0
+            it["cum_pct"] = round((running / total) * 100, 2) if total else 0
+
+        cutoff_index = next((i for i, it in enumerate(items) if it["cum_pct"] >= 80), len(items)-1)
+        top_80 = items[:cutoff_index+1]
+
+        return jsonify({
+            "mode": "rpn",
+            "total": round(total, 2),
+            "top_80_count": len(top_80),
+            "items": items,
+        })
+
+
+    # ============================================================
+    # ✅ YENİ: CATEGORY PARETO (Maliyetleri kategoriye göre grupla)
+    # - value = kategori toplam maliyeti
+    # - scope: aktif proje riskleri + currency
+    # ============================================================
+    @app.get("/analytics/pareto/category")
+    def pareto_category():
+        pid = _get_active_project_id()
+        currency = (request.args.get("currency") or "TRY").upper()
+        limit = int(request.args.get("limit") or 50)
+
+        # Risk scope
+        rq = Risk.query
+        if pid:
+            rq = rq.filter(Risk.project_id == pid)
+
+        risk_ids = [r.id for r in rq.with_entities(Risk.id).all()]
+        if not risk_ids:
+            return jsonify({"mode": "category", "currency": currency, "items": [], "total": 0, "note": "No risks in scope"})
+
+        # Kategori bazında toplam maliyet:
+        # Risk.category üzerinden gruplayıp CostItem.total topla.
+        rows = (
+            db.session.query(
+                func.coalesce(Risk.category, "GENEL").label("category"),
+                func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
+            )
+            .join(Risk, Risk.id == CostItem.risk_id)
+            .filter(CostItem.risk_id.in_(risk_ids))
+            .filter(func.coalesce(CostItem.currency, "TRY") == currency)
+            .group_by("category")
+            .order_by(func.coalesce(func.sum(CostItem.total), 0).desc())
+            .limit(limit)
+            .all()
+        )
+
+        if not rows:
+            return jsonify({
+                "mode": "category",
+                "currency": currency,
+                "items": [],
+                "total": 0,
+                "note": "No cost items for this currency"
+            })
+
+        items = [{"category": c, "value": round(float(v or 0), 2)} for c, v in rows if float(v or 0) > 0]
+        total = sum(it["value"] for it in items) or 0.0
+
+        running = 0.0
+        for it in items:
+            running += it["value"]
+            it["pct"] = round((it["value"] / total) * 100, 2) if total else 0
+            it["cum_pct"] = round((running / total) * 100, 2) if total else 0
+
+        cutoff_index = next((i for i, it in enumerate(items) if it["cum_pct"] >= 80), len(items)-1)
+        top_80 = items[:cutoff_index+1]
+
+        return jsonify({
+            "mode": "category",
+            "currency": currency,
+            "total": round(total, 2),
+            "top_80_count": len(top_80),
+            "items": items,
+        })
+
+
+    # ============================================================
+    # ✅ OPSİYONEL: 3'ünü tek payload ile dönen paket endpoint
+    # UI tek istekte hepsini alır; sırayı sen yönetirsin.
+    # ============================================================
+    @app.get("/analytics/pareto/pack")
+    def pareto_pack():
+        currency = (request.args.get("currency") or "TRY").upper()
+        limit = int(request.args.get("limit") or 50)
+
+        # request.args'i paylaşmak yerine, fonksiyonları doğrudan çağırıp JSON alıyoruz.
+        # Not: pareto_cost / pareto_category currency+limit okuyor; pareto_rpn limit okuyor.
+        # currency+limit'i querystring’den zaten alıyorsun.
+        cost_resp = pareto_cost()
+        rpn_resp  = pareto_rpn()
+        cat_resp  = pareto_category()
+
+        def _json(resp):
+            try:
+                return resp.get_json() if hasattr(resp, "get_json") else {}
+            except Exception:
+                return {}
+
+        return jsonify({
+            "order": ["rpn", "cost", "category"],
+            "currency": currency,
+            "limit": limit,
+            "rpn": _json(rpn_resp),
+            "cost": _json(cost_resp),
+            "category": _json(cat_resp),
+        })
+
+
+    # ============================================================
+    # ✅ MEVCUT VIEW (aynen)
+    # ============================================================
     @app.get("/analytics/pareto/view")
     def pareto_view():
         currency = (request.args.get("currency") or "TRY").upper()
@@ -6745,7 +6965,6 @@ def create_app():
         _PARETO_AI_CACHE[cache_key] = (now, payload)
         return jsonify(payload)
     
-    from flask import redirect, url_for, flash, request
 # db ve modeller zaten sende var
 
     @app.post("/risks/<int:risk_id>/costs/<int:cost_id>/unlink")
@@ -6766,12 +6985,8 @@ def create_app():
             flash(f"Hata: {e}", "danger")
 
         return redirect(url_for("risk_detail", risk_id=risk_id))
-
-
-
-
-
-
+    
+  
     
 
     
