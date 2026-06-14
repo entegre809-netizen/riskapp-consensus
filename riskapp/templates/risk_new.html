@@ -562,6 +562,17 @@
     color:var(--rn-text);
   }
 
+  .soft-action-note{
+    margin-top:2px;
+    background:rgba(34,197,94,.07);
+    border-color:rgba(34,197,94,.14);
+  }
+
+  .soft-action-note::before{
+    content:"✓";
+    background:#22c55e;
+  }
+
   .footer-actions{
     display:flex;
     align-items:center;
@@ -601,12 +612,9 @@
   }
 
   .actionbar{
-    position:fixed;
-    left:50%;
-    bottom:18px;
-    transform:translateX(-50%);
-    width:min(100% - 32px, 980px);
-    z-index:40;
+    width:100%;
+    max-width:1180px;
+    margin:2px auto 0;
   }
 
   .actionbar-inner{
@@ -618,8 +626,8 @@
     border-radius:24px;
     background:rgba(255,255,255,.88);
     border:1px solid rgba(255,255,255,.92);
-    box-shadow:0 28px 80px rgba(15,23,42,.18);
-    backdrop-filter:blur(22px);
+    box-shadow:var(--rn-shadow-sm);
+    backdrop-filter:blur(18px);
   }
 
   [data-theme="dark"] .actionbar-inner{
@@ -704,8 +712,7 @@
     }
 
     .actionbar{
-      bottom:12px;
-      width:calc(100% - 20px);
+      width:100%;
     }
 
     .actionbar-inner{
@@ -870,10 +877,10 @@
             </div>
           </div>
 
-          <div class="footer-actions" style="grid-column:1/-1">
-            <a class="btn btn-danger" href="{{ url_for('dashboard') }}">Vazgeç</a>
-            <button class="btn" type="submit" name="merge" value="0">Ayrı Oluştur</button>
-            <button class="btn btn-primary" type="submit" name="merge" value="1">Tek Riskte Birleştir</button>
+          <div class="field" style="grid-column:1/-1">
+            <div class="info-note soft-action-note">
+              <span>İşlemi tamamlamak için aşağıdaki sabit olmayan işlem kartını kullan.</span>
+            </div>
           </div>
         </form>
       </section>
@@ -903,10 +910,16 @@
         </div>
 
         <div class="action-right">
+          <a class="btn btn-danger" href="{{ url_for('dashboard') }}">Vazgeç</a>
+          <button type="submit" class="btn"
+                  form="common-form" name="merge" value="0"
+                  title="Seçili şablonları ayrı ayrı risk kaydı olarak oluştur">
+            Ayrı Oluştur
+          </button>
           <button type="submit" class="btn btn-primary"
                   form="common-form" name="merge" value="1"
                   title="Seçili şablonları tek riskte birleştir">
-            Birleştir →
+            Tek Riskte Birleştir →
           </button>
         </div>
       </div>
