@@ -8,7 +8,6 @@
 {% set cur_y = (request.args.get('year')  or current_year  or 2025)|int %}
 {% set month_names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'] %}
 
-{# Seviye etiketleri (backend "grade" filtresi için) #}
 {% set grade_labels = {
   'critical':   'Çok yüksek',
   'moderate':   'Yüksek',
@@ -17,347 +16,840 @@
   'very_low':   'Çok düşük'
 } %}
 
-{# ---------- GÜVENLİ YEDEKLER ---------- #}
 {% set rows_safe   = rows   or [] %}
 {% set months_safe = months or month_names %}
 
 <style>
   /* ==========================================================
-     Risk Timeline — Premium UI (Tailwind-look, base.html uyumlu)
+     Risk Timeline — Premium / Kullanıcı Dostu
+     Fonksiyon kaybı yok: filtre, table/calendar, PDF, ICS, drag/drop
      ========================================================== */
 
-  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
-
   .tl-scope{
-    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
+    --tl-card:#ffffff;
+    --tl-text:#0f172a;
+    --tl-muted:#64748b;
+    --tl-line:rgba(15,23,42,.09);
+    --tl-line-2:rgba(15,23,42,.14);
+    --tl-soft:#f8fafc;
+    --tl-primary:#2457e6;
+    --tl-primary-2:#1d4ed8;
+    --tl-teal:#0f766e;
+    --tl-green:#22c55e;
+    --tl-amber:#f59e0b;
+    --tl-orange:#fb923c;
+    --tl-red:#ef4444;
+    --tl-shadow:0 24px 70px rgba(15,23,42,.09);
+    --tl-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    --tl-radius-xl:28px;
+    --tl-radius-lg:22px;
+    --tl-radius-md:16px;
+    color:var(--tl-text);
+  }
+
+  [data-theme="dark"] .tl-scope{
+    --tl-card:rgba(15,23,42,.76);
+    --tl-text:#e5e7eb;
+    --tl-muted:#94a3b8;
+    --tl-line:rgba(255,255,255,.08);
+    --tl-line-2:rgba(255,255,255,.14);
+    --tl-soft:rgba(15,23,42,.55);
+    --tl-shadow:0 24px 70px rgba(0,0,0,.28);
+    --tl-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .tl-scope *{
+    box-sizing:border-box;
   }
 
   .tl-shell{
-    border-radius: 16px;
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
-    box-shadow: var(--elev-1);
-    padding: 14px;
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
   }
 
-  .tl-head{
-    display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;
-    margin-bottom: 12px;
+  .tl-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--tl-radius-xl);
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--tl-shadow);
   }
+
+  .tl-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .tl-hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .tl-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
   .tl-title{
-    font-size: 1.55rem; font-weight: 900; letter-spacing: -.02em; margin:0;
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px, 3.2vw, 44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
   }
+
   .tl-sub{
-    margin:.25rem 0 0; color: var(--muted); font-weight: 600;
+    max-width:570px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .tl-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+  }
+
+  .btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--tl-line);
+    background:var(--tl-card);
+    color:var(--tl-text);
+    text-decoration:none;
+    font:inherit;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:var(--tl-shadow-sm);
+    transition:transform .14s ease, filter .14s ease, border-color .14s ease, background .14s ease;
+    white-space:nowrap;
+  }
+
+  .btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .btn-primary{
+    background:linear-gradient(135deg, var(--tl-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
+  }
+
+  .tl-hero .btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .tl-hero .btn-primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .tl-card{
+    border-radius:var(--tl-radius-xl);
+    border:1px solid var(--tl-line);
+    background:var(--tl-card);
+    box-shadow:var(--tl-shadow-sm);
+    padding:16px;
   }
 
   .tl-filterbar{
-    position: sticky; top: 8px; z-index: 20;
-    display:flex; flex-wrap:wrap; align-items:center; gap:10px;
-    padding: 10px;
-    border-radius: 14px;
-    background: color-mix(in oklab, var(--card) 75%, transparent);
-    border:1px solid color-mix(in oklab, var(--line) 78%, transparent);
-    box-shadow: var(--elev-1);
-    backdrop-filter: blur(10px);
+    position:sticky;
+    top:8px;
+    z-index:20;
+    display:grid;
+    grid-template-columns:minmax(220px, 1.3fr) repeat(5, minmax(120px, auto)) auto;
+    gap:10px;
+    padding:12px;
+    border-radius:var(--tl-radius-xl);
+    background:rgba(255,255,255,.88);
+    border:1px solid rgba(255,255,255,.92);
+    box-shadow:var(--tl-shadow);
+    backdrop-filter:blur(20px);
+  }
+
+  [data-theme="dark"] .tl-filterbar{
+    background:rgba(15,23,42,.86);
+    border-color:rgba(255,255,255,.10);
+  }
+
+  @media (max-width:1180px){
+    .tl-filterbar{
+      grid-template-columns:repeat(3, minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:760px){
+    .tl-filterbar{
+      grid-template-columns:1fr;
+      position:relative;
+      top:auto;
+    }
   }
 
   .tl-chip{
-    display:flex; align-items:center; gap:10px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: color-mix(in oklab, var(--bg) 92%, transparent);
-    border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
+    min-height:54px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 12px;
+    border-radius:18px;
+    background:var(--tl-soft);
+    border:1px solid var(--tl-line);
+    min-width:0;
   }
+
   .tl-chip .k{
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    white-space: nowrap;
+    flex:0 0 auto;
+    color:var(--tl-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
   }
+
   .tl-chip select,
   .tl-chip input{
+    width:100%;
+    min-width:0;
     border:0 !important;
-    outline: none !important;
-    background: transparent !important;
-    padding: 0 !important;
+    outline:none !important;
+    background:transparent !important;
+    color:var(--tl-text);
+    padding:0 !important;
     height:auto !important;
-    min-height: 22px;
-    font-weight: 800;
+    min-height:24px;
+    font:inherit;
+    font-size:13px;
+    font-weight:850;
   }
-  .tl-chip input[type="text"]{ min-width: 220px; }
-  .tl-chip select{ min-width: 120px; }
 
-  .tl-filterbar .grow{ flex:1 }
-  .tl-actions{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .tl-chip input::placeholder{
+    color:#94a3b8;
+  }
+
+  .tl-view-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
 
   .tl-toggle{
-    display:flex; gap:4px;
-    padding: 4px;
-    border-radius: 12px;
-    border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
-    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    min-height:46px;
+    display:flex;
+    gap:5px;
+    padding:5px;
+    border-radius:18px;
+    border:1px solid var(--tl-line);
+    background:var(--tl-soft);
   }
+
   .tl-toggle button{
-    display:inline-flex; align-items:center; gap:6px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    font-weight: 900;
-    color: var(--muted);
-    background: transparent;
-    border: 0;
-    cursor: pointer;
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:0 11px;
+    border-radius:13px;
+    color:var(--tl-muted);
+    background:transparent;
+    border:0;
+    font:inherit;
+    font-size:12px;
+    font-weight:950;
+    cursor:pointer;
+    white-space:nowrap;
   }
+
   .tl-toggle button.active{
-    background: color-mix(in oklab, var(--card) 85%, transparent);
-    color: var(--primary);
-    box-shadow: var(--elev-1);
+    background:var(--tl-card);
+    color:var(--tl-primary);
+    box-shadow:var(--tl-shadow-sm);
   }
 
-  .custom-scrollbar::-webkit-scrollbar{ width: 8px; height: 8px; }
-  .custom-scrollbar::-webkit-scrollbar-track{ background: transparent; }
+  .tl-filter-actions{
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+
+  @media (max-width:760px){
+    .tl-view-row,
+    .tl-filter-actions{
+      width:100%;
+    }
+
+    .tl-toggle,
+    .tl-filter-actions .btn{
+      flex:1;
+    }
+
+    .tl-toggle button{
+      flex:1;
+    }
+  }
+
+  .custom-scrollbar::-webkit-scrollbar{ width:8px; height:8px; }
+  .custom-scrollbar::-webkit-scrollbar-track{ background:transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb{
-    background: color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius: 999px;
+    background:rgba(148,163,184,.42);
+    border-radius:999px;
   }
-
-  .gantt-grid{
-    background-size: 40px 100%;
-    background-image: linear-gradient(to right,
-      color-mix(in oklab, var(--line) 55%, transparent) 1px,
-      transparent 1px
-    );
-  }
-
-  :root{ --cal-scale: 1; }
-  .cal-zoom-shell{ width:100%; overflow:auto; }
-
-  .gx-critical{ background:#fecaca; outline:1px solid #b91c1c; }
-  .gx-moderate{ background:#fed7aa; outline:1px solid #b45309; }
-  .gx-low{ background:#fef3c7; outline:1px solid #a16207; }
-  .gx-acceptable{ background:#bbf7d0; outline:1px solid #15803d; }
-  .gx-very_low{ background:#e5e7eb; outline:1px solid #4b5563; }
 
   .risk-chip{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:.18rem .55rem;
+    min-height:27px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:0 10px;
     border-radius:999px;
-    font-size:12px;
-    font-weight:600;
+    font-size:11px;
+    font-weight:950;
     color:#fff;
     border:1px solid transparent;
+    white-space:nowrap;
   }
+
   .risk-chip.critical{ background:#b91c1c; border-color:#7f1d1d; }
-  .risk-chip.moderate{ background:#b45309; border-color:#92400e; }
-  .risk-chip.low{ background:#a16207; border-color:#854d0e; }
+  .risk-chip.moderate{ background:#c2410c; border-color:#9a3412; }
+  .risk-chip.low{ background:#b45309; border-color:#92400e; }
   .risk-chip.acceptable{ background:#15803d; border-color:#166534; }
   .risk-chip.very_low{ background:#374151; border-color:#1f2937; }
 
+  .gx-critical{ background:#fee2e2; outline:1px solid #ef4444; color:#7f1d1d; }
+  .gx-moderate{ background:#ffedd5; outline:1px solid #fb923c; color:#7c2d12; }
+  .gx-low{ background:#fef3c7; outline:1px solid #f59e0b; color:#78350f; }
+  .gx-acceptable{ background:#dcfce7; outline:1px solid #22c55e; color:#14532d; }
+  .gx-very_low{ background:#e5e7eb; outline:1px solid #64748b; color:#334155; }
+
+  [data-theme="dark"] .gx-critical{ background:#3f0b0b; outline-color:#991b1b; color:#fecaca; }
+  [data-theme="dark"] .gx-moderate{ background:#431407; outline-color:#9a3412; color:#fed7aa; }
+  [data-theme="dark"] .gx-low{ background:#3a2e05; outline-color:#854d0e; color:#fde68a; }
+  [data-theme="dark"] .gx-acceptable{ background:#0f2f18; outline-color:#166534; color:#bbf7d0; }
+  [data-theme="dark"] .gx-very_low{ background:#111827; outline-color:#4b5563; color:#e5e7eb; }
+
   .icon-btn{
-    display:inline-flex; align-items:center; gap:6px;
-    border:1px solid rgba(0,0,0,.08);
-    background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(245,248,255,.9));
-    padding:.25rem .5rem;
-    border-radius:8px;
-    cursor:pointer;
+    min-height:31px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:0 9px;
+    border-radius:12px;
+    border:1px solid var(--tl-line);
+    background:var(--tl-card);
+    color:var(--tl-text);
+    font:inherit;
     font-size:12px;
+    font-weight:900;
+    cursor:pointer;
+    transition:transform .12s ease, border-color .12s ease;
   }
-  .icon-btn:hover{ filter:brightness(1.02) }
+
+  .icon-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.28);
+  }
 
   .gantt-shell{
     display:flex;
-    border:1px solid color-mix(in oklab, var(--line) 75%, transparent);
-    border-radius: 14px;
+    border:1px solid var(--tl-line);
+    border-radius:var(--tl-radius-xl);
     overflow:hidden;
-    background: color-mix(in oklab, var(--card) 90%, transparent);
+    background:var(--tl-card);
+    box-shadow:var(--tl-shadow-sm);
   }
+
   .gantt-left{
-    width: 420px;
+    width:430px;
     flex-shrink:0;
-    border-right:1px solid color-mix(in oklab, var(--line) 75%, transparent);
-    background: color-mix(in oklab, var(--card) 95%, transparent);
+    border-right:1px solid var(--tl-line);
+    background:var(--tl-card);
   }
+
   .gantt-right{
-    flex: 1;
+    flex:1;
     overflow-x:auto;
+    background:
+      linear-gradient(to right, rgba(148,163,184,.14) 1px, transparent 1px),
+      var(--tl-soft);
+    background-size:40px 100%;
+  }
+
+  @media (max-width:980px){
+    .gantt-shell{
+      flex-direction:column;
+    }
+
+    .gantt-left{
+      width:100%;
+      border-right:0;
+      border-bottom:1px solid var(--tl-line);
+    }
   }
 
   .gantt-left table,
   .gantt-right table{
     width:100%;
-    border-collapse: collapse;
-    table-layout: fixed;
+    border-collapse:separate;
+    border-spacing:0;
+    table-layout:fixed;
   }
+
   .gantt-left thead th,
   .gantt-right thead th{
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-    border-bottom:1px solid color-mix(in oklab, var(--line) 75%, transparent);
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    font-size: 10px;
-    font-weight: 900;
-    color: var(--muted);
-    height: 44px;
+    position:sticky;
+    top:0;
+    z-index:2;
+    height:46px;
+    padding:11px 12px;
+    border-bottom:1px solid var(--tl-line);
+    background:var(--tl-soft);
+    color:var(--tl-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
   }
-  .gantt-left tbody tr,
-  .gantt-right tbody tr{ height: 64px; }
 
-  .gantt-left tbody tr:hover td,
-  .gantt-right tbody tr:hover td{
-    background: color-mix(in oklab, var(--bg) 96%, transparent);
+  .gantt-left tbody tr,
+  .gantt-right tbody tr{
+    height:70px;
   }
 
   .gantt-left td,
   .gantt-left th{
-    padding: 10px 12px;
-    border-bottom:1px solid color-mix(in oklab, var(--line) 70%, transparent);
+    padding:11px 14px;
+    border-bottom:1px solid var(--tl-line);
   }
+
   .gantt-right td,
   .gantt-right th{
-    padding: 8px 10px;
-    border-bottom:1px solid color-mix(in oklab, var(--line) 70%, transparent);
-    border-right:1px solid color-mix(in oklab, var(--line) 55%, transparent);
+    padding:8px 10px;
+    border-bottom:1px solid var(--tl-line);
+    border-right:1px solid rgba(148,163,184,.20);
     text-align:center;
   }
-  .gantt-right tbody td{ background: transparent; }
-  .gantt-right thead th{ text-align:center; }
+
+  .gantt-left tbody tr:hover td,
+  .gantt-right tbody tr:hover td{
+    background:rgba(36,87,230,.045);
+  }
+
+  [data-theme="dark"] .gantt-left tbody tr:hover td,
+  [data-theme="dark"] .gantt-right tbody tr:hover td{
+    background:rgba(59,130,246,.10);
+  }
 
   .risk-title{
-    max-width: 260px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    font-weight: 900;
+    max-width:265px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:var(--tl-text);
+    font-size:14px;
+    font-weight:950;
   }
-  .risk-meta{ color:var(--muted); font-size:12px; font-weight:600; }
+
+  .risk-title a{
+    color:var(--tl-text);
+    text-decoration:none;
+  }
+
+  .risk-title a:hover{
+    color:var(--tl-primary);
+    text-decoration:none;
+  }
+
+  .risk-meta{
+    color:var(--tl-muted);
+    font-size:12px;
+    font-weight:700;
+  }
+
+  .small{
+    color:var(--tl-muted);
+    font-size:12px;
+    font-weight:700;
+  }
 
   .tl-bar{
-    height: 18px;
-    border-radius: 999px;
+    height:22px;
+    max-width:92%;
+    margin:0 auto;
+    border-radius:999px;
     cursor:pointer;
-    margin: 0 auto;
-    max-width: 92%;
+    box-shadow:0 8px 18px rgba(15,23,42,.08);
+    transition:transform .12s ease, filter .12s ease;
+  }
+
+  .tl-bar:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+  }
+
+  :root{ --cal-scale: 1; }
+
+  .cal-zoom-shell{
+    width:100%;
+    overflow:auto;
   }
 
   .calendar-wrap{
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:12px; overflow:hidden;
-    transform: scale(var(--cal-scale));
-    transform-origin: top left;
+    border:1px solid var(--tl-line);
+    border-radius:var(--tl-radius-xl);
+    overflow:hidden;
+    transform:scale(var(--cal-scale));
+    transform-origin:top left;
     width:100%;
-    background: color-mix(in oklab, var(--card) 95%, transparent);
+    background:var(--tl-card);
+    box-shadow:var(--tl-shadow-sm);
   }
+
   .cal-header{
-    display:grid; grid-template-columns: repeat(7, 1fr);
-    background: color-mix(in oklab, var(--bg-soft) 96%, transparent);
-    border-bottom:1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    display:grid;
+    grid-template-columns:repeat(7, 1fr);
+    background:var(--tl-soft);
+    border-bottom:1px solid var(--tl-line);
   }
+
   .cal-header div{
-    padding:.7rem .5rem;
+    padding:12px 8px;
+    color:var(--tl-muted);
     font-size:10px;
-    font-weight:900;
+    font-weight:950;
     letter-spacing:.12em;
     text-transform:uppercase;
-    color:var(--muted);
-    text-align:center
+    text-align:center;
   }
+
   .cal-grid{
-    display:grid; grid-template-columns: repeat(7, 1fr);
-    margin-bottom: calc(20px * var(--cal-scale));
+    display:grid;
+    grid-template-columns:repeat(7, 1fr);
+    margin-bottom:calc(20px * var(--cal-scale));
   }
+
   .cal-cell{
-    min-height:140px;
-    border-right:1px solid color-mix(in oklab, var(--line) 75%, transparent);
-    border-bottom:1px solid color-mix(in oklab, var(--line) 75%, transparent);
-    position:relative; padding:10px
+    min-height:142px;
+    position:relative;
+    padding:10px;
+    border-right:1px solid var(--tl-line);
+    border-bottom:1px solid var(--tl-line);
+    background:var(--tl-card);
   }
-  .cal-cell:nth-child(7n){ border-right:0 }
-  .cal-date{ font-size:12px; color:var(--muted); position:absolute; top:10px; right:10px }
+
+  .cal-cell:nth-child(7n){
+    border-right:0;
+  }
+
+  .cal-cell:hover{
+    background:rgba(36,87,230,.035);
+  }
+
+  [data-theme="dark"] .cal-cell:hover{
+    background:rgba(59,130,246,.08);
+  }
+
+  .cal-date{
+    position:absolute;
+    top:10px;
+    right:10px;
+    color:var(--tl-muted);
+    font-size:12px;
+    font-weight:900;
+  }
+
   .cal-badge{
     position:relative;
-    margin-top:22px;
-    padding:.35rem .55rem;
-    border-radius:10px;
-    font-size:13px; line-height:1.25;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    cursor:grab
+    margin-top:24px;
+    padding:8px 10px;
+    border-radius:13px;
+    font-size:12px;
+    line-height:1.25;
+    font-weight:850;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    cursor:grab;
+    box-shadow:0 10px 20px rgba(15,23,42,.05);
   }
-  .cal-badge .lvl{ font-weight:900; margin-right:6px; text-transform:uppercase; }
-  .cal-badge:active{ cursor:grabbing; }
 
-  .cal-more{ position:absolute; bottom:8px; left:8px; right:8px; font-size:12px; color:var(--muted); cursor:pointer }
+  .cal-badge .lvl{
+    font-weight:950;
+    margin-right:6px;
+    text-transform:uppercase;
+  }
+
+  .cal-badge:active{
+    cursor:grabbing;
+  }
+
+  .cal-more{
+    position:absolute;
+    bottom:8px;
+    left:8px;
+    right:8px;
+    color:var(--tl-muted);
+    font-size:12px;
+    font-weight:850;
+    cursor:pointer;
+  }
 
   .cal-pop{
-    position:absolute; left:8px; right:8px; bottom:34px;
-    background: var(--card-solid);
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:10px; padding:8px; box-shadow: var(--elev-card);
-    max-height:220px; overflow:auto; z-index:5; font-size:12px;
+    position:absolute;
+    left:8px;
+    right:8px;
+    bottom:34px;
+    z-index:5;
+    max-height:230px;
+    overflow:auto;
+    padding:8px;
+    border-radius:15px;
+    border:1px solid var(--tl-line);
+    background:var(--tl-card);
+    box-shadow:var(--tl-shadow);
+    font-size:12px;
   }
-  .cal-pop .cal-badge{ margin:4px 0; display:block; }
-  .cal-pop .head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--muted) }
-  .cal-pop .close{ cursor:pointer; padding:2px 6px; border-radius:6px; border:1px solid color-mix(in oklab, var(--line) 80%, transparent) }
 
-  .muted-day{ opacity:.45 }
-  @media (max-width: 980px){
-    .cal-cell{ min-height:110px; }
-    .gantt-left{ width: 360px; }
-    .risk-title{ max-width: 220px; }
-    .tl-chip input[type="text"]{ min-width: 160px; }
+  .cal-pop .cal-badge{
+    display:block;
+    margin:5px 0;
+  }
+
+  .cal-pop .head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:6px;
+    color:var(--tl-muted);
+    font-weight:850;
+  }
+
+  .cal-pop .close{
+    cursor:pointer;
+    padding:4px 8px;
+    border-radius:10px;
+    border:1px solid var(--tl-line);
+    color:var(--tl-text);
+  }
+
+  .muted-day{
+    opacity:.45;
+  }
+
+  @media (max-width:760px){
+    .cal-cell{
+      min-height:115px;
+      padding:8px;
+    }
+
+    .cal-badge{
+      padding:7px 8px;
+      font-size:11px;
+    }
+  }
+
+  .flash.info{
+    border-radius:20px;
+    border:1px solid rgba(36,87,230,.14);
+    background:rgba(36,87,230,.07);
+    color:var(--tl-muted);
+    padding:14px;
+    font-size:13px;
+    line-height:1.45;
+    font-weight:750;
   }
 
   .modal-backdrop{
-    position:fixed; inset:0; background: rgba(0,0,0,.35);
-    display:none; align-items:center; justify-content:center; z-index:50;
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    background:rgba(15,23,42,.42);
+    backdrop-filter:blur(8px);
+    padding:18px;
   }
-  .modal-backdrop.show{ display:flex; }
+
+  .modal-backdrop.show{
+    display:flex;
+  }
+
   .modal{
-    background:var(--card-solid);
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:14px; padding:14px;
-    width:min(460px, 92vw); box-shadow: var(--elev-card);
+    width:min(480px, 94vw);
+    border-radius:26px;
+    border:1px solid var(--tl-line);
+    background:var(--tl-card);
+    box-shadow:var(--tl-shadow);
+    padding:18px;
   }
-  .modal h3{ margin:.2rem 0 .5rem }
+
+  .modal h3{
+    margin:0 0 8px;
+    color:var(--tl-text);
+    font-size:22px;
+    font-weight:950;
+    letter-spacing:-.035em;
+  }
+
+  .modal-grid{
+    display:grid;
+    gap:10px;
+    grid-template-columns:1fr 1fr;
+    margin-top:12px;
+  }
+
+  @media (max-width:520px){
+    .modal-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .modal label{
+    display:block;
+    margin:0 0 7px;
+    color:var(--tl-text);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .input{
+    width:100%;
+    min-height:50px;
+    border-radius:16px;
+    border:1px solid var(--tl-line);
+    background:#fff;
+    color:var(--tl-text);
+    outline:none;
+    padding:0 13px;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 10px 24px rgba(15,23,42,.04);
+  }
+
+  [data-theme="dark"] .input{
+    background:rgba(15,23,42,.52);
+  }
+
+  .input:focus{
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+  }
+
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:9px;
+    margin-top:14px;
+  }
+
+  @media print{
+    .noprint,
+    .tl-filterbar,
+    .tl-hero .tl-actions{
+      display:none !important;
+    }
+
+    .tl-hero,
+    .tl-card,
+    .gantt-shell,
+    .calendar-wrap{
+      box-shadow:none !important;
+    }
+  }
 </style>
 
 <div class="tl-scope">
   <div class="tl-shell">
 
-    <div class="tl-head">
-      <div>
-        <h2 class="tl-title">Zaman Çizelgesi</h2>
-        <p class="tl-sub">
-          Risklerin başlangıç/bitiş tarihine göre <strong>tablo</strong> veya <strong>aylık takvim</strong> görünümü.
-        </p>
-      </div>
+    <section class="tl-hero">
+      <div class="tl-hero-row">
+        <div>
+          <div class="tl-kicker">Risk Takvimi</div>
+          <h2 class="tl-title">Zaman Çizelgesi</h2>
+          <p class="tl-sub">Riskleri tablo veya aylık takvim görünümünde takip et.</p>
+        </div>
 
-      <div class="tl-actions noprint">
-        <a class="btn" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
-        <a class="btn" href="{{ url_for('risk_select') }}">Risk Kütüphanesi</a>
-        <a class="btn"
-           href="{{ url_for(
-              'schedule_pdf',
-              q=request.args.get('q',''),
-              category=request.args.get('category',''),
-              owner=request.args.get('owner',''),
-              status=request.args.get('status',''),
-              grade=request.args.get('grade',''),
-              month=cur_m,
-              year=cur_y,
-              view=view
-           ) }}"
-           target="_blank" rel="noopener">📄 PDF</a>
+        <div class="tl-actions noprint">
+          <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+          <a class="btn" href="{{ url_for('risk_select') }}">Riskler</a>
+          <a class="btn"
+             href="{{ url_for(
+                'schedule_pdf',
+                q=request.args.get('q',''),
+                category=request.args.get('category',''),
+                owner=request.args.get('owner',''),
+                status=request.args.get('status',''),
+                grade=request.args.get('grade',''),
+                month=cur_m,
+                year=cur_y,
+                view=view
+             ) }}"
+             target="_blank" rel="noopener">PDF</a>
+        </div>
       </div>
-    </div>
+    </section>
 
-    {# ---- SAFE querystring: view toggle artık JS + hidden input ile ---- #}
     <form method="get" class="tl-filterbar noprint" id="filtersForm">
       <input type="hidden" name="view" id="viewField" value="{{ view }}"/>
 
-      <div class="tl-chip" style="flex:1; min-width:240px">
+      <div class="tl-chip">
         <span class="k">Arama</span>
         <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Başlık, kategori, sorumlu...">
       </div>
@@ -413,124 +905,45 @@
         </select>
       </div>
 
-      <div class="tl-chip" style="min-width:120px">
+      <div class="tl-chip">
         <span class="k">Yıl</span>
-        <input type="number" name="year" value="{{ cur_y }}" style="min-width:84px">
+        <input type="number" name="year" value="{{ cur_y }}">
       </div>
 
-      <div class="grow"></div>
-
       {% if view == 'calendar' %}
-        <div class="tl-chip" style="gap:8px">
+        <div class="tl-chip">
           <span class="k">Boyut</span>
-          <input id="calZoom" type="range" min="1" max="1.6" step="0.05" value="1" style="width:140px">
+          <input id="calZoom" type="range" min="1" max="1.6" step="0.05" value="1">
           <span id="calZoomLbl" class="small" style="min-width:42px;text-align:right">100%</span>
         </div>
       {% endif %}
 
-      <div class="tl-toggle" aria-label="Görünüm">
-        <button type="button"
-                class="{{ 'active' if view=='table' }}"
-                data-set-view="table">☰ Tablo</button>
-        <button type="button"
-                class="{{ 'active' if view=='calendar' }}"
-                data-set-view="calendar">🗓 Takvim</button>
-      </div>
+      <div class="tl-view-row">
+        <div class="tl-toggle" aria-label="Görünüm">
+          <button type="button"
+                  class="{{ 'active' if view=='table' }}"
+                  data-set-view="table">☰ Tablo</button>
+          <button type="button"
+                  class="{{ 'active' if view=='calendar' }}"
+                  data-set-view="calendar">🗓 Takvim</button>
+        </div>
 
-      <button class="btn btn-primary" type="submit">Uygula</button>
+        <div class="tl-filter-actions">
+          <button class="btn btn-primary" type="submit">Uygula</button>
+        </div>
+      </div>
     </form>
 
     {% if view == 'table' %}
-      <div class="gantt-shell">
-        <div class="gantt-left">
-          <table aria-label="Risk listesi (sabit kolon)">
-            <thead>
-              <tr>
-                <th style="text-align:left; padding-left:14px">Risk Başlığı</th>
-                <th style="width:90px">RPN</th>
-                <th style="width:110px; padding-right:14px">Seviye</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in rows_safe %}
-                {% set r = row.risk %}
-
-                {% set sc = None %}
-                {% if r.score is not none %}
-                  {% set _tmp = r.score() %}
-                  {% if _tmp is not none %}{% set sc = _tmp %}{% endif %}
-                {% endif %}
-                {% if sc is none %}
-                  {% set ap = r.avg_prob() %}
-                  {% set asv = r.avg_sev() %}
-                  {% if ap is not none and asv is not none %}{% set sc = ap * asv %}{% endif %}
-                {% endif %}
-
-                {% set lvl_label = "—" %}
-                {% set lvl_class = "acceptable" %}
-                {% if sc is not none %}
-                  {% set sc = sc|float %}
-                  {% if sc <= 4 %}
-                    {% set lvl_label = "Düşük" %}
-                    {% set lvl_class = "acceptable" %}
-                  {% elif sc <= 10 %}
-                    {% set lvl_label = "Orta" %}
-                    {% set lvl_class = "low" %}
-                  {% elif sc <= 15 %}
-                    {% set lvl_label = "Yüksek" %}
-                    {% set lvl_class = "moderate" %}
-                  {% else %}
-                    {% set lvl_label = "Çok Yüksek" %}
-                    {% set lvl_class = "critical" %}
-                  {% endif %}
-                {% endif %}
-
-                <tr>
-                  <td style="text-align:left; padding-left:14px">
-                    <div class="risk-title">
-                      <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
-                    </div>
-                    <div class="risk-meta">
-                      {{ r.category or '-' }} · {{ r.owner or '-' }} · {{ r.status or '—' }}
-                    </div>
-                    <div class="small" style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center">
-                      <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
-                      {% if r.start_month or r.end_month %}
-                        <span class="risk-meta">{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
-                      {% endif %}
-                      <button class="icon-btn"
-                              style="margin-left:auto"
-                              data-open-reminder
-                              data-risk-id="{{ r.id }}"
-                              data-risk-title="{{ r.title }}">🔔 Hatırlat</button>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="risk-meta" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'">
-                      {{ sc is not none and ('%.2f'|format(sc)) or '—' }}
-                    </span>
-                  </td>
-                  <td style="padding-right:14px">
-                    <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
-                  </td>
-                </tr>
-              {% else %}
-                <tr><td colspan="3" style="padding:14px">Kayıtlı risk yok.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="gantt-right custom-scrollbar gantt-grid">
-          {% set gantt_minw = (months_safe|length > 0) and (months_safe|length * 140) or 900 %}
-          {# ✅ Jinja'yı style içinden çıkardık: VSCode CSS lint susar #}
-          <div class="gantt-minw" data-minw="{{ gantt_minw }}">
-            <table aria-label="Risk zaman çizelgesi (aylar)">
+      <section class="tl-card">
+        <div class="gantt-shell">
+          <div class="gantt-left">
+            <table aria-label="Risk listesi">
               <thead>
                 <tr>
-                  {% for m in months_safe %}
-                    <th class="month">{{ m }}</th>
-                  {% endfor %}
+                  <th style="text-align:left;">Risk</th>
+                  <th style="width:92px">RPN</th>
+                  <th style="width:116px">Seviye</th>
                 </tr>
               </thead>
               <tbody>
@@ -548,63 +961,150 @@
                     {% if ap is not none and asv is not none %}{% set sc = ap * asv %}{% endif %}
                   {% endif %}
 
+                  {% set lvl_label = "—" %}
                   {% set lvl_class = "acceptable" %}
                   {% if sc is not none %}
                     {% set sc = sc|float %}
                     {% if sc <= 4 %}
+                      {% set lvl_label = "Düşük" %}
                       {% set lvl_class = "acceptable" %}
                     {% elif sc <= 10 %}
+                      {% set lvl_label = "Orta" %}
                       {% set lvl_class = "low" %}
                     {% elif sc <= 15 %}
+                      {% set lvl_label = "Yüksek" %}
                       {% set lvl_class = "moderate" %}
                     {% else %}
+                      {% set lvl_label = "Çok Yüksek" %}
                       {% set lvl_class = "critical" %}
                     {% endif %}
                   {% endif %}
 
                   <tr>
-                    {% for m in months_safe %}
-                      {% set active = (m in (row.active or [])) %}
-                      <td>
-                        {% if active %}
-                          <div class="tl-bar gx-{{ lvl_class }}"
-                               title="{{ r.title }} · {{ m }}"
-                               data-open-reminder
-                               data-risk-title="{{ r.title }}"></div>
+                    <td style="text-align:left;">
+                      <div class="risk-title">
+                        <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                      </div>
+                      <div class="risk-meta">
+                        {{ r.category or '-' }} · {{ r.owner or '-' }} · {{ r.status or '—' }}
+                      </div>
+                      <div class="small" style="margin-top:7px; display:flex; gap:7px; flex-wrap:wrap; align-items:center">
+                        <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
+                        {% if r.start_month or r.end_month %}
+                          <span class="risk-meta">{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
                         {% endif %}
-                      </td>
-                    {% endfor %}
+                        <button class="icon-btn"
+                                style="margin-left:auto"
+                                data-open-reminder
+                                data-risk-id="{{ r.id }}"
+                                data-risk-title="{{ r.title }}">🔔 Hatırlat</button>
+                      </div>
+                    </td>
+
+                    <td>
+                      <span class="risk-meta" style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'">
+                        {{ sc is not none and ('%.2f'|format(sc)) or '—' }}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
+                    </td>
                   </tr>
                 {% else %}
-                  <tr><td colspan="{{ months_safe|length }}">Kayıtlı risk yok.</td></tr>
+                  <tr><td colspan="3" style="padding:18px;color:var(--tl-muted);font-weight:750;">Kayıtlı risk yok.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
+
+          <div class="gantt-right custom-scrollbar">
+            {% set gantt_minw = (months_safe|length > 0) and (months_safe|length * 140) or 900 %}
+            <div class="gantt-minw" data-minw="{{ gantt_minw }}">
+              <table aria-label="Risk zaman çizelgesi">
+                <thead>
+                  <tr>
+                    {% for m in months_safe %}
+                      <th class="month">{{ m }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {% for row in rows_safe %}
+                    {% set r = row.risk %}
+
+                    {% set sc = None %}
+                    {% if r.score is not none %}
+                      {% set _tmp = r.score() %}
+                      {% if _tmp is not none %}{% set sc = _tmp %}{% endif %}
+                    {% endif %}
+                    {% if sc is none %}
+                      {% set ap = r.avg_prob() %}
+                      {% set asv = r.avg_sev() %}
+                      {% if ap is not none and asv is not none %}{% set sc = ap * asv %}{% endif %}
+                    {% endif %}
+
+                    {% set lvl_class = "acceptable" %}
+                    {% if sc is not none %}
+                      {% set sc = sc|float %}
+                      {% if sc <= 4 %}
+                        {% set lvl_class = "acceptable" %}
+                      {% elif sc <= 10 %}
+                        {% set lvl_class = "low" %}
+                      {% elif sc <= 15 %}
+                        {% set lvl_class = "moderate" %}
+                      {% else %}
+                        {% set lvl_class = "critical" %}
+                      {% endif %}
+                    {% endif %}
+
+                    <tr>
+                      {% for m in months_safe %}
+                        {% set active = (m in (row.active or [])) %}
+                        <td>
+                          {% if active %}
+                            <div class="tl-bar gx-{{ lvl_class }}"
+                                 title="{{ r.title }} · {{ m }}"
+                                 data-open-reminder
+                                 data-risk-title="{{ r.title }}"></div>
+                          {% endif %}
+                        </td>
+                      {% endfor %}
+                    </tr>
+                  {% else %}
+                    <tr><td colspan="{{ months_safe|length }}" style="padding:18px;color:var(--tl-muted);font-weight:750;">Kayıtlı risk yok.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     {% endif %}
 
     {% if view == 'calendar' %}
       {% set can_calendar = (rows_safe|selectattr('startYM')|list) or (rows_safe|selectattr('endYM')|list) %}
+
       {% if not can_calendar %}
-        <div class="flash info" style="margin-top:8px">
-          Takvim için her riskte <strong>başlangıç</strong> ve/veya <strong>bitiş</strong> ayı olmalı
-          (örn. <code>start_month</code> / <code>end_month</code> → YYYY-MM).
+        <div class="flash info">
+          Takvim için risklerde başlangıç veya bitiş ayı olmalı.
         </div>
       {% else %}
-        <div class="cal-zoom-shell">
-          <div class="calendar-wrap" id="calendarRoot"
-               data-month="{{ cur_m }}" data-year="{{ cur_y }}"
-               data-detail-pattern="{{ url_for('risk_detail', risk_id=0) }}">
-            <div class="cal-header">
-              {% for d in ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'] %}
-                <div>{{ d }}</div>
-              {% endfor %}
+        <section class="tl-card">
+          <div class="cal-zoom-shell">
+            <div class="calendar-wrap" id="calendarRoot"
+                 data-month="{{ cur_m }}" data-year="{{ cur_y }}"
+                 data-detail-pattern="{{ url_for('risk_detail', risk_id=0) }}">
+              <div class="cal-header">
+                {% for d in ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'] %}
+                  <div>{{ d }}</div>
+                {% endfor %}
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
             </div>
-            <div class="cal-grid" id="calGrid"></div>
           </div>
-        </div>
+        </section>
 
         <script type="application/json" id="risks-json">
         [
@@ -838,47 +1338,43 @@
 
     <div class="modal-backdrop" id="remModal">
       <div class="modal">
-        <h3>🔔 Hatırlatıcı oluştur</h3>
-        <div class="small" style="margin-bottom:8px;color:var(--muted)">
-          Etkinlik takviminize <code>.ics</code> olarak eklenecek.
-        </div>
+        <h3>Hatırlatıcı</h3>
+        <div class="small">Takvime eklemek için .ics dosyası oluşturulur.</div>
 
-        <div style="display:grid; gap:8px; grid-template-columns:1fr 1fr">
+        <div class="modal-grid">
           <div>
             <label>Başlık</label>
-            <input class="input" id="remTitle" placeholder="Örn: Risk gözden geçirme">
+            <input class="input" id="remTitle" placeholder="Risk gözden geçirme">
           </div>
           <div>
             <label>Tarih</label>
             <input class="input" id="remDate" type="date">
           </div>
           <div>
-            <label>Başlangıç (saat)</label>
+            <label>Başlangıç</label>
             <input class="input" id="remTimeStart" type="time" value="09:00">
           </div>
           <div>
-            <label>Süre (dakika)</label>
+            <label>Süre</label>
             <input class="input" id="remDuration" type="number" value="60" min="10" step="5">
           </div>
         </div>
 
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+        <div class="modal-actions">
           <button class="btn" id="remCancel" type="button">Vazgeç</button>
-          <button class="btn btn-primary" id="remSave" type="button">Takvime ekle (.ics)</button>
+          <button class="btn btn-primary" id="remSave" type="button">Takvime ekle</button>
         </div>
       </div>
     </div>
 
     <script>
     (function(){
-      // ✅ min-width'i data'dan al, style'a JS ile bas (VSCode CSS lint susar)
       const minwEl = document.querySelector('.gantt-minw');
       if (minwEl) {
         const w = parseInt(minwEl.dataset.minw || '900', 10);
         minwEl.style.minWidth = (isNaN(w) ? 900 : w) + 'px';
       }
 
-      // View toggle -> hidden input + submit
       const form = document.getElementById('filtersForm');
       const viewField = document.getElementById('viewField');
       document.querySelectorAll('[data-set-view]').forEach(btn=>{
@@ -908,21 +1404,29 @@
         tStart.value = prefill?.time || '09:00';
         durEl.value  = prefill?.dur  || 60;
       }
-      function closeModal(){ modal.classList.remove('show'); }
+
+      function closeModal(){
+        modal.classList.remove('show');
+      }
+
+      function safeText(v){
+        return String(v || '').replace(/\n/g,' ').replace(/[,;]/g,' ');
+      }
 
       function createICS({title, startISO, endISO, description=""}){
+        const uid = (crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
         const ics = [
           'BEGIN:VCALENDAR',
           'VERSION:2.0',
           'PRODID:-//RiskApp//Schedule//TR',
           'CALSCALE:GREGORIAN',
           'BEGIN:VEVENT',
-          `UID:${(crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2))}@riskapp`,
+          `UID:${uid}@riskapp`,
           `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z`,
           `DTSTART:${startISO}`,
           `DTEND:${endISO}`,
-          `SUMMARY:${(title||'').replace(/\n/g,' ')}`,
-          `DESCRIPTION:${description.replace(/\n/g,' ')}`,
+          `SUMMARY:${safeText(title)}`,
+          `DESCRIPTION:${safeText(description)}`,
           'END:VEVENT',
           'END:VCALENDAR'
         ].join('\r\n');
@@ -930,7 +1434,7 @@
         const blob = new Blob([ics], {type: 'text/calendar;charset=utf-8;'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = (title || 'hatirlatma') + '.ics';
+        a.download = (safeText(title) || 'hatirlatma') + '.ics';
         document.body.appendChild(a);
         a.click();
         setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
