@@ -4,261 +4,519 @@
 {% block content %}
 
 <style>
-  :root{
-    --rt-primary:#298fa3;
-    --rt-canvas:#f6f7f8;
-    --rt-bg:#ffffff;
-    --rt-line:#e8eef3;
-    --rt-muted:#507895;
-    --rt-shadow: 0 6px 16px rgba(15,23,42,.06);
-    --rt-radius-xl: 16px;
-    --rt-radius-lg: 12px;
-  }
-  html.dark :root{
-    --rt-bg:#0f172a;
-    --rt-canvas:#131d1f;
-    --rt-line: rgba(148,163,184,.20);
-    --rt-muted: rgba(148,163,184,.85);
-    --rt-shadow: 0 18px 35px rgba(0,0,0,.35);
+  /* ==========================================================
+     Risk Şablonu Detay — Premium / Kullanıcı Dostu
+     Fonksiyon kaybı yok: s objesi, geri dönüş, KPI, skor, progress bar
+     ========================================================== */
+
+  .rt-scope{
+    --rt-card:#ffffff;
+    --rt-text:#0f172a;
+    --rt-muted:#64748b;
+    --rt-line:rgba(15,23,42,.09);
+    --rt-line-2:rgba(15,23,42,.14);
+    --rt-soft:#f8fafc;
+    --rt-primary:#2457e6;
+    --rt-teal:#0f766e;
+    --rt-green:#22c55e;
+    --rt-amber:#f59e0b;
+    --rt-orange:#fb923c;
+    --rt-red:#ef4444;
+    --rt-shadow:0 24px 70px rgba(15,23,42,.09);
+    --rt-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    --rt-radius-xl:28px;
+    --rt-radius-lg:22px;
+    --rt-radius-md:16px;
+    color:var(--rt-text);
   }
 
-  .rt-shell{ max-width: 980px; margin: 0 auto; }
+  [data-theme="dark"] .rt-scope,
+  .dark .rt-scope{
+    --rt-card:rgba(15,23,42,.76);
+    --rt-text:#e5e7eb;
+    --rt-muted:#94a3b8;
+    --rt-line:rgba(255,255,255,.08);
+    --rt-line-2:rgba(255,255,255,.14);
+    --rt-soft:rgba(15,23,42,.55);
+    --rt-shadow:0 24px 70px rgba(0,0,0,.28);
+    --rt-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .rt-scope *{
+    box-sizing:border-box;
+  }
+
+  .rt-shell{
+    width:100%;
+    max-width:1080px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
 
   .rt-topbar{
-    position: sticky;
-    top: 8px;
-    z-index: 10;
-    border: 1px solid color-mix(in oklab, var(--rt-line) 100%, transparent);
-    background: color-mix(in oklab, var(--rt-bg) 92%, transparent);
-    backdrop-filter: blur(10px);
-    border-radius: var(--rt-radius-xl);
-    box-shadow: var(--rt-shadow);
-    padding: .85rem 1rem;
+    position:sticky;
+    top:8px;
+    z-index:10;
     display:flex;
-    justify-content:space-between;
     align-items:center;
-    gap:.75rem;
-    margin-bottom: 1rem;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:12px;
+    border-radius:var(--rt-radius-xl);
+    border:1px solid rgba(255,255,255,.92);
+    background:rgba(255,255,255,.88);
+    box-shadow:var(--rt-shadow-sm);
+    backdrop-filter:blur(18px);
   }
+
+  [data-theme="dark"] .rt-topbar,
+  .dark .rt-topbar{
+    background:rgba(15,23,42,.86);
+    border-color:rgba(255,255,255,.10);
+  }
+
   .rt-bc{
-    display:flex; align-items:center; gap:.55rem;
-    font-size:.9rem;
-    color: var(--rt-muted);
-    font-weight: 700;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    color:var(--rt-muted);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .rt-bc b{
+    color:var(--rt-primary);
+    font-weight:950;
+  }
+
+  .rt-sep{
+    opacity:.65;
+  }
+
+  .rt-actions{
+    display:flex;
+    align-items:center;
+    gap:9px;
     flex-wrap:wrap;
   }
-  .rt-bc b{ color: inherit; font-weight: 900; }
-  .rt-sep{
-    opacity:.75;
-    font-size: 14px;
+
+  .rt-btn{
+    min-height:42px;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-  }
-  .rt-actions{ display:flex; gap:.5rem; flex-wrap:wrap; justify-content:flex-end; }
-
-  .rt-btn{
-    display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
-    height: 40px;
-    padding: 0 .9rem;
-    border-radius: var(--rt-radius-lg);
-    font-weight: 900;
-    border: 1px solid transparent;
-    cursor:pointer;
-    transition:.15s ease;
-    user-select:none;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    color:var(--rt-text);
     text-decoration:none;
+    font:inherit;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:var(--rt-shadow-sm);
+    transition:transform .14s ease, filter .14s ease, border-color .14s ease, background .14s ease;
     white-space:nowrap;
   }
-  .rt-btn:hover{ transform: translateY(-1px); }
-  .rt-btn:active{ transform: translateY(0); }
 
-  .rt-btn-ghost{
-    background: transparent;
-    border-color: color-mix(in oklab, var(--rt-line) 95%, transparent);
-    color: inherit;
+  .rt-btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
   }
-  .rt-btn-ghost:hover{ background: color-mix(in oklab, var(--rt-canvas) 88%, transparent); }
 
   .rt-btn-primary{
-    background: var(--rt-primary);
+    background:linear-gradient(135deg, var(--rt-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
     color:#fff;
-    box-shadow: 0 10px 20px color-mix(in oklab, var(--rt-primary) 22%, transparent);
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
   }
-  .rt-btn-primary:hover{ filter: brightness(.95); }
-
-  .rt-ic{ font-size: 18px; line-height: 1; }
 
   .rt-hero{
-    margin: .25rem 0 1.1rem;
-    padding: 1.2rem 1.25rem;
-    border-radius: var(--rt-radius-xl);
-    border: 1px solid color-mix(in oklab, var(--rt-line) 100%, transparent);
-    background: color-mix(in oklab, var(--rt-bg) 96%, transparent);
-    box-shadow: 0 2px 0 rgba(0,0,0,.02);
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--rt-radius-xl);
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--rt-shadow);
   }
-  .rt-pillrow{ display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom: .65rem; }
-  .rt-pill{
-    display:inline-flex; align-items:center;
-    padding:.28rem .65rem;
+
+  .rt-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
     border-radius:999px;
-    font-size: .72rem;
-    font-weight: 950;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    white-space:nowrap;
-  }
-  .rt-pill.primary{ background: color-mix(in oklab, var(--rt-primary) 12%, transparent); color: var(--rt-primary); }
-  .rt-pill.code{ background: color-mix(in oklab, var(--rt-line) 22%, transparent); color: color-mix(in oklab, var(--rt-muted) 95%, #000); }
-
-  .rt-title{
-    font-size: 2rem;
-    line-height: 1.1;
-    font-weight: 950;
-    letter-spacing: -0.02em;
-    margin: 0 0 .55rem;
-  }
-  .rt-lead{
-    color: var(--rt-muted);
-    font-size: 1.03rem;
-    line-height: 1.65;
-    max-width: 72ch;
-    margin: 0;
+    background:rgba(255,255,255,.10);
   }
 
-  .rt-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  @media (max-width: 980px){ .rt-grid{ grid-template-columns: 1fr; } }
-
-  .rt-card{
-    border-radius: var(--rt-radius-xl);
-    border: 1px solid color-mix(in oklab, var(--rt-line) 100%, transparent);
-    background: color-mix(in oklab, var(--rt-bg) 96%, transparent);
-    box-shadow: 0 2px 0 rgba(0,0,0,.02);
-    padding: 1.25rem;
+  .rt-hero-inner{
+    position:relative;
+    z-index:1;
   }
-  .rt-cardhead{ display:flex; align-items:center; gap:.7rem; margin-bottom: .85rem; }
-  .rt-iconbox{
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    display:flex; align-items:center; justify-content:center;
-    background: color-mix(in oklab, var(--rt-line) 18%, transparent);
-    color: color-mix(in oklab, var(--rt-muted) 80%, #000);
-  }
-  .rt-cardhead h3{ margin:0; font-size: 1.05rem; font-weight: 900; letter-spacing: -0.01em; }
 
-  .rt-body{
-    color: color-mix(in oklab, var(--rt-muted) 92%, #000);
-    line-height: 1.7;
-    white-space: pre-wrap;
-    font-size: .98rem;
-  }
-  html.dark .rt-body{ color: color-mix(in oklab, var(--rt-muted) 95%, #fff); }
-
-  .rt-kpis{
-    margin-top: 1rem;
-    display:grid;
-    grid-template-columns: repeat(3, minmax(0,1fr));
-    gap: .9rem;
-  }
-  @media (max-width: 860px){ .rt-kpis{ grid-template-columns: 1fr; } }
-
-  .rt-kpi{
-    border-radius: var(--rt-radius-xl);
-    border: 1px solid color-mix(in oklab, var(--rt-line) 100%, transparent);
-    background: color-mix(in oklab, var(--rt-bg) 96%, transparent);
-    box-shadow: 0 2px 0 rgba(0,0,0,.02);
-    padding: 1rem 1.1rem;
-    transition: .18s ease;
-  }
-  .rt-kpi:hover{ transform: translateY(-2px); }
-
-  .rt-kpi-top{
+  .rt-pillrow{
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    gap:.75rem;
-    margin-bottom: .75rem;
-    color: var(--rt-muted);
-    font-weight: 800;
-    font-size: .92rem;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:13px;
   }
-  .rt-kpi-val{ display:flex; align-items:baseline; gap:.5rem; }
-  .rt-kpi-num{ font-size: 2.1rem; font-weight: 950; letter-spacing: -0.03em; }
-  .rt-kpi-den{ color: color-mix(in oklab, var(--rt-muted) 70%, #000); font-weight: 900; }
 
-  .rt-bar{
-    height: 8px;
-    border-radius: 999px;
-    overflow:hidden;
-    background: color-mix(in oklab, var(--rt-line) 25%, transparent);
+  .rt-pill{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 11px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:#fff;
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    white-space:nowrap;
   }
-  .rt-bar > i{
-    display:block;
-    height: 100%;
-    background: color-mix(in oklab, var(--rt-primary) 85%, #fff);
-    width: 0%; /* JS set edecek */
-    transition: width .35s ease;
+
+  .rt-pill.code{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .rt-title{
+    margin:0;
+    max-width:850px;
+    color:#fff;
+    font-size:clamp(28px, 3.2vw, 44px);
+    line-height:1.06;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .rt-lead{
+    max-width:760px;
+    margin:12px 0 0;
+    color:rgba(255,255,255,.76);
+    font-size:14px;
+    line-height:1.55;
+    font-weight:650;
+  }
+
+  .rt-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+
+  @media (max-width:900px){
+    .rt-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .rt-card{
+    border-radius:var(--rt-radius-xl);
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    box-shadow:var(--rt-shadow-sm);
+    padding:18px;
+  }
+
+  .rt-cardhead{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:14px;
+  }
+
+  .rt-iconbox{
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    flex:0 0 42px;
+    border-radius:16px;
+    color:var(--rt-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    font-weight:950;
+  }
+
+  [data-theme="dark"] .rt-iconbox,
+  .dark .rt-iconbox{
+    color:#93c5fd;
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.18);
+  }
+
+  .rt-cardhead h3{
+    margin:0;
+    color:var(--rt-text);
+    font-size:17px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .rt-body{
+    min-height:110px;
+    color:var(--rt-muted);
+    line-height:1.65;
+    white-space:pre-wrap;
+    font-size:14px;
+    font-weight:700;
+  }
+
+  .rt-kpis{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:12px;
+  }
+
+  @media (max-width:860px){
+    .rt-kpis{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .rt-kpi{
+    min-height:150px;
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    padding:17px;
+    border-radius:24px;
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    box-shadow:var(--rt-shadow-sm);
+    transition:transform .14s ease, border-color .14s ease;
+  }
+
+  .rt-kpi:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.22);
+  }
+
+  .rt-kpi::before{
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:5px;
+    background:var(--rt-primary);
+    opacity:.85;
+  }
+
+  .rt-kpi.severity::before{
+    background:var(--rt-orange);
   }
 
   .rt-kpi.score{
-    background: color-mix(in oklab, var(--rt-primary) 6%, var(--rt-bg));
-    border: 2px solid color-mix(in oklab, var(--rt-primary) 22%, transparent);
-    box-shadow: 0 10px 22px color-mix(in oklab, var(--rt-primary) 14%, transparent);
-    position: relative;
-    overflow:hidden;
+    background:
+      linear-gradient(180deg, rgba(36,87,230,.075), rgba(15,118,110,.045)),
+      var(--rt-card);
+    border:1px solid rgba(36,87,230,.16);
   }
-  .rt-kpi.score::after{
+
+  .rt-kpi.score::before{
+    background:var(--rt-teal);
+  }
+
+  .rt-kpi::after{
     content:"";
     position:absolute;
-    right: -26px;
-    top: -26px;
-    width: 96px;
-    height: 96px;
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--rt-primary) 10%, transparent);
+    width:120px;
+    height:120px;
+    right:-52px;
+    top:-55px;
+    border-radius:999px;
+    background:rgba(36,87,230,.07);
+  }
+
+  .rt-kpi-top{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    color:var(--rt-muted);
+    font-size:12px;
+    font-weight:950;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+  }
+
+  .rt-kpi-val{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    gap:9px;
+    margin-top:14px;
+  }
+
+  .rt-kpi-num{
+    color:var(--rt-text);
+    font-size:44px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.065em;
+  }
+
+  .rt-kpi-den{
+    color:var(--rt-muted);
+    font-size:14px;
+    font-weight:900;
+    padding-bottom:5px;
+  }
+
+  .rt-bar{
+    position:relative;
+    z-index:1;
+    height:10px;
+    border-radius:999px;
+    overflow:hidden;
+    background:rgba(148,163,184,.20);
+    margin-top:15px;
+  }
+
+  .rt-bar > i{
+    display:block;
+    height:100%;
+    width:0%;
+    border-radius:999px;
+    background:linear-gradient(135deg, var(--rt-primary), #3264ff);
+    transition:width .35s ease;
+  }
+
+  .rt-kpi.severity .rt-bar > i{
+    background:linear-gradient(135deg, var(--rt-orange), var(--rt-amber));
+  }
+
+  .rt-note{
+    position:relative;
+    z-index:1;
+    margin-top:10px;
+    color:var(--rt-muted);
+    font-size:12px;
+    line-height:1.4;
+    font-weight:750;
   }
 
   .rt-tag{
+    min-height:28px;
     display:inline-flex;
     align-items:center;
-    padding:.18rem .5rem;
-    border-radius: 999px;
-    font-size: .68rem;
-    font-weight: 950;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid transparent;
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.08em;
+    text-transform:uppercase;
     white-space:nowrap;
-    margin-left: .35rem;
-    border: 1px solid transparent;
-  }
-  .rt-tag.crit{
-    background: color-mix(in oklab, #ef4444 16%, transparent);
-    color: #ef4444;
-    border-color: color-mix(in oklab, #ef4444 28%, transparent);
-  }
-  .rt-tag.mid{
-    background: color-mix(in oklab, #f97316 16%, transparent);
-    color: #f97316;
-    border-color: color-mix(in oklab, #f97316 28%, transparent);
-  }
-  .rt-tag.low{
-    background: color-mix(in oklab, #22c55e 16%, transparent);
-    color: #22c55e;
-    border-color: color-mix(in oklab, #22c55e 28%, transparent);
+    margin-bottom:6px;
   }
 
+  .rt-tag.crit{
+    background:rgba(239,68,68,.11);
+    color:#b91c1c;
+    border-color:rgba(239,68,68,.20);
+  }
+
+  .rt-tag.mid{
+    background:rgba(245,158,11,.13);
+    color:#a16207;
+    border-color:rgba(245,158,11,.22);
+  }
+
+  .rt-tag.low{
+    background:rgba(34,197,94,.12);
+    color:#15803d;
+    border-color:rgba(34,197,94,.20);
+  }
+
+  [data-theme="dark"] .rt-tag.crit,
+  .dark .rt-tag.crit{ color:#fecaca; }
+  [data-theme="dark"] .rt-tag.mid,
+  .dark .rt-tag.mid{ color:#fde68a; }
+  [data-theme="dark"] .rt-tag.low,
+  .dark .rt-tag.low{ color:#bbf7d0; }
+
   .rt-footer{
-    margin-top: 1.1rem;
-    padding-top: 1rem;
-    border-top: 1px solid color-mix(in oklab, var(--rt-line) 100%, transparent);
     display:flex;
-    justify-content:space-between;
     align-items:center;
-    gap:.75rem;
+    justify-content:space-between;
+    gap:12px;
     flex-wrap:wrap;
-    color: var(--rt-muted);
-    font-weight: 700;
-    font-size: .92rem;
+    padding:14px;
+    border-radius:var(--rt-radius-xl);
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    box-shadow:var(--rt-shadow-sm);
+    color:var(--rt-muted);
+    font-size:13px;
+    font-weight:750;
+  }
+
+  .rt-footer-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .rt-info-dot{
+    width:34px;
+    height:34px;
+    display:grid;
+    place-items:center;
+    flex:0 0 34px;
+    border-radius:14px;
+    color:var(--rt-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    font-weight:950;
+  }
+
+  @media (max-width:620px){
+    .rt-topbar{
+      position:relative;
+      top:auto;
+      border-radius:23px;
+    }
+
+    .rt-actions,
+    .rt-actions .rt-btn,
+    .rt-footer .rt-btn{
+      width:100%;
+    }
+
+    .rt-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .rt-card{
+      padding:15px;
+      border-radius:23px;
+    }
   }
 </style>
 
@@ -285,153 +543,144 @@
   {% endif %}
 {% endif %}
 
-{# yüzdeleri hesapla (JS’e data olarak geçeceğiz) #}
 {% set p_pct = ((p / 5 * 100) if p is not none else 0) %}
 {% set s_pct = ((sev / 5 * 100) if sev is not none else 0) %}
 
-<div class="rt-shell">
+<div class="rt-scope">
+  <div class="rt-shell">
 
-  <div class="rt-topbar">
-    <div class="rt-bc">
-      <span>Kütüphane</span>
-      <span class="material-symbols-outlined rt-sep">chevron_right</span>
-      <b>Şablon Detayı</b>
-    </div>
-
-    <div class="rt-actions">
-      <a href="{{ url_for('risk_identify') }}" class="rt-btn rt-btn-ghost">
-        <span class="material-symbols-outlined rt-ic">arrow_back</span>
-        Listeye dön
-      </a>
-    </div>
-  </div>
-
-  <section class="rt-hero">
-    <div class="rt-pillrow">
-      <span class="rt-pill primary">{{ _cat }}</span>
-      {% if _code %}
-        <span class="rt-pill code">{{ _code }}</span>
-      {% endif %}
-    </div>
-
-    <h1 class="rt-title">{{ _title }}</h1>
-    <p class="rt-lead">{{ _desc }}</p>
-  </section>
-
-  <div class="rt-grid">
-
-    <section class="rt-card">
-      <div class="rt-cardhead">
-        <div class="rt-iconbox">
-          <span class="material-symbols-outlined">fact_check</span>
-        </div>
-        <h3>Risk Faktörü</h3>
+    <nav class="rt-topbar" aria-label="Şablon detay gezinme">
+      <div class="rt-bc">
+        <span>Kütüphane</span>
+        <span class="rt-sep">/</span>
+        <b>Şablon Detayı</b>
       </div>
-      <div class="rt-body">{{ _desc }}</div>
+
+      <div class="rt-actions">
+        <a href="{{ url_for('risk_identify') }}" class="rt-btn">
+          ← Listeye dön
+        </a>
+      </div>
+    </nav>
+
+    <section class="rt-hero">
+      <div class="rt-hero-inner">
+        <div class="rt-pillrow">
+          <span class="rt-pill">{{ _cat }}</span>
+          {% if _code %}
+            <span class="rt-pill code">{{ _code }}</span>
+          {% endif %}
+        </div>
+
+        <h1 class="rt-title">{{ _title }}</h1>
+        <p class="rt-lead">{{ _desc }}</p>
+      </div>
     </section>
 
-    <section class="rt-card">
-      <div class="rt-cardhead">
-        <div class="rt-iconbox">
-          <span class="material-symbols-outlined">shield</span>
+    <div class="rt-grid">
+      <section class="rt-card">
+        <div class="rt-cardhead">
+          <div class="rt-iconbox">✓</div>
+          <h3>Risk Faktörü</h3>
         </div>
-        <h3>Önerilen Önlemler</h3>
-      </div>
-      <div class="rt-body">{{ _mit }}</div>
-    </section>
+        <div class="rt-body">{{ _desc }}</div>
+      </section>
 
-  </div>
-
-  <div class="rt-kpis">
-
-    <div class="rt-kpi">
-      <div class="rt-kpi-top">
-        <span>Varsayılan Olasılık</span>
-        <span class="material-symbols-outlined">signal_cellular_alt</span>
-      </div>
-
-      <div class="rt-kpi-val">
-        <span class="rt-kpi-num">{{ p if p is not none else '—' }}</span>
-        <span class="rt-kpi-den">/ 5</span>
-      </div>
-
-      <div class="rt-bar" aria-hidden="true">
-        <i class="rt-barfill" data-w="{{ '%.0f'|format(p_pct) }}"></i>
-      </div>
-
-      <div style="margin-top:.55rem; color:var(--rt-muted); font-weight:900; letter-spacing:.08em; text-transform:uppercase; font-size:.72rem;">
-        {% if p is not none %}
-          {% if p >= 4 %}Yüksek{% elif p >= 3 %}Orta{% else %}Düşük{% endif %}
-        {% else %}
-          —
-        {% endif %}
-      </div>
+      <section class="rt-card">
+        <div class="rt-cardhead">
+          <div class="rt-iconbox">🛡</div>
+          <h3>Önerilen Önlemler</h3>
+        </div>
+        <div class="rt-body">{{ _mit }}</div>
+      </section>
     </div>
 
-    <div class="rt-kpi">
-      <div class="rt-kpi-top">
-        <span>Varsayılan Şiddet</span>
-        <span class="material-symbols-outlined">report_problem</span>
+    <section class="rt-kpis" aria-label="Varsayılan risk skorları">
+      <div class="rt-kpi">
+        <div class="rt-kpi-top">
+          <span>Varsayılan Olasılık</span>
+          <span> P </span>
+        </div>
+
+        <div class="rt-kpi-val">
+          <span class="rt-kpi-num">{{ p if p is not none else '—' }}</span>
+          <span class="rt-kpi-den">/ 5</span>
+        </div>
+
+        <div class="rt-bar" aria-hidden="true">
+          <i class="rt-barfill" data-w="{{ '%.0f'|format(p_pct) }}"></i>
+        </div>
+
+        <div class="rt-note">
+          {% if p is not none %}
+            {% if p >= 4 %}Yüksek olasılık{% elif p >= 3 %}Orta olasılık{% else %}Düşük olasılık{% endif %}
+          {% else %}
+            Değer girilmemiş.
+          {% endif %}
+        </div>
       </div>
 
-      <div class="rt-kpi-val">
-        <span class="rt-kpi-num">{{ sev if sev is not none else '—' }}</span>
-        <span class="rt-kpi-den">/ 5</span>
+      <div class="rt-kpi severity">
+        <div class="rt-kpi-top">
+          <span>Varsayılan Şiddet</span>
+          <span> Ş </span>
+        </div>
+
+        <div class="rt-kpi-val">
+          <span class="rt-kpi-num">{{ sev if sev is not none else '—' }}</span>
+          <span class="rt-kpi-den">/ 5</span>
+        </div>
+
+        <div class="rt-bar" aria-hidden="true">
+          <i class="rt-barfill" data-w="{{ '%.0f'|format(s_pct) }}"></i>
+        </div>
+
+        <div class="rt-note">
+          {% if sev is not none %}
+            {% if sev >= 4 %}Yüksek önem{% elif sev >= 3 %}Orta önem{% else %}Düşük önem{% endif %}
+          {% else %}
+            Değer girilmemiş.
+          {% endif %}
+        </div>
       </div>
 
-      <div class="rt-bar" aria-hidden="true">
-        <i class="rt-barfill" data-w="{{ '%.0f'|format(s_pct) }}"></i>
-      </div>
-
-      <div style="margin-top:.55rem; color:var(--rt-muted); font-weight:900; letter-spacing:.08em; text-transform:uppercase; font-size:.72rem;">
-        {% if sev is not none %}
-          {% if sev >= 4 %}Yüksek Önem{% elif sev >= 3 %}Orta{% else %}Düşük{% endif %}
-        {% else %}
-          —
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="rt-kpi score">
-      <div class="rt-kpi-top" style="color:var(--rt-primary); font-weight:950;">
-        <span>Varsayılan Skor</span>
-        <span class="material-symbols-outlined" style="color:var(--rt-primary);">speed</span>
-      </div>
-
-      <div class="rt-kpi-val" style="position:relative; z-index:1;">
-        <span class="rt-kpi-num" style="font-size:2.5rem; color:var(--rt-primary);">
-          {% if score is not none %}{{ score }}{% else %}—{% endif %}
-        </span>
+      <div class="rt-kpi score">
+        <div class="rt-kpi-top">
+          <span>Varsayılan Skor</span>
+          <span> P×Ş </span>
+        </div>
 
         {% if score is not none %}
           <span class="rt-tag {{ score_tag_cls }}">{{ score_tag }}</span>
         {% endif %}
+
+        <div class="rt-kpi-val">
+          <span class="rt-kpi-num" style="color:var(--rt-primary);">
+            {% if score is not none %}{{ score }}{% else %}—{% endif %}
+          </span>
+        </div>
+
+        <div class="rt-note">
+          Skor, olasılık ve şiddet değerlerinin çarpımı ile hesaplanır.
+        </div>
+      </div>
+    </section>
+
+    <footer class="rt-footer">
+      <div class="rt-footer-left">
+        <span class="rt-info-dot">i</span>
+        <span>Sistem tarafından otomatik olarak oluşturulmuştur.</span>
       </div>
 
-      <div style="margin-top:.65rem; position:relative; z-index:1; color: color-mix(in oklab, var(--rt-primary) 70%, transparent); font-weight:700; font-size:.86rem; line-height:1.35;">
-        Bu skor, olasılık ve şiddet değerlerinin çarpımı ile hesaplanmıştır.
-      </div>
-    </div>
-
-  </div>
-
-  <div class="rt-footer">
-    <div>
-      <span class="material-symbols-outlined" style="font-size:18px; vertical-align:-4px;">info</span>
-      Sistem tarafından otomatik olarak oluşturulmuştur.
-    </div>
-    <div style="display:flex; gap:.5rem; flex-wrap:wrap; justify-content:flex-end;">
-      <a href="{{ url_for('risk_identify') }}" class="rt-btn rt-btn-ghost">
-        <span class="material-symbols-outlined rt-ic">arrow_back</span>
+      <a href="{{ url_for('risk_identify') }}" class="rt-btn">
         Tanımlı risk listesine dön
       </a>
-    </div>
-  </div>
+    </footer>
 
+  </div>
 </div>
 
 <script>
-  // Progress bar fill widths (CSS linter'ı çıldırtmasın diye Jinja'yı CSS'e sokmuyoruz)
   (function(){
     const fills = document.querySelectorAll('.rt-barfill[data-w]');
     fills.forEach(el => {
