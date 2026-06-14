@@ -4,556 +4,915 @@
 
 <style>
   /* =========================================================
-     Risk New — Tailwind-like / Enterprise UI (base ile uyumlu)
-     Feature kaybı yok: aynı Jinja + aynı POST akışı + aynı JS
+     Yeni Risk — Premium / Kullanıcı Dostu
+     Fonksiyon kaybı yok: aynı POST, aynı hidden alanlar, aynı JS
      ========================================================= */
 
-  :root{
-    --primary: #2866bd;
-    --bg: #ffffff;
-    --bg-soft: #f6f7f8;
-    --card: rgba(255,255,255,.92);
-    --line: rgba(148,163,184,.35);
-    --muted: rgba(100,116,139,1);
-    --radius: 18px;
-    --radius-sm: 14px;
-    --elev-1: 0 10px 26px -18px rgba(15,23,42,.25);
-    --glass-blur: blur(10px);
-    --danger: #ef4444;
+  .risk-new{
+    --rn-bg:#f6f8fc;
+    --rn-card:#ffffff;
+    --rn-text:#0f172a;
+    --rn-muted:#64748b;
+    --rn-line:rgba(15,23,42,.09);
+    --rn-line-2:rgba(15,23,42,.14);
+    --rn-primary:#2457e6;
+    --rn-primary-2:#1d4ed8;
+    --rn-teal:#0f766e;
+    --rn-green:#22c55e;
+    --rn-amber:#f59e0b;
+    --rn-red:#ef4444;
+    --rn-soft:#f8fafc;
+    --rn-shadow:0 24px 70px rgba(15,23,42,.09);
+    --rn-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    --rn-radius-xl:28px;
+    --rn-radius-lg:22px;
+    --rn-radius-md:16px;
+    color:var(--rn-text);
   }
 
-  [data-theme="dark"]{
-    --bg: #0b1220;
-    --bg-soft: rgba(17,23,33,.70);
-    --card: rgba(18,24,32,.62);
-    --line: rgba(51,65,85,.55);
-    --muted: rgba(148,163,184,1);
+  [data-theme="dark"] .risk-new{
+    --rn-bg:#0b1220;
+    --rn-card:rgba(15,23,42,.76);
+    --rn-text:#e5e7eb;
+    --rn-muted:#94a3b8;
+    --rn-line:rgba(255,255,255,.08);
+    --rn-line-2:rgba(255,255,255,.14);
+    --rn-soft:rgba(15,23,42,.55);
+    --rn-shadow:0 24px 70px rgba(0,0,0,.28);
+    --rn-shadow-sm:0 12px 34px rgba(0,0,0,.22);
   }
 
-  .page-wrap{ max-width: 1100px; margin: 0 auto; }
+  .risk-new *{
+    box-sizing:border-box;
+  }
+
+  .page-wrap{
+    width:100%;
+    max-width:1180px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .flash{
+    border-radius:18px;
+    border:1px solid var(--rn-line);
+    background:var(--rn-card);
+    box-shadow:var(--rn-shadow-sm);
+    padding:13px 15px;
+    color:var(--rn-text);
+    font-size:13px;
+    font-weight:750;
+  }
+
+  .flash.success{
+    color:#166534;
+    background:#f0fdf4;
+    border-color:rgba(34,197,94,.18);
+  }
+
+  .flash.warning{
+    color:#92400e;
+    background:#fffbeb;
+    border-color:rgba(245,158,11,.20);
+  }
+
+  .flash.danger,
+  .flash.error{
+    color:#991b1b;
+    background:#fff7f7;
+    border-color:rgba(239,68,68,.18);
+  }
+
+  [data-theme="dark"] .flash.success{ color:#bbf7d0; background:rgba(34,197,94,.10); }
+  [data-theme="dark"] .flash.warning{ color:#fde68a; background:rgba(245,158,11,.10); }
+  [data-theme="dark"] .flash.danger,
+  [data-theme="dark"] .flash.error{ color:#fecaca; background:rgba(239,68,68,.10); }
+
   .crumbs{
-    display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
-    font-weight: 700; font-size: .92rem;
-    color: color-mix(in oklab, var(--muted) 92%, transparent);
-    margin: 6px 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin:2px 0 0;
+    color:var(--rn-muted);
+    font-size:13px;
+    font-weight:800;
   }
+
   .crumbs a{
-    color: color-mix(in oklab, var(--muted) 92%, transparent);
+    color:var(--rn-muted);
     text-decoration:none;
   }
-  .crumbs a:hover{ color: var(--primary); }
 
-  .page-head{
-    display:flex; align-items:flex-end; justify-content:space-between;
-    gap: 12px; flex-wrap:wrap;
-    margin-bottom: 14px;
+  .crumbs a:hover{
+    color:var(--rn-primary);
+    text-decoration:none;
   }
-  .page-head h1{
+
+  .hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--rn-radius-xl);
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--rn-shadow);
+  }
+
+  .hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .hero-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  .hero h1{
     margin:0;
-    font-size: clamp(1.6rem, 2.4vw, 2.2rem);
-    font-weight: 950;
-    letter-spacing: -0.02em;
+    color:#fff;
+    font-size:clamp(28px, 3.2vw, 44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
   }
-  .page-head p{
-    margin: 6px 0 0;
-    color: var(--muted);
-    font-size: .95rem;
+
+  .hero p{
+    max-width:540px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .hero-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
   }
 
   .btn{
-    display:inline-flex; align-items:center; justify-content:center;
-    gap:.5rem;
-    padding: .6rem .95rem;
-    border-radius: 12px;
-    border: 1px solid color-mix(in oklab, var(--line) 86%, transparent);
-    background: color-mix(in oklab, var(--bg) 96%, transparent);
-    color: inherit;
-    font-weight: 900;
-    font-size: .92rem;
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--rn-line);
+    background:var(--rn-card);
+    color:var(--rn-text);
     text-decoration:none;
+    font:inherit;
+    font-size:13px;
+    font-weight:900;
     cursor:pointer;
-    transition: transform .08s ease, filter .16s ease, border-color .16s ease, background .16s ease;
+    box-shadow:var(--rn-shadow-sm);
+    transition:transform .14s ease, filter .14s ease, border-color .14s ease, background .14s ease;
+    white-space:nowrap;
   }
+
   .btn:hover{
-    transform: translateY(-1px);
-    border-color: color-mix(in oklab, var(--primary) 28%, var(--line));
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
   }
+
   .btn-primary{
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
-    box-shadow: 0 16px 38px -22px color-mix(in oklab, var(--primary) 55%, transparent);
+    background:linear-gradient(135deg, var(--rn-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
   }
-  .btn-primary:hover{ filter: brightness(1.03); }
+
   .btn-secondary{
-    background: color-mix(in oklab, var(--primary) 10%, transparent);
-    border-color: color-mix(in oklab, var(--primary) 20%, transparent);
-    color: var(--primary);
+    color:var(--rn-primary);
+    background:rgba(36,87,230,.09);
+    border-color:rgba(36,87,230,.18);
   }
-  .btn-ghost{
-    background: transparent;
-    border-style: dashed;
-    opacity: .95;
-  }
-  .btn-ghost:hover{ opacity: 1; }
 
   .btn-danger{
-    background: color-mix(in oklab, var(--danger) 12%, transparent);
-    border-color: color-mix(in oklab, var(--danger) 28%, transparent);
-    color: color-mix(in oklab, var(--danger) 85%, #fff 15%);
+    color:#b91c1c;
+    background:rgba(239,68,68,.10);
+    border-color:rgba(239,68,68,.18);
   }
-  [data-theme="dark"] .btn-danger{ color: #ffecec; }
 
-  .icon{
-    display:inline-grid; place-items:center;
-    width: 34px; height: 34px;
-    border-radius: 12px;
-    background: color-mix(in oklab, var(--primary) 12%, transparent);
-    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
-    color: var(--primary);
-    font-weight: 1000;
-    flex: 0 0 auto;
+  [data-theme="dark"] .btn-danger{
+    color:#fecaca;
+  }
+
+  .hero .btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .hero .btn-primary{
+    background:#fff;
+    color:#1d4ed8;
   }
 
   .panel-card{
-    border-radius: var(--radius);
-    border: 1px solid color-mix(in oklab, var(--line) 88%, transparent);
-    background: color-mix(in oklab, var(--bg) 97%, transparent);
-    box-shadow: var(--elev-1);
-    padding: 18px;
-  }
-  [data-theme="dark"] .panel-card{
-    background: rgba(18,24,32,.55);
+    border-radius:var(--rn-radius-xl);
+    border:1px solid var(--rn-line);
+    background:var(--rn-card);
+    box-shadow:var(--rn-shadow-sm);
+    padding:18px;
   }
 
   .basket{
-    background: color-mix(in oklab, var(--primary) 6%, transparent);
-    border: 2px dashed color-mix(in oklab, var(--primary) 22%, transparent);
+    background:
+      linear-gradient(180deg, rgba(36,87,230,.055), rgba(15,118,110,.035)),
+      var(--rn-card);
+    border:1px solid rgba(36,87,230,.16);
   }
 
   .basket-head{
-    display:flex; align-items:center; justify-content:space-between;
-    gap: 10px; flex-wrap:wrap;
-    margin-bottom: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
   }
+
   .basket-title{
-    display:flex; align-items:center; gap: 10px;
-    font-weight: 950;
-    margin: 0;
-    font-size: 1.05rem;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--rn-text);
+    font-size:16px;
+    font-weight:950;
+    letter-spacing:-.025em;
   }
+
+  .icon{
+    width:40px;
+    height:40px;
+    display:grid;
+    place-items:center;
+    border-radius:16px;
+    color:var(--rn-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    font-weight:950;
+  }
+
+  [data-theme="dark"] .icon{
+    color:#93c5fd;
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.18);
+  }
+
   .pill{
-    display:inline-flex; align-items:center; justify-content:center;
-    padding: .22rem .55rem;
-    border-radius: 999px;
-    background: var(--primary);
-    color: #fff;
-    font-weight: 950;
-    font-size: .78rem;
-    letter-spacing: .04em;
-    white-space: nowrap;
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 11px;
+    border-radius:999px;
+    background:linear-gradient(135deg, var(--rn-primary), #3264ff);
+    color:#fff;
+    font-size:12px;
+    font-weight:950;
+    letter-spacing:.06em;
+    white-space:nowrap;
   }
 
   .grid-templates{
     display:grid;
-    grid-template-columns: repeat(3, minmax(0,1fr));
-    gap: 12px;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:12px;
   }
-  @media (max-width: 980px){ .grid-templates{ grid-template-columns: 1fr; } }
+
+  @media (max-width:1060px){
+    .grid-templates{
+      grid-template-columns:repeat(2, minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:720px){
+    .grid-templates{
+      grid-template-columns:1fr;
+    }
+  }
 
   .tpl-card{
-    background: color-mix(in oklab, var(--bg) 98%, transparent);
-    border: 1px solid color-mix(in oklab, var(--line) 88%, transparent);
-    border-radius: 14px;
-    padding: 12px;
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap: 10px;
+    min-width:0;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:12px;
+    padding:15px;
+    border-radius:22px;
+    background:rgba(255,255,255,.72);
+    border:1px solid var(--rn-line);
+    box-shadow:0 10px 24px rgba(15,23,42,.04);
+    transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease;
   }
-  [data-theme="dark"] .tpl-card{ background: rgba(18,24,32,.55); }
 
-  .tpl-meta{ min-width: 0; }
-  .tpl-cat{
-    margin:0 0 4px;
-    font-weight: 950;
-    color: var(--primary);
-    font-size: .78rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
+  [data-theme="dark"] .tpl-card{
+    background:rgba(15,23,42,.42);
   }
+
+  .tpl-card:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.22);
+    box-shadow:0 16px 32px rgba(15,23,42,.07);
+  }
+
+  .tpl-meta{
+    min-width:0;
+  }
+
+  .tpl-cat{
+    margin:0 0 7px;
+    color:var(--rn-primary);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
   .tpl-title{
     margin:0;
-    font-weight: 900;
-    font-size: .92rem;
-    color: inherit;
-    line-height: 1.25;
+    color:var(--rn-text);
+    font-size:14px;
+    line-height:1.32;
+    font-weight:950;
+    letter-spacing:-.02em;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
   }
+
   .tpl-desc{
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: .78rem;
-  line-height: 1.35;
-
-  /* clamp */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-
-  /* standart + webkit */
-  line-clamp: 1;
-  -webkit-line-clamp: 1;
-}
-
-  .tpl-x{
-    border: 0;
-    background: transparent;
-    color: color-mix(in oklab, var(--muted) 65%, transparent);
-    cursor:pointer;
-    font-weight: 1000;
-    padding: 2px 6px;
-    border-radius: 10px;
+    margin:8px 0 0;
+    color:var(--rn-muted);
+    font-size:12px;
+    line-height:1.42;
+    font-weight:650;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
   }
-  .tpl-x:hover{ color: var(--danger); background: color-mix(in oklab, var(--danger) 10%, transparent); }
 
   .badge{
+    min-height:26px;
     display:inline-flex;
     align-items:center;
-    justify-content:center;
-    padding: .12rem .48rem;
-    border-radius: 999px;
-    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
-    background: color-mix(in oklab, var(--primary) 10%, transparent);
-    color: var(--primary);
-    font-weight: 950;
-    font-size: .74rem;
-    margin-left: .35rem;
-    white-space: nowrap;
+    gap:6px;
+    margin-top:10px;
+    padding:0 9px;
+    border-radius:999px;
+    border:1px solid var(--rn-line);
+    background:#fff;
+    color:var(--rn-text);
+    font-size:11px;
+    font-weight:900;
+    white-space:nowrap;
   }
 
-  .form-card{
-    padding: 20px;
+  [data-theme="dark"] .badge{
+    background:rgba(15,23,42,.52);
+  }
+
+  .tpl-x{
+    width:34px;
+    height:34px;
+    display:grid;
+    place-items:center;
+    border-radius:14px;
+    border:1px solid rgba(239,68,68,.18);
+    background:rgba(239,68,68,.09);
+    color:#dc2626;
+    font-size:15px;
+    font-weight:950;
+    cursor:pointer;
+    transition:transform .12s ease, background .12s ease;
+  }
+
+  .tpl-x:hover{
+    transform:translateY(-1px);
+    background:rgba(239,68,68,.14);
   }
 
   .section-title{
     display:flex;
     align-items:center;
-    gap: 10px;
-    margin: 18px 0 12px;
+    gap:10px;
+    margin-top:2px;
   }
+
   .section-title h3{
     margin:0;
-    font-size: 1.1rem;
-    font-weight: 950;
-    letter-spacing: -0.01em;
+    color:var(--rn-text);
+    font-size:17px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .form-card{
+    padding:20px;
   }
 
   .form-grid{
     display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px 18px;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:15px;
   }
-  @media (max-width: 900px){ .form-grid{ grid-template-columns: 1fr; } }
 
-  .field{ display:flex; flex-direction:column; gap: 6px; }
-  .field label{ font-weight: 900; font-size: .9rem; }
-  .small{ color: var(--muted); font-size: .85rem; }
+  @media (max-width:860px){
+    .form-grid{
+      grid-template-columns:1fr;
+    }
+  }
 
-  .input, textarea.input, select.input{
-    width: 100%;
-    border-radius: 12px;
-    border: 1px solid color-mix(in oklab, var(--line) 92%, transparent);
-    background: color-mix(in oklab, var(--bg) 96%, transparent);
-    color: inherit;
-    padding: .65rem .85rem;
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-width:0;
+  }
+
+  label{
+    color:var(--rn-text);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .small{
+    color:var(--rn-muted);
+    font-size:12px;
+    font-weight:650;
+  }
+
+  .input{
+    width:100%;
+    min-height:52px;
+    border-radius:17px;
+    border:1px solid var(--rn-line);
+    background:#fff;
+    color:var(--rn-text);
     outline:none;
-    font-size: .95rem;
+    padding:0 14px;
+    font:inherit;
+    font-size:14px;
+    font-weight:700;
+    box-shadow:0 10px 24px rgba(15,23,42,.04);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
   }
-  textarea.input{ min-height: 110px; resize: vertical; }
+
+  textarea.input{
+    min-height:98px;
+    padding-top:13px;
+    padding-bottom:13px;
+    line-height:1.5;
+    resize:vertical;
+  }
+
+  [data-theme="dark"] .input{
+    background:rgba(15,23,42,.52);
+    color:var(--rn-text);
+  }
+
+  .input::placeholder{
+    color:#94a3b8;
+    font-weight:650;
+  }
+
   .input:focus{
-    border-color: color-mix(in oklab, var(--primary) 55%, var(--line));
-    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 18%, transparent);
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12), 0 14px 28px rgba(15,23,42,.06);
   }
 
   .info-note{
-    border-radius: 14px;
-    padding: 12px 14px;
-    background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
-    border: 1px solid color-mix(in oklab, var(--line) 82%, transparent);
-    color: var(--muted);
-    font-size: .85rem;
-    line-height: 1.45;
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:13px 14px;
+    border-radius:18px;
+    background:rgba(36,87,230,.07);
+    border:1px solid rgba(36,87,230,.13);
+    color:var(--rn-muted);
+    font-size:13px;
+    line-height:1.45;
+    font-weight:700;
+  }
+
+  .info-note::before{
+    content:"i";
+    width:22px;
+    height:22px;
+    flex:0 0 22px;
+    display:grid;
+    place-items:center;
+    border-radius:999px;
+    background:var(--rn-primary);
+    color:#fff;
+    font-size:12px;
+    font-weight:950;
+    margin-top:1px;
+  }
+
+  .info-note b{
+    color:var(--rn-text);
   }
 
   .footer-actions{
     display:flex;
-    gap: 10px;
-    flex-wrap:wrap;
+    align-items:center;
     justify-content:flex-end;
-    margin-top: 14px;
-    padding-bottom: 70px; /* bottom bar boşluğu */
+    gap:10px;
+    flex-wrap:wrap;
+    padding-top:4px;
   }
 
-  /* Bottom bar (seçim varsa) */
-  .actionbar{
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 18px;
-    width: min(980px, calc(100% - 24px));
-    z-index: 60;
+  .empty-card{
+    text-align:center;
+    padding:42px 20px;
+    border:2px dashed var(--rn-line-2);
   }
+
+  .empty-inner{
+    display:grid;
+    place-items:center;
+    gap:12px;
+  }
+
+  .empty-inner h3{
+    margin:0;
+    color:var(--rn-text);
+    font-size:21px;
+    font-weight:950;
+    letter-spacing:-.035em;
+  }
+
+  .empty-inner p{
+    margin:0;
+    max-width:460px;
+    color:var(--rn-muted);
+    font-size:14px;
+    line-height:1.5;
+    font-weight:650;
+  }
+
+  .actionbar{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    width:min(100% - 32px, 980px);
+    z-index:40;
+  }
+
   .actionbar-inner{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap: 12px;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: #0b1220;
-    color: #fff;
-    border: 1px solid rgba(148,163,184,.22);
-    box-shadow: 0 22px 50px -26px rgba(0,0,0,.6);
+    gap:14px;
+    padding:12px;
+    border-radius:24px;
+    background:rgba(255,255,255,.88);
+    border:1px solid rgba(255,255,255,.92);
+    box-shadow:0 28px 80px rgba(15,23,42,.18);
+    backdrop-filter:blur(22px);
   }
-  [data-theme="dark"] .actionbar-inner{ background:#000; border-color: rgba(148,163,184,.18); }
 
-  .action-left{ display:flex; align-items:center; gap: 12px; min-width:0; }
+  [data-theme="dark"] .actionbar-inner{
+    background:rgba(15,23,42,.88);
+    border-color:rgba(255,255,255,.10);
+  }
+
+  .action-left{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    min-width:0;
+  }
+
   .action-ico{
-    width: 44px; height: 44px;
-    border-radius: 14px;
+    width:42px;
+    height:42px;
     display:grid;
     place-items:center;
-    background: var(--primary);
-    box-shadow: 0 14px 30px -20px rgba(40,102,189,.85);
-    font-weight: 1000;
+    flex:0 0 42px;
+    border-radius:16px;
+    background:rgba(34,197,94,.12);
+    border:1px solid rgba(34,197,94,.20);
+    color:#16a34a;
+    font-weight:950;
   }
-  .action-meta{ min-width:0; }
+
+  .action-meta{
+    min-width:0;
+  }
+
   .action-meta h4{
     margin:0;
-    font-size: 1.05rem;
-    font-weight: 950;
-    letter-spacing: -0.01em;
-    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+    color:var(--rn-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.015em;
   }
+
   .action-meta p{
-    margin:2px 0 0;
-    font-size: .78rem;
-    color: rgba(226,232,240,.75);
+    margin:3px 0 0;
+    color:var(--rn-muted);
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
-  .action-right{ display:flex; align-items:center; gap: 10px; flex-wrap:wrap; justify-content:flex-end; }
 
-  .btn-clear{
-    background: transparent;
-    border: 0;
-    color: rgba(226,232,240,.78);
-    font-weight: 900;
-    cursor:pointer;
-    padding: .45rem .55rem;
-    border-radius: 12px;
+  .action-right{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    flex:0 0 auto;
   }
-  .btn-clear:hover{ color:#fff; background: rgba(255,255,255,.06); }
 
-  @media (max-width: 520px){
-    .actionbar-inner{ flex-direction: column; align-items: stretch; }
-    .action-right{ width: 100%; }
-    .action-right .btn{ width: 100%; justify-content:center; }
+  @media (max-width:680px){
+    .hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .hero-actions{
+      width:100%;
+    }
+
+    .hero-actions .btn{
+      flex:1;
+    }
+
+    .panel-card{
+      border-radius:23px;
+      padding:15px;
+    }
+
+    .footer-actions{
+      justify-content:stretch;
+    }
+
+    .footer-actions .btn{
+      flex:1;
+    }
+
+    .actionbar{
+      bottom:12px;
+      width:calc(100% - 20px);
+    }
+
+    .actionbar-inner{
+      flex-direction:column;
+      align-items:stretch;
+      border-radius:22px;
+    }
+
+    .action-right .btn{
+      width:100%;
+    }
+  }
+
+  @media print{
+    .noprint,
+    .actionbar,
+    .hero-actions,
+    .crumbs{
+      display:none !important;
+    }
+
+    .panel-card,
+    .hero{
+      box-shadow:none !important;
+    }
   }
 </style>
 
-<div class="page-wrap" id="top">
+<div class="risk-new">
+  <div class="page-wrap" id="top">
 
-  <!-- Flash -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for c,m in messages %}
-      <div class="flash {{ c }}">{{ m }}</div>
-    {% endfor %}
-  {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for c,m in messages %}
+        <div class="flash {{ c }}">{{ m }}</div>
+      {% endfor %}
+    {% endwith %}
 
-  <!-- Breadcrumbs (linkler senin route’lara göre) -->
-  <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="{{ url_for('dashboard') }}">Dashboard</a>
-    <span style="opacity:.55">/</span>
-    <span>Risks</span>
-    <span style="opacity:.55">/</span>
-    <span style="color: var(--primary);">Yeni Risk</span>
-  </nav>
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <span style="opacity:.55">/</span>
+      <span>Riskler</span>
+      <span style="opacity:.55">/</span>
+      <span style="color: var(--rn-primary);">Yeni Risk</span>
+    </nav>
 
-  <!-- Header -->
-  <div class="page-head">
-    <div>
-      <h1>Yeni Risk Kaydı</h1>
-      <p>Seçili şablonlar üzerinden projeniz için yeni risk(ler) tanımlayın.</p>
-    </div>
+    {% set _picked = picked_suggestions if picked_suggestions is defined and picked_suggestions else [] %}
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-      <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç (Kütüphane)</a>
+    <section class="hero" aria-label="Yeni risk başlığı">
+      <div class="hero-row">
+        <div>
+          <div class="hero-kicker">Yeni Risk</div>
+          <h1>Risk kaydı oluştur</h1>
+          <p>Seçili şablonları tek riskte birleştir veya ayrı kayıtlar halinde başlat.</p>
+        </div>
 
-      {% set _picked = picked_suggestions if picked_suggestions is defined and picked_suggestions else [] %}
+        <div class="hero-actions">
+          <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç</a>
 
-      {% if _picked and _picked|length > 0 %}
-        <!-- Hızlı buton: HER ZAMAN tek riskte birleştirir -->
-        <form method="post" id="bulk-create-form" style="margin:0;">
+          {% if _picked and _picked|length > 0 %}
+            <form method="post" id="bulk-create-form" style="margin:0;">
+              <input type="hidden" name="action" value="create_from_picked">
+              <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
+              <input type="hidden" name="start_month" id="start_month">
+              <input type="hidden" name="end_month" id="end_month">
+              <input type="hidden" name="merge" value="1">
+              <button class="btn btn-primary" type="submit">
+                Oluştur ({{ _picked|length }})
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    {% if _picked and _picked|length > 0 %}
+      <section class="panel-card basket" aria-label="Seçili şablonlar">
+        <div class="basket-head">
+          <h3 class="basket-title">
+            <span class="icon" aria-hidden="true">🧺</span>
+            Seçili Şablonlar
+          </h3>
+          <span class="pill">{{ _picked|length }} Şablon</span>
+        </div>
+
+        <div class="grid-templates">
+          {% for s in _picked %}
+            <div class="tpl-card">
+              <div class="tpl-meta">
+                <p class="tpl-cat">{{ s.category or 'Genel' }}</p>
+                <h4 class="tpl-title">{{ s.text }}</h4>
+                <p class="tpl-desc">
+                  {% if s.risk_desc %}{{ s.risk_desc }}{% else %}Açıklama yok.{% endif %}
+                </p>
+                {% if s.risk_code %}
+                  <span class="badge">{{ s.risk_code }}</span>
+                {% endif %}
+              </div>
+
+              <form method="post" action="{{ url_for('risk_basket_remove') }}" style="margin:0;">
+                <input type="hidden" name="template_id" value="{{ s.id }}">
+                <button type="submit" class="tpl-x" title="Sepetten kaldır" aria-label="Sepetten kaldır">✕</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <div class="section-title">
+        <span class="icon" aria-hidden="true">✍️</span>
+        <h3>Ortak Alanlar</h3>
+      </div>
+
+      <section class="panel-card form-card" aria-label="Ortak alanlar formu">
+        <form method="post" id="common-form" class="form-grid">
           <input type="hidden" name="action" value="create_from_picked">
           <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
-          <input type="hidden" name="start_month" id="start_month">
-          <input type="hidden" name="end_month" id="end_month">
-          <input type="hidden" name="merge" value="1">
-          <button class="btn btn-primary" type="submit">
-            Sepetten Risk Oluştur ({{ _picked|length }})
-          </button>
+          <input type="hidden" name="start_month" id="start_month_2">
+          <input type="hidden" name="end_month" id="end_month_2">
+
+          <div class="field" style="grid-column:1/-1">
+            <label>Başlık <span class="small">Opsiyonel</span></label>
+            <input class="input" name="title"
+                   placeholder="örn. Tedarik gecikmesi"
+                   value="{{ request.form.get('title', title_prefill or '') }}">
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <label>Açıklama <span class="small">Opsiyonel</span></label>
+            <textarea class="input" name="description" rows="3"
+                      placeholder="Kısa açıklama">{{ request.form.get('description', description_prefill or '') }}</textarea>
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <label>Önlemler <span class="small">Opsiyonel</span></label>
+            <textarea class="input" name="mitigation" rows="3"
+                      placeholder="Aksiyon / önlem">{{ request.form.get('mitigation', mitigation_prefill or '') }}</textarea>
+          </div>
+
+          <div class="field">
+            <label>Sorumlu</label>
+            <input class="input" name="responsible" id="responsible" placeholder="Ad Soyad"
+                   value="{{ request.form.get('responsible','') }}">
+          </div>
+
+          <div class="field">
+            <label>Başlangıç</label>
+            <input class="input" type="date" id="start_date"
+                   min="2000-01-01" max="2100-12-31"
+                   value="{{ request.form.get('start_date','') }}">
+          </div>
+
+          <div class="field">
+            <label>Bitiş</label>
+            <input class="input" type="date" id="end_date"
+                   min="2000-01-01" max="2100-12-31"
+                   value="{{ request.form.get('end_date','') }}">
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <div class="info-note">
+              <span><b>Seçim:</b> tek riskte birleştir veya şablonları ayrı ayrı oluştur.</span>
+            </div>
+          </div>
+
+          <div class="footer-actions" style="grid-column:1/-1">
+            <a class="btn btn-danger" href="{{ url_for('dashboard') }}">Vazgeç</a>
+            <button class="btn" type="submit" name="merge" value="0">Ayrı Oluştur</button>
+            <button class="btn btn-primary" type="submit" name="merge" value="1">Tek Riskte Birleştir</button>
+          </div>
         </form>
-      {% endif %}
-    </div>
+      </section>
+
+    {% else %}
+      <section class="panel-card empty-card" aria-label="Boş sepet">
+        <div class="empty-inner">
+          <div class="icon" style="width:58px;height:58px;border-radius:20px;">🧺</div>
+          <h3>Önce şablon seç</h3>
+          <p>Yeni risk oluşturmak için risk kütüphanesinden şablon seç.</p>
+          <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">Şablon seç →</a>
+        </div>
+      </section>
+    {% endif %}
+
   </div>
 
   {% if _picked and _picked|length > 0 %}
-    <!-- Basket -->
-    <div class="panel-card basket">
-      <div class="basket-head">
-        <h3 class="basket-title">
-          <span class="icon" aria-hidden="true">🧺</span>
-          Seçili Şablonlar
-        </h3>
-        <span class="pill">{{ _picked|length }} Şablon</span>
-      </div>
-
-      <div class="grid-templates">
-        {% for s in _picked %}
-          <div class="tpl-card">
-            <div class="tpl-meta">
-              <p class="tpl-cat">{{ s.category or 'Genel' }}</p>
-              <h4 class="tpl-title">{{ s.text }}</h4>
-              <p class="tpl-desc">
-                {% if s.risk_desc %}{{ s.risk_desc }}{% else %}Şablon açıklaması yok.{% endif %}
-              </p>
-              {% if s.risk_code %}
-                <span class="badge">{{ s.risk_code }}</span>
-              {% endif %}
-            </div>
-
-            <form method="post" action="{{ url_for('risk_basket_remove') }}" style="margin:0;">
-              <input type="hidden" name="template_id" value="{{ s.id }}">
-              <button type="submit" class="tpl-x" title="Sepetten kaldır" aria-label="Sepetten kaldır">✕</button>
-            </form>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- Form Section -->
-    <div class="section-title">
-      <span class="icon" aria-hidden="true">✍️</span>
-      <h3>Ortak Alanlar</h3>
-    </div>
-
-    <div class="panel-card form-card">
-      <!-- ORTAK ALANLAR FORMU -->
-      <form method="post" id="common-form" class="form-grid">
-        <input type="hidden" name="action" value="create_from_picked">
-        <input type="hidden" name="picked_ids" value="{{ _picked | map(attribute='id') | join(',') }}">
-        <input type="hidden" name="start_month" id="start_month_2">
-        <input type="hidden" name="end_month" id="end_month_2">
-
-        <div class="field" style="grid-column:1/-1">
-          <label>Başlık <span class="small">(boşsa şablon metninin ilk 150 karakteri)</span></label>
-          <input class="input" name="title"
-                 placeholder="örn. Tedarik gecikmesi, hava koşulları…"
-                 value="{{ request.form.get('title', title_prefill or '') }}">
-        </div>
-
-        <div class="field" style="grid-column:1/-1">
-          <label>Açıklama <span class="small">(boşsa şablon metni kullanılır)</span></label>
-          <textarea class="input" name="description" rows="3"
-                    placeholder="Ortak açıklama (tüm kayıtlara)">{{ request.form.get('description', description_prefill or '') }}</textarea>
-        </div>
-
-        <div class="field" style="grid-column:1/-1">
-          <label>Önlemler (Mitigation) <span class="small">(tüm kayıtlara aynı metin)</span></label>
-          <textarea class="input" name="mitigation" rows="3"
-                    placeholder="Ortak aksiyon/önlemler">{{ request.form.get('mitigation', mitigation_prefill or '') }}</textarea>
-        </div>
-
-        <div class="field">
-          <label>Sorumlu <span class="small">(en az 3 karakter)</span></label>
-          <input class="input" name="responsible" id="responsible" placeholder="Ad Soyad"
-                 value="{{ request.form.get('responsible','') }}">
-        </div>
-
-        <div class="field">
-          <label>Başlangıç Tarihi</label>
-          <input class="input" type="date" id="start_date"
-                 min="2000-01-01" max="2100-12-31"
-                 value="{{ request.form.get('start_date','') }}">
-        </div>
-
-        <div class="field">
-          <label>Bitiş Tarihi</label>
-          <input class="input" type="date" id="end_date"
-                 min="2000-01-01" max="2100-12-31"
-                 value="{{ request.form.get('end_date','') }}">
-        </div>
-
-        <div class="field" style="grid-column:1/-1">
-          <div class="info-note">
-            <b>Bilgi Notu:</b>
-            Aşağıdaki işlemlerden <b>“Tek Risk Olarak Birleştir”</b> ile seçili şablonları tek bir kayda dönüştürebilir
-            veya <b>“Ayrı Ayrı Oluştur”</b> ile her şablon için birer risk başlatabilirsiniz.
+    <div class="actionbar noprint" id="actionbar">
+      <div class="actionbar-inner">
+        <div class="action-left">
+          <div class="action-ico">✓</div>
+          <div class="action-meta">
+            <h4>{{ _picked|length }} şablon seçili</h4>
+            <p>Formdaki bilgiler seçili risklere uygulanır.</p>
           </div>
         </div>
 
-        <!-- Footer actions -->
-        <div class="footer-actions" style="grid-column:1/-1">
-          <a class="btn btn-danger" href="{{ url_for('dashboard') }}">Vazgeç</a>
-
-          <!-- Ayrı ayrı oluştur -->
-          <button class="btn" type="submit" name="merge" value="0">Ayrı Ayrı Oluştur</button>
-
-          <!-- Tek riskte birleştir -->
-          <button class="btn btn-primary" type="submit" name="merge" value="1">Tek Risk Olarak Birleştir</button>
+        <div class="action-right">
+          <button type="submit" class="btn btn-primary"
+                  form="common-form" name="merge" value="1"
+                  title="Seçili şablonları tek riskte birleştir">
+            Birleştir →
+          </button>
         </div>
-      </form>
-    </div>
-
-  {% else %}
-    <!-- Empty state -->
-    <div class="panel-card" style="text-align:center; padding: 34px; border: 2px dashed color-mix(in oklab, var(--line) 86%, transparent);">
-      <div style="display:grid; place-items:center; gap: 10px;">
-        <div class="icon" style="width:54px;height:54px;border-radius:18px;">🧺</div>
-        <h3 style="margin:0; font-weight:950;">Önce şablon seç</h3>
-        <p class="small" style="margin:0; max-width: 520px;">
-          Yeni riskleri sadece “Tanımlı Risklerden Seç” ekranından oluşturuyoruz.
-        </p>
-        <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">Şablon seç →</a>
       </div>
     </div>
   {% endif %}
-
 </div>
-
-{% if _picked and _picked|length > 0 %}
-  <!-- Bottom action bar (opsiyonel): sadece seçim varsa göster -->
-  <div class="actionbar noprint" id="actionbar">
-    <div class="actionbar-inner">
-      <div class="action-left">
-        <div class="action-ico">✓</div>
-        <div class="action-meta">
-          <h4>{{ _picked|length }} Şablon Seçili</h4>
-          <p>Seçili şablonlar yeni risk formunda işlenecek.</p>
-        </div>
-      </div>
-
-      <div class="action-right">
-        <!-- İstersen “temizle” butonunu burada da yaparız; şu an sepet temizleme endpoint yok -->
-        <button type="submit" class="btn btn-primary"
-                form="common-form" name="merge" value="1"
-                title="Seçili şablonları tek riskte birleştir">
-          Tek Risk Olarak Birleştir →
-        </button>
-      </div>
-    </div>
-  </div>
-{% endif %}
 
 <script>
 (function(){
