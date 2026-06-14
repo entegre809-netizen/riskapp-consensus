@@ -3,269 +3,659 @@
 {% block content %}
 
 <style>
-  /* =========================
-     Reports UI (page-scoped)
-     ========================= */
-  .rp-wrap{ display:flex; flex-direction:column; gap:18px; }
+  /* ==========================================================
+     Raporlar — Premium / Kullanıcı Dostu
+     Fonksiyon kaybı yok: KPI, filtre modal, export, arama, sayfalama
+     ========================================================== */
 
-  .rp-top{
-    display:flex; align-items:flex-end; justify-content:space-between;
-    gap:12px; flex-wrap:wrap;
+  .rp-scope{
+    --rp-card:#ffffff;
+    --rp-text:#0f172a;
+    --rp-muted:#64748b;
+    --rp-line:rgba(15,23,42,.09);
+    --rp-line-2:rgba(15,23,42,.14);
+    --rp-soft:#f8fafc;
+    --rp-primary:#2457e6;
+    --rp-teal:#0f766e;
+    --rp-green:#22c55e;
+    --rp-amber:#f59e0b;
+    --rp-orange:#fb923c;
+    --rp-red:#ef4444;
+    --rp-shadow:0 24px 70px rgba(15,23,42,.09);
+    --rp-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    --rp-radius-xl:28px;
+    --rp-radius-lg:22px;
+    --rp-radius-md:16px;
+    color:var(--rp-text);
   }
-  .rp-breadcrumb{
-    display:flex; align-items:center; gap:8px;
-    font-size:.78rem;
-    color: var(--text-dim);
-    font-weight:700;
-  }
-  .rp-breadcrumb .sep{ opacity:.6; }
-  .rp-title{
-    margin:4px 0 0;
-    font-size: 2rem;
-    font-weight: 950;
-    letter-spacing: -.02em;
-    line-height: 1.15;
-  }
-  .rp-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
-  .rp-btn{
-    display:inline-flex; align-items:center; gap:.5rem;
-    padding:.62rem .9rem;
-    border-radius: 12px;
-    border:1px solid var(--line);
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    color: var(--text);
-    font-weight:900;
-    text-decoration:none;
-    line-height:1;
-    transition: filter .15s ease, transform .08s ease;
+  [data-theme="dark"] .rp-scope,
+  .dark .rp-scope{
+    --rp-card:rgba(15,23,42,.76);
+    --rp-text:#e5e7eb;
+    --rp-muted:#94a3b8;
+    --rp-line:rgba(255,255,255,.08);
+    --rp-line-2:rgba(255,255,255,.14);
+    --rp-soft:rgba(15,23,42,.55);
+    --rp-shadow:0 24px 70px rgba(0,0,0,.28);
+    --rp-shadow-sm:0 12px 34px rgba(0,0,0,.22);
   }
-  .rp-btn:hover{ filter:brightness(1.03); }
-  .rp-btn:active{ transform: translateY(1px); }
 
-  /* KPI grid */
-  .rp-kpis{
-    display:grid; gap:12px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .rp-scope *{
+    box-sizing:border-box;
   }
-  @media (max-width: 980px){ .rp-kpis{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 560px){ .rp-kpis{ grid-template-columns: 1fr; } }
 
-  .rp-kpi{
-    border:1px solid var(--line);
-    background: color-mix(in oklab, var(--card) 96%, transparent);
-    border-radius: 16px;
-    padding: 14px 14px;
-    box-shadow: 0 10px 24px -18px rgba(0,0,0,.22);
+  .rp-wrap{
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    position:relative;
+    z-index:1;
   }
-  .rp-kpi .label{
-    font-size:.72rem;
-    text-transform:uppercase;
-    letter-spacing:.12em;
-    font-weight:900;
-    color: var(--text-dim);
+
+  .rp-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--rp-radius-xl);
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--rp-shadow);
   }
-  .rp-kpi .val{
-    margin-top:8px;
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
+
+  .rp-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .rp-hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .rp-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
     font-weight:950;
-    font-size: 1.6rem;
-    letter-spacing: -.02em;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
   }
-  .rp-chip{
-    font-size: .72rem;
-    font-weight: 900;
-    padding: .18rem .55rem;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    color: var(--text);
+
+  .rp-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px, 3.2vw, 44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .rp-sub{
+    max-width:560px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .rp-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  .btn,
+  .rp-btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--rp-line);
+    background:var(--rp-card);
+    color:var(--rp-text);
+    text-decoration:none;
+    font:inherit;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:var(--rp-shadow-sm);
+    transition:transform .14s ease, filter .14s ease, border-color .14s ease, background .14s ease;
     white-space:nowrap;
   }
-  .rp-chip.ok{
-    border-color: rgba(34,197,94,.28);
-    background: rgba(34,197,94,.14);
-    color: color-mix(in oklab, #22c55e 78%, var(--text));
-  }
-  .rp-chip.bad{
-    border-color: rgba(239,68,68,.28);
-    background: rgba(239,68,68,.14);
-    color: color-mix(in oklab, #ef4444 78%, var(--text));
-  }
-  [data-theme="dark"] .rp-chip.ok,
-  [data-theme="dark"] .rp-chip.bad{ color: rgba(255,255,255,.92); }
 
-  /* Table shell */
-  .rp-table-card{
-    border:1px solid var(--line);
-    background: color-mix(in oklab, var(--card) 96%, transparent);
-    border-radius: 18px;
+  .btn:hover,
+  .rp-btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .btn-primary,
+  .rp-btn.primary{
+    background:linear-gradient(135deg, var(--rp-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
+  }
+
+  .rp-hero .rp-btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .rp-hero .rp-btn.primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .rp-kpis{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:12px;
+  }
+
+  @media (max-width:980px){
+    .rp-kpis{
+      grid-template-columns:repeat(2, minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:560px){
+    .rp-kpis{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .rp-kpi{
+    min-height:112px;
+    position:relative;
     overflow:hidden;
-    box-shadow: 0 16px 36px -26px rgba(0,0,0,.35);
-    position: relative;
-    z-index: 1;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    padding:17px;
+    border-radius:24px;
+    border:1px solid var(--rp-line);
+    background:var(--rp-card);
+    box-shadow:var(--rp-shadow-sm);
   }
+
+  .rp-kpi::before{
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:5px;
+    background:var(--rp-primary);
+    opacity:.85;
+  }
+
+  .rp-kpi.critical::before{ background:var(--rp-red); }
+  .rp-kpi.try::before{ background:var(--rp-teal); }
+  .rp-kpi.usd::before{ background:var(--rp-amber); }
+
+  .rp-kpi::after{
+    content:"";
+    position:absolute;
+    width:110px;
+    height:110px;
+    right:-48px;
+    top:-50px;
+    border-radius:999px;
+    background:rgba(36,87,230,.07);
+  }
+
+  .rp-kpi .label{
+    position:relative;
+    z-index:1;
+    color:var(--rp-muted);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rp-kpi .val{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:10px;
+    color:var(--rp-text);
+    font-size:32px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.055em;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .rp-chip{
+    min-height:27px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 9px;
+    border-radius:999px;
+    border:1px solid var(--rp-line);
+    background:#fff;
+    color:var(--rp-text);
+    font-size:11px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  [data-theme="dark"] .rp-chip,
+  .dark .rp-chip{
+    background:rgba(15,23,42,.52);
+  }
+
+  .rp-chip.ok{
+    border-color:rgba(34,197,94,.20);
+    background:rgba(34,197,94,.12);
+    color:#15803d;
+  }
+
+  .rp-chip.bad{
+    border-color:rgba(239,68,68,.20);
+    background:rgba(239,68,68,.11);
+    color:#b91c1c;
+  }
+
+  [data-theme="dark"] .rp-chip.ok,
+  .dark .rp-chip.ok{ color:#bbf7d0; }
+  [data-theme="dark"] .rp-chip.bad,
+  .dark .rp-chip.bad{ color:#fecaca; }
+
+  .rp-table-card{
+    overflow:hidden;
+    border-radius:var(--rp-radius-xl);
+    border:1px solid var(--rp-line);
+    background:var(--rp-card);
+    box-shadow:var(--rp-shadow-sm);
+  }
+
   .rp-table-toolbar{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:10px; flex-wrap:wrap;
-    padding: 12px 14px;
-    border-bottom:1px solid var(--line);
-    background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
-  }
-  [data-theme="dark"] .rp-table-toolbar{
-    background: color-mix(in oklab, var(--card-solid) 86%, transparent);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:14px;
+    border-bottom:1px solid var(--rp-line);
+    background:var(--rp-soft);
   }
 
   .rp-search{
     position:relative;
-    min-width: 260px;
-    flex: 1;
-    max-width: 520px;
+    min-width:260px;
+    flex:1;
+    max-width:560px;
   }
+
   .rp-search input{
     width:100%;
-    padding:.68rem .85rem .68rem 2.2rem;
-    border-radius: 12px;
-    border:1px solid var(--line);
-    background: color-mix(in oklab, var(--card) 95%, transparent);
-    color: var(--text);
+    min-height:48px;
+    padding:0 14px 0 42px;
+    border-radius:17px;
+    border:1px solid var(--rp-line);
+    background:#fff;
+    color:var(--rp-text);
     outline:none;
-    font-weight:700;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 10px 24px rgba(15,23,42,.04);
+    transition:border-color .14s ease, box-shadow .14s ease;
   }
+
+  [data-theme="dark"] .rp-search input,
+  .dark .rp-search input{
+    background:rgba(15,23,42,.52);
+  }
+
+  .rp-search input:focus{
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+  }
+
   .rp-search .icon{
-    position:absolute; left:12px; top:50%;
-    transform: translateY(-50%);
-    opacity:.55;
-    font-size: 18px;
+    position:absolute;
+    left:14px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--rp-muted);
+    font-size:18px;
+    pointer-events:none;
   }
 
-  /* ✅✅ Bootstrap .table WHITE BG override (dark mode dahil) */
+  .rp-muted{
+    color:var(--rp-muted);
+    font-weight:750;
+  }
+
+  .table-wrap{
+    overflow:auto;
+    background:var(--rp-soft);
+  }
+
   .rp-table-card .table{
+    width:100%;
+    min-width:820px;
     margin:0;
-    min-width: 760px;
-    color: var(--text);
-    background: transparent !important;
+    border-collapse:separate;
+    border-spacing:0;
+    color:var(--rp-text);
+    background:transparent !important;
   }
+
   .rp-table-card .table > :not(caption) > * > *{
-    background: transparent !important;
-    color: inherit;
-  }
-  .rp-table-card .table thead th{
-    background: color-mix(in oklab, var(--bg-soft) 92%, transparent) !important;
-  }
-  [data-theme="dark"] .rp-table-card .table thead th{
-    background: color-mix(in oklab, var(--card-solid) 86%, transparent) !important;
-  }
-  .rp-table-card .table tbody tr:hover > *{
-    background: color-mix(in oklab, var(--primary) 6%, transparent) !important;
+    background:transparent !important;
+    color:inherit;
   }
 
-  /* Risk cell */
-  .rp-risk{ display:flex; flex-direction:column; gap:4px; }
-  .rp-risk .name{ font-weight:950; letter-spacing:-.01em; }
-  .rp-risk .id{
-    font-size:.74rem;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color: var(--text-dim);
-    font-weight:800;
-  }
-
-  /* Category pill */
-  .rp-pill{
-    display:inline-flex; align-items:center;
-    padding:.25rem .55rem;
-    border-radius: 999px;
-    border:1px solid var(--line);
-    font-size:.78rem;
-    font-weight:900;
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    color: var(--text);
-    white-space:nowrap;
-  }
-  .rp-pill.op{ border-color: rgba(59,130,246,.28); background: rgba(59,130,246,.12); }
-  .rp-pill.fin{ border-color: rgba(245,158,11,.30); background: rgba(245,158,11,.14); }
-  .rp-pill.leg{ border-color: rgba(99,102,241,.28); background: rgba(99,102,241,.12); }
-  .rp-pill.str{ border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.12); }
-  [data-theme="dark"] .rp-pill{ color: rgba(255,255,255,.92); }
-
-  /* Score badge */
-  .rp-score{
-    width:34px; height:34px;
-    display:inline-flex; align-items:center; justify-content:center;
-    border-radius:999px;
-    background: var(--primary);
-    color:#fff;
+  .rp-table-card .table th{
+    position:sticky;
+    top:0;
+    z-index:1;
+    padding:13px 14px;
+    border-bottom:1px solid var(--rp-line);
+    background:var(--rp-soft) !important;
+    color:var(--rp-muted);
+    text-align:left;
+    font-size:10px;
     font-weight:950;
-    font-size:.82rem;
-    box-shadow: 0 12px 22px -16px color-mix(in oklab, var(--primary) 55%, transparent);
+    letter-spacing:.12em;
+    text-transform:uppercase;
   }
 
-  /* Costs */
-  .rp-costs{ display:flex; flex-wrap:wrap; gap:.35rem; }
-  .rp-cost{
-    display:inline-flex; align-items:center;
-    padding:.22rem .55rem;
-    border-radius: 10px;
-    border:1px solid var(--line);
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    font-size:.74rem;
+  .rp-table-card .table td{
+    padding:14px;
+    border-bottom:1px solid var(--rp-line);
+    background:rgba(255,255,255,.62) !important;
+    vertical-align:middle;
+    color:var(--rp-text);
+    font-size:14px;
+  }
+
+  [data-theme="dark"] .rp-table-card .table td,
+  .dark .rp-table-card .table td{
+    background:rgba(15,23,42,.42) !important;
+  }
+
+  .rp-table-card .table tbody tr:hover > *{
+    background:rgba(36,87,230,.055) !important;
+  }
+
+  [data-theme="dark"] .rp-table-card .table tbody tr:hover > *,
+  .dark .rp-table-card .table tbody tr:hover > *{
+    background:rgba(59,130,246,.10) !important;
+  }
+
+  .rp-risk{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:0;
+  }
+
+  .rp-risk .name{
+    color:var(--rp-text);
+    font-size:14px;
+    line-height:1.32;
+    font-weight:950;
+    letter-spacing:-.015em;
+  }
+
+  .rp-risk .id{
+    color:var(--rp-muted);
+    font-size:11px;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    font-weight:850;
+  }
+
+  .rp-pill{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--rp-line);
+    background:#fff;
+    color:var(--rp-text);
+    font-size:12px;
     font-weight:900;
-    color: var(--text-dim);
     white-space:nowrap;
   }
-  [data-theme="dark"] .rp-cost{
-    color: rgba(255,255,255,.72);
-    background: color-mix(in oklab, var(--card-solid) 82%, transparent);
+
+  [data-theme="dark"] .rp-pill,
+  .dark .rp-pill{
+    background:rgba(15,23,42,.52);
   }
 
-  .rp-muted{ color: var(--text-dim); font-weight:700; }
+  .rp-pill.op{ border-color:rgba(59,130,246,.24); background:rgba(59,130,246,.10); color:#1d4ed8; }
+  .rp-pill.fin{ border-color:rgba(245,158,11,.24); background:rgba(245,158,11,.13); color:#a16207; }
+  .rp-pill.leg{ border-color:rgba(99,102,241,.24); background:rgba(99,102,241,.12); color:#4338ca; }
+  .rp-pill.str{ border-color:rgba(34,197,94,.22); background:rgba(34,197,94,.12); color:#15803d; }
 
-  /* Footer/pagination bar */
-  .rp-foot{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:10px; flex-wrap:wrap;
-    padding: 12px 14px;
-    border-top:1px solid var(--line);
-    background: color-mix(in oklab, var(--bg-soft) 90%, transparent);
-  }
-  [data-theme="dark"] .rp-foot{
-    background: color-mix(in oklab, var(--card-solid) 86%, transparent);
+  [data-theme="dark"] .rp-pill.op,
+  .dark .rp-pill.op{ color:#bfdbfe; }
+  [data-theme="dark"] .rp-pill.fin,
+  .dark .rp-pill.fin{ color:#fde68a; }
+  [data-theme="dark"] .rp-pill.leg,
+  .dark .rp-pill.leg{ color:#c4b5fd; }
+  [data-theme="dark"] .rp-pill.str,
+  .dark .rp-pill.str{ color:#bbf7d0; }
+
+  .rp-score{
+    width:38px;
+    height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    background:linear-gradient(135deg, var(--rp-primary), #3264ff);
+    color:#fff;
+    font-size:13px;
+    font-weight:950;
+    box-shadow:0 14px 28px rgba(36,87,230,.18);
   }
 
-  .rp-pages{ display:flex; gap:6px; align-items:center; }
-  .rp-page{
-    width:34px; height:34px;
-    display:grid; place-items:center;
-    border-radius: 10px;
-    border:1px solid var(--line);
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    color: var(--text);
+  .rp-costs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+
+  .rp-cost{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--rp-line);
+    background:#fff;
+    color:var(--rp-muted);
+    font-size:12px;
     font-weight:900;
-    text-decoration:none;
+    white-space:nowrap;
   }
+
+  [data-theme="dark"] .rp-cost,
+  .dark .rp-cost{
+    background:rgba(15,23,42,.52);
+  }
+
+  .rp-foot{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:14px;
+    border-top:1px solid var(--rp-line);
+    background:var(--rp-soft);
+  }
+
+  .rp-pages{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+
+  .rp-page{
+    width:36px;
+    height:36px;
+    display:grid;
+    place-items:center;
+    border-radius:13px;
+    border:1px solid var(--rp-line);
+    background:var(--rp-card);
+    color:var(--rp-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:950;
+    box-shadow:var(--rp-shadow-sm);
+  }
+
+  .rp-page:hover{
+    text-decoration:none;
+    border-color:rgba(36,87,230,.28);
+  }
+
   .rp-page.active{
-    background: var(--primary);
-    border-color: transparent;
+    background:linear-gradient(135deg, var(--rp-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
     color:#fff;
   }
 
-  /* Bootstrap modal dark safety */
-  [data-theme="dark"] .modal-content{
-    background: var(--card-solid);
-    color: var(--text);
-    border-color: rgba(148,163,184,.22);
-  }
-  [data-theme="dark"] .modal-header,
-  [data-theme="dark"] .modal-footer{
-    border-color: rgba(148,163,184,.16);
+  .modal{
+    z-index:20050 !important;
   }
 
-  /* ✅✅ Modal "altta kalıyor" FIX (z-index + scroll) */
-  .modal{ z-index: 20050 !important; }
-  .modal-backdrop{ z-index: 20040 !important; }
-  .rp-wrap{ position: relative; z-index: 1; }
-  .modal-body{ max-height: calc(100vh - 220px); overflow: auto; }
+  .modal-backdrop{
+    z-index:20040 !important;
+  }
+
+  .modal-body{
+    max-height:calc(100vh - 220px);
+    overflow:auto;
+  }
+
+  [data-theme="dark"] .modal-content,
+  .dark .modal-content{
+    background:var(--rp-card);
+    color:var(--rp-text);
+    border-color:var(--rp-line);
+  }
+
+  [data-theme="dark"] .modal-header,
+  [data-theme="dark"] .modal-footer,
+  .dark .modal-header,
+  .dark .modal-footer{
+    border-color:var(--rp-line);
+  }
+
+  .modal-content{
+    border-radius:24px;
+    border:1px solid var(--rp-line);
+    box-shadow:var(--rp-shadow);
+  }
+
+  .modal-title{
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .modal-body label{
+    display:block;
+    margin-bottom:7px;
+    color:var(--rp-text);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .modal-body .input{
+    width:100%;
+    min-height:50px;
+    border-radius:16px;
+    border:1px solid var(--rp-line);
+    background:#fff;
+    color:var(--rp-text);
+    outline:none;
+    padding:0 13px;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 10px 24px rgba(15,23,42,.04);
+  }
+
+  [data-theme="dark"] .modal-body .input,
+  .dark .modal-body .input{
+    background:rgba(15,23,42,.52);
+  }
+
+  @media (max-width:700px){
+    .rp-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .rp-actions{
+      width:100%;
+    }
+
+    .rp-actions .rp-btn{
+      flex:1;
+    }
+
+    .rp-table-toolbar{
+      align-items:stretch;
+    }
+
+    .rp-search{
+      max-width:none;
+      min-width:0;
+      width:100%;
+    }
+  }
 </style>
 
 {# -----------------------------
@@ -279,15 +669,12 @@
 {# -----------------------------
    KPI hesapları
    ----------------------------- #}
-{% set _kritik = 0 %}
-{% set _try = 0 %}
-{% set _usd = 0 %}
-{% set _other_cur_count = 0 %}
+{% set ns = namespace(kritik=0, try_total=0, usd_total=0, other_cur_count=0) %}
 
 {% for r in risks %}
   {% set _sc = r.score() %}
   {% if _sc and (_sc is number) and _sc >= 80 %}
-    {% set _kritik = _kritik + 1 %}
+    {% set ns.kritik = ns.kritik + 1 %}
   {% endif %}
 
   {% set totals = (cost_map.get(r.id, []) if cost_map is defined else []) %}
@@ -296,11 +683,11 @@
       {% set _c = (cur or 'TRY')|upper %}
       {% set _t = (total or 0) %}
       {% if _c == 'TRY' %}
-        {% set _try = _try + _t %}
+        {% set ns.try_total = ns.try_total + _t %}
       {% elif _c == 'USD' %}
-        {% set _usd = _usd + _t %}
+        {% set ns.usd_total = ns.usd_total + _t %}
       {% else %}
-        {% set _other_cur_count = _other_cur_count + 1 %}
+        {% set ns.other_cur_count = ns.other_cur_count + 1 %}
       {% endif %}
     {% endfor %}
   {% endif %}
@@ -317,7 +704,7 @@
   {%- endif -%}
 {%- endmacro %}
 
-{# Pagination (backend varsa kullan, yoksa fallback) #}
+{# Pagination #}
 {% set page = (page if page is defined else (request.args.get('page', 1)|int)) %}
 {% set per_page = (per_page if per_page is defined else (request.args.get('per_page', 20)|int)) %}
 {% set total_count = (total_count if total_count is defined else (risks|length if risks is defined else 0)) %}
@@ -325,7 +712,6 @@
 {% set showing_from = (showing_from if showing_from is defined else ((page - 1) * per_page + 1 if total_count > 0 else 0)) %}
 {% set showing_to = (showing_to if showing_to is defined else ([page * per_page, total_count] | min)) %}
 
-{# URL builder: mevcut args + update #}
 {% set _args = request.args.to_dict(flat=True) %}
 {% macro page_url(p) -%}
   {%- set d = _args.copy() -%}
@@ -333,7 +719,7 @@
   {{ url_for(request.endpoint, **d) }}
 {%- endmacro %}
 
-{# ✅ Dışa Aktar: endpoint varsa bağla (query'leri de gönder) #}
+{# Dışa Aktar endpoint kontrolü #}
 {% set _export_ep = None %}
 {% if current_app is defined and current_app.view_functions is defined %}
   {% if 'reports_export_xlsx' in current_app.view_functions %}
@@ -344,204 +730,205 @@
 {% endif %}
 {% set export_url = (url_for(_export_ep, **_args) if _export_ep else '#') %}
 
-<div class="rp-wrap">
+<div class="rp-scope">
+  <div class="rp-wrap">
 
-  <!-- Top -->
-  <div class="rp-top">
-    <div>
-      <div class="rp-breadcrumb">
-        <span>Portal</span><span class="sep">/</span><span style="color:var(--primary)">Raporlar</span>
+    <section class="rp-hero">
+      <div class="rp-hero-row">
+        <div>
+          <div class="rp-kicker">Risk Raporlama</div>
+          <h1 class="rp-title">Raporlar</h1>
+          <p class="rp-sub">Riskleri, skorları ve maliyet etkilerini tek ekrandan incele.</p>
+        </div>
+
+        <div class="rp-actions">
+          <button class="rp-btn primary" type="button" data-bs-toggle="modal" data-bs-target="#filterModal">
+            Filtrele
+          </button>
+
+          <a class="rp-btn"
+             href="{{ export_url }}"
+             role="button"
+             {% if export_url == '#' %}aria-disabled="true" style="opacity:.65; cursor:not-allowed"{% endif %}>
+            Dışa Aktar
+          </a>
+        </div>
       </div>
-      <h1 class="rp-title">Raporlar</h1>
-    </div>
+    </section>
 
-    <div class="rp-actions">
-      <button class="rp-btn" type="button" data-bs-toggle="modal" data-bs-target="#filterModal">
-        <span class="material-icons-outlined" style="font-size:18px;">filter_list</span>
-        Filtrele
-      </button>
-
-      <a class="rp-btn"
-         href="{{ export_url }}"
-         role="button"
-         {% if export_url == '#' %}aria-disabled="true" style="opacity:.65; cursor:not-allowed"{% endif %}>
-        <span class="material-icons-outlined" style="font-size:18px;">file_download</span>
-        Dışa Aktar
-      </a>
-    </div>
-  </div>
-
-  <!-- KPI -->
-  <div class="rp-kpis">
-    <div class="rp-kpi">
-      <div class="label">Aktif Riskler</div>
-      <div class="val">
-        <span>{{ total_count }}</span>
-        <span class="rp-chip ok">+4%</span>
+    <section class="rp-kpis" aria-label="Rapor özetleri">
+      <div class="rp-kpi">
+        <div class="label">Aktif Riskler</div>
+        <div class="val">
+          <span>{{ total_count }}</span>
+          <span class="rp-chip ok">+4%</span>
+        </div>
       </div>
-    </div>
 
-    <div class="rp-kpi">
-      <div class="label">Kritik Skorlar</div>
-      <div class="val">
-        <span>{{ _kritik }}</span>
-        <span class="rp-chip bad">+2</span>
+      <div class="rp-kpi critical">
+        <div class="label">Kritik Skorlar</div>
+        <div class="val">
+          <span>{{ ns.kritik }}</span>
+          <span class="rp-chip bad">+2</span>
+        </div>
       </div>
-    </div>
 
-    <div class="rp-kpi">
-      <div class="label">Toplam TRY Etki</div>
-      <div class="val">
-        <span>{{ compact(_try) }}</span>
-        <span class="material-icons-outlined" style="opacity:.45;">trending_up</span>
+      <div class="rp-kpi try">
+        <div class="label">Toplam TRY Etki</div>
+        <div class="val">
+          <span>{{ compact(ns.try_total) }}</span>
+          <span class="rp-chip">TRY</span>
+        </div>
       </div>
-    </div>
 
-    <div class="rp-kpi">
-      <div class="label">Toplam USD Etki</div>
-      <div class="val">
-        <span>{{ compact(_usd) }}</span>
-        <span class="material-icons-outlined" style="opacity:.45;">account_balance_wallet</span>
+      <div class="rp-kpi usd">
+        <div class="label">Toplam USD Etki</div>
+        <div class="val">
+          <span>{{ compact(ns.usd_total) }}</span>
+          <span class="rp-chip">USD</span>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- Table -->
-  <div class="rp-table-card">
-    <div class="rp-table-toolbar">
-      <form class="rp-search" method="get" action="{{ url_for(request.endpoint) }}">
-        {% for k,v in _args.items() %}
-          {% if k not in ['q','page'] %}
-            <input type="hidden" name="{{k}}" value="{{v}}">
+    <section class="rp-table-card">
+      <div class="rp-table-toolbar">
+        <form class="rp-search" method="get" action="{{ url_for(request.endpoint) }}">
+          {% for k,v in _args.items() %}
+            {% if k not in ['q','page'] %}
+              <input type="hidden" name="{{k}}" value="{{v}}">
+            {% endif %}
+          {% endfor %}
+          <span class="icon">⌕</span>
+          <input
+            id="rpQ"
+            name="q"
+            type="text"
+            value="{{ q }}"
+            placeholder="Raporlarda ara..."
+            oninput="window.__rpFilter?.(this.value)"
+          />
+        </form>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          {% if ns.other_cur_count > 0 %}
+            <span class="rp-muted" style="font-size:13px;">+{{ ns.other_cur_count }} diğer para birimi</span>
           {% endif %}
-        {% endfor %}
-        <span class="material-icons-outlined icon">search</span>
-        <input
-          id="rpQ"
-          name="q"
-          type="text"
-          value="{{ q }}"
-          placeholder="Raporlarda ara..."
-          oninput="window.__rpFilter?.(this.value)"
-        />
-      </form>
-
-      <div style="display:flex; gap:8px; align-items:center;">
-        {% if _other_cur_count > 0 %}
-          <span class="rp-muted" style="font-size:.86rem;">+{{ _other_cur_count }} diğer para birimi</span>
-        {% endif %}
-        <span class="rp-muted" style="font-size:.86rem;">{{ total_count }} kayıt</span>
+          <span class="rp-chip">{{ total_count }} kayıt</span>
+        </div>
       </div>
-    </div>
 
-    <div class="table-wrap" style="border-radius:0;">
-      <table class="table" id="rpTable">
-        <thead>
-          <tr>
-            <th>Risk</th>
-            <th>Kategori</th>
-            <th style="width:110px; text-align:center;">Skor (RPN)</th>
-            <th style="width:300px;">Maliyet</th>
-            <th style="width:140px; text-align:right;">İşlem</th>
-          </tr>
-        </thead>
+      <div class="table-wrap">
+        <table class="table" id="rpTable">
+          <thead>
+            <tr>
+              <th>Risk</th>
+              <th>Kategori</th>
+              <th style="width:110px; text-align:center;">Skor</th>
+              <th style="width:300px;">Maliyet</th>
+              <th style="width:140px; text-align:right;">İşlem</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {% for r in risks %}
-          {% set sc = r.score() %}
-          {% set cat = (r.category or '-') %}
-          {% set cat_l = (cat|string|lower) %}
-          {% set cat_class = (
-              'op' if ('operasyon' in cat_l) else
-              'fin' if ('finans' in cat_l) else
-              'leg' if ('yasal' in cat_l or 'uyum' in cat_l or 'kvkk' in cat_l) else
-              'str' if ('stratej' in cat_l) else
-              ''
-          ) %}
+          <tbody>
+            {% for r in risks %}
+              {% set sc = r.score() %}
+              {% set cat = (r.category or '-') %}
+              {% set cat_l = (cat|string|lower) %}
+              {% set cat_class = (
+                  'op' if ('operasyon' in cat_l) else
+                  'fin' if ('finans' in cat_l) else
+                  'leg' if ('yasal' in cat_l or 'uyum' in cat_l or 'kvkk' in cat_l) else
+                  'str' if ('stratej' in cat_l) else
+                  ''
+              ) %}
 
-          <tr data-filter="{{ (r.title ~ ' ' ~ cat ~ ' ' ~ (r.id|string))|lower }}">
-            <td>
-              <div class="rp-risk">
-                <div class="name">{{ r.title }}</div>
-                <div class="id">ID-{{ r.id }}</div>
-              </div>
-            </td>
+              <tr data-filter="{{ (r.title ~ ' ' ~ cat ~ ' ' ~ (r.id|string))|lower }}">
+                <td>
+                  <div class="rp-risk">
+                    <div class="name">{{ r.title }}</div>
+                    <div class="id">ID-{{ r.id }}</div>
+                  </div>
+                </td>
 
-            <td>
-              <span class="rp-pill {{cat_class}}">{{ cat }}</span>
-            </td>
+                <td>
+                  <span class="rp-pill {{cat_class}}">{{ cat }}</span>
+                </td>
 
-            <td style="text-align:center;">
-              {% if sc %}
-                <span class="rp-score">
-                  {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
-                </span>
-              {% else %}
-                <span class="rp-muted">—</span>
-              {% endif %}
-            </td>
+                <td style="text-align:center;">
+                  {% if sc %}
+                    <span class="rp-score">
+                      {% if sc is number %}{{ '%.0f'|format(sc) }}{% else %}{{ sc }}{% endif %}
+                    </span>
+                  {% else %}
+                    <span class="rp-muted">—</span>
+                  {% endif %}
+                </td>
 
-            <td>
-              {% set totals = (cost_map.get(r.id, []) if cost_map is defined else []) %}
-              {% if totals and totals|length > 0 %}
-                <div class="rp-costs">
-                  {% for cur, total in totals %}
-                    <span class="rp-cost">{{ (cur or "TRY")|upper }} {{ "%.2f"|format(total or 0) }}</span>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <span class="rp-muted">—</span>
-              {% endif %}
-            </td>
+                <td>
+                  {% set totals = (cost_map.get(r.id, []) if cost_map is defined else []) %}
+                  {% if totals and totals|length > 0 %}
+                    <div class="rp-costs">
+                      {% for cur, total in totals %}
+                        <span class="rp-cost">{{ (cur or "TRY")|upper }} {{ "%.2f"|format(total or 0) }}</span>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <span class="rp-muted">—</span>
+                  {% endif %}
+                </td>
 
-            <td style="text-align:right;">
-              <a class="btn" href="{{ url_for('report_view', risk_id=r.id) }}">Görüntüle</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="rp-foot">
-      <span class="rp-muted" style="font-size:.86rem;">
-        {% if total_count > 0 %}
-          Toplam {{ total_count }} kayıttan {{ showing_from }}-{{ showing_to }} arası gösteriliyor
-        {% else %}
-          Kayıt bulunamadı
-        {% endif %}
-      </span>
-
-      <div class="rp-pages" aria-label="Sayfalama">
-        {% if pages > 1 %}
-          <a class="rp-page" href="{{ page_url(1) }}" aria-label="İlk">«</a>
-          <a class="rp-page" href="{{ page_url(page-1 if page>1 else 1) }}" aria-label="Önceki">‹</a>
-
-          {% set start = (page - 2 if page - 2 > 1 else 1) %}
-          {% set end = (page + 2 if page + 2 < pages else pages) %}
-
-          {% for p in range(start, end+1) %}
-            <a class="rp-page {{ 'active' if p==page }}" href="{{ page_url(p) }}">{{ p }}</a>
-          {% endfor %}
-
-          <a class="rp-page" href="{{ page_url(page+1 if page<pages else pages) }}" aria-label="Sonraki">›</a>
-          <a class="rp-page" href="{{ page_url(pages) }}" aria-label="Son">»</a>
-        {% else %}
-          <span class="rp-muted" style="font-size:.86rem;">Sayfa 1 / 1</span>
-        {% endif %}
+                <td style="text-align:right;">
+                  <a class="btn" href="{{ url_for('report_view', risk_id=r.id) }}">Görüntüle</a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5" style="text-align:center; padding:28px; color:var(--rp-muted); font-weight:850;">
+                  Kayıt bulunamadı.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </div>
+
+      <div class="rp-foot">
+        <span class="rp-muted" style="font-size:13px;">
+          {% if total_count > 0 %}
+            Toplam {{ total_count }} kayıttan {{ showing_from }}-{{ showing_to }} arası gösteriliyor
+          {% else %}
+            Kayıt bulunamadı
+          {% endif %}
+        </span>
+
+        <div class="rp-pages" aria-label="Sayfalama">
+          {% if pages > 1 %}
+            <a class="rp-page" href="{{ page_url(1) }}" aria-label="İlk">«</a>
+            <a class="rp-page" href="{{ page_url(page-1 if page>1 else 1) }}" aria-label="Önceki">‹</a>
+
+            {% set start = (page - 2 if page - 2 > 1 else 1) %}
+            {% set end = (page + 2 if page + 2 < pages else pages) %}
+
+            {% for p in range(start, end+1) %}
+              <a class="rp-page {{ 'active' if p==page }}" href="{{ page_url(p) }}">{{ p }}</a>
+            {% endfor %}
+
+            <a class="rp-page" href="{{ page_url(page+1 if page<pages else pages) }}" aria-label="Sonraki">›</a>
+            <a class="rp-page" href="{{ page_url(pages) }}" aria-label="Son">»</a>
+          {% else %}
+            <span class="rp-muted" style="font-size:13px;">Sayfa 1 / 1</span>
+          {% endif %}
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
-<!-- =========================
-     Filter Modal (Bootstrap)
-     ========================= -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form id="filterForm" class="modal-content" method="get" action="{{ url_for(request.endpoint) }}">
       <div class="modal-header">
-        <h5 class="modal-title" style="font-weight:950; letter-spacing:-.02em;">Filtrele</h5>
+        <h5 class="modal-title">Filtrele</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
       </div>
 
@@ -563,7 +950,7 @@
         </div>
 
         <div>
-          <label>Minimum Skor (RPN)</label>
+          <label>Minimum Skor</label>
           <input class="input" type="number" name="min_score" value="{{ f_min_score }}" min="0" step="1" placeholder="örn: 80">
         </div>
 
@@ -591,7 +978,6 @@
 
 <script>
 (function(){
-  // Client-side hızlı filtre
   window.__rpFilter = function(q){
     q = (q || '').toLowerCase().trim();
     const rows = document.querySelectorAll('#rpTable tbody tr');
@@ -604,14 +990,12 @@
   const initQ = (document.getElementById('rpQ')?.value || '').trim();
   if (initQ) window.__rpFilter(initQ);
 
-  // ✅ Modal z-index garanti (bazı layoutlarda header/sidebar çok yüksek z-index basıyor)
   document.addEventListener('shown.bs.modal', function(e){
     const bd = document.querySelector('.modal-backdrop');
     if (bd) bd.style.zIndex = '20040';
     e.target.style.zIndex = '20050';
   });
 
-  // ✅ Filtre "Uygula" -> modal kapanıp submit olsun (takılı kalmasın)
   const form = document.getElementById('filterForm');
   const modalEl = document.getElementById('filterModal');
   if (form && modalEl){
