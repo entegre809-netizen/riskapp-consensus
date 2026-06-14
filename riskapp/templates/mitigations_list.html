@@ -1,60 +1,504 @@
 {% extends "base.html" %}
 {% block title %}Mitigations · {{ r.title }}{% endblock %}
+
 {% block content %}
-<h2 style="margin:0 0 .5rem">Mitigations — {{ r.title }}</h2>
-<p class="muted" style="margin:.25rem 0 1rem">Bu risk için mevcut önlemler ve yeni önlem ekleme.</p>
+<style>
+  .mit-page{
+    --mp-card:#ffffff;
+    --mp-bg:#f8fafc;
+    --mp-text:#0f172a;
+    --mp-muted:#64748b;
+    --mp-soft:#94a3b8;
+    --mp-line:rgba(15,23,42,.09);
+    --mp-line-2:rgba(15,23,42,.14);
+    --mp-primary:#2457e6;
+    --mp-primary-2:#3264ff;
+    --mp-teal:#0f766e;
+    --mp-green:#22c55e;
+    --mp-amber:#f59e0b;
+    --mp-red:#ef4444;
+    --mp-shadow:0 22px 60px rgba(15,23,42,.08);
+    --mp-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--mp-text);
+  }
 
-<div class="grid" style="display:grid; grid-template-columns: 1.1fr .9fr; gap:14px; align-items:start;">
-  <div class="card">
-    <h3 style="margin:.25rem 0 .75rem">Kayıtlar</h3>
-    {% include "partials/_mitigations_table.html" %}
-  </div>
+  [data-theme="dark"] .mit-page{
+    --mp-card:rgba(15,23,42,.76);
+    --mp-bg:rgba(15,23,42,.55);
+    --mp-text:rgba(255,255,255,.92);
+    --mp-muted:rgba(226,232,240,.72);
+    --mp-soft:rgba(226,232,240,.52);
+    --mp-line:rgba(255,255,255,.09);
+    --mp-line-2:rgba(255,255,255,.15);
+    --mp-primary:#60a5fa;
+    --mp-primary-2:#93c5fd;
+    --mp-shadow:0 22px 60px rgba(0,0,0,.25);
+    --mp-shadow-sm:0 12px 34px rgba(0,0,0,.18);
+  }
 
-  <div class="card">
-    <h3 style="margin:.25rem 0 .75rem">Yeni Mitigation Ekle</h3>
-    <form method="post">
-      <label>Başlık *</label>
-      <input type="text" name="title" required placeholder="Örn. Acil durum prosedürü güncelle" />
+  .mp-hero{
+    position:relative;
+    overflow:hidden;
+    margin-bottom:16px;
+    padding:22px;
+    border-radius:28px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255,255,255,.24), transparent 27%),
+      radial-gradient(circle at 92% 92%, rgba(20,184,166,.34), transparent 32%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 58%, #0f766e 100%);
+    box-shadow:var(--mp-shadow);
+  }
 
-      <div class="row" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
-        <div>
-          <label>Sorumlu</label>
-          <input type="text" name="owner" placeholder="Kişi/Ekip" />
-        </div>
-        <div>
-          <label>Durum</label>
-          <select name="status">
-            <option value="planned">Planned</option>
-            <option value="in_progress">In progress</option>
-            <option value="done">Done</option>
-            <option value="not_applicable">N/A</option>
-          </select>
-        </div>
+  .mp-hero::after{
+    content:"";
+    position:absolute;
+    width:270px;
+    height:270px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .mp-hero-inner{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+
+  .mp-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.84);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .mp-title{
+    margin:0;
+    font-size:clamp(28px, 3vw, 42px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .mp-sub{
+    max-width:680px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.72);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .mp-hero-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .mp-btn{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 15px;
+    border-radius:15px;
+    border:1px solid var(--mp-line);
+    background:var(--mp-card);
+    color:var(--mp-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:950;
+    cursor:pointer;
+    box-shadow:var(--mp-shadow-sm);
+    transition:transform .13s ease, filter .13s ease, border-color .13s ease;
+    white-space:nowrap;
+  }
+
+  .mp-btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    text-decoration:none;
+  }
+
+  .mp-btn.primary{
+    background:linear-gradient(135deg, #2457e6, #3264ff);
+    border-color:rgba(36,87,230,.30);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.22);
+  }
+
+  .mp-hero .mp-btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .mp-hero .mp-btn.primary{
+    color:#1d4ed8;
+    background:#fff;
+  }
+
+  .mp-grid{
+    display:grid;
+    grid-template-columns:minmax(0, 1.15fr) minmax(360px, .85fr);
+    gap:16px;
+    align-items:start;
+  }
+
+  .mp-card{
+    border-radius:28px;
+    background:var(--mp-card);
+    border:1px solid var(--mp-line);
+    box-shadow:var(--mp-shadow-sm);
+    overflow:hidden;
+  }
+
+  .mp-card-head{
+    padding:18px;
+    border-bottom:1px solid var(--mp-line);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(36,87,230,.10), transparent 32%),
+      var(--mp-card);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .mp-card-title{
+    margin:0;
+    color:var(--mp-text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .mp-card-sub{
+    margin:4px 0 0;
+    color:var(--mp-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .mp-chip{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--mp-primary);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  .mp-table-wrap{
+    padding:16px;
+  }
+
+  .mp-form{
+    padding:18px;
+  }
+
+  .mp-form-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:14px;
+  }
+
+  .mp-form-grid-3{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:14px;
+    margin-top:14px;
+  }
+
+  .mp-full{
+    grid-column:1 / -1;
+  }
+
+  .mp-field label{
+    display:block;
+    margin:0 0 7px 2px;
+    color:var(--mp-muted);
+    font-size:12px;
+    font-weight:850;
+  }
+
+  .mp-input,
+  select.mp-input,
+  textarea.mp-input{
+    width:100%;
+    min-height:46px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--mp-line);
+    background:color-mix(in oklab, var(--mp-card) 95%, transparent);
+    color:var(--mp-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 8px 20px rgba(15,23,42,.035);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  textarea.mp-input{
+    min-height:auto;
+    padding:12px 13px;
+    resize:vertical;
+  }
+
+  .mp-input::placeholder{
+    color:var(--mp-soft);
+  }
+
+  .mp-input:focus{
+    border-color:color-mix(in oklab, var(--mp-primary) 50%, var(--mp-line));
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+    background:var(--mp-card);
+  }
+
+  .mp-mini-summary{
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:10px;
+  }
+
+  .mp-mini{
+    padding:13px;
+    border-radius:18px;
+    background:var(--mp-bg);
+    border:1px solid var(--mp-line);
+  }
+
+  .mp-mini-label{
+    color:var(--mp-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .mp-mini-value{
+    margin-top:6px;
+    color:var(--mp-text);
+    font-size:15px;
+    font-weight:950;
+  }
+
+  .mp-actions{
+    margin-top:18px;
+    padding-top:16px;
+    border-top:1px solid var(--mp-line);
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .mp-actions-left,
+  .mp-actions-right{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .mp-card :where(table){
+    color:var(--mp-text);
+  }
+
+  .mp-card :where(th){
+    color:var(--mp-muted);
+  }
+
+  .mp-card :where(td){
+    border-color:var(--mp-line);
+  }
+
+  @media (max-width:1050px){
+    .mp-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:720px){
+    .mp-form-grid,
+    .mp-form-grid-3,
+    .mp-mini-summary{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:560px){
+    .mp-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .mp-hero-actions,
+    .mp-hero-actions .mp-btn{
+      width:100%;
+    }
+
+    .mp-hero-actions .mp-btn{
+      flex:1;
+    }
+
+    .mp-card{
+      border-radius:24px;
+    }
+
+    .mp-card-head,
+    .mp-form,
+    .mp-table-wrap{
+      padding:15px;
+    }
+
+    .mp-actions,
+    .mp-actions-left,
+    .mp-actions-right,
+    .mp-btn{
+      width:100%;
+    }
+  }
+</style>
+
+<div class="mit-page">
+  <section class="mp-hero">
+    <div class="mp-hero-inner">
+      <div>
+        <div class="mp-kicker">Aksiyon Planı</div>
+        <h2 class="mp-title">Mitigations</h2>
+        <p class="mp-sub">{{ r.title }}</p>
       </div>
 
-      <div class="row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;">
+      <div class="mp-hero-actions">
+        <a href="{{ url_for('risk_detail', risk_id=r.id) }}" class="mp-btn">← Riske Dön</a>
+        <a href="#newMitigationForm" class="mp-btn primary">+ Yeni Önlem</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="mp-grid">
+    <section class="mp-card">
+      <div class="mp-card-head">
         <div>
-          <label>Bitiş Tarihi</label>
-          <input type="date" name="due_date" />
+          <h3 class="mp-card-title">Kayıtlar</h3>
+          <p class="mp-card-sub">Bu risk için mevcut önlemler</p>
         </div>
-        <div>
-          <label>Maliyet</label>
-          <input type="number" step="0.01" name="cost" placeholder="₺" />
-        </div>
-        <div>
-          <label>Etkinlik (1–5)</label>
-          <input type="number" min="1" max="5" name="effectiveness" />
-        </div>
+        <span class="mp-chip">Risk #{{ r.id }}</span>
       </div>
 
-      <label style="margin-top:8px">Notlar</label>
-      <textarea name="notes" rows="4" placeholder="Kısa açıklama"></textarea>
-
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button class="btn primary" type="submit">Ekle</button>
-        <a href="{{ url_for('risk_detail', risk_id=r.id) }}" class="btn">Riske Dön</a>
+      <div class="mp-table-wrap">
+        {% include "partials/_mitigations_table.html" %}
       </div>
-    </form>
+    </section>
+
+    <section class="mp-card" id="newMitigationForm">
+      <div class="mp-card-head">
+        <div>
+          <h3 class="mp-card-title">Yeni Mitigation</h3>
+          <p class="mp-card-sub">Önlem ve takip bilgisi ekle</p>
+        </div>
+        <span class="mp-chip">Yeni</span>
+      </div>
+
+      <form method="post" class="mp-form">
+        <div class="mp-form-grid">
+          <div class="mp-field mp-full">
+            <label for="title">Başlık *</label>
+            <input class="mp-input" id="title" type="text" name="title" required placeholder="Acil durum prosedürü güncelle">
+          </div>
+
+          <div class="mp-field">
+            <label for="owner">Sorumlu</label>
+            <input class="mp-input" id="owner" type="text" name="owner" placeholder="Kişi / ekip">
+          </div>
+
+          <div class="mp-field">
+            <label for="status">Durum</label>
+            <select class="mp-input" id="status" name="status">
+              <option value="planned">Planned</option>
+              <option value="in_progress">In progress</option>
+              <option value="done">Done</option>
+              <option value="not_applicable">N/A</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mp-form-grid-3">
+          <div class="mp-field">
+            <label for="due_date">Bitiş Tarihi</label>
+            <input class="mp-input" id="due_date" type="date" name="due_date">
+          </div>
+
+          <div class="mp-field">
+            <label for="cost">Maliyet</label>
+            <input class="mp-input" id="cost" type="number" step="0.01" name="cost" placeholder="₺">
+          </div>
+
+          <div class="mp-field">
+            <label for="effectiveness">Etkinlik (1–5)</label>
+            <input class="mp-input" id="effectiveness" type="number" min="1" max="5" name="effectiveness" placeholder="1–5">
+          </div>
+        </div>
+
+        <div class="mp-field" style="margin-top:14px;">
+          <label for="notes">Notlar</label>
+          <textarea class="mp-input" id="notes" name="notes" rows="5" placeholder="Kısa açıklama"></textarea>
+        </div>
+
+        <div class="mp-mini-summary" aria-label="Form özeti">
+          <div class="mp-mini">
+            <div class="mp-mini-label">Durum</div>
+            <div class="mp-mini-value">planned</div>
+          </div>
+          <div class="mp-mini">
+            <div class="mp-mini-label">Etkinlik</div>
+            <div class="mp-mini-value">1–5</div>
+          </div>
+          <div class="mp-mini">
+            <div class="mp-mini-label">Bağlı Risk</div>
+            <div class="mp-mini-value">#{{ r.id }}</div>
+          </div>
+        </div>
+
+        <div class="mp-actions">
+          <div class="mp-actions-left">
+            <a href="{{ url_for('risk_detail', risk_id=r.id) }}" class="mp-btn">Riske Dön</a>
+          </div>
+
+          <div class="mp-actions-right">
+            <button class="mp-btn primary" type="submit">Ekle</button>
+          </div>
+        </div>
+      </form>
+    </section>
   </div>
 </div>
 {% endblock %}

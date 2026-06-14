@@ -3,17 +3,520 @@
 {% block title %}Mitigasyonlar{% endblock %}
 
 {% block content %}
-<div class="page">
+<style>
+  .mit-index{
+    --mi-card:#ffffff;
+    --mi-bg:#f8fafc;
+    --mi-text:#0f172a;
+    --mi-muted:#64748b;
+    --mi-soft:#94a3b8;
+    --mi-line:rgba(15,23,42,.09);
+    --mi-line-2:rgba(15,23,42,.14);
+    --mi-primary:#2457e6;
+    --mi-primary-2:#3264ff;
+    --mi-teal:#0f766e;
+    --mi-green:#22c55e;
+    --mi-amber:#f59e0b;
+    --mi-red:#ef4444;
+    --mi-shadow:0 22px 60px rgba(15,23,42,.08);
+    --mi-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--mi-text);
+  }
 
-  <div class="sticky-top">
-    <h1 class="page-title">Mitigasyonlar</h1>
+  [data-theme="dark"] .mit-index{
+    --mi-card:rgba(15,23,42,.76);
+    --mi-bg:rgba(15,23,42,.55);
+    --mi-text:rgba(255,255,255,.92);
+    --mi-muted:rgba(226,232,240,.72);
+    --mi-soft:rgba(226,232,240,.52);
+    --mi-line:rgba(255,255,255,.09);
+    --mi-line-2:rgba(255,255,255,.15);
+    --mi-primary:#60a5fa;
+    --mi-primary-2:#93c5fd;
+    --mi-shadow:0 22px 60px rgba(0,0,0,.25);
+    --mi-shadow-sm:0 12px 34px rgba(0,0,0,.18);
+  }
 
-    {# Proje filtresi #}
-    {% if projects %}
-      <form method="get" class="filters" style="margin-bottom: 10px;">
-        <label>
-          Proje:
-          <select name="project_id" onchange="this.form.submit()">
+  .mi-hero{
+    position:relative;
+    overflow:hidden;
+    margin-bottom:16px;
+    padding:22px;
+    border-radius:28px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255,255,255,.24), transparent 27%),
+      radial-gradient(circle at 92% 92%, rgba(20,184,166,.34), transparent 32%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 58%, #0f766e 100%);
+    box-shadow:var(--mi-shadow);
+  }
+
+  .mi-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-140px;
+    bottom:-150px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .mi-hero-inner{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+
+  .mi-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.84);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .mi-title{
+    margin:0;
+    font-size:clamp(28px, 3vw, 42px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .mi-sub{
+    max-width:680px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.72);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .mi-hero-meta{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .mi-metric{
+    min-height:46px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:2px;
+    padding:8px 12px;
+    border-radius:17px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(12px);
+  }
+
+  .mi-metric span{
+    color:rgba(255,255,255,.62);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .mi-metric strong{
+    color:#fff;
+    font-size:15px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  .mi-toolbar{
+    position:sticky;
+    top:86px;
+    z-index:20;
+    margin-bottom:16px;
+    padding:14px;
+    border-radius:24px;
+    background:color-mix(in oklab, var(--mi-card) 92%, transparent);
+    border:1px solid var(--mi-line);
+    box-shadow:var(--mi-shadow-sm);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .mi-filter{
+    margin:0;
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .mi-field label{
+    display:block;
+    margin:0 0 7px 2px;
+    color:var(--mi-muted);
+    font-size:12px;
+    font-weight:850;
+  }
+
+  .mi-input,
+  select.mi-input{
+    min-width:240px;
+    min-height:44px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--mi-line);
+    background:color-mix(in oklab, var(--mi-card) 95%, transparent);
+    color:var(--mi-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 8px 20px rgba(15,23,42,.035);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  .mi-input:focus{
+    border-color:color-mix(in oklab, var(--mi-primary) 50%, var(--mi-line));
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+    background:var(--mi-card);
+  }
+
+  .mi-card{
+    border-radius:28px;
+    background:var(--mi-card);
+    border:1px solid var(--mi-line);
+    box-shadow:var(--mi-shadow-sm);
+    overflow:hidden;
+  }
+
+  .mi-card-head{
+    padding:18px;
+    border-bottom:1px solid var(--mi-line);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(36,87,230,.10), transparent 32%),
+      var(--mi-card);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .mi-card-title{
+    margin:0;
+    color:var(--mi-text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .mi-card-sub{
+    margin:4px 0 0;
+    color:var(--mi-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .mi-chip{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--mi-primary);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  .mi-table-wrap{
+    overflow:auto;
+  }
+
+  .mi-table{
+    width:100%;
+    min-width:980px;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .mi-table thead th{
+    padding:14px 16px;
+    background:var(--mi-bg);
+    color:var(--mi-muted);
+    border-bottom:1px solid var(--mi-line);
+    text-align:left;
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .mi-table tbody td{
+    padding:15px 16px;
+    background:color-mix(in oklab, var(--mi-card) 62%, transparent);
+    border-bottom:1px solid var(--mi-line);
+    color:var(--mi-text);
+    vertical-align:middle;
+    font-size:14px;
+  }
+
+  .mi-table tbody tr:hover td{
+    background:rgba(36,87,230,.055);
+  }
+
+  [data-theme="dark"] .mi-table tbody tr:hover td{
+    background:rgba(96,165,250,.08);
+  }
+
+  .mi-id{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:34px;
+    height:30px;
+    padding:0 9px;
+    border-radius:999px;
+    background:var(--mi-bg);
+    border:1px solid var(--mi-line);
+    color:var(--mi-muted);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .mi-risk{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:240px;
+  }
+
+  .mi-risk-id{
+    color:var(--mi-primary);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .mi-risk-title{
+    color:var(--mi-text);
+    font-weight:900;
+    line-height:1.35;
+  }
+
+  .mi-mit-title{
+    min-width:220px;
+    color:var(--mi-text);
+    font-weight:900;
+    line-height:1.35;
+  }
+
+  .mi-owner{
+    color:var(--mi-muted);
+    font-weight:800;
+  }
+
+  .mi-status{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:30px;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--mi-line);
+    background:var(--mi-bg);
+    color:var(--mi-text);
+    font-size:12px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  .mi-status.planned{
+    background:rgba(59,130,246,.10);
+    border-color:rgba(59,130,246,.20);
+    color:#1d4ed8;
+  }
+
+  .mi-status.in_progress{
+    background:rgba(245,158,11,.14);
+    border-color:rgba(245,158,11,.26);
+    color:#b45309;
+  }
+
+  .mi-status.done{
+    background:rgba(34,197,94,.13);
+    border-color:rgba(34,197,94,.24);
+    color:#15803d;
+  }
+
+  .mi-status.not_applicable{
+    background:rgba(148,163,184,.14);
+    border-color:rgba(148,163,184,.24);
+    color:#475569;
+  }
+
+  [data-theme="dark"] .mi-status.planned,
+  [data-theme="dark"] .mi-status.in_progress,
+  [data-theme="dark"] .mi-status.done,
+  [data-theme="dark"] .mi-status.not_applicable{
+    color:var(--mi-text);
+  }
+
+  .mi-date{
+    color:var(--mi-muted);
+    font-weight:850;
+    white-space:nowrap;
+  }
+
+  .mi-effect{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    white-space:nowrap;
+  }
+
+  .mi-effect-track{
+    width:70px;
+    height:7px;
+    border-radius:999px;
+    background:rgba(100,116,139,.18);
+    overflow:hidden;
+  }
+
+  .mi-effect-fill{
+    height:100%;
+    width:calc(var(--v, 0) * 20%);
+    border-radius:999px;
+    background:linear-gradient(135deg, #2457e6, #0f766e);
+  }
+
+  .mi-effect-num{
+    min-width:30px;
+    color:var(--mi-text);
+    font-weight:950;
+  }
+
+  .mi-empty{
+    padding:36px 18px;
+    text-align:center;
+    color:var(--mi-muted);
+  }
+
+  .mi-empty-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 12px;
+    display:grid;
+    place-items:center;
+    border-radius:22px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--mi-primary);
+    font-size:24px;
+  }
+
+  .mi-empty h3{
+    margin:0 0 6px;
+    color:var(--mi-text);
+    font-size:18px;
+    font-weight:950;
+  }
+
+  .mi-empty p{
+    margin:0;
+    color:var(--mi-muted);
+    font-size:14px;
+    font-weight:700;
+  }
+
+  @media (max-width:760px){
+    .mi-toolbar{
+      position:static;
+    }
+
+    .mi-filter,
+    .mi-field,
+    .mi-input{
+      width:100%;
+      min-width:0;
+    }
+  }
+
+  @media (max-width:560px){
+    .mi-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .mi-hero-meta{
+      width:100%;
+      justify-content:flex-start;
+    }
+
+    .mi-metric{
+      flex:1;
+      min-width:130px;
+    }
+
+    .mi-card{
+      border-radius:24px;
+    }
+
+    .mi-card-head{
+      padding:15px;
+    }
+  }
+</style>
+
+<div class="mit-index">
+  <section class="mi-hero">
+    <div class="mi-hero-inner">
+      <div>
+        <div class="mi-kicker">Aksiyon Takibi</div>
+        <h1 class="mi-title">Mitigasyonlar</h1>
+        <p class="mi-sub">Tüm risk önlemlerini proje bazlı takip et.</p>
+      </div>
+
+      <div class="mi-hero-meta">
+        <div class="mi-metric">
+          <span>Toplam</span>
+          <strong>{{ mitigations|length if mitigations else 0 }}</strong>
+        </div>
+        <div class="mi-metric">
+          <span>Filtre</span>
+          <strong>{% if selected_project_id %}Aktif{% else %}Tümü{% endif %}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% if projects %}
+    <div class="mi-toolbar noprint">
+      <form method="get" class="mi-filter">
+        <div class="mi-field">
+          <label for="project_id">Proje</label>
+          <select class="mi-input" id="project_id" name="project_id" onchange="this.form.submit()">
             <option value="">Tüm projeler</option>
             {% for p in projects %}
               <option value="{{ p.id }}" {% if selected_project_id == p.id %}selected{% endif %}>
@@ -21,55 +524,96 @@
               </option>
             {% endfor %}
           </select>
-        </label>
+        </div>
       </form>
-    {% endif %}
-  </div>
 
-  <div class="card">
+      <span class="mi-chip">Proje filtresi</span>
+    </div>
+  {% endif %}
+
+  <section class="mi-card">
+    <div class="mi-card-head">
+      <div>
+        <h2 class="mi-card-title">Mitigasyon Kayıtları</h2>
+        <p class="mi-card-sub">Risk, sorumlu, durum ve etkinlik özeti</p>
+      </div>
+      <span class="mi-chip">{{ mitigations|length if mitigations else 0 }} kayıt</span>
+    </div>
+
     {% if mitigations %}
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Risk</th>
-            <th>Mitigasyon</th>
-            <th>Sorumlu</th>
-            <th>Durum</th>
-            <th>Termin</th>
-            <th>Etkinlik</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in mitigations %}
+      <div class="mi-table-wrap">
+        <table class="mi-table">
+          <thead>
             <tr>
-              <td>{{ m.id }}</td>
-              <td>
-                {% if m.risk %}
-                  {{ m.risk.id }} – {{ m.risk.title }}
-                {% else %}
-                  -
-                {% endif %}
-              </td>
-              <td>{{ m.title }}</td>
-              <td>{{ m.owner or "-" }}</td>
-              <td>{{ m.status or "-" }}</td>
-              <td>{{ m.due_date or "-" }}</td>
-              <td>
-                {% if m.effectiveness %}
-                  {{ m.effectiveness }}/5
-                {% else %}
-                  -
-                {% endif %}
-              </td>
+              <th>ID</th>
+              <th>Risk</th>
+              <th>Mitigasyon</th>
+              <th>Sorumlu</th>
+              <th>Durum</th>
+              <th>Termin</th>
+              <th>Etkinlik</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p>Henüz kayıtlı mitigasyon yok.</p>
-    {% endif %}
-  </div>
+          </thead>
+          <tbody>
+            {% for m in mitigations %}
+              {% set st = (m.status or '-') %}
+              {% set eff = m.effectiveness if m.effectiveness else 0 %}
+              <tr>
+                <td>
+                  <span class="mi-id">#{{ m.id }}</span>
+                </td>
 
+                <td>
+                  {% if m.risk %}
+                    <div class="mi-risk">
+                      <span class="mi-risk-id">Risk #{{ m.risk.id }}</span>
+                      <span class="mi-risk-title">{{ m.risk.title }}</span>
+                    </div>
+                  {% else %}
+                    <span class="mi-owner">-</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <div class="mi-mit-title">{{ m.title }}</div>
+                </td>
+
+                <td>
+                  <span class="mi-owner">{{ m.owner or "-" }}</span>
+                </td>
+
+                <td>
+                  <span class="mi-status {{ st }}">{{ st }}</span>
+                </td>
+
+                <td>
+                  <span class="mi-date">{{ m.due_date or "-" }}</span>
+                </td>
+
+                <td>
+                  {% if m.effectiveness %}
+                    <span class="mi-effect">
+                      <span class="mi-effect-track" aria-hidden="true">
+                        <span class="mi-effect-fill" style="--v: {{ m.effectiveness }}"></span>
+                      </span>
+                      <span class="mi-effect-num">{{ m.effectiveness }}/5</span>
+                    </span>
+                  {% else %}
+                    <span class="mi-owner">-</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="mi-empty">
+        <div class="mi-empty-icon">✓</div>
+        <h3>Henüz kayıt yok</h3>
+        <p>Mitigasyon eklenince burada görünecek.</p>
+      </div>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}

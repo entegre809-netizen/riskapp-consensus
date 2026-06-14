@@ -2,75 +2,620 @@
 {% block title %}Risk Mitigation{% endblock %}
 {% block content %}
 
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-    <div>
-      <h2 style="margin:0 0 6px">Risk Mitigation Form</h2>
-      <a href="{{ url_for('risk_new') }}">+ Click here to add new Risk Mitigation</a>
-    </div>
+<style>
+  /* ==========================================================
+     Risk Mitigation — Premium / Kullanıcı Dostu
+     Fonksiyon kaybı yok: filtre, CSV export, detail link, RPN/grade/comment
+     ========================================================== */
 
-    <form method="get" class="searchbar" style="display:flex;gap:8px;flex-wrap:wrap">
-      <input class="input" name="q" placeholder="Ara (başlık/kategori/açıklama)" value="{{ q or '' }}">
-      <select class="input" name="status" style="max-width:180px">
-        <option value="">Tümü (durum)</option>
-        <option value="New"      {{ 'selected' if status=='New' else '' }}>New</option>
-        <option value="Assessed" {{ 'selected' if status=='Assessed' else '' }}>Assessed</option>
-        <option value="Open"     {{ 'selected' if status=='Open' else '' }}>Open</option>
-        <option value="Closed"   {{ 'selected' if status=='Closed' else '' }}>Closed</option>
-      </select>
+  .mit-scope{
+    --mit-card:#ffffff;
+    --mit-text:#0f172a;
+    --mit-muted:#64748b;
+    --mit-line:rgba(15,23,42,.09);
+    --mit-line-2:rgba(15,23,42,.14);
+    --mit-soft:#f8fafc;
+    --mit-primary:#2457e6;
+    --mit-teal:#0f766e;
+    --mit-green:#22c55e;
+    --mit-amber:#f59e0b;
+    --mit-orange:#fb923c;
+    --mit-red:#ef4444;
+    --mit-shadow:0 24px 70px rgba(15,23,42,.09);
+    --mit-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    --mit-radius-xl:28px;
+    --mit-radius-lg:22px;
+    --mit-radius-md:16px;
+    color:var(--mit-text);
+  }
+
+  [data-theme="dark"] .mit-scope,
+  .dark .mit-scope{
+    --mit-card:rgba(15,23,42,.76);
+    --mit-text:#e5e7eb;
+    --mit-muted:#94a3b8;
+    --mit-line:rgba(255,255,255,.08);
+    --mit-line-2:rgba(255,255,255,.14);
+    --mit-soft:rgba(15,23,42,.55);
+    --mit-shadow:0 24px 70px rgba(0,0,0,.28);
+    --mit-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .mit-scope *{
+    box-sizing:border-box;
+  }
+
+  .mit-wrap{
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .mit-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--mit-radius-xl);
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--mit-shadow);
+  }
+
+  .mit-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .hero-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  .hero-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px, 3.2vw, 44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .hero-sub{
+    max-width:560px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  .btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--mit-line);
+    background:var(--mit-card);
+    color:var(--mit-text);
+    text-decoration:none;
+    font:inherit;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:var(--mit-shadow-sm);
+    transition:transform .14s ease, filter .14s ease, border-color .14s ease, background .14s ease;
+    white-space:nowrap;
+  }
+
+  .btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .btn-primary{
+    background:linear-gradient(135deg, var(--mit-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
+  }
+
+  .mit-hero .btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .mit-hero .btn-primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .filter-card{
+    display:grid;
+    grid-template-columns:minmax(260px,1fr) 190px auto auto;
+    gap:10px;
+    align-items:center;
+    padding:12px;
+    border-radius:var(--mit-radius-xl);
+    border:1px solid rgba(255,255,255,.92);
+    background:rgba(255,255,255,.88);
+    box-shadow:var(--mit-shadow-sm);
+    backdrop-filter:blur(18px);
+  }
+
+  [data-theme="dark"] .filter-card,
+  .dark .filter-card{
+    background:rgba(15,23,42,.86);
+    border-color:rgba(255,255,255,.10);
+  }
+
+  @media (max-width:900px){
+    .filter-card{
+      grid-template-columns:1fr 1fr;
+    }
+  }
+
+  @media (max-width:560px){
+    .filter-card{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .filter-field{
+    min-height:54px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 12px;
+    border-radius:18px;
+    background:var(--mit-soft);
+    border:1px solid var(--mit-line);
+    min-width:0;
+  }
+
+  .filter-label{
+    flex:0 0 auto;
+    color:var(--mit-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .input{
+    width:100%;
+    min-width:0;
+    min-height:28px;
+    border:0 !important;
+    outline:none !important;
+    background:transparent !important;
+    color:var(--mit-text);
+    padding:0 !important;
+    font:inherit;
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .input::placeholder{
+    color:#94a3b8;
+  }
+
+  .panel{
+    overflow:hidden;
+    border-radius:var(--mit-radius-xl);
+    border:1px solid var(--mit-line);
+    background:var(--mit-card);
+    box-shadow:var(--mit-shadow-sm);
+  }
+
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:18px;
+    border-bottom:1px solid var(--mit-line);
+    background:var(--mit-soft);
+  }
+
+  .panel-title{
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--mit-text);
+    font-size:17px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .icon{
+    width:40px;
+    height:40px;
+    display:grid;
+    place-items:center;
+    border-radius:16px;
+    color:var(--mit-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    font-weight:950;
+  }
+
+  [data-theme="dark"] .icon,
+  .dark .icon{
+    color:#93c5fd;
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.18);
+  }
+
+  .panel-meta{
+    color:var(--mit-muted);
+    font-size:12px;
+    font-weight:800;
+  }
+
+  .table-wrap{
+    overflow:auto;
+    background:var(--mit-soft);
+  }
+
+  .table{
+    width:100%;
+    min-width:980px;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .table th{
+    position:sticky;
+    top:0;
+    z-index:1;
+    padding:13px 14px;
+    border-bottom:1px solid var(--mit-line);
+    background:var(--mit-soft);
+    color:var(--mit-muted);
+    text-align:left;
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .table td{
+    padding:14px;
+    border-bottom:1px solid var(--mit-line);
+    background:rgba(255,255,255,.62);
+    vertical-align:middle;
+    color:var(--mit-text);
+    font-size:14px;
+    font-weight:700;
+  }
+
+  [data-theme="dark"] .table td,
+  .dark .table td{
+    background:rgba(15,23,42,.42);
+  }
+
+  .table tbody tr:hover td{
+    background:rgba(36,87,230,.055);
+  }
+
+  [data-theme="dark"] .table tbody tr:hover td,
+  .dark .table tbody tr:hover td{
+    background:rgba(59,130,246,.10);
+  }
+
+  .report-link{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:32px;
+    min-width:56px;
+    padding:0 10px;
+    border-radius:12px;
+    color:var(--mit-primary);
+    background:rgba(36,87,230,.09);
+    border:1px solid rgba(36,87,230,.16);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:950;
+  }
+
+  .report-link:hover{
+    text-decoration:none;
+    filter:brightness(1.02);
+  }
+
+  .badge{
+    min-height:28px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--mit-line);
+    background:#fff;
+    color:var(--mit-text);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  [data-theme="dark"] .badge,
+  .dark .badge{
+    background:rgba(15,23,42,.52);
+  }
+
+  .status-new{ color:#1d4ed8; background:rgba(36,87,230,.10); border-color:rgba(36,87,230,.18); }
+  .status-assessed{ color:#0f766e; background:rgba(15,118,110,.10); border-color:rgba(15,118,110,.18); }
+  .status-open{ color:#b45309; background:rgba(245,158,11,.13); border-color:rgba(245,158,11,.22); }
+  .status-closed{ color:#15803d; background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.20); }
+
+  [data-theme="dark"] .status-new,
+  .dark .status-new{ color:#bfdbfe; }
+  [data-theme="dark"] .status-assessed,
+  .dark .status-assessed{ color:#99f6e4; }
+  [data-theme="dark"] .status-open,
+  .dark .status-open{ color:#fde68a; }
+  [data-theme="dark"] .status-closed,
+  .dark .status-closed{ color:#bbf7d0; }
+
+  .grade-low{ color:#15803d; background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.20); }
+  .grade-mid{ color:#a16207; background:rgba(245,158,11,.13); border-color:rgba(245,158,11,.22); }
+  .grade-high{ color:#c2410c; background:rgba(251,146,60,.13); border-color:rgba(251,146,60,.22); }
+  .grade-critical{ color:#b91c1c; background:rgba(239,68,68,.11); border-color:rgba(239,68,68,.20); }
+
+  [data-theme="dark"] .grade-low,
+  .dark .grade-low{ color:#bbf7d0; }
+  [data-theme="dark"] .grade-mid,
+  .dark .grade-mid{ color:#fde68a; }
+  [data-theme="dark"] .grade-high,
+  .dark .grade-high{ color:#fed7aa; }
+  [data-theme="dark"] .grade-critical,
+  .dark .grade-critical{ color:#fecaca; }
+
+  .mono{
+    font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-variant-numeric:tabular-nums;
+    font-weight:900;
+  }
+
+  .muted{
+    color:var(--mit-muted);
+  }
+
+  .empty{
+    padding:34px !important;
+    text-align:center;
+    color:var(--mit-muted) !important;
+    font-size:14px;
+    font-weight:800 !important;
+  }
+
+  .comment-pill{
+    min-width:38px;
+  }
+
+  @media (max-width:620px){
+    .mit-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .hero-actions{
+      width:100%;
+    }
+
+    .hero-actions .btn{
+      flex:1;
+    }
+
+    .panel-head{
+      padding:15px;
+    }
+  }
+</style>
+
+<div class="mit-scope">
+  <div class="mit-wrap">
+
+    <section class="mit-hero">
+      <div class="hero-row">
+        <div>
+          <div class="hero-kicker">Risk Kontrol</div>
+          <h1 class="hero-title">Risk Mitigation</h1>
+          <p class="hero-sub">Risk kayıtlarını filtrele, RPN seviyelerini takip et ve raporları dışa aktar.</p>
+        </div>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+          <a class="btn" href="{{ url_for('risks_export_csv', q=q, status=status) }}">CSV indir</a>
+        </div>
+      </div>
+    </section>
+
+    <form method="get" class="filter-card">
+      <div class="filter-field">
+        <span class="filter-label">Arama</span>
+        <input class="input" name="q" placeholder="Başlık, kategori, açıklama..." value="{{ q or '' }}">
+      </div>
+
+      <div class="filter-field">
+        <span class="filter-label">Durum</span>
+        <select class="input" name="status">
+          <option value="">Tümü</option>
+          <option value="New"      {{ 'selected' if status=='New' else '' }}>New</option>
+          <option value="Assessed" {{ 'selected' if status=='Assessed' else '' }}>Assessed</option>
+          <option value="Open"     {{ 'selected' if status=='Open' else '' }}>Open</option>
+          <option value="Closed"   {{ 'selected' if status=='Closed' else '' }}>Closed</option>
+        </select>
+      </div>
+
       <button class="btn btn-primary" type="submit">Filtrele</button>
-      <!-- CSV Export -->
-      <a class="btn" href="{{ url_for('risks_export_csv', q=q, status=status) }}">⬇️ CSV indir</a>
+      <a class="btn" href="{{ url_for('risks_export_csv', q=q, status=status) }}">CSV indir</a>
     </form>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3 class="panel-title">
+          <span class="icon">☰</span>
+          Recent Risk Mitigation Report
+        </h3>
+        <span class="panel-meta">{{ risks|length if risks else 0 }} kayıt</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:64px">No.</th>
+              <th>Report Date</th>
+              <th>Assessed Date</th>
+              <th style="width:110px">Report ID</th>
+              <th style="width:130px">Status</th>
+              <th>Created by</th>
+              <th style="width:100px">RPN</th>
+              <th style="width:130px">Grade</th>
+              <th style="width:110px">Comment</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for r in risks %}
+              {% set g, color = r.rpn_grade() %}
+              {% set st = (r.status or 'New') %}
+              {% set st_l = st|lower %}
+              {% set st_class =
+                'status-new' if st_l == 'new'
+                else ('status-assessed' if st_l == 'assessed'
+                else ('status-open' if st_l == 'open'
+                else ('status-closed' if st_l == 'closed' else '')))
+              %}
+
+              {% set rpn_val = r.rpn() %}
+              {% set grade_class = '' %}
+              {% if rpn_val %}
+                {% if rpn_val <= 4 %}
+                  {% set grade_class = 'grade-low' %}
+                {% elif rpn_val <= 10 %}
+                  {% set grade_class = 'grade-mid' %}
+                {% elif rpn_val <= 15 %}
+                  {% set grade_class = 'grade-high' %}
+                {% else %}
+                  {% set grade_class = 'grade-critical' %}
+                {% endif %}
+              {% endif %}
+
+              <tr>
+                <td class="mono">{{ loop.index }}</td>
+
+                <td>
+                  {% if r.created_at %}
+                    {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if r.updated_at %}
+                    {{ r.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <a class="report-link" href="{{ url_for('risk_detail', risk_id=r.id) }}">#{{ r.id }}</a>
+                </td>
+
+                <td>
+                  <span class="badge {{ st_class }}">{{ st }}</span>
+                </td>
+
+                <td>{{ r.owner or '-' }}</td>
+
+                <td>
+                  {% if rpn_val %}
+                    <span class="mono">{{ '%.0f'|format(rpn_val) }}</span>
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if g %}
+                    <span class="badge {{ grade_class }}">{{ g }}</span>
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <span class="badge comment-pill">{{ r.comments|length }}</span>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="9" class="empty">Kayıt bulunamadı.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </div>
-
-  <h3 style="margin-top:14px">Recent Risk Mitigation Report</h3>
-
-  <table class="table">
-    <thead>
-      <tr>
-        <th style="width:60px">No.</th>
-        <th>Report Date</th>
-        <th>Assessed Date</th>
-        <th style="width:90px">Report ID</th>
-        <th style="width:120px">Status</th>
-        <th>Created by</th>
-        <th style="width:90px">RPN</th>
-        <th style="width:120px">Grade</th>
-        <th style="width:110px">Comment</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in risks %}
-      {% set g, color = r.rpn_grade() %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '' }}</td>
-        <td>{{ r.updated_at.strftime('%Y-%m-%d %H:%M') if r.updated_at else '' }}</td>
-        <td><a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.id }}</a></td>
-        <td><span class="badge">{{ r.status or 'New' }}</span></td>
-        <td>{{ r.owner or '-' }}</td>
-        <td>
-          {% if r.rpn() %}
-            {{ '%.0f'|format(r.rpn()) }}
-          {% else %}
-            —
-          {% endif %}
-        </td>
-        <td>
-          {% if g %}
-            <span class="badge">{{ g }}</span>
-          {% else %}
-            —
-          {% endif %}
-        </td>
-        <td>{{ r.comments|length }}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="9">Kayıt bulunamadı.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 
 {% endblock %}
