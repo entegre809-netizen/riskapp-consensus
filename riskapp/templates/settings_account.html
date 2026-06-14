@@ -276,6 +276,341 @@
     border-color: rgba(255,255,255,.12);
     background: rgba(255,255,255,.04);
   }
+
+  /* ============================================================
+     PREMIUM OVERRIDE · Hesap Ayarları v2
+     - input/select name/id/method korunur
+     ============================================================ */
+
+  .as-scope{
+    --ha-card:#ffffff;
+    --ha-bg:#f8fafc;
+    --ha-text:#0f172a;
+    --ha-muted:#64748b;
+    --ha-soft:#94a3b8;
+    --ha-line:rgba(15,23,42,.09);
+    --ha-line-2:rgba(15,23,42,.14);
+    --ha-primary:#2457e6;
+    --ha-primary-2:#3264ff;
+    --ha-teal:#0f766e;
+    --ha-green:#22c55e;
+    --ha-amber:#f59e0b;
+    --ha-red:#ef4444;
+    --ha-shadow:0 22px 60px rgba(15,23,42,.08);
+    --ha-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--ha-text);
+  }
+
+  [data-theme="dark"] .as-scope{
+    --ha-card:rgba(15,23,42,.76);
+    --ha-bg:rgba(15,23,42,.55);
+    --ha-text:rgba(255,255,255,.92);
+    --ha-muted:rgba(226,232,240,.72);
+    --ha-soft:rgba(226,232,240,.52);
+    --ha-line:rgba(255,255,255,.09);
+    --ha-line-2:rgba(255,255,255,.15);
+    --ha-primary:#60a5fa;
+    --ha-primary-2:#93c5fd;
+    --ha-shadow:0 22px 60px rgba(0,0,0,.25);
+    --ha-shadow-sm:0 12px 34px rgba(0,0,0,.18);
+  }
+
+  .as-shell{
+    max-width:1080px;
+    margin:0 auto;
+    gap:16px;
+  }
+
+  .as-bc{
+    margin-bottom:0;
+    padding:12px 14px;
+    border-radius:18px;
+    background:var(--ha-card);
+    border:1px solid var(--ha-line);
+    box-shadow:var(--ha-shadow-sm);
+    color:var(--ha-muted);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .as-bc a{
+    color:var(--ha-primary);
+    font-weight:950;
+  }
+
+  .as-bc span:last-child{
+    color:var(--ha-text) !important;
+  }
+
+  .as-head{
+    position:relative;
+    overflow:hidden;
+    padding:22px;
+    border-radius:28px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255,255,255,.24), transparent 27%),
+      radial-gradient(circle at 92% 92%, rgba(20,184,166,.34), transparent 32%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 58%, #0f766e 100%);
+    box-shadow:var(--ha-shadow);
+  }
+
+  .as-head::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-140px;
+    bottom:-150px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+    pointer-events:none;
+  }
+
+  .as-head > *{
+    position:relative;
+    z-index:1;
+  }
+
+  .as-title{
+    margin:0;
+    color:#fff !important;
+    font-size:clamp(28px, 3vw, 42px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .as-title::before{
+    content:"Profil ve Güvenlik";
+    display:inline-flex;
+    align-items:center;
+    height:32px;
+    padding:0 12px;
+    margin:0 0 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.84);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .as-sub{
+    max-width:660px;
+    margin:10px 0 0;
+    color:rgba(255,255,255,.74) !important;
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .as-head .btn{
+    color:#1d4ed8 !important;
+    background:#fff !important;
+    border-color:transparent !important;
+    box-shadow:0 16px 34px rgba(0,0,0,.12);
+  }
+
+  .as-glass{
+    border-radius:28px;
+    background:var(--ha-card);
+    border:1px solid var(--ha-line);
+    box-shadow:var(--ha-shadow-sm);
+    overflow:hidden;
+    backdrop-filter:none;
+  }
+
+  .as-pad{
+    padding:20px;
+  }
+
+  .as-pad + .as-pad{
+    border-top:1px solid var(--ha-line);
+  }
+
+  .as-sec-head{
+    margin-bottom:14px;
+  }
+
+  .as-sec-title{
+    color:var(--ha-text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .as-ico{
+    width:42px;
+    height:42px;
+    border-radius:16px;
+    color:var(--ha-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    box-shadow:none;
+  }
+
+  .as-badge{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--ha-primary);
+    opacity:1;
+    font-size:12px;
+    font-weight:900;
+  }
+
+  .as-sec-sub{
+    color:var(--ha-muted) !important;
+    font-size:13px;
+    font-weight:750;
+  }
+
+  .as-grid{
+    gap:14px;
+  }
+
+  .as-field{
+    gap:7px;
+  }
+
+  .as-label{
+    color:var(--ha-text) !important;
+    font-size:13px;
+    font-weight:900;
+  }
+
+  .as-helper{
+    color:var(--ha-muted) !important;
+    font-size:12px;
+    font-weight:850;
+    opacity:1;
+  }
+
+  .as-hint{
+    color:var(--ha-muted) !important;
+    font-size:12px;
+    font-weight:750;
+    opacity:1;
+  }
+
+  .as-scope .input{
+    min-height:46px;
+    height:46px;
+    border-radius:16px;
+    border:1px solid var(--ha-line);
+    background:color-mix(in oklab, var(--ha-card) 95%, transparent);
+    color:var(--ha-text);
+    padding:0 13px;
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 8px 20px rgba(15,23,42,.035);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  .as-scope .input::placeholder{
+    color:var(--ha-soft);
+  }
+
+  .as-scope .input:focus{
+    border-color:color-mix(in oklab, var(--ha-primary) 50%, var(--ha-line));
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+    background:var(--ha-card);
+  }
+
+  .as-meter{
+    gap:7px;
+  }
+
+  .as-bar{
+    height:6px;
+    background:rgba(100,116,139,.18);
+  }
+
+  .as-bar > i{
+    background:linear-gradient(135deg, #2457e6, #0f766e);
+  }
+
+  .as-actions{
+    gap:10px;
+  }
+
+  .as-scope .btn{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--ha-line);
+    background:var(--ha-card);
+    color:var(--ha-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:950;
+    cursor:pointer;
+    box-shadow:var(--ha-shadow-sm);
+    transition:transform .13s ease, filter .13s ease, border-color .13s ease;
+  }
+
+  .as-scope .btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    text-decoration:none;
+  }
+
+  .as-scope .btn-primary{
+    color:#fff;
+    background:linear-gradient(135deg, #2457e6, #3264ff);
+    border-color:rgba(36,87,230,.35);
+    box-shadow:0 18px 34px rgba(36,87,230,.22);
+  }
+
+  .as-scope .flash{
+    margin:16px 20px 0;
+    padding:13px 14px;
+    border-radius:18px;
+    background:var(--ha-bg);
+    border:1px solid var(--ha-line);
+    color:var(--ha-text);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  @media (max-width:760px){
+    .as-shell{
+      max-width:100%;
+    }
+
+    .as-head{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .as-head .btn,
+    .as-actions .btn,
+    .as-actions button{
+      width:100%;
+    }
+
+    .as-pad{
+      padding:16px;
+    }
+
+    .as-sec-head{
+      flex-direction:column;
+    }
+  }
+
 </style>
 
 <div class="as-scope container as-shell">
