@@ -326,6 +326,411 @@
     color: var(--rs-muted);
     background: color-mix(in oklab, var(--rs-bg) 92%, transparent);
   }
+
+  /* ==========================================================
+     PREMIUM OVERRIDE · Risk Seçimi v2
+     - Mevcut Jinja/JS/route mantığını bozmaz
+     ========================================================== */
+
+  .rs-wrap{
+    --rx-card:#ffffff;
+    --rx-bg:#f8fafc;
+    --rx-text:#0f172a;
+    --rx-muted:#64748b;
+    --rx-soft:#94a3b8;
+    --rx-line:rgba(15,23,42,.09);
+    --rx-line-2:rgba(15,23,42,.14);
+    --rx-primary:#2457e6;
+    --rx-primary-2:#3264ff;
+    --rx-teal:#0f766e;
+    --rx-green:#22c55e;
+    --rx-amber:#f59e0b;
+    --rx-red:#ef4444;
+    --rx-shadow:0 22px 60px rgba(15,23,42,.08);
+    --rx-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--rx-text);
+  }
+
+  [data-theme="dark"] .rs-wrap{
+    --rx-card:rgba(15,23,42,.76);
+    --rx-bg:rgba(15,23,42,.55);
+    --rx-text:rgba(255,255,255,.92);
+    --rx-muted:rgba(226,232,240,.72);
+    --rx-soft:rgba(226,232,240,.52);
+    --rx-line:rgba(255,255,255,.09);
+    --rx-line-2:rgba(255,255,255,.15);
+    --rx-primary:#60a5fa;
+    --rx-primary-2:#93c5fd;
+    --rx-shadow:0 22px 60px rgba(0,0,0,.25);
+    --rx-shadow-sm:0 12px 34px rgba(0,0,0,.18);
+  }
+
+  .rs-wrap > .card{
+    border-radius:28px;
+    background:var(--rx-card);
+    border:1px solid var(--rx-line);
+    box-shadow:var(--rx-shadow-sm);
+    overflow:hidden;
+    padding:0 !important;
+  }
+
+  .rs-wrap > .card > h2{
+    position:relative;
+    overflow:hidden;
+    margin:0 !important;
+    padding:22px;
+    color:#fff;
+    font-size:clamp(28px, 3vw, 42px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950 !important;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255,255,255,.24), transparent 27%),
+      radial-gradient(circle at 92% 92%, rgba(20,184,166,.34), transparent 32%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 58%, #0f766e 100%);
+  }
+
+  .rs-wrap > .card > h2::before{
+    content:"Risk Yönetimi / Liste";
+    display:inline-flex;
+    align-items:center;
+    height:32px;
+    padding:0 12px;
+    margin:0 0 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.84);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .rs-wrap > .card > h2::after{
+    content:"Riskleri filtrele, skor ve maliyet durumuna göre hızlıca yönet.";
+    display:block;
+    max-width:680px;
+    margin-top:9px;
+    color:rgba(255,255,255,.72);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+    letter-spacing:0;
+  }
+
+  .rs-toolbar{
+    top:86px;
+    z-index:30;
+    margin:16px !important;
+    padding:14px;
+    border-radius:24px;
+    background:color-mix(in oklab, var(--rx-card) 92%, transparent);
+    border:1px solid var(--rx-line);
+    box-shadow:var(--rx-shadow-sm);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+  }
+
+  .rs-label{
+    color:var(--rx-muted);
+    font-size:12px;
+    font-weight:850;
+    letter-spacing:0;
+    text-transform:none;
+  }
+
+  .rs-input{
+    min-height:44px;
+    height:44px;
+    border-radius:16px;
+    border:1px solid var(--rx-line);
+    background:color-mix(in oklab, var(--rx-card) 95%, transparent);
+    color:var(--rx-text);
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 8px 20px rgba(15,23,42,.035);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  .rs-input::placeholder{
+    color:var(--rx-soft);
+  }
+
+  .rs-input:focus{
+    border-color:color-mix(in oklab, var(--rx-primary) 50%, var(--rx-line));
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+    background:var(--rx-card);
+  }
+
+  .rs-search-wrap{
+    position:relative;
+  }
+
+  .rs-search-ic{
+    color:var(--rx-muted);
+  }
+
+  .rs-btn{
+    min-height:44px;
+    border-radius:15px;
+    font-size:13px;
+    font-weight:950;
+    box-shadow:var(--rx-shadow-sm);
+  }
+
+  .rs-btn-primary{
+    background:linear-gradient(135deg, #2457e6, #3264ff);
+    border-color:rgba(36,87,230,.30);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
+  }
+
+  .rs-btn-soft{
+    background:rgba(36,87,230,.10);
+    color:var(--rx-primary);
+    border-color:rgba(36,87,230,.18);
+  }
+
+  .rs-btn-ghost{
+    background:var(--rx-card);
+    border-color:var(--rx-line);
+    color:var(--rx-text);
+  }
+
+  .rs-btn-danger{
+    background:rgba(239,68,68,.12);
+    border:1px solid rgba(239,68,68,.22);
+    color:#b91c1c;
+    box-shadow:none;
+  }
+
+  [data-theme="dark"] .rs-btn-danger{
+    color:#fecaca;
+  }
+
+  .rs-adminbar{
+    margin:0 16px 16px !important;
+    padding:14px;
+    border-radius:22px;
+    background:var(--rx-bg);
+    border:1px solid var(--rx-line);
+  }
+
+  .rs-adminhint{
+    color:var(--rx-muted);
+    font-size:13px;
+    font-weight:800;
+  }
+
+  .flash{
+    margin:0 16px 16px;
+    border-radius:18px;
+  }
+
+  .rs-tablewrap{
+    margin:0 16px 16px;
+    border-radius:24px;
+    border:1px solid var(--rx-line);
+    background:var(--rx-card);
+    box-shadow:none;
+  }
+
+  .rs-table{
+    min-width:1020px;
+  }
+
+  .rs-table th,
+  .rs-table td{
+    padding:14px 16px;
+    border-bottom:1px solid var(--rx-line);
+  }
+
+  .rs-table thead th{
+    background:var(--rx-bg);
+    color:var(--rx-muted);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rs-table tbody td{
+    color:var(--rx-text);
+    background:color-mix(in oklab, var(--rx-card) 62%, transparent);
+  }
+
+  .rs-row:hover{
+    background:transparent;
+  }
+
+  .rs-row:hover td{
+    background:rgba(36,87,230,.055);
+  }
+
+  [data-theme="dark"] .rs-row:hover td{
+    background:rgba(96,165,250,.08);
+  }
+
+  .rs-title{
+    color:var(--rx-text);
+    font-size:14px;
+    font-weight:950;
+    line-height:1.35;
+  }
+
+  .rs-title:hover{
+    color:var(--rx-primary);
+  }
+
+  .rs-desc{
+    color:var(--rx-muted);
+    font-size:12px;
+    font-weight:700;
+    line-height:1.4;
+  }
+
+  .rs-chip{
+    min-height:30px;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--rx-primary);
+    font-size:12px;
+    font-weight:900;
+  }
+
+  .rs-score{
+    width:42px;
+    height:42px;
+    border-radius:16px;
+    font-size:13px;
+    font-weight:950;
+  }
+
+  .rs-score--hi{
+    background:rgba(239,68,68,.12);
+    color:#b91c1c;
+    border-color:rgba(239,68,68,.24);
+  }
+
+  .rs-score--mid{
+    background:rgba(245,158,11,.14);
+    color:#b45309;
+    border-color:rgba(245,158,11,.26);
+  }
+
+  .rs-score--low{
+    background:rgba(34,197,94,.13);
+    color:#15803d;
+    border-color:rgba(34,197,94,.24);
+  }
+
+  .rs-score--crit{
+    background:rgba(59,130,246,.11);
+    color:#1d4ed8;
+    border-color:rgba(59,130,246,.22);
+  }
+
+  [data-theme="dark"] .rs-score--hi,
+  [data-theme="dark"] .rs-score--mid,
+  [data-theme="dark"] .rs-score--low,
+  [data-theme="dark"] .rs-score--crit{
+    color:var(--rx-text);
+  }
+
+  .rs-cost{
+    min-height:30px;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(34,197,94,.13);
+    border:1px solid rgba(34,197,94,.24);
+    color:#15803d;
+    font-size:12px;
+    font-weight:950;
+  }
+
+  [data-theme="dark"] .rs-cost{
+    color:#bbf7d0;
+  }
+
+  .rs-check{
+    accent-color:#2457e6;
+  }
+
+  .rs-actions{
+    opacity:1;
+    transform:none;
+    gap:7px;
+  }
+
+  .rs-iconbtn{
+    width:38px;
+    height:38px;
+    border-radius:14px;
+    background:var(--rx-bg);
+    border:1px solid var(--rx-line);
+    color:var(--rx-muted);
+  }
+
+  .rs-iconbtn:hover{
+    background:rgba(36,87,230,.10);
+    border-color:rgba(36,87,230,.18);
+    color:var(--rx-primary);
+  }
+
+  .rs-iconbtn.danger:hover{
+    background:rgba(239,68,68,.12);
+    border-color:rgba(239,68,68,.22);
+    color:#dc2626;
+  }
+
+  .rs-pager{
+    padding:14px 16px;
+    background:var(--rx-bg);
+    border-top:1px solid var(--rx-line);
+  }
+
+  .rs-pager-left{
+    color:var(--rx-muted);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .rs-empty{
+    margin:0 16px 16px;
+    padding:36px 18px;
+    border-radius:24px;
+    border:1px dashed var(--rx-line-2);
+    background:var(--rx-bg);
+    color:var(--rx-muted);
+  }
+
+  @media (max-width:760px){
+    .rs-toolbar{
+      position:static;
+      margin:12px !important;
+    }
+
+    .rs-group,
+    .rs-search-wrap,
+    .rs-search,
+    .rs-input,
+    .rs-btn{
+      width:100%;
+      min-width:0 !important;
+    }
+
+    .rs-adminbar,
+    .rs-tablewrap,
+    .rs-empty{
+      margin-left:12px !important;
+      margin-right:12px !important;
+    }
+  }
+
 </style>
 
 <div class="rs-wrap">
