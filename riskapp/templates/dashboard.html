@@ -809,6 +809,114 @@
     letter-spacing:-.03em;
   }
 
+
+
+  /* Açılır/Kapanır Dashboard Kartları */
+  .accordion-stack{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .fold-card{
+    overflow:hidden;
+    transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+  }
+
+  .fold-card:hover{
+    border-color:rgba(36,87,230,.18);
+  }
+
+  .fold-head{
+    cursor:pointer;
+    user-select:none;
+    margin-bottom:0;
+    padding-bottom:0;
+    outline:none;
+  }
+
+  .fold-head:focus-visible{
+    box-shadow:0 0 0 4px rgba(36,87,230,.14);
+    border-radius:18px;
+  }
+
+  .fold-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+  }
+
+  .fold-hint{
+    color:var(--muted);
+    font-size:12px;
+    font-weight:800;
+    white-space:nowrap;
+  }
+
+  .fold-right{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-left:auto;
+  }
+
+  .fold-toggle{
+    width:38px;
+    height:38px;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    border:1px solid var(--line);
+    background:var(--soft);
+    color:var(--muted);
+    font-size:15px;
+    font-weight:950;
+    cursor:pointer;
+    transition:transform .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
+  }
+
+  .fold-toggle:hover{
+    color:var(--primary);
+    border-color:rgba(36,87,230,.24);
+  }
+
+  .fold-body{
+    padding-top:14px;
+    animation:foldIn .18s ease both;
+  }
+
+  .fold-card.is-collapsed .fold-body{
+    display:none;
+  }
+
+  .fold-card.is-collapsed .fold-toggle{
+    transform:rotate(-90deg);
+  }
+
+  .fold-card.is-collapsed .fold-hint::after{
+    content:"Açmak için tıkla";
+  }
+
+  .fold-card:not(.is-collapsed) .fold-hint::after{
+    content:"Kapatmak için tıkla";
+  }
+
+  .quick-card .fold-body .quick-label{
+    display:none;
+  }
+
+  .quick-card .fold-body .quick-row{
+    justify-content:flex-start;
+  }
+
+  @keyframes foldIn{
+    from{ opacity:0; transform:translateY(-4px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
   @media (max-width:620px){
     .dash-hero{ padding:18px; border-radius:24px; }
     .hero-actions{ width:100%; }
@@ -908,7 +1016,7 @@
       </div>
     </section>
 
-    <section class="main-grid">
+    <section class="accordion-stack" aria-label="Açılır dashboard bölümleri">
       <div class="cardx" aria-labelledby="overviewTitle">
         <div class="card-headx">
           <h3 id="overviewTitle" class="card-titlex">
@@ -1212,5 +1320,116 @@
 
   </div>
 </div>
+
+
+<script>
+  (function(){
+    function onReady(fn){
+      if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', fn);
+      }else{
+        fn();
+      }
+    }
+
+    onReady(function(){
+      const scope = document.querySelector('.dash-scope');
+      if(!scope) return;
+
+      const cards = Array.from(scope.querySelectorAll('.cardx'));
+
+      cards.forEach(function(card, index){
+        if(card.dataset.foldReady === '1') return;
+        card.dataset.foldReady = '1';
+        card.classList.add('fold-card');
+
+        let head = card.querySelector(':scope > .card-headx');
+
+        if(!head && card.classList.contains('quick-card')){
+          head = document.createElement('div');
+          head.className = 'card-headx';
+          head.innerHTML = `
+            <h3 class="card-titlex">
+              <span class="iconbox">⚡</span>
+              Hızlı İşlemler
+            </h3>
+          `;
+          card.insertBefore(head, card.firstChild);
+        }
+
+        if(!head) return;
+
+        head.classList.add('fold-head');
+        head.setAttribute('role', 'button');
+        head.setAttribute('tabindex', '0');
+
+        const right = document.createElement('div');
+        right.className = 'fold-right';
+
+        const existingRightItems = Array.from(head.children).filter(function(child){
+          return !child.classList.contains('card-titlex');
+        });
+
+        existingRightItems.forEach(function(item){
+          right.appendChild(item);
+        });
+
+        const hint = document.createElement('span');
+        hint.className = 'fold-hint';
+        right.appendChild(hint);
+
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'fold-toggle';
+        toggle.setAttribute('aria-label', 'Bölümü aç veya kapat');
+        toggle.innerHTML = '⌄';
+        right.appendChild(toggle);
+
+        head.appendChild(right);
+
+        const body = document.createElement('div');
+        body.className = 'fold-body';
+
+        let node = head.nextSibling;
+        while(node){
+          const next = node.nextSibling;
+          body.appendChild(node);
+          node = next;
+        }
+        card.appendChild(body);
+
+        const title = (head.querySelector('.card-titlex') || head).textContent.trim().replace(/\s+/g, ' ');
+        const startOpen = index === 0;
+
+        function setOpen(open){
+          card.classList.toggle('is-collapsed', !open);
+          head.setAttribute('aria-expanded', open ? 'true' : 'false');
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          toggle.setAttribute('title', open ? title + ' bölümünü kapat' : title + ' bölümünü aç');
+        }
+
+        function shouldIgnoreClick(target){
+          const interactive = target.closest('a, input, select, textarea');
+          return !!interactive;
+        }
+
+        function toggleCard(event){
+          if(event && shouldIgnoreClick(event.target)) return;
+          setOpen(card.classList.contains('is-collapsed'));
+        }
+
+        head.addEventListener('click', toggleCard);
+        head.addEventListener('keydown', function(event){
+          if(event.key === 'Enter' || event.key === ' '){
+            event.preventDefault();
+            toggleCard(event);
+          }
+        });
+
+        setOpen(startOpen);
+      });
+    });
+  })();
+</script>
 
 {% endblock %}
