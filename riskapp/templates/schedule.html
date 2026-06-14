@@ -64,8 +64,9 @@
 
   .tl-shell{
     width:100%;
-    max-width:1240px;
-    margin:0 auto;
+    max-width:none;
+    margin:0;
+    padding:0 18px 36px;
     display:flex;
     flex-direction:column;
     gap:16px;
@@ -203,12 +204,51 @@
     padding:16px;
   }
 
+  .tl-section-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+
+  .tl-section-title{
+    color:var(--tl-text);
+    font-size:16px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .tl-section-sub{
+    margin-top:4px;
+    color:var(--tl-muted);
+    font-size:12px;
+    line-height:1.4;
+    font-weight:750;
+  }
+
+  .tl-scroll-hint{
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 11px;
+    border-radius:999px;
+    background:rgba(36,87,230,.08);
+    border:1px solid rgba(36,87,230,.14);
+    color:var(--tl-primary);
+    font-size:12px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
   .tl-filterbar{
     position:sticky;
     top:8px;
     z-index:20;
     display:grid;
-    grid-template-columns:minmax(220px, 1.3fr) repeat(5, minmax(120px, auto)) auto;
+    grid-template-columns:minmax(260px, 1.45fr) repeat(6, minmax(132px, .72fr)) minmax(210px, auto);
     gap:10px;
     padding:12px;
     border-radius:var(--tl-radius-xl);
@@ -238,7 +278,7 @@
   }
 
   .tl-chip{
-    min-height:54px;
+    min-height:50px;
     display:flex;
     align-items:center;
     gap:10px;
@@ -406,6 +446,7 @@
   }
 
   .gantt-shell{
+    width:100%;
     display:flex;
     border:1px solid var(--tl-line);
     border-radius:var(--tl-radius-xl);
@@ -415,14 +456,15 @@
   }
 
   .gantt-left{
-    width:430px;
-    flex-shrink:0;
+    width:520px;
+    flex:0 0 520px;
     border-right:1px solid var(--tl-line);
     background:var(--tl-card);
   }
 
   .gantt-right{
-    flex:1;
+    flex:1 1 auto;
+    min-width:0;
     overflow-x:auto;
     background:
       linear-gradient(to right, rgba(148,163,184,.14) 1px, transparent 1px),
@@ -437,8 +479,16 @@
 
     .gantt-left{
       width:100%;
+      flex-basis:auto;
       border-right:0;
       border-bottom:1px solid var(--tl-line);
+    }
+  }
+
+  @media (min-width:981px) and (max-width:1320px){
+    .gantt-left{
+      width:480px;
+      flex-basis:480px;
     }
   }
 
@@ -468,7 +518,7 @@
 
   .gantt-left tbody tr,
   .gantt-right tbody tr{
-    height:70px;
+    height:94px;
   }
 
   .gantt-left td,
@@ -496,12 +546,14 @@
   }
 
   .risk-title{
-    max-width:265px;
+    max-width:360px;
     overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
     color:var(--tl-text);
     font-size:14px;
+    line-height:1.22;
     font-weight:950;
   }
 
@@ -518,6 +570,7 @@
   .risk-meta{
     color:var(--tl-muted);
     font-size:12px;
+    line-height:1.35;
     font-weight:700;
   }
 
@@ -528,7 +581,7 @@
   }
 
   .tl-bar{
-    height:22px;
+    height:24px;
     max-width:92%;
     margin:0 auto;
     border-radius:999px;
@@ -936,6 +989,14 @@
 
     {% if view == 'table' %}
       <section class="tl-card">
+        <div class="tl-section-head">
+          <div>
+            <div class="tl-section-title">Risk Zaman Planı</div>
+            <div class="tl-section-sub">Sol taraf risk bilgisi, sağ taraf ay bazlı çizelgedir. Sağ bölümü yatay kaydırabilirsin.</div>
+          </div>
+          <div class="tl-scroll-hint">⇄ Yatay kaydır</div>
+        </div>
+
         <div class="gantt-shell">
           <div class="gantt-left">
             <table aria-label="Risk listesi">
@@ -1019,7 +1080,7 @@
           </div>
 
           <div class="gantt-right custom-scrollbar">
-            {% set gantt_minw = (months_safe|length > 0) and (months_safe|length * 140) or 900 %}
+            {% set gantt_minw = (months_safe|length > 0) and (months_safe|length * 185) or 1100 %}
             <div class="gantt-minw" data-minw="{{ gantt_minw }}">
               <table aria-label="Risk zaman çizelgesi">
                 <thead>
