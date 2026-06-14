@@ -1,50 +1,481 @@
 {% extends "base.html" %}
 {% block title %}Mitigation Düzenle · {{ r.title }}{% endblock %}
+
 {% block content %}
-<h2 style="margin:0 0 .5rem">Mitigation Düzenle — {{ r.title }}</h2>
-<form method="post" class="card">
-  <label>Başlık *</label>
-  <input type="text" name="title" value="{{ m.title }}" required />
+<style>
+  .mit-edit{
+    --me-card:#ffffff;
+    --me-bg:#f8fafc;
+    --me-text:#0f172a;
+    --me-muted:#64748b;
+    --me-soft:#94a3b8;
+    --me-line:rgba(15,23,42,.09);
+    --me-line-2:rgba(15,23,42,.14);
+    --me-primary:#2457e6;
+    --me-primary-2:#3264ff;
+    --me-teal:#0f766e;
+    --me-green:#22c55e;
+    --me-amber:#f59e0b;
+    --me-red:#ef4444;
+    --me-shadow:0 22px 60px rgba(15,23,42,.08);
+    --me-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--me-text);
+  }
 
-  <div class="row" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
-    <div>
-      <label>Sorumlu</label>
-      <input type="text" name="owner" value="{{ m.owner or '' }}" />
-    </div>
-    <div>
-      <label>Durum</label>
-      <select name="status" value="{{ m.status }}">
-        {% for s in ['planned','in_progress','done','not_applicable'] %}
-          <option value="{{s}}" {% if m.status==s %}selected{% endif %}>{{ s }}</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
+  [data-theme="dark"] .mit-edit{
+    --me-card:rgba(15,23,42,.76);
+    --me-bg:rgba(15,23,42,.55);
+    --me-text:rgba(255,255,255,.92);
+    --me-muted:rgba(226,232,240,.72);
+    --me-soft:rgba(226,232,240,.52);
+    --me-line:rgba(255,255,255,.09);
+    --me-line-2:rgba(255,255,255,.15);
+    --me-primary:#60a5fa;
+    --me-primary-2:#93c5fd;
+    --me-shadow:0 22px 60px rgba(0,0,0,.25);
+    --me-shadow-sm:0 12px 34px rgba(0,0,0,.18);
+  }
 
-  <div class="row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:8px;">
-    <div>
-      <label>Bitiş Tarihi</label>
-      <input type="date" name="due_date" value="{{ m.due_date }}" />
-    </div>
-    <div>
-      <label>Maliyet</label>
-      <input type="number" step="0.01" name="cost" value="{{ m.cost }}" />
-    </div>
-    <div>
-      <label>Etkinlik (1–5)</label>
-      <input type="number" min="1" max="5" name="effectiveness" value="{{ m.effectiveness }}" />
-    </div>
-  </div>
+  .me-hero{
+    position:relative;
+    overflow:hidden;
+    margin-bottom:16px;
+    padding:22px;
+    border-radius:28px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255,255,255,.24), transparent 27%),
+      radial-gradient(circle at 92% 92%, rgba(20,184,166,.34), transparent 32%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 58%, #0f766e 100%);
+    box-shadow:var(--me-shadow);
+  }
 
-  <label style="margin-top:8px">Notlar</label>
-  <textarea name="notes" rows="4">{{ m.notes or '' }}</textarea>
+  .me-hero::after{
+    content:"";
+    position:absolute;
+    width:260px;
+    height:260px;
+    right:-125px;
+    bottom:-140px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
 
-  <div style="display:flex; gap:8px; margin-top:10px;">
-    <button class="btn primary" type="submit">Kaydet</button>
-    <form action="{{ url_for('mitigation_delete', mid=m.id) }}" method="post" onsubmit="return confirm('Silinsin mi?')">
-      <button class="btn danger" type="submit">Sil</button>
+  .me-hero-inner{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+
+  .me-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.84);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .me-title{
+    margin:0;
+    font-size:clamp(28px, 3vw, 42px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .me-sub{
+    max-width:620px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.72);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .me-hero-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .me-btn{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 15px;
+    border-radius:15px;
+    border:1px solid var(--me-line);
+    background:var(--me-card);
+    color:var(--me-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:950;
+    cursor:pointer;
+    box-shadow:var(--me-shadow-sm);
+    transition:transform .13s ease, filter .13s ease, border-color .13s ease;
+    white-space:nowrap;
+  }
+
+  .me-btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    text-decoration:none;
+  }
+
+  .me-btn.primary{
+    background:linear-gradient(135deg, #2457e6, #3264ff);
+    border-color:rgba(36,87,230,.30);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.22);
+  }
+
+  .me-btn.danger{
+    background:rgba(239,68,68,.12);
+    border-color:rgba(239,68,68,.22);
+    color:#b91c1c;
+    box-shadow:none;
+  }
+
+  [data-theme="dark"] .me-btn.danger{
+    color:#fecaca;
+  }
+
+  .me-hero .me-btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .me-hero .me-btn.primary{
+    color:#1d4ed8;
+    background:#fff;
+  }
+
+  .me-card{
+    border-radius:28px;
+    background:var(--me-card);
+    border:1px solid var(--me-line);
+    box-shadow:var(--me-shadow-sm);
+    overflow:hidden;
+  }
+
+  .me-card-head{
+    padding:18px;
+    border-bottom:1px solid var(--me-line);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(36,87,230,.10), transparent 32%),
+      var(--me-card);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .me-card-title{
+    margin:0;
+    color:var(--me-text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .me-chip{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--me-primary);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  .me-form{
+    padding:18px;
+  }
+
+  .me-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:14px;
+  }
+
+  .me-grid-3{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:14px;
+    margin-top:14px;
+  }
+
+  .me-full{
+    grid-column:1 / -1;
+  }
+
+  .me-field label{
+    display:block;
+    margin:0 0 7px 2px;
+    color:var(--me-muted);
+    font-size:12px;
+    font-weight:850;
+  }
+
+  .me-input,
+  select.me-input,
+  textarea.me-input{
+    width:100%;
+    min-height:46px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--me-line);
+    background:color-mix(in oklab, var(--me-card) 95%, transparent);
+    color:var(--me-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 8px 20px rgba(15,23,42,.035);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  textarea.me-input{
+    min-height:auto;
+    padding:12px 13px;
+    resize:vertical;
+  }
+
+  .me-input::placeholder{
+    color:var(--me-soft);
+  }
+
+  .me-input:focus{
+    border-color:color-mix(in oklab, var(--me-primary) 50%, var(--me-line));
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+    background:var(--me-card);
+  }
+
+  .me-status-preview{
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:10px;
+  }
+
+  .me-mini{
+    padding:13px;
+    border-radius:18px;
+    background:var(--me-bg);
+    border:1px solid var(--me-line);
+  }
+
+  .me-mini-label{
+    color:var(--me-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .me-mini-value{
+    margin-top:6px;
+    color:var(--me-text);
+    font-size:15px;
+    font-weight:950;
+    word-break:break-word;
+  }
+
+  .me-actions{
+    margin-top:18px;
+    padding-top:16px;
+    border-top:1px solid var(--me-line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .me-actions-left,
+  .me-actions-right{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .me-delete-form{
+    margin:0;
+  }
+
+  @media (max-width:820px){
+    .me-grid,
+    .me-grid-3,
+    .me-status-preview{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:560px){
+    .me-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .me-hero-actions,
+    .me-hero-actions .me-btn{
+      width:100%;
+    }
+
+    .me-hero-actions .me-btn{
+      flex:1;
+    }
+
+    .me-card{
+      border-radius:24px;
+    }
+
+    .me-card-head,
+    .me-form{
+      padding:15px;
+    }
+
+    .me-actions,
+    .me-actions-left,
+    .me-actions-right,
+    .me-btn{
+      width:100%;
+    }
+  }
+</style>
+
+<div class="mit-edit">
+  <section class="me-hero">
+    <div class="me-hero-inner">
+      <div>
+        <div class="me-kicker">Aksiyon Planı</div>
+        <h2 class="me-title">Mitigation Düzenle</h2>
+        <p class="me-sub">{{ r.title }}</p>
+      </div>
+
+      <div class="me-hero-actions">
+        <a href="{{ url_for('mitigations_list_create', risk_id=r.id) }}" class="me-btn">← Geri</a>
+        <button class="me-btn primary" type="submit" form="mitigationEditForm">Kaydet</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="me-card">
+    <div class="me-card-head">
+      <div>
+        <h3 class="me-card-title">{{ m.title or 'Mitigation' }}</h3>
+        <div class="me-chip">Risk #{{ r.id }}</div>
+      </div>
+
+      <span class="me-chip">{{ m.status or 'planned' }}</span>
+    </div>
+
+    <form method="post" class="me-form" id="mitigationEditForm">
+      <div class="me-grid">
+        <div class="me-field me-full">
+          <label for="title">Başlık *</label>
+          <input class="me-input" id="title" type="text" name="title" value="{{ m.title }}" required>
+        </div>
+
+        <div class="me-field">
+          <label for="owner">Sorumlu</label>
+          <input class="me-input" id="owner" type="text" name="owner" value="{{ m.owner or '' }}" placeholder="Sorumlu kişi / ekip">
+        </div>
+
+        <div class="me-field">
+          <label for="status">Durum</label>
+          <select class="me-input" id="status" name="status">
+            {% for s in ['planned','in_progress','done','not_applicable'] %}
+              <option value="{{ s }}" {% if m.status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="me-grid-3">
+        <div class="me-field">
+          <label for="due_date">Bitiş Tarihi</label>
+          <input class="me-input" id="due_date" type="date" name="due_date" value="{{ m.due_date }}">
+        </div>
+
+        <div class="me-field">
+          <label for="cost">Maliyet</label>
+          <input class="me-input" id="cost" type="number" step="0.01" name="cost" value="{{ m.cost }}" placeholder="0.00">
+        </div>
+
+        <div class="me-field">
+          <label for="effectiveness">Etkinlik (1–5)</label>
+          <input class="me-input" id="effectiveness" type="number" min="1" max="5" name="effectiveness" value="{{ m.effectiveness }}" placeholder="1–5">
+        </div>
+      </div>
+
+      <div class="me-field" style="margin-top:14px;">
+        <label for="notes">Notlar</label>
+        <textarea class="me-input" id="notes" name="notes" rows="5" placeholder="Aksiyonun kapsamı, varsayımlar ve takip notları...">{{ m.notes or '' }}</textarea>
+      </div>
+
+      <div class="me-status-preview" aria-label="Mitigation özeti">
+        <div class="me-mini">
+          <div class="me-mini-label">Sorumlu</div>
+          <div class="me-mini-value">{{ m.owner or '—' }}</div>
+        </div>
+        <div class="me-mini">
+          <div class="me-mini-label">Durum</div>
+          <div class="me-mini-value">{{ m.status or 'planned' }}</div>
+        </div>
+        <div class="me-mini">
+          <div class="me-mini-label">Maliyet</div>
+          <div class="me-mini-value">{{ m.cost if m.cost is not none else '—' }}</div>
+        </div>
+        <div class="me-mini">
+          <div class="me-mini-label">Etkinlik</div>
+          <div class="me-mini-value">{{ m.effectiveness if m.effectiveness is not none else '—' }}</div>
+        </div>
+      </div>
+
+      <div class="me-actions">
+        <div class="me-actions-left">
+          <a href="{{ url_for('mitigations_list_create', risk_id=r.id) }}" class="me-btn">Geri</a>
+        </div>
+
+        <div class="me-actions-right">
+          <button class="me-btn primary" type="submit">Kaydet</button>
+        </div>
+      </div>
     </form>
-    <a href="{{ url_for('mitigations_list_create', risk_id=r.id) }}" class="btn">Geri</a>
-  </div>
-</form>
+
+    <div class="me-form" style="padding-top:0;">
+      <form class="me-delete-form"
+            action="{{ url_for('mitigation_delete', mid=m.id) }}"
+            method="post"
+            onsubmit="return confirm('Silinsin mi?')">
+        <button class="me-btn danger" type="submit">Sil</button>
+      </form>
+    </div>
+  </section>
+</div>
 {% endblock %}
