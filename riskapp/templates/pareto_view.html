@@ -3,937 +3,1521 @@
 
 {% block content %}
 <style>
-  /* Page-local polish (base.html'e dokunmadan modern görünüm) */
-  .pareto-wrap{ display:flex; flex-direction:column; gap:12px; }
-  .pareto-topbar{
-    display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;
-  }
-  .pareto-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-
-  .chip{
-    display:inline-flex; align-items:center; gap:8px;
-    padding:8px 10px; border-radius:999px;
-    border:1px solid rgba(15,23,42,.10);
-    background: rgba(255,255,255,.75);
-    backdrop-filter: blur(8px);
-    color:#0f172a; font-weight:600;
-  }
-  .chip small{ font-weight:500; color:#64748b; }
-
-  .toolbar{
-    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
-    padding:10px; border-radius:14px;
-    border:1px solid rgba(15,23,42,.10);
-    background: rgba(255,255,255,.72);
-    backdrop-filter: blur(10px);
-  }
-  .toolbar .input{ min-width: 190px; }
-  .toolbar .btn{ white-space:nowrap; }
-  .toolbar .sep{ width:1px; height:28px; background: rgba(15,23,42,.10); margin:0 4px; }
-
-  .grid-2{
-    display:grid; grid-template-columns: 1.2fr .8fr; gap:12px;
-  }
-  @media (max-width: 980px){
-    .grid-2{ grid-template-columns: 1fr; }
+  .pareto-page{
+    --pt-card:#ffffff;
+    --pt-bg:#f8fafc;
+    --pt-text:#0f172a;
+    --pt-muted:#64748b;
+    --pt-soft:#94a3b8;
+    --pt-line:rgba(15,23,42,.09);
+    --pt-line-2:rgba(15,23,42,.14);
+    --pt-primary:#2457e6;
+    --pt-primary-2:#3264ff;
+    --pt-teal:#0f766e;
+    --pt-green:#22c55e;
+    --pt-amber:#f59e0b;
+    --pt-red:#ef4444;
+    --pt-indigo:#6366f1;
+    --pt-shadow:0 22px 60px rgba(15,23,42,.08);
+    --pt-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--pt-text);
   }
 
-  .chart-card{
-    margin:0; padding:12px; border-radius:16px;
-    border:1px solid rgba(15,23,42,.10);
-    background: rgba(255,255,255,.92);
+  [data-theme="dark"] .pareto-page{
+    --pt-card:rgba(15,23,42,.76);
+    --pt-bg:rgba(15,23,42,.55);
+    --pt-text:rgba(255,255,255,.92);
+    --pt-muted:rgba(226,232,240,.72);
+    --pt-soft:rgba(226,232,240,.52);
+    --pt-line:rgba(255,255,255,.09);
+    --pt-line-2:rgba(255,255,255,.15);
+    --pt-primary:#60a5fa;
+    --pt-primary-2:#93c5fd;
+    --pt-shadow:0 22px 60px rgba(0,0,0,.25);
+    --pt-shadow-sm:0 12px 34px rgba(0,0,0,.18);
   }
 
-  canvas{ width:100%; height:260px; display:block; }
-
-  /* Table improvements */
-  .table-wrap{ overflow:auto; border-radius:14px; border:1px solid rgba(15,23,42,.10); }
-  table.table{ margin:0; }
-  table.table thead th{
-    position: sticky; top: 0;
-    background: #fff;
-    z-index: 1;
-    box-shadow: 0 1px 0 rgba(15,23,42,.08);
+  .pt-hero{
+    position:relative;
+    overflow:hidden;
+    margin-bottom:16px;
+    padding:22px;
+    border-radius:28px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255,255,255,.24), transparent 27%),
+      radial-gradient(circle at 92% 92%, rgba(20,184,166,.34), transparent 32%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 58%, #0f766e 100%);
+    box-shadow:var(--pt-shadow);
   }
-  .muted{ color:#64748b; }
-  .mono{ font-variant-numeric: tabular-nums; }
 
-  .badge{
-    display:inline-flex; align-items:center;
-    padding:4px 8px; border-radius:999px;
-    border:1px solid rgba(15,23,42,.10);
-    background: rgba(15,23,42,.04);
-    color:#0f172a;
-    font-size:12px; font-weight:600;
+  .pt-hero::after{
+    content:"";
+    position:absolute;
+    width:285px;
+    height:285px;
+    right:-140px;
+    bottom:-150px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .pt-hero-inner{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+
+  .pt-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.84);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .pt-title{
+    margin:0;
+    font-size:clamp(28px, 3vw, 42px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .pt-sub{
+    max-width:640px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.72);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .pt-metrics{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .pt-metric{
+    min-height:48px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:2px;
+    padding:8px 12px;
+    border-radius:17px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(12px);
+  }
+
+  .pt-metric span{
+    color:rgba(255,255,255,.62);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .pt-metric strong{
+    color:#fff;
+    font-size:15px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  .pt-toolbar{
+    position:sticky;
+    top:86px;
+    z-index:30;
+    margin-bottom:16px;
+    padding:14px;
+    border-radius:24px;
+    background:color-mix(in oklab, var(--pt-card) 92%, transparent);
+    border:1px solid var(--pt-line);
+    box-shadow:var(--pt-shadow-sm);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .pt-field label{
+    display:block;
+    margin:0 0 7px 2px;
+    color:var(--pt-muted);
+    font-size:12px;
+    font-weight:850;
+  }
+
+  .pt-input,
+  select.pt-input{
+    min-height:44px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--pt-line);
+    background:color-mix(in oklab, var(--pt-card) 95%, transparent);
+    color:var(--pt-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+    box-shadow:0 8px 20px rgba(15,23,42,.035);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  .pt-input:focus{
+    border-color:color-mix(in oklab, var(--pt-primary) 50%, var(--pt-line));
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+    background:var(--pt-card);
+  }
+
+  .pt-search{
+    min-width:clamp(220px, 26vw, 390px);
+  }
+
+  .pt-btn{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--pt-line);
+    background:var(--pt-card);
+    color:var(--pt-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:950;
+    cursor:pointer;
+    box-shadow:var(--pt-shadow-sm);
+    transition:transform .13s ease, filter .13s ease, border-color .13s ease;
+    white-space:nowrap;
+  }
+
+  .pt-btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    text-decoration:none;
+  }
+
+  .pt-btn.primary{
+    background:linear-gradient(135deg, #2457e6, #3264ff);
+    border-color:rgba(36,87,230,.30);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
+  }
+
+  .pt-check{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    padding:0 12px;
+    border-radius:999px;
+    border:1px solid var(--pt-line);
+    background:var(--pt-card);
+    color:var(--pt-text);
+    font-size:13px;
+    font-weight:850;
+    cursor:pointer;
+    user-select:none;
+  }
+
+  .pt-check input{
+    accent-color:#2457e6;
+  }
+
+  .pt-range{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:0 12px;
+    border-radius:999px;
+    border:1px solid var(--pt-line);
+    background:var(--pt-card);
+    color:var(--pt-text);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .pt-range input{
+    width:128px;
+  }
+
+  .pt-spacer{ flex:1; }
+
+  .pt-grid{
+    display:grid;
+    grid-template-columns:minmax(0, 1.25fr) minmax(360px, .75fr);
+    gap:16px;
+    align-items:start;
+  }
+
+  .pt-card{
+    border-radius:28px;
+    background:var(--pt-card);
+    border:1px solid var(--pt-line);
+    box-shadow:var(--pt-shadow-sm);
+    overflow:hidden;
+  }
+
+  .pt-card-head{
+    padding:18px;
+    border-bottom:1px solid var(--pt-line);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(36,87,230,.10), transparent 32%),
+      var(--pt-card);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .pt-card-title{
+    margin:0;
+    color:var(--pt-text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .pt-card-sub{
+    margin:4px 0 0;
+    color:var(--pt-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .pt-chip,
+  .pt-badge{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:0 10px;
+    border-radius:999px;
+    background:var(--pt-bg);
+    border:1px solid var(--pt-line);
+    color:var(--pt-muted);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  .pt-chip.primary{
+    color:var(--pt-primary);
+    background:rgba(36,87,230,.10);
+    border-color:rgba(36,87,230,.18);
+  }
+
+  .pt-chart-wrap{
+    padding:16px;
+  }
+
+  .pt-chart-box{
+    border-radius:22px;
+    border:1px solid var(--pt-line);
+    background:var(--pt-bg);
+    padding:14px;
+  }
+
+  #paretoChart{
+    width:100%;
+    height:300px;
+    display:block;
+  }
+
+  .pt-chart-note{
+    margin-top:9px;
+    color:var(--pt-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .pt-table-wrap{
+    overflow:auto;
+    border-top:1px solid var(--pt-line);
+  }
+
+  .pt-table{
+    width:100%;
+    min-width:860px;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .pt-table thead th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    padding:14px 16px;
+    background:var(--pt-bg);
+    color:var(--pt-muted);
+    border-bottom:1px solid var(--pt-line);
+    text-align:left;
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .pt-table tbody td{
+    padding:15px 16px;
+    background:color-mix(in oklab, var(--pt-card) 62%, transparent);
+    border-bottom:1px solid var(--pt-line);
+    color:var(--pt-text);
+    vertical-align:middle;
+    font-size:14px;
+  }
+
+  .pt-table tbody tr{
+    cursor:pointer;
+    transition:background .14s ease, box-shadow .14s ease;
+  }
+
+  .pt-table tbody tr:hover td{
+    background:rgba(36,87,230,.055);
+  }
+
+  [data-theme="dark"] .pt-table tbody tr:hover td{
+    background:rgba(96,165,250,.08);
+  }
+
+  .pt-table tbody tr.row-selected td{
+    background:rgba(99,102,241,.12) !important;
+    box-shadow:inset 0 1px 0 rgba(99,102,241,.10), inset 0 -1px 0 rgba(99,102,241,.10);
+  }
+
+  .pt-rank{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:34px;
+    height:30px;
+    border-radius:999px;
+    background:var(--pt-bg);
+    border:1px solid var(--pt-line);
+    color:var(--pt-muted);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .pt-risk-title{
+    color:var(--pt-text);
+    font-weight:950;
+    text-decoration:none;
+  }
+
+  .pt-risk-title:hover{
+    color:var(--pt-primary);
+  }
+
+  .pt-risk-meta{
+    margin-top:4px;
+    color:var(--pt-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .mono{
+    font-variant-numeric:tabular-nums;
+  }
+
+  .pt-empty,
+  .pt-error{
+    margin:16px;
+    padding:16px;
+    border-radius:20px;
+    border:1px dashed var(--pt-line-2);
+    background:var(--pt-bg);
+    color:var(--pt-muted);
+    font-size:14px;
+    font-weight:750;
+  }
+
+  .pt-error{
+    color:#991b1b;
+    background:rgba(239,68,68,.08);
+    border-color:rgba(239,68,68,.20);
+  }
+
+  [data-theme="dark"] .pt-error{
+    color:#fecaca;
   }
 
   .skeleton{
-    background: linear-gradient(90deg, rgba(15,23,42,.05), rgba(15,23,42,.10), rgba(15,23,42,.05));
-    background-size: 200% 100%;
-    animation: sk 1.2s infinite linear;
-    border-radius: 10px;
-    height: 14px;
+    display:block;
+    height:14px;
+    border-radius:999px;
+    background:linear-gradient(90deg, rgba(100,116,139,.10), rgba(100,116,139,.22), rgba(100,116,139,.10));
+    background-size:200% 100%;
+    animation:sk 1.2s infinite linear;
   }
-  @keyframes sk{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-  .err{
-    border:1px solid rgba(239,68,68,.25);
-    background: rgba(239,68,68,.06);
-    color:#991b1b;
-    padding:10px 12px;
-    border-radius:14px;
-    font-weight:600;
+  @keyframes sk{
+    0%{ background-position:200% 0; }
+    100%{ background-position:-200% 0; }
+  }
+
+  .ai-body{
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
   }
 
   .ai-box{
-    padding:10px 12px;
-    border-radius:14px;
-    border:1px solid rgba(15,23,42,.10);
-    background: rgba(255,255,255,.65);
+    padding:14px;
+    border-radius:20px;
+    background:var(--pt-bg);
+    border:1px solid var(--pt-line);
+    color:var(--pt-text);
   }
 
-  /* ✅ highlight + pulse (AI cards) */
-  .ai-hl{
-    outline: 2px solid rgba(245,158,11,.55);
-    box-shadow: 0 0 0 6px rgba(245,158,11,.12);
-    transform: translateY(-1px);
+  .ai-box-title{
+    margin:0;
+    color:var(--pt-text);
+    font-size:14px;
+    font-weight:950;
   }
-  @keyframes pulseHL{
-    0% { box-shadow: 0 0 0 0 rgba(245,158,11,.18); }
-    100% { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
-  }
-  .ai-hl-pulse{ animation: pulseHL .65s ease-out 1; }
 
-  /* ✅ NEW: table row selected */
-  #tbl tbody tr{
-    transition: background-color .15s ease, box-shadow .15s ease;
+  .ai-box-text{
+    margin:7px 0 0;
+    color:var(--pt-muted);
+    font-size:13px;
+    line-height:1.5;
+    font-weight:700;
   }
-  #tbl tbody tr.row-selected{
-    background: rgba(99,102,241,.10) !important; /* indigo haze */
-    box-shadow: inset 0 0 0 2px rgba(99,102,241,.22);
+
+  .ai-section-title{
+    margin:0;
+    color:var(--pt-text);
+    font-size:14px;
+    font-weight:950;
   }
-  /* hover biraz kibar olsun */
-  #tbl tbody tr:hover{
-    background: rgba(15,23,42,.03);
+
+  .ai-list{
+    display:grid;
+    gap:10px;
+  }
+
+  .ai-badges{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  .ai-risk-card{
+    padding:14px;
+    border-radius:20px;
+    background:var(--pt-bg);
+    border:1px solid var(--pt-line);
+    color:var(--pt-text);
+    transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  }
+
+  .ai-risk-card.ai-hl{
+    border-color:rgba(245,158,11,.55);
+    box-shadow:0 0 0 6px rgba(245,158,11,.12);
+    transform:translateY(-1px);
+  }
+
+  .ai-risk-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  .ai-risk-title{
+    color:var(--pt-text);
+    font-weight:950;
+    text-decoration:none;
+  }
+
+  .ai-risk-title:hover{
+    color:var(--pt-primary);
+  }
+
+  .ai-risk-meta{
+    margin-top:3px;
+    color:var(--pt-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .ai-cost-list{
+    margin:9px 0 0 18px;
+    color:var(--pt-muted);
+    font-size:13px;
+    line-height:1.45;
+    font-weight:700;
+  }
+
+  .priority-high{
+    background:rgba(239,68,68,.10);
+    border-color:rgba(239,68,68,.20);
+    color:#b91c1c;
+  }
+
+  .priority-medium{
+    background:rgba(245,158,11,.13);
+    border-color:rgba(245,158,11,.24);
+    color:#b45309;
+  }
+
+  .priority-low{
+    background:rgba(34,197,94,.10);
+    border-color:rgba(34,197,94,.20);
+    color:#15803d;
+  }
+
+  [data-theme="dark"] .priority-high,
+  [data-theme="dark"] .priority-medium,
+  [data-theme="dark"] .priority-low{
+    color:var(--pt-text);
+  }
+
+  @media (max-width:1080px){
+    .pt-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:760px){
+    .pt-toolbar{
+      position:static;
+    }
+
+    .pt-field,
+    .pt-input,
+    .pt-search,
+    .pt-btn{
+      width:100%;
+    }
+
+    .pt-spacer{
+      display:none;
+    }
+
+    .pt-check,
+    .pt-range{
+      width:100%;
+      justify-content:space-between;
+    }
+  }
+
+  @media (max-width:560px){
+    .pt-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .pt-metrics{
+      width:100%;
+      justify-content:flex-start;
+    }
+
+    .pt-metric{
+      flex:1;
+      min-width:130px;
+    }
+
+    .pt-card{
+      border-radius:24px;
+    }
+
+    .pt-card-head,
+    .pt-chart-wrap,
+    .ai-body{
+      padding:15px;
+    }
   }
 </style>
 
-<div class="card pareto-wrap">
-  <div class="pareto-topbar">
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <h3 style="margin:0">Pareto Analizi (Maliyet)</h3>
-      <div id="meta" class="muted">
-        <div class="skeleton" style="width: 420px;"></div>
+<div class="pareto-page">
+  <section class="pt-hero">
+    <div class="pt-hero-inner">
+      <div>
+        <div class="pt-kicker">80/20 Analizi</div>
+        <h2 class="pt-title">Pareto Analizi</h2>
+        <p class="pt-sub">Maliyet yükünü oluşturan kritik riskleri sırala, Top 80’i gör ve aksiyonları netleştir.</p>
+      </div>
+
+      <div class="pt-metrics">
+        <div class="pt-metric">
+          <span>Toplam</span>
+          <strong id="metricTotal">—</strong>
+        </div>
+        <div class="pt-metric">
+          <span>Top 80</span>
+          <strong id="metricTop80">—</strong>
+        </div>
+        <div class="pt-metric">
+          <span>Gösterilen</span>
+          <strong><span id="shownCount">0</span>/<span id="allCount">0</span></strong>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="pareto-actions">
-      <form method="get" action="{{ url_for('pareto_view') }}" style="display:flex; gap:8px; align-items:center;">
-        <label style="font-weight:600;">Para Birimi</label>
-        <select name="currency" class="input" onchange="this.form.submit()">
+  <div class="pt-toolbar noprint">
+    <form method="get" action="{{ url_for('pareto_view') }}" class="pt-field" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0;">
+      <div>
+        <label for="currency">Para Birimi</label>
+        <select id="currency" name="currency" class="pt-input" onchange="this.form.submit()">
           {% for c in ["TRY","USD","EUR"] %}
-            <option value="{{c}}" {% if currency==c %}selected{% endif %}>{{c}}</option>
+            <option value="{{ c }}" {% if currency==c %}selected{% endif %}>{{ c }}</option>
           {% endfor %}
         </select>
-      </form>
+      </div>
+    </form>
 
-      <a class="btn" href="{{ url_for('pareto_view') }}?currency={{currency}}">Yenile</a>
+    <div class="pt-field">
+      <label for="q">Ara</label>
+      <input id="q" class="pt-input pt-search" type="search" placeholder="Risk, kategori veya ID ara…">
     </div>
-  </div>
 
-  <!-- Controls -->
-  <div class="toolbar">
-    <input id="q" class="input" type="search" placeholder="Risk / kategori ara…" />
-    <select id="sort" class="input" title="Sıralama">
-      <option value="value_desc">Tutar (Azalan)</option>
-      <option value="value_asc">Tutar (Artan)</option>
-      <option value="pct_desc">% (Azalan)</option>
-      <option value="pct_asc">% (Artan)</option>
-      <option value="title_az">Başlık (A→Z)</option>
-      <option value="title_za">Başlık (Z→A)</option>
-      <option value="cat_az">Kategori (A→Z)</option>
-    </select>
+    <div class="pt-field">
+      <label for="sort">Sırala</label>
+      <select id="sort" class="pt-input">
+        <option value="pareto">Pareto sırası</option>
+        <option value="value_desc">Tutar ↓</option>
+        <option value="value_asc">Tutar ↑</option>
+        <option value="pct_desc">Yüzde ↓</option>
+        <option value="pct_asc">Yüzde ↑</option>
+        <option value="title_az">Başlık A→Z</option>
+        <option value="cat_az">Kategori A→Z</option>
+      </select>
+    </div>
 
-    <label class="chip" style="cursor:pointer;">
-      <input id="onlyTop80" type="checkbox" style="accent-color:#f59e0b;" />
-      <span>Yalnız Top 80%</span>
+    <label class="pt-check" title="Pareto sıralamasındaki Top 80 kapsamını gösterir">
+      <input id="onlyTop80" type="checkbox">
+      Top 80
     </label>
 
-    <select id="scope" class="input" title="Senaryo kapsamı">
-      <option value="top3">Senaryo: Top 3</option>
-      <option value="top80">Senaryo: Top 80</option>
-      <option value="topcat">Senaryo: Top Kategori</option>
-    </select>
+    <div class="pt-field">
+      <label for="scope">AI Senaryo</label>
+      <select id="scope" class="pt-input">
+        <option value="top3">Top 3</option>
+        <option value="top80">Top 80</option>
+        <option value="topcat">Top Kategori</option>
+      </select>
+    </div>
 
-    <label class="chip" style="gap:10px;">
-      <span>Cut</span>
-      <input id="cut" type="range" min="0" max="30" value="10" style="width:140px;" />
-      <small><span id="cutVal" class="mono">10</span>%</small>
+    <label class="pt-range">
+      Cut
+      <input id="cut" type="range" min="0" max="30" value="10">
+      <span><span id="cutVal" class="mono">10</span>%</span>
     </label>
 
-    <div class="sep"></div>
+    <div class="pt-spacer"></div>
 
-    <button id="btnCsv" class="btn" type="button">CSV indir</button>
-    <button id="btnCopyAI" class="btn" type="button">AI kopyala</button>
-
-    <span id="countChip" class="chip" style="margin-left:auto;">
-      <span>Gösterilen</span>
-      <small><span id="shownCount" class="mono">0</span>/<span id="allCount" class="mono">0</span></small>
-    </span>
+    <button id="btnCsv" class="pt-btn" type="button">CSV</button>
+    <button id="btnCopyAI" class="pt-btn" type="button">AI Kopyala</button>
+    <a class="pt-btn primary" href="{{ url_for('pareto_view') }}?currency={{ currency }}">Yenile</a>
   </div>
 
-  <div class="grid-2">
-    <!-- LEFT -->
-    <div class="card" style="margin:0">
-      <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
-        <h4 style="margin:0">Top Riskler (80/20)</h4>
-        <span id="topCats" class="muted"></span>
-      </div>
-
-      <div class="chart-card" style="margin-top:10px;">
-        <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
-          <span class="badge">Pareto Grafiği (Bar + Kümülatif %)</span>
-          <span id="chartHint" class="muted" style="font-size:12px;">İlk 25 risk çizilir (performans için).</span>
+  <div class="pt-grid">
+    <section class="pt-card">
+      <div class="pt-card-head">
+        <div>
+          <h3 class="pt-card-title">Top Riskler</h3>
+          <p class="pt-card-sub" id="meta">
+            <span class="skeleton" style="width:360px;"></span>
+          </p>
         </div>
-        <canvas id="paretoChart" width="900" height="260"></canvas>
+        <span class="pt-chip primary" id="topCats">Kategori yükü hazırlanıyor…</span>
       </div>
 
-      <div class="table-wrap" style="margin-top:10px;">
-        <table class="table" id="tbl">
+      <div class="pt-chart-wrap">
+        <div class="pt-chart-box">
+          <canvas id="paretoChart" width="1100" height="330"></canvas>
+          <div class="pt-chart-note">Grafik Pareto sırasına göre ilk 25 kalemi çizer. Kırmızı çizgi %80 eşiğidir.</div>
+        </div>
+      </div>
+
+      <div class="pt-table-wrap">
+        <table class="pt-table" id="tbl">
           <thead>
             <tr>
-              <th style="width:52px;">#</th>
+              <th style="width:58px;">#</th>
               <th>Risk</th>
               <th>Kategori</th>
               <th style="text-align:right;">Tutar</th>
               <th style="text-align:right;">%</th>
-              <th style="text-align:right;">Kümülatif %</th>
+              <th style="text-align:right;">Kümülatif</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
 
-      <div id="err" style="display:none; margin-top:10px;" class="err"></div>
-    </div>
+      <div id="err" class="pt-error" style="display:none;"></div>
+    </section>
 
-    <!-- RIGHT -->
-    <div class="card" style="margin:0">
-      <h4 style="margin:0 0 10px 0">AI Özet</h4>
-
-      <div id="aiBadges" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
-
-      <div id="aiSummary" class="ai-box" style="color:#0f172a; line-height:1.5;">
-        <div class="skeleton" style="width: 92%;"></div>
-        <div class="skeleton" style="width: 78%; margin-top:8px;"></div>
-        <div class="skeleton" style="width: 66%; margin-top:8px;"></div>
+    <aside class="pt-card">
+      <div class="pt-card-head">
+        <div>
+          <h3 class="pt-card-title">AI Özet</h3>
+          <p class="pt-card-sub">İçgörü ve aksiyon önerileri</p>
+        </div>
+        <span class="pt-chip primary" id="aiStatus">Hazırlanıyor</span>
       </div>
 
-      <h4 style="margin:12px 0 8px 0">İçgörüler</h4>
-      <div id="aiInsights" style="display:grid; gap:10px;"></div>
+      <div class="ai-body">
+        <div id="aiBadges" class="ai-badges"></div>
 
-      <h4 style="margin:12px 0 8px 0">Önerilen Aksiyonlar</h4>
-      <div id="aiActions" style="display:grid; gap:10px;"></div>
+        <div id="aiSummary" class="ai-box">
+          <span class="skeleton" style="width:92%;"></span>
+          <span class="skeleton" style="width:78%; margin-top:8px;"></span>
+          <span class="skeleton" style="width:66%; margin-top:8px;"></span>
+        </div>
 
-      <h4 style="margin:12px 0 8px 0">Top Riskler (AI)</h4>
-      <div id="aiTopRisks" style="display:grid; gap:10px;"></div>
+        <h4 class="ai-section-title">İçgörüler</h4>
+        <div id="aiInsights" class="ai-list"></div>
 
-      <div id="aiErr" style="display:none; margin-top:10px;" class="err"></div>
-    </div>
+        <h4 class="ai-section-title">Önerilen Aksiyonlar</h4>
+        <div id="aiActions" class="ai-list"></div>
+
+        <h4 class="ai-section-title">Top Riskler</h4>
+        <div id="aiTopRisks" class="ai-list"></div>
+
+        <div id="aiErr" class="pt-error" style="display:none; margin:0;"></div>
+      </div>
+    </aside>
   </div>
 </div>
 
 <script>
-(async function(){
+(function(){
+  "use strict";
+
   const currency = "{{ currency }}";
+  const paretoEndpoint = `/analytics/pareto?currency=${encodeURIComponent(currency)}`;
+  const aiEndpointBase = `/analytics/pareto/ai`;
+  const riskDetailUrlTemplate = "{{ url_for('risk_detail', risk_id=0) }}";
 
-  const meta = document.getElementById("meta");
-  const tbody = document.querySelector("#tbl tbody");
-  const errBox = document.getElementById("err");
+  const els = {
+    meta: document.getElementById("meta"),
+    tbody: document.querySelector("#tbl tbody"),
+    err: document.getElementById("err"),
+    q: document.getElementById("q"),
+    sort: document.getElementById("sort"),
+    onlyTop80: document.getElementById("onlyTop80"),
+    scope: document.getElementById("scope"),
+    cut: document.getElementById("cut"),
+    cutVal: document.getElementById("cutVal"),
+    btnCsv: document.getElementById("btnCsv"),
+    btnCopyAI: document.getElementById("btnCopyAI"),
+    shownCount: document.getElementById("shownCount"),
+    allCount: document.getElementById("allCount"),
+    metricTotal: document.getElementById("metricTotal"),
+    metricTop80: document.getElementById("metricTop80"),
+    topCats: document.getElementById("topCats"),
+    canvas: document.getElementById("paretoChart"),
+    aiStatus: document.getElementById("aiStatus"),
+    aiSummary: document.getElementById("aiSummary"),
+    aiInsights: document.getElementById("aiInsights"),
+    aiActions: document.getElementById("aiActions"),
+    aiBadges: document.getElementById("aiBadges"),
+    aiTopRisks: document.getElementById("aiTopRisks"),
+    aiErr: document.getElementById("aiErr")
+  };
 
-  const aiSummary = document.getElementById("aiSummary");
-  const aiInsights = document.getElementById("aiInsights");
-  const aiActions = document.getElementById("aiActions");
-  const aiBadges = document.getElementById("aiBadges");
-  const aiTopRisks = document.getElementById("aiTopRisks");
-  const aiErr = document.getElementById("aiErr");
+  const ctx = els.canvas.getContext("2d");
 
-  const q = document.getElementById("q");
-  const sortSel = document.getElementById("sort");
-  const onlyTop80 = document.getElementById("onlyTop80");
+  const state = {
+    raw: null,
+    baseItems: [],
+    viewItems: [],
+    selectedRiskId: "",
+    focusedRiskId: "",
+    top80Ids: new Set()
+  };
 
-  const scopeSel = document.getElementById("scope");
-  const cutRange = document.getElementById("cut");
-  const cutVal = document.getElementById("cutVal");
+  function riskUrl(id){
+    const safe = encodeURIComponent(String(id ?? ""));
+    return riskDetailUrlTemplate.replace(/0$/, safe);
+  }
 
-  const btnCsv = document.getElementById("btnCsv");
-  const btnCopyAI = document.getElementById("btnCopyAI");
-
-  const shownCount = document.getElementById("shownCount");
-  const allCount = document.getElementById("allCount");
-  const topCatsEl = document.getElementById("topCats");
-
-  const canvas = document.getElementById("paretoChart");
-  const ctx = canvas.getContext("2d");
-
-  let raw = null;
-  let viewItems = [];
-
-  let lastFocusedRiskId = "";     // AI highlight
-  let selectedRowRiskId = "";     // ✅ NEW: table selected row
-
-  function fmt(n){
+  function fmt(n, digits = 2){
     const x = Number(n);
-    if (!isFinite(x)) return n;
-    return x.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    if (!Number.isFinite(x)) return "0";
+    return x.toLocaleString("tr-TR", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
   }
 
-  function safeText(s){
-    return (s ?? "").toString();
+  function text(v){
+    return (v ?? "").toString();
   }
 
-  function showErr(msg){
-    errBox.style.display = "block";
-    errBox.textContent = msg;
+  function escapeHtml(v){
+    return text(v)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
-  function hideErr(){
-    errBox.style.display = "none";
-    errBox.textContent = "";
+
+  function showError(el, msg){
+    el.style.display = "block";
+    el.textContent = msg;
+  }
+
+  function hideError(el){
+    el.style.display = "none";
+    el.textContent = "";
   }
 
   async function fetchJson(url){
-    const r = await fetch(url, { headers: { "Accept": "application/json" } });
-    if (!r.ok) throw new Error(`HTTP ${r.status} · ${url}`);
-    return await r.json();
-  }
-
-  function computePctIfMissing(items, total){
-    let cum = 0;
-    return items.map(it => {
-      const value = Number(it.value || 0);
-      const pct = isFinite(Number(it.pct)) ? Number(it.pct) : (total ? (value / total * 100) : 0);
-      cum += pct;
-      const cum_pct = isFinite(Number(it.cum_pct)) ? Number(it.cum_pct) : cum;
-      return { ...it, value, pct, cum_pct };
+    const res = await fetch(url, {
+      headers: { "Accept": "application/json" },
+      cache: "no-store"
     });
-  }
 
-  /* ✅ NEW: manage selected row visuals */
-  function clearSelectedRow(){
-    selectedRowRiskId = "";
-    tbody.querySelectorAll("tr.row-selected").forEach(tr => tr.classList.remove("row-selected"));
-  }
-
-  function selectRowByRiskId(rid){
-    const id = String(rid || "");
-    if (!id){ clearSelectedRow(); return; }
-    selectedRowRiskId = id;
-
-    tbody.querySelectorAll("tr.row-selected").forEach(tr => tr.classList.remove("row-selected"));
-    const tr = tbody.querySelector(`tr[data-risk-id="${CSS.escape(id)}"]`);
-    if (tr) tr.classList.add("row-selected");
-  }
-
-  function ensureSelectionStillValid(){
-    if (!selectedRowRiskId) return;
-    const tr = tbody.querySelector(`tr[data-risk-id="${CSS.escape(selectedRowRiskId)}"]`);
-    if (!tr){
-      // filtre/sort sonrası görünmüyor
-      selectedRowRiskId = "";
-    } else {
-      tr.classList.add("row-selected");
+    if (!res.ok){
+      let detail = "";
+      try { detail = await res.text(); } catch(_){}
+      throw new Error(`HTTP ${res.status}${detail ? " · " + detail.slice(0, 120) : ""}`);
     }
+
+    return await res.json();
   }
 
-  function applyView(){
-    const items = (raw?.items || []);
-    const total = Number(raw?.total || 0);
-    const top80 = Number(raw?.top_80_count || 0);
+  function normalizeParetoData(data){
+    const rawItems = Array.isArray(data?.items) ? data.items : [];
+    const totalFromBackend = Number(data?.total || 0);
 
-    let list = computePctIfMissing(items, total);
+    const sorted = rawItems
+      .map((it, idx) => {
+        const value = Number(it.value ?? it.total ?? it.amount ?? 0);
+        const riskId = it.risk_id ?? it.id ?? "";
+        return {
+          ...it,
+          risk_id: riskId,
+          title: text(it.title || it.risk_title || (riskId ? `Risk #${riskId}` : "Risk")),
+          category: text(it.category || "GENEL"),
+          value: Number.isFinite(value) ? value : 0,
+          original_index: idx
+        };
+      })
+      .filter(it => it.value > 0)
+      .sort((a,b) => b.value - a.value);
 
-    const term = safeText(q.value).trim().toLowerCase();
-    if (term){
+    const total = totalFromBackend > 0
+      ? totalFromBackend
+      : sorted.reduce((sum, it) => sum + it.value, 0);
+
+    let cumValue = 0;
+    let top80Count = 0;
+
+    const normalized = sorted.map((it, idx) => {
+      cumValue += it.value;
+      const pct = total > 0 ? (it.value / total) * 100 : 0;
+      const cumPct = total > 0 ? (cumValue / total) * 100 : 0;
+
+      if (top80Count === 0 && cumPct >= 80){
+        top80Count = idx + 1;
+      }
+
+      return {
+        ...it,
+        pareto_rank: idx + 1,
+        pct,
+        cum_pct: cumPct,
+        cum_value: cumValue
+      };
+    });
+
+    if (normalized.length && top80Count === 0){
+      top80Count = normalized.length;
+    }
+
+    const backendTop80 = Number(data?.top_80_count || 0);
+    if (backendTop80 > 0 && backendTop80 <= normalized.length){
+      top80Count = backendTop80;
+    }
+
+    const top80Ids = new Set(
+      normalized.slice(0, top80Count).map(it => String(it.risk_id))
+    );
+
+    return {
+      total,
+      top80Count,
+      items: normalized,
+      top80Ids
+    };
+  }
+
+  function sortViewItems(items){
+    const list = [...items];
+    const key = els.sort.value;
+
+    const byString = (a,b,field,dir = 1) =>
+      text(a[field]).localeCompare(text(b[field]), "tr", { sensitivity:"base" }) * dir;
+
+    list.sort((a,b) => {
+      if (key === "pareto") return a.pareto_rank - b.pareto_rank;
+      if (key === "value_desc") return b.value - a.value;
+      if (key === "value_asc") return a.value - b.value;
+      if (key === "pct_desc") return b.pct - a.pct;
+      if (key === "pct_asc") return a.pct - b.pct;
+      if (key === "title_az") return byString(a,b,"title",1);
+      if (key === "cat_az") return byString(a,b,"category",1);
+      return a.pareto_rank - b.pareto_rank;
+    });
+
+    return list;
+  }
+
+  function applyFilters(){
+    let list = [...state.baseItems];
+
+    const query = text(els.q.value).trim().toLowerCase();
+    if (query){
       list = list.filter(it => {
-        const t = safeText(it.title).toLowerCase();
-        const c = safeText(it.category).toLowerCase();
-        const id = safeText(it.risk_id);
-        return t.includes(term) || c.includes(term) || id.includes(term);
+        const haystack = [
+          it.risk_id,
+          it.title,
+          it.category,
+          it.value
+        ].map(text).join(" ").toLowerCase();
+
+        return haystack.includes(query);
       });
     }
-    if (onlyTop80.checked && top80 > 0){
-      list = list.slice(0, top80);
+
+    if (els.onlyTop80.checked){
+      list = list.filter(it => state.top80Ids.has(String(it.risk_id)));
     }
 
-    const key = sortSel.value;
-    const byStr = (a,b,dir=1) => (safeText(a).localeCompare(safeText(b), undefined, {sensitivity:"base"})) * dir;
-    list.sort((a,b) => {
-      switch(key){
-        case "value_desc": return (b.value - a.value);
-        case "value_asc":  return (a.value - b.value);
-        case "pct_desc":   return (b.pct - a.pct);
-        case "pct_asc":    return (a.pct - b.pct);
-        case "title_az":   return byStr(a.title, b.title, 1);
-        case "title_za":   return byStr(a.title, b.title, -1);
-        case "cat_az":     return byStr(a.category, b.category, 1);
-        default: return 0;
-      }
-    });
+    state.viewItems = sortViewItems(list);
 
-    viewItems = list;
-
-    allCount.textContent = String(items.length);
-    shownCount.textContent = String(viewItems.length);
-
-    renderTable(viewItems, top80);
-    renderTopCats(items, top80);
-    renderChart(items, top80);
-
-    // ✅ keep selection if still visible
-    ensureSelectionStillValid();
-
-    meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80} · Son güncelleme: ${new Date().toLocaleString()}`;
+    renderAll();
   }
 
-  function renderTable(list, top80){
-    tbody.innerHTML = "";
+  function renderAll(){
+    renderMetrics();
+    renderTopCategories();
+    renderChart();
+    renderTable();
+  }
+
+  function renderMetrics(){
+    const total = Number(state.raw?.total || 0);
+    const top80Count = Number(state.raw?.top80Count || 0);
+
+    els.metricTotal.textContent = `${fmt(total)} ${currency}`;
+    els.metricTop80.textContent = `${top80Count} risk`;
+    els.allCount.textContent = String(state.baseItems.length);
+    els.shownCount.textContent = String(state.viewItems.length);
+
+    els.meta.textContent = `Toplam ${fmt(total)} ${currency} · Top 80 kapsamı ${top80Count} risk · Güncellendi ${new Date().toLocaleTimeString("tr-TR")}`;
+  }
+
+  function renderTopCategories(){
+    const topItems = state.baseItems.filter(it => state.top80Ids.has(String(it.risk_id)));
+    const map = new Map();
+
+    topItems.forEach(it => {
+      const cat = it.category || "GENEL";
+      map.set(cat, (map.get(cat) || 0) + it.value);
+    });
+
+    const top = [...map.entries()]
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, 3);
+
+    if (!top.length){
+      els.topCats.textContent = "Kategori yok";
+      return;
+    }
+
+    els.topCats.textContent = top
+      .map(([cat, val]) => `${cat}: ${fmt(val)} ${currency}`)
+      .join(" · ");
+  }
+
+  function renderTable(){
+    els.tbody.innerHTML = "";
+
+    if (!state.viewItems.length){
+      els.tbody.innerHTML = `
+        <tr>
+          <td colspan="6">
+            <div class="pt-empty" style="margin:0;">Kayıt yok. Filtreyi temizlemeyi dene.</div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
     const frag = document.createDocumentFragment();
 
-    list.forEach((it, i) => {
+    state.viewItems.forEach((it) => {
       const tr = document.createElement("tr");
-      const idx = i + 1;
+      tr.dataset.riskId = String(it.risk_id);
 
-      const title = safeText(it.title) || ("Risk #" + safeText(it.risk_id));
-      const cat = safeText(it.category) || "-";
-      const rid = safeText(it.risk_id);
+      if (String(it.risk_id) === String(state.selectedRiskId)){
+        tr.classList.add("row-selected");
+      }
 
-      tr.dataset.riskId = String(rid || "");
-      tr.style.cursor = "pointer";
-      tr.title = "Seç ve AI tarafında vurgula";
+      const top80Badge = state.top80Ids.has(String(it.risk_id))
+        ? `<span class="pt-badge" style="color:#b45309;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.24);">Top80</span>`
+        : "";
 
       tr.innerHTML = `
-        <td class="mono">${idx}</td>
+        <td><span class="pt-rank">${it.pareto_rank}</span></td>
         <td>
-          <a href="/reports/${encodeURIComponent(rid)}">${title}</a>
-          <div class="muted" style="font-size:12px;">ID: <span class="mono">${rid}</span></div>
+          <a class="pt-risk-title" href="${riskUrl(it.risk_id)}">${escapeHtml(it.title)}</a>
+          <div class="pt-risk-meta">
+            ID: <span class="mono">${escapeHtml(it.risk_id)}</span> ${top80Badge}
+          </div>
         </td>
-        <td>${cat}</td>
+        <td>${escapeHtml(it.category || "-")}</td>
         <td class="mono" style="text-align:right;">${fmt(it.value)} ${currency}</td>
         <td class="mono" style="text-align:right;">%${fmt(it.pct)}</td>
         <td class="mono" style="text-align:right;">%${fmt(it.cum_pct)}</td>
       `;
 
-      if (!onlyTop80.checked && top80 > 0 && idx <= top80){
-        tr.style.background = "rgba(255, 215, 0, .10)";
-      }
-
-      tr.addEventListener("click", (ev) => {
-        const a = ev.target.closest("a");
-        if (a) return; // link tıklanınca rapora gitsin
-        selectRowByRiskId(rid);
-        focusAiRisk(rid);
+      tr.addEventListener("click", (event) => {
+        if (event.target.closest("a")) return;
+        selectRisk(it.risk_id);
       });
 
       frag.appendChild(tr);
     });
 
-    tbody.appendChild(frag);
-
-    if (!list.length){
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="6" class="muted" style="padding:14px;">Kayıt yok. Filtre çok acımasız olabilir.</td>`;
-      tbody.appendChild(tr);
-      clearSelectedRow();
-    }
-  }
-
-  function renderTopCats(items, top80){
-    if (!items?.length){ topCatsEl.textContent = ""; return; }
-    const slice = items.slice(0, Math.max(0, top80));
-    const map = {};
-    for (const it of slice){
-      const c = safeText(it.category) || "GENEL";
-      map[c] = (map[c] || 0) + Number(it.value || 0);
-    }
-    const top = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    if (!top.length){ topCatsEl.textContent = ""; return; }
-
-    const txt = top.map(([c,v]) => `${c}: ${fmt(v)} ${currency}`).join(" · ");
-    topCatsEl.textContent = `Top kategori yükü: ${txt}`;
+    els.tbody.appendChild(frag);
   }
 
   function clearCanvas(){
-    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
   }
 
-  function renderChart(items, top80){
+  function renderChart(){
     clearCanvas();
-    if (!items?.length) return;
 
-    const N = Math.min(25, items.length);
-    const total = Number(raw?.total || 0) || 1;
-    const list = computePctIfMissing(items.slice(0, N), total);
+    const items = state.baseItems.slice(0, 25);
+    if (!items.length) return;
 
-    const W = canvas.width, H = canvas.height;
-    const padL = 46, padR = 14, padT = 14, padB = 34;
-    const plotW = W - padL - padR;
-    const plotH = H - padT - padB;
+    const width = els.canvas.width;
+    const height = els.canvas.height;
+    const pad = { left:54, right:18, top:18, bottom:42 };
+    const plotW = width - pad.left - pad.right;
+    const plotH = height - pad.top - pad.bottom;
 
-    const maxVal = Math.max(...list.map(x => Number(x.value||0)), 1);
-    const barW = plotW / N;
+    const maxValue = Math.max(...items.map(it => it.value), 1);
+    const barW = plotW / items.length;
 
     ctx.save();
-    ctx.globalAlpha = 1;
+
+    ctx.font = "12px Inter, system-ui, -apple-system, Segoe UI, Arial";
     ctx.lineWidth = 1;
 
-    ctx.strokeStyle = "rgba(15,23,42,.18)";
-    ctx.beginPath();
-    ctx.moveTo(padL, padT);
-    ctx.lineTo(padL, padT + plotH);
-    ctx.lineTo(padL + plotW, padT + plotH);
-    ctx.stroke();
+    for (let s = 0; s <= 4; s++){
+      const y = pad.top + plotH - (plotH * s / 4);
 
-    ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    const steps = 4;
-    for (let s=0; s<=steps; s++){
-      const y = padT + plotH - (plotH * s/steps);
-      ctx.strokeStyle = "rgba(15,23,42,.08)";
+      ctx.strokeStyle = "rgba(100,116,139,.16)";
       ctx.beginPath();
-      ctx.moveTo(padL, y);
-      ctx.lineTo(padL + plotW, y);
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(pad.left + plotW, y);
       ctx.stroke();
 
-      const val = maxVal * s/steps;
-      ctx.fillStyle = "rgba(15,23,42,.55)";
-      ctx.fillText(fmt(val), 6, y + 4);
+      ctx.fillStyle = "rgba(100,116,139,.78)";
+      ctx.fillText(fmt(maxValue * s / 4, 0), 8, y + 4);
     }
 
-    let cum = 0;
+    ctx.strokeStyle = "rgba(100,116,139,.25)";
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top);
+    ctx.lineTo(pad.left, pad.top + plotH);
+    ctx.lineTo(pad.left + plotW, pad.top + plotH);
+    ctx.stroke();
+
     const points = [];
 
-    for (let i=0; i<N; i++){
-      const it = list[i];
-      const v = Number(it.value||0);
-      const pct = total ? (v/total*100) : 0;
-      cum += pct;
+    items.forEach((it, idx) => {
+      const x = pad.left + idx * barW;
+      const barH = (it.value / maxValue) * plotH;
+      const y = pad.top + plotH - barH;
 
-      const x = padL + i * barW;
-      const barH = (v / maxVal) * plotH;
-      const y = padT + plotH - barH;
+      const isTop80 = state.top80Ids.has(String(it.risk_id));
+      ctx.fillStyle = isTop80 ? "rgba(245,158,11,.62)" : "rgba(99,102,241,.42)";
+      ctx.fillRect(x + 4, y, Math.max(3, barW - 8), barH);
 
-      ctx.fillStyle = (top80 > 0 && (i+1) <= top80) ? "rgba(245, 158, 11, .55)" : "rgba(99, 102, 241, .40)";
-      ctx.fillRect(x + 3, y, Math.max(2, barW - 6), barH);
-
-      const cx = x + barW/2;
-      const cy = padT + plotH - (Math.min(100, cum)/100) * plotH;
+      const cx = x + barW / 2;
+      const cy = pad.top + plotH - Math.min(100, it.cum_pct) / 100 * plotH;
       points.push([cx, cy]);
-    }
+    });
 
-    ctx.strokeStyle = "rgba(15,23,42,.65)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(15,23,42,.72)";
+    if (document.documentElement.getAttribute("data-theme") === "dark"){
+      ctx.strokeStyle = "rgba(226,232,240,.78)";
+    }
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    points.forEach((p, idx) => {
-      if (idx === 0) ctx.moveTo(p[0], p[1]);
-      else ctx.lineTo(p[0], p[1]);
+    points.forEach(([x,y], idx) => {
+      if (idx === 0) ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
     });
     ctx.stroke();
 
-    ctx.strokeStyle = "rgba(239,68,68,.55)";
-    ctx.setLineDash([6,4]);
-    const y80 = padT + plotH - 0.8 * plotH;
+    points.forEach(([x,y]) => {
+      ctx.fillStyle = "rgba(36,87,230,.95)";
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    const y80 = pad.top + plotH - 0.8 * plotH;
+    ctx.strokeStyle = "rgba(239,68,68,.72)";
+    ctx.setLineDash([7,5]);
     ctx.beginPath();
-    ctx.moveTo(padL, y80);
-    ctx.lineTo(padL + plotW, y80);
+    ctx.moveTo(pad.left, y80);
+    ctx.lineTo(pad.left + plotW, y80);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.fillStyle = "rgba(239,68,68,.85)";
-    ctx.fillText("80%", padL + plotW - 26, y80 - 6);
+    ctx.fillStyle = "rgba(239,68,68,.90)";
+    ctx.font = "bold 13px Inter, system-ui, -apple-system, Segoe UI, Arial";
+    ctx.fillText("80%", pad.left + plotW - 32, y80 - 8);
 
-    ctx.fillStyle = "rgba(15,23,42,.45)";
-    ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-    const every = N > 12 ? 2 : 1;
-    for (let i=0; i<N; i+=every){
-      const x = padL + i*barW + 3;
-      ctx.fillText(String(i+1), x, padT + plotH + 18);
+    ctx.fillStyle = "rgba(100,116,139,.78)";
+    ctx.font = "11px Inter, system-ui, -apple-system, Segoe UI, Arial";
+    const step = items.length > 12 ? 2 : 1;
+    for (let i = 0; i < items.length; i += step){
+      const x = pad.left + i * barW + barW / 2 - 4;
+      ctx.fillText(String(i + 1), x, pad.top + plotH + 22);
     }
 
     ctx.restore();
   }
 
-  function downloadCsv(){
-    if (!raw?.items?.length) return;
+  function selectRisk(riskId){
+    state.selectedRiskId = String(riskId || "");
+    state.focusedRiskId = state.selectedRiskId;
 
-    const rows = [];
-    rows.push(["index","risk_id","title","category","value","pct","cum_pct","currency"].join(","));
-
-    const total = Number(raw.total || 0);
-    const list = computePctIfMissing(raw.items, total);
-
-    const exportList = (viewItems?.length ? viewItems : list);
-    exportList.forEach((it, idx) => {
-      const row = [
-        idx+1,
-        `"${String(it.risk_id ?? "").replaceAll('"','""')}"`,
-        `"${String(it.title ?? "").replaceAll('"','""')}"`,
-        `"${String(it.category ?? "").replaceAll('"','""')}"`,
-        Number(it.value || 0),
-        Number(it.pct || 0),
-        Number(it.cum_pct || 0),
-        currency
-      ];
-      rows.push(row.join(","));
+    document.querySelectorAll("#tbl tbody tr").forEach(row => {
+      row.classList.toggle("row-selected", row.dataset.riskId === state.selectedRiskId);
     });
 
-    const blob = new Blob([rows.join("\n")], {type:"text/csv;charset=utf-8"});
+    focusAiRisk(state.selectedRiskId);
+  }
+
+  function focusAiRisk(riskId){
+    const id = String(riskId || "");
+    if (!id) return;
+
+    els.aiTopRisks.querySelectorAll(".ai-risk-card.ai-hl").forEach(card => {
+      card.classList.remove("ai-hl");
+    });
+
+    const card = els.aiTopRisks.querySelector(`[data-risk-id="${CSS.escape(id)}"]`);
+    if (!card) return;
+
+    card.classList.add("ai-hl");
+    card.scrollIntoView({ behavior:"smooth", block:"center" });
+  }
+
+  function badge(label, extraClass = ""){
+    const span = document.createElement("span");
+    span.className = `pt-badge ${extraClass}`.trim();
+    span.textContent = label;
+    return span;
+  }
+
+  function makeAiBox(title, body){
+    const box = document.createElement("div");
+    box.className = "ai-box";
+    box.innerHTML = `
+      <h5 class="ai-box-title">${escapeHtml(title || "İçgörü")}</h5>
+      <p class="ai-box-text">${escapeHtml(body || "")}</p>
+    `;
+    return box;
+  }
+
+  function makeActionBox(action){
+    if (typeof action === "string"){
+      return makeAiBox("Aksiyon", action);
+    }
+
+    const priority = text(action?.priority || "low").toLowerCase();
+    const pClass = priority === "high" ? "priority-high" : priority === "medium" ? "priority-medium" : "priority-low";
+
+    const box = document.createElement("div");
+    box.className = "ai-box";
+
+    const url = action?.url ? text(action.url) : "";
+    const linkHtml = url
+      ? `<a class="pt-btn" style="margin-top:10px; box-shadow:none;" href="${escapeHtml(url)}">Riske git</a>`
+      : "";
+
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <h5 class="ai-box-title">${escapeHtml(action?.title || "Aksiyon")}</h5>
+        <span class="pt-badge ${pClass}">${priority === "high" ? "Yüksek" : priority === "medium" ? "Orta" : "Düşük"}</span>
+      </div>
+      <p class="ai-box-text">${escapeHtml(action?.details || "")}</p>
+      ${action?.kpi ? `<p class="ai-box-text"><strong>KPI:</strong> ${escapeHtml(action.kpi)}</p>` : ""}
+      ${linkHtml}
+    `;
+
+    return box;
+  }
+
+  function makeRiskCard(risk){
+    const id = risk?.id ?? risk?.risk_id ?? "";
+    const title = text(risk?.title || (id ? `Risk #${id}` : "Risk"));
+    const category = text(risk?.category || "GENEL");
+    const value = Number(risk?.value || 0);
+    const pct = Number(risk?.pct || 0);
+    const url = risk?.url || riskUrl(id);
+    const costItems = risk?.cost_items || {};
+    const topItems = Array.isArray(costItems?.top_cost_items) ? costItems.top_cost_items : [];
+
+    const card = document.createElement("div");
+    card.className = "ai-risk-card";
+    card.dataset.riskId = String(id);
+
+    const itemsHtml = topItems.length
+      ? `<ul class="ai-cost-list">
+          ${topItems.slice(0,3).map(item => `
+            <li>${escapeHtml(item?.name || "Kalem")} · ${fmt(item?.total || 0)} ${currency} · ${escapeHtml(item?.frequency || "belirsiz")}</li>
+          `).join("")}
+        </ul>`
+      : "";
+
+    card.innerHTML = `
+      <div class="ai-risk-head">
+        <div>
+          <a class="ai-risk-title" href="${escapeHtml(url)}">${escapeHtml(title)}</a>
+          <div class="ai-risk-meta">ID: <span class="mono">${escapeHtml(id)}</span> · ${escapeHtml(category)}</div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;">
+          <span class="pt-badge">%${fmt(pct, 1)}</span>
+          <span class="pt-badge primary">${fmt(value)} ${currency}</span>
+        </div>
+      </div>
+      ${itemsHtml}
+    `;
+
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("a")) return;
+      selectRisk(id);
+    });
+
+    return card;
+  }
+
+  function renderAiLoading(){
+    els.aiStatus.textContent = "Hazırlanıyor";
+    hideError(els.aiErr);
+    els.aiBadges.innerHTML = "";
+    els.aiInsights.innerHTML = "";
+    els.aiActions.innerHTML = "";
+    els.aiTopRisks.innerHTML = "";
+    els.aiSummary.innerHTML = `
+      <span class="skeleton" style="width:92%;"></span>
+      <span class="skeleton" style="width:78%; margin-top:8px;"></span>
+      <span class="skeleton" style="width:66%; margin-top:8px;"></span>
+    `;
+  }
+
+  async function loadAi(){
+    renderAiLoading();
+
+    const cutValue = Number(els.cut.value || 10);
+    els.cutVal.textContent = String(cutValue);
+
+    const cut = cutValue / 100;
+    const scope = els.scope.value || "top3";
+    const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&top_n=10&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
+
+    try{
+      const ai = await fetchJson(url);
+
+      els.aiStatus.textContent = "Hazır";
+      els.aiSummary.textContent = ai?.summary || "Özet yok.";
+
+      const meta = ai?.meta || {};
+      if (meta.top_80_count != null) els.aiBadges.appendChild(badge(`Top80: ${meta.top_80_count}`));
+      if (meta.scope_label || meta.scope) els.aiBadges.appendChild(badge(`Scope: ${meta.scope_label || meta.scope}`));
+      if (meta.scenario_saving != null) els.aiBadges.appendChild(badge(`Tasarruf: ${fmt(meta.scenario_saving)} ${currency}`));
+      if (meta.cat_hhi != null) els.aiBadges.appendChild(badge(`Cat HHI: ${Number(meta.cat_hhi).toFixed(3)}`));
+
+      const insights = Array.isArray(ai?.insights) ? ai.insights : [];
+      if (insights.length){
+        insights.forEach(ins => els.aiInsights.appendChild(makeAiBox(ins?.title || ins?.type || "İçgörü", ins?.text || "")));
+      } else {
+        els.aiInsights.appendChild(makeAiBox("İçgörü", "İçgörü yok."));
+      }
+
+      const actions = Array.isArray(ai?.actions) ? ai.actions : [];
+      if (actions.length){
+        actions.forEach(action => els.aiActions.appendChild(makeActionBox(action)));
+      } else {
+        els.aiActions.appendChild(makeAiBox("Aksiyon", "Aksiyon önerisi yok."));
+      }
+
+      const risks = Array.isArray(ai?.top_risks) ? ai.top_risks : [];
+      if (risks.length){
+        risks.forEach(risk => els.aiTopRisks.appendChild(makeRiskCard(risk)));
+      } else {
+        els.aiTopRisks.appendChild(makeAiBox("Top Riskler", "AI endpoint top_risks döndürmedi."));
+      }
+
+      if (state.focusedRiskId){
+        setTimeout(() => focusAiRisk(state.focusedRiskId), 50);
+      }
+    } catch(error){
+      els.aiStatus.textContent = "Hata";
+      els.aiSummary.textContent = "Özet alınamadı.";
+      showError(els.aiErr, "AI verisi alınamadı: " + (error?.message || error));
+    }
+  }
+
+  function downloadCsv(){
+    const exportItems = state.viewItems.length ? state.viewItems : state.baseItems;
+
+    if (!exportItems.length) return;
+
+    const rows = [
+      ["rank","risk_id","title","category","value","pct","cum_pct","currency"].join(",")
+    ];
+
+    exportItems.forEach(it => {
+      rows.push([
+        it.pareto_rank,
+        `"${text(it.risk_id).replaceAll('"','""')}"`,
+        `"${text(it.title).replaceAll('"','""')}"`,
+        `"${text(it.category).replaceAll('"','""')}"`,
+        it.value,
+        it.pct,
+        it.cum_pct,
+        currency
+      ].join(","));
+    });
+
+    const blob = new Blob([rows.join("\n")], { type:"text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+
+    a.href = url;
     a.download = `pareto_${currency}_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+
+    setTimeout(() => URL.revokeObjectURL(url), 1200);
   }
 
-  function copyAI(){
-    const summary = safeText(aiSummary.textContent).trim();
+  async function copyAi(){
+    const summary = text(els.aiSummary.textContent).trim();
+    const insights = [...els.aiInsights.querySelectorAll(".ai-box")].map(el => "- " + text(el.textContent).trim()).join("\n");
+    const actions = [...els.aiActions.querySelectorAll(".ai-box")].map(el => "- " + text(el.textContent).trim()).join("\n");
+    const risks = [...els.aiTopRisks.querySelectorAll(".ai-risk-card")].map(el => "- " + text(el.textContent).trim()).join("\n");
 
-    let acts = "";
-    const cards = Array.from(document.querySelectorAll("#aiActions .ai-box"));
-    if (cards.length){
-      acts = cards.map(c => "- " + (c.querySelector("div")?.textContent || "Aksiyon")).join("\n");
-    }
+    const output =
+`Pareto AI Özeti (${currency})
 
-    let risks = "";
-    const rCards = Array.from(document.querySelectorAll("#aiTopRisks .ai-box"));
-    if (rCards.length){
-      risks = rCards.map(c => "- " + (c.querySelector("a")?.textContent?.trim() || "Risk")).join("\n");
-    }
+Özet:
+${summary || "-"}
 
-    const cut = Number(cutRange.value || 10);
-    const scope = scopeSel.value || "top3";
-
-    const txt =
-`AI Özet (${currency})
-Scope=${scope} Cut=${cut}%
-
-${summary}
+İçgörüler:
+${insights || "-"}
 
 Aksiyonlar:
-${acts || "- (yok)"}
+${actions || "-"}
 
 Top Riskler:
-${risks || "- (yok)"}`
-    ;
-    navigator.clipboard?.writeText(txt);
-  }
-
-  // UI helpers for AI section
-  function badge(text){
-    const el = document.createElement("span");
-    el.className = "badge";
-    el.textContent = text;
-    return el;
-  }
-
-  function card(title, text){
-    const wrap = document.createElement("div");
-    wrap.className = "ai-box";
-    wrap.style.background = "rgba(255,255,255,.75)";
-    wrap.innerHTML = `
-      <div style="font-weight:800; color:#0f172a;">${title || ""}</div>
-      <div style="margin-top:6px; color:#334155; line-height:1.45;">${text || ""}</div>
-    `;
-    return wrap;
-  }
-
-  function priorityPill(p){
-    const el = document.createElement("span");
-    el.className = "badge";
-    const pr = (p || "low").toLowerCase();
-    el.textContent = pr === "high" ? "Yüksek" : pr === "medium" ? "Orta" : "Düşük";
-    el.style.borderColor = pr === "high" ? "rgba(239,68,68,.25)" : pr === "medium" ? "rgba(245,158,11,.25)" : "rgba(15,23,42,.10)";
-    el.style.background = pr === "high" ? "rgba(239,68,68,.08)" : pr === "medium" ? "rgba(245,158,11,.10)" : "rgba(15,23,42,.04)";
-    el.style.color = pr === "high" ? "#991b1b" : pr === "medium" ? "#92400e" : "#0f172a";
-    return el;
-  }
-
-  function actionCard(a){
-    const wrap = document.createElement("div");
-    wrap.className = "ai-box";
-    wrap.style.background = "rgba(255,255,255,.75)";
-
-    const title = a?.title || "Aksiyon";
-    const details = a?.details || "";
-    const kpi = a?.kpi || "";
-    const url = a?.url;
-
-    const topRow = document.createElement("div");
-    topRow.style.display = "flex";
-    topRow.style.justifyContent = "space-between";
-    topRow.style.gap = "10px";
-    topRow.style.alignItems = "flex-start";
-
-    const left = document.createElement("div");
-    left.style.fontWeight = "800";
-    left.style.color = "#0f172a";
-    left.textContent = title;
-
-    const right = document.createElement("div");
-    right.style.display = "flex";
-    right.style.gap = "8px";
-    right.style.flexWrap = "wrap";
-    right.appendChild(priorityPill(a?.priority));
-    if (a?.type) right.appendChild(badge(String(a.type)));
-
-    topRow.appendChild(left);
-    topRow.appendChild(right);
-
-    const body = document.createElement("div");
-    body.style.marginTop = "8px";
-    body.style.color = "#334155";
-    body.style.lineHeight = "1.45";
-    body.textContent = details;
-
-    wrap.appendChild(topRow);
-    wrap.appendChild(body);
-
-    if (kpi){
-      const k = document.createElement("div");
-      k.style.marginTop = "8px";
-      k.className = "muted";
-      k.innerHTML = `<span class="badge">KPI</span> <span class="mono" style="margin-left:6px;">${kpi}</span>`;
-      wrap.appendChild(k);
-    }
-
-    if (url){
-      const link = document.createElement("a");
-      link.href = url;
-      link.className = "btn";
-      link.style.marginTop = "10px";
-      link.style.display = "inline-flex";
-      link.textContent = "Riske git";
-      wrap.appendChild(link);
-    }
-
-    return wrap;
-  }
-
-  /* Focus AI Top Risk card by risk id */
-  function focusAiRisk(rid){
-    const id = String(rid || "");
-    if (!id) return;
-
-    lastFocusedRiskId = id;
-
-    aiTopRisks.querySelectorAll(".ai-hl").forEach(el => {
-      el.classList.remove("ai-hl","ai-hl-pulse");
-    });
-
-    const card = aiTopRisks.querySelector(`[data-risk-id="${CSS.escape(id)}"]`);
-    if (!card){
-      aiTopRisks.scrollIntoView({behavior:"smooth", block:"start"});
-      return;
-    }
-
-    card.classList.add("ai-hl", "ai-hl-pulse");
-    card.scrollIntoView({behavior:"smooth", block:"center"});
-    setTimeout(() => card.classList.remove("ai-hl-pulse"), 800);
-  }
-
-  // Top risk mini card
-  function riskMiniCard(r){
-    const wrap = document.createElement("div");
-    wrap.className = "ai-box";
-    wrap.style.background = "rgba(255,255,255,.75)";
-
-    const id = r?.id ?? r?.risk_id;
-    const title = r?.title || (id != null ? `Risk #${id}` : "Risk");
-    const category = r?.category || "GENEL";
-    const value = Number(r?.value || 0);
-    const pct = Number(r?.pct || 0);
-    const url = r?.url || (id != null ? `/reports/${encodeURIComponent(id)}` : "#");
-
-    wrap.dataset.riskId = String(id ?? "");
-
-    const ci = r?.cost_items || {};
-    const nItems = Number(ci?.n_items || 0);
-    const sumTotal = Number(ci?.sum_total || 0);
-    const topItems = Array.isArray(ci?.top_cost_items) ? ci.top_cost_items : [];
-    const freqBreak = ci?.freq_breakdown || {};
-
-    const head = document.createElement("div");
-    head.style.display = "flex";
-    head.style.justifyContent = "space-between";
-    head.style.gap = "10px";
-    head.style.alignItems = "flex-start";
-
-    const left = document.createElement("div");
-    left.innerHTML = `
-      <a href="${url}" style="font-weight:900; color:#0f172a; text-decoration:none;">
-        ${title}
-      </a>
-      <div class="muted" style="font-size:12px; margin-top:2px;">
-        ID: <span class="mono">${id ?? "-"}</span> · Kategori: <span style="font-weight:700;">${category}</span>
-      </div>
-    `;
-
-    const right = document.createElement("div");
-    right.style.display = "flex";
-    right.style.gap = "8px";
-    right.style.flexWrap = "wrap";
-    right.appendChild(badge(`%${isFinite(pct) ? pct.toFixed(1) : "0.0"}`));
-    right.appendChild(badge(`${fmt(value)} ${currency}`));
-    if (nItems) right.appendChild(badge(`${nItems} kalem`));
-
-    head.appendChild(left);
-    head.appendChild(right);
-    wrap.appendChild(head);
-
-    if (nItems || sumTotal){
-      const s = document.createElement("div");
-      s.className = "muted";
-      s.style.marginTop = "8px";
-      s.innerHTML = `CostItem toplamı: <span class="mono">${fmt(sumTotal)} ${currency}</span>`;
-      wrap.appendChild(s);
-    }
-
-    if (topItems.length){
-      const box = document.createElement("div");
-      box.style.marginTop = "10px";
-      box.innerHTML = `<div style="font-weight:800; color:#0f172a; font-size:12px;">En pahalı kalemler</div>`;
-      const ul = document.createElement("ul");
-      ul.style.margin = "6px 0 0 16px";
-      ul.style.color = "#334155";
-      ul.style.fontSize = "13px";
-
-      topItems.slice(0,3).forEach(ci => {
-        const li = document.createElement("li");
-        const nm = (ci?.name || "Kalem").toString();
-        const tv = fmt(Number(ci?.total || 0));
-        const fq = (ci?.frequency || "belirsiz").toString();
-        li.textContent = `${nm} · ${tv} ${currency} · ${fq}`;
-        ul.appendChild(li);
-      });
-
-      box.appendChild(ul);
-      wrap.appendChild(box);
-    }
-
-    const freqKeys = freqBreak ? Object.keys(freqBreak) : [];
-    if (freqKeys.length){
-      const topF = freqKeys
-        .map(k => [k, Number(freqBreak[k] || 0)])
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,2);
-
-      const f = document.createElement("div");
-      f.className = "muted";
-      f.style.marginTop = "8px";
-      f.textContent = "Periyot: " + topF.map(([k,v]) => `${k} (${fmt(v)} ${currency})`).join(" · ");
-      wrap.appendChild(f);
-    }
-
-    return wrap;
-  }
-
-  async function loadAI(){
-    aiErr.style.display = "none";
-    aiBadges.innerHTML = "";
-    aiInsights.innerHTML = "";
-    aiActions.innerHTML = "";
-    aiTopRisks.innerHTML = "";
-
-    cutVal.textContent = String(cutRange.value || 10);
-
-    aiSummary.innerHTML = `
-      <div class="skeleton" style="width: 92%;"></div>
-      <div class="skeleton" style="width: 78%; margin-top:8px;"></div>
-      <div class="skeleton" style="width: 66%; margin-top:8px;"></div>
-    `;
-
-    const cut = Number(cutRange.value || 10) / 100;
-    const scope = scopeSel.value || "top3";
+${risks || "-"}`;
 
     try{
-      const ai = await fetchJson(`/analytics/pareto/ai?currency=${encodeURIComponent(currency)}&top_n=10&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`);
-
-      aiSummary.textContent = ai.summary || "Özet yok.";
-
-      const m = ai.meta || {};
-      if (m.top_80_count != null) aiBadges.appendChild(badge(`Top80: ${m.top_80_count}`));
-      if (m.scope_label) aiBadges.appendChild(badge(`Scope: ${m.scope_label}`));
-      else if (m.scope) aiBadges.appendChild(badge(`Scope: ${m.scope}`));
-      if (m.scenario_saving != null) aiBadges.appendChild(badge(`Tasarruf: ${fmt(m.scenario_saving)} ${currency}`));
-      if (m.cat_hhi != null) aiBadges.appendChild(badge(`Cat HHI: ${Number(m.cat_hhi).toFixed(3)}`));
-      if (m.risk_hhi != null) aiBadges.appendChild(badge(`Risk HHI: ${Number(m.risk_hhi).toFixed(3)}`));
-
-      (ai.insights || []).forEach(ins => {
-        aiInsights.appendChild(card(ins.title || ins.type || "İçgörü", ins.text || ""));
-      });
-      if (!(ai.insights || []).length){
-        aiInsights.appendChild(card("İçgörü", "İçgörü yok."));
-      }
-
-      if (Array.isArray(ai.actions) && ai.actions.length){
-        if (typeof ai.actions[0] === "string"){
-          ai.actions.forEach(s => aiActions.appendChild(card("Aksiyon", s)));
-        } else {
-          ai.actions.forEach(a => aiActions.appendChild(actionCard(a)));
-        }
-      } else {
-        aiActions.appendChild(card("Aksiyon", "Aksiyon önerisi yok."));
-      }
-
-      const trs = Array.isArray(ai.top_risks) ? ai.top_risks : [];
-      if (trs.length){
-        trs.forEach(r => aiTopRisks.appendChild(riskMiniCard(r)));
-      } else {
-        aiTopRisks.appendChild(card("Top Riskler", "AI top_risks dönmedi. Endpoint çıktısını kontrol et."));
-      }
-
-      // ✅ keep AI highlight if any
-      if (lastFocusedRiskId){
-        setTimeout(() => focusAiRisk(lastFocusedRiskId), 50);
-      }
-
-    } catch(e){
-      aiErr.style.display = "block";
-      aiErr.textContent = "AI kısmı patladı. " + (e?.message || e);
-      aiSummary.textContent = "Özet yok.";
+      await navigator.clipboard.writeText(output);
+      els.aiStatus.textContent = "Kopyalandı";
+      setTimeout(() => els.aiStatus.textContent = "Hazır", 1200);
+    } catch(_){
+      els.aiStatus.textContent = "Kopyalanamadı";
     }
   }
 
-  // events
-  q.addEventListener("input", () => applyView());
-  sortSel.addEventListener("change", () => applyView());
-  onlyTop80.addEventListener("change", () => applyView());
-  btnCsv.addEventListener("click", downloadCsv);
-  btnCopyAI.addEventListener("click", copyAI);
+  function bindEvents(){
+    els.q.addEventListener("input", applyFilters);
+    els.sort.addEventListener("change", applyFilters);
+    els.onlyTop80.addEventListener("change", applyFilters);
 
-  scopeSel.addEventListener("change", loadAI);
-  cutRange.addEventListener("input", () => { cutVal.textContent = cutRange.value; });
-  cutRange.addEventListener("change", loadAI);
+    els.btnCsv.addEventListener("click", downloadCsv);
+    els.btnCopyAI.addEventListener("click", copyAi);
 
-  // 1) Pareto data
-  try {
-    hideErr();
-    const data = await fetchJson(`/analytics/pareto?currency=${encodeURIComponent(currency)}`);
-    raw = data;
-
-    const total = Number(data.total || 0);
-    const top80 = Number(data.top_80_count || 0);
-    meta.textContent = `Toplam: ${fmt(total)} ${currency} · %80’i oluşturan risk sayısı: ${top80}`;
-
-    applyView();
-  } catch (e){
-    showErr("Pareto verisi alınamadı. Sunucu veya endpoint gitti mi kontrol et: " + (e?.message || e));
-    meta.textContent = "Veri yok.";
+    els.scope.addEventListener("change", loadAi);
+    els.cut.addEventListener("input", () => {
+      els.cutVal.textContent = els.cut.value;
+    });
+    els.cut.addEventListener("change", loadAi);
   }
 
-  // 2) AI load
-  await loadAI();
+  async function init(){
+    bindEvents();
 
+    try{
+      hideError(els.err);
+
+      const data = await fetchJson(paretoEndpoint);
+      const normalized = normalizeParetoData(data);
+
+      state.raw = {
+        ...data,
+        total: normalized.total,
+        top80Count: normalized.top80Count
+      };
+      state.baseItems = normalized.items;
+      state.top80Ids = normalized.top80Ids;
+
+      applyFilters();
+    } catch(error){
+      state.raw = { total:0, top80Count:0 };
+      state.baseItems = [];
+      state.viewItems = [];
+
+      renderMetrics();
+      renderTable();
+      showError(els.err, "Pareto verisi alınamadı: " + (error?.message || error));
+      els.meta.textContent = "Veri yok.";
+      els.topCats.textContent = "Kategori yok";
+    }
+
+    await loadAi();
+  }
+
+  init();
 })();
 </script>
 {% endblock %}
