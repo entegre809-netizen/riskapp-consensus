@@ -4,312 +4,783 @@
 
 <style>
   /* ==========================================================
-     Kategori Yönetimi · 2026 Modern UI
+     Kategori Yönetimi — Premium / Kullanıcı Dostu
      ✅ PATCH/DELETE yok → edit/delete POST ile çalışır
+     ✅ API akışı korunur: /api/categories + klasik POST edit/delete
      ========================================================== */
 
-  .toolbar{
-    display:flex; gap:.9rem; flex-wrap:wrap; align-items:center; justify-content:space-between;
-    margin-bottom: .9rem;
-  }
-  .toolbar h2{ margin:0; font-weight:900; letter-spacing:-.02em }
-  .subline{
-    margin:.28rem 0 0;
-    color: var(--text-dim);
-    max-width: 70ch;
+  .cat-scope{
+    --cat-card:#ffffff;
+    --cat-text:#0f172a;
+    --cat-muted:#64748b;
+    --cat-line:rgba(15,23,42,.09);
+    --cat-line-2:rgba(15,23,42,.14);
+    --cat-soft:#f8fafc;
+    --cat-primary:#2457e6;
+    --cat-primary-2:#1d4ed8;
+    --cat-teal:#0f766e;
+    --cat-green:#22c55e;
+    --cat-amber:#f59e0b;
+    --cat-red:#ef4444;
+    --cat-shadow:0 24px 70px rgba(15,23,42,.09);
+    --cat-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    --cat-radius-xl:28px;
+    --cat-radius-lg:22px;
+    --cat-radius-md:16px;
+    color:var(--cat-text);
   }
 
-  .grid{ display:grid; gap:14px }
-  .grid-2{ grid-template-columns: 360px 1fr }
-  @media (max-width: 980px){
-    .grid-2{ grid-template-columns: 1fr }
+  [data-theme="dark"] .cat-scope{
+    --cat-card:rgba(15,23,42,.76);
+    --cat-text:#e5e7eb;
+    --cat-muted:#94a3b8;
+    --cat-line:rgba(255,255,255,.08);
+    --cat-line-2:rgba(255,255,255,.14);
+    --cat-soft:rgba(15,23,42,.55);
+    --cat-shadow:0 24px 70px rgba(0,0,0,.28);
+    --cat-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .cat-scope *{
+    box-sizing:border-box;
+  }
+
+  .cat-shell{
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .cat-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--cat-radius-xl);
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--cat-shadow);
+  }
+
+  .cat-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .hero-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  .hero-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px, 3.2vw, 44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .hero-sub{
+    max-width:560px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+  }
+
+  .btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--cat-line);
+    background:var(--cat-card);
+    color:var(--cat-text);
+    text-decoration:none;
+    font:inherit;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:var(--cat-shadow-sm);
+    transition:transform .14s ease, filter .14s ease, border-color .14s ease, background .14s ease;
+    white-space:nowrap;
+  }
+
+  .btn:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .btn-primary{
+    background:linear-gradient(135deg, var(--cat-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.20);
+  }
+
+  .btn-danger{
+    color:#b91c1c;
+    background:rgba(239,68,68,.10);
+    border-color:rgba(239,68,68,.18);
+  }
+
+  [data-theme="dark"] .btn-danger{
+    color:#fecaca;
+  }
+
+  .cat-hero .btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .cat-hero .btn-primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .cat-grid{
+    display:grid;
+    grid-template-columns:380px minmax(0,1fr);
+    gap:16px;
+    align-items:start;
+  }
+
+  @media (max-width:1020px){
+    .cat-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .panel{
+    border-radius:var(--cat-radius-xl);
+    border:1px solid var(--cat-line);
+    background:var(--cat-card);
+    box-shadow:var(--cat-shadow-sm);
+    padding:18px;
+  }
+
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+  }
+
+  .panel-title{
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--cat-text);
+    font-size:17px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .icon{
+    width:40px;
+    height:40px;
+    display:grid;
+    place-items:center;
+    border-radius:16px;
+    color:var(--cat-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    font-weight:950;
+  }
+
+  [data-theme="dark"] .icon{
+    color:#93c5fd;
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.18);
+  }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-bottom:13px;
+  }
+
+  label{
+    color:var(--cat-text);
+    font-size:13px;
+    font-weight:850;
+  }
+
+  .input{
+    width:100%;
+    min-height:52px;
+    border-radius:17px;
+    border:1px solid var(--cat-line);
+    background:#fff;
+    color:var(--cat-text);
+    outline:none;
+    padding:0 14px;
+    font:inherit;
+    font-size:14px;
+    font-weight:700;
+    box-shadow:0 10px 24px rgba(15,23,42,.04);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  textarea.input{
+    min-height:96px;
+    padding-top:13px;
+    padding-bottom:13px;
+    line-height:1.5;
+    resize:vertical;
+  }
+
+  [data-theme="dark"] .input{
+    background:rgba(15,23,42,.52);
+    color:var(--cat-text);
+  }
+
+  .input::placeholder{
+    color:#94a3b8;
+    font-weight:650;
+  }
+
+  .input:focus{
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12), 0 14px 28px rgba(15,23,42,.06);
+  }
+
+  .mini-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+
+  @media (max-width:460px){
+    .mini-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .color-row{
+    display:flex;
+    gap:9px;
+    align-items:center;
+  }
+
+  .color-row input[type="color"].input{
+    width:64px;
+    flex:0 0 64px;
+    padding:0;
+    overflow:hidden;
+  }
+
+  .hint{
+    margin-top:14px;
+    padding:14px;
+    border-radius:20px;
+    border:1px solid rgba(36,87,230,.14);
+    background:rgba(36,87,230,.07);
+    color:var(--cat-muted);
+    font-size:13px;
+    line-height:1.45;
+    font-weight:700;
+  }
+
+  .hint strong{
+    color:var(--cat-text);
+    font-weight:950;
   }
 
   .searchbar{
-    display:flex; gap:.55rem; flex-wrap:wrap; align-items:center;
-    padding:.45rem;
-    border-radius:14px;
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    margin:.55rem 0 1rem;
-    box-shadow: 0 8px 26px rgba(12, 22, 40, .06);
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    gap:10px;
+    align-items:center;
+    padding:12px;
+    border-radius:var(--cat-radius-xl);
+    background:rgba(255,255,255,.88);
+    border:1px solid rgba(255,255,255,.92);
+    box-shadow:var(--cat-shadow-sm);
+    backdrop-filter:blur(18px);
   }
-  .searchbar .input{ min-width:260px; flex:1 1 260px }
 
-  .card-lite{
-    background: color-mix(in oklab, var(--card) 90%, transparent);
-    border:1px dashed color-mix(in oklab, var(--line) 75%, transparent);
-    border-radius:16px;
-    padding:14px;
+  [data-theme="dark"] .searchbar{
+    background:rgba(15,23,42,.86);
+    border-color:rgba(255,255,255,.10);
+  }
+
+  @media (max-width:700px){
+    .searchbar{
+      grid-template-columns:1fr;
+    }
+  }
+
+  .table-card{
+    overflow:hidden;
   }
 
   .table-wrap{
     overflow:auto;
-    border-radius:14px;
-    border:1px solid var(--line);
+    border-radius:var(--cat-radius-lg);
+    border:1px solid var(--cat-line);
+    background:var(--cat-soft);
   }
+
   .table{
     width:100%;
+    min-width:900px;
     border-collapse:separate;
     border-spacing:0;
-    min-width: 880px;
   }
-  .table th,.table td{
-    padding:.82rem .92rem;
-    border-bottom:1px solid color-mix(in oklab, var(--line) 88%, transparent);
+
+  .table th{
+    position:sticky;
+    top:0;
+    z-index:1;
+    padding:13px 14px;
+    border-bottom:1px solid var(--cat-line);
+    background:var(--cat-soft);
+    color:var(--cat-muted);
     text-align:left;
-    vertical-align:top;
-    font-size:.98rem;
-  }
-  .table thead th{
-    font-size:.78rem;
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
     text-transform:uppercase;
-    letter-spacing:.08em;
-    font-weight:900;
-    color: var(--text-dim);
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: color-mix(in oklab, var(--surface) 84%, transparent);
-    border-bottom:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    backdrop-filter: blur(5px);
   }
+
+  .table td{
+    padding:14px;
+    border-bottom:1px solid var(--cat-line);
+    background:rgba(255,255,255,.62);
+    vertical-align:middle;
+    color:var(--cat-text);
+    font-size:14px;
+  }
+
+  [data-theme="dark"] .table td{
+    background:rgba(15,23,42,.42);
+  }
+
   .table tbody tr:hover td{
-    background: color-mix(in oklab, var(--primary) 7%, transparent);
+    background:rgba(36,87,230,.055);
+  }
+
+  [data-theme="dark"] .table tbody tr:hover td{
+    background:rgba(59,130,246,.10);
+  }
+
+  .cat-name{
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.015em;
+  }
+
+  .small{
+    color:var(--cat-muted);
+    font-size:12px;
+    font-weight:700;
+    line-height:1.4;
+  }
+
+  .badge{
+    min-height:28px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--cat-line);
+    background:#fff;
+    color:var(--cat-text);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  [data-theme="dark"] .badge{
+    background:rgba(15,23,42,.52);
+  }
+
+  .badge.active{
+    color:#15803d;
+    background:rgba(34,197,94,.12);
+    border-color:rgba(34,197,94,.20);
+  }
+
+  .badge.passive{
+    color:#a16207;
+    background:rgba(245,158,11,.14);
+    border-color:rgba(245,158,11,.24);
+  }
+
+  [data-theme="dark"] .badge.active{ color:#bbf7d0; }
+  [data-theme="dark"] .badge.passive{ color:#fde68a; }
+
+  .swatch{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--cat-line);
+    background:#fff;
+    color:var(--cat-text);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  [data-theme="dark"] .swatch{
+    background:rgba(15,23,42,.52);
+  }
+
+  .swatch-dot{
+    width:14px;
+    height:14px;
+    border-radius:999px;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);
+    flex:0 0 14px;
+  }
+
+  details > summary{
+    min-height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    padding:0 12px;
+    border-radius:14px;
+    border:1px solid var(--cat-line);
+    background:var(--cat-card);
+    color:var(--cat-text);
+    cursor:pointer;
+    list-style:none;
+    font-size:12px;
+    font-weight:950;
+    box-shadow:var(--cat-shadow-sm);
+  }
+
+  details > summary::-webkit-details-marker{
+    display:none;
+  }
+
+  details[open] > summary{
+    margin-bottom:9px;
+  }
+
+  .inner-card{
+    width:min(520px, 80vw);
+    border-radius:20px;
+    border:1px solid var(--cat-line);
+    background:var(--cat-card);
+    box-shadow:var(--cat-shadow);
+    padding:14px;
+  }
+
+  .edit-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:11px;
+  }
+
+  .edit-grid .full{
+    grid-column:1 / -1;
+  }
+
+  @media (max-width:620px){
+    .inner-card{
+      width:100%;
+    }
+
+    .edit-grid{
+      grid-template-columns:1fr;
+    }
+
+    .edit-grid .full{
+      grid-column:auto;
+    }
   }
 
   .actions{
     display:flex;
-    gap:.5rem;
-    flex-wrap:wrap;
+    align-items:center;
     justify-content:flex-end;
-    align-items:center;
-  }
-
-  details > summary{
-    cursor:pointer;
-    list-style:none;
-    display:inline-flex;
-    align-items:center;
-    gap:.45rem;
-    padding:.58rem .82rem;
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    border-radius:12px;
-    background: linear-gradient(180deg, #fff, #f7faff);
-    font-weight:900;
-  }
-  details > summary::-webkit-details-marker{ display:none; }
-  [data-theme="dark"] details > summary{
-    border-color: rgba(255,255,255,.14);
-    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-    color:#eaf0ff;
-  }
-  details[open] > summary{ margin-bottom:.5rem }
-
-  .inner-card{
-    border:1px dashed color-mix(in oklab, var(--line) 75%, transparent);
-    border-radius:12px;
-    padding:12px;
-    background: color-mix(in oklab, var(--card) 96%, transparent);
-  }
-
-  .swatch{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:.18rem .55rem;
-    border-radius:999px;
-    border:1px solid color-mix(in oklab, var(--line) 80%, transparent);
-    background: color-mix(in oklab, var(--card) 92%, transparent);
-    font-weight:800;
-    font-size:.9rem;
-    white-space:nowrap;
-  }
-  .swatch-dot{
-    width:14px; height:14px; border-radius:999px;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
-    flex: 0 0 14px;
+    gap:9px;
+    flex-wrap:wrap;
   }
 
   #flash{
     display:none;
-    margin:.6rem 0;
-    padding:.86rem 1rem;
-    border-radius:12px;
+    padding:13px 15px;
+    border-radius:18px;
+    border:1px solid var(--cat-line);
+    background:var(--cat-card);
+    box-shadow:var(--cat-shadow-sm);
+    color:var(--cat-text);
+    font-size:13px;
     font-weight:800;
-    border:1px solid #dbe6ff;
-    background: linear-gradient(180deg, #f5f9ff, #eef4ff);
-    color:#17223a;
   }
+
   #flash.success{
-    border-color:#baffdf;
-    background:linear-gradient(180deg, #eafff4, #d8ffee);
-    color:#073a2a;
+    color:#166534;
+    background:#f0fdf4;
+    border-color:rgba(34,197,94,.18);
   }
+
   #flash.danger{
-    border-color:#ffc9c9;
-    background:linear-gradient(180deg, #ffefef, #ffe3e3);
-    color:#5a1c1c;
+    color:#991b1b;
+    background:#fff7f7;
+    border-color:rgba(239,68,68,.18);
   }
+
   #flash.warning{
-    border-color:#ffe6a6;
-    background:linear-gradient(180deg, #fff7e0, #fff0c5);
-    color:#5a3b00;
+    color:#92400e;
+    background:#fffbeb;
+    border-color:rgba(245,158,11,.20);
   }
+
+  [data-theme="dark"] #flash.success{ color:#bbf7d0; background:rgba(34,197,94,.10); }
+  [data-theme="dark"] #flash.danger{ color:#fecaca; background:rgba(239,68,68,.10); }
+  [data-theme="dark"] #flash.warning{ color:#fde68a; background:rgba(245,158,11,.10); }
 
   .loading{
     position:fixed;
     inset:0;
     display:none;
     place-items:center;
-    z-index:50;
-    background: color-mix(in oklab, var(--bg) 40%, transparent);
-    backdrop-filter: blur(2px);
+    z-index:100;
+    background:rgba(15,23,42,.22);
+    backdrop-filter:blur(6px);
   }
-  .loading.show{ display:grid }
+
+  .loading.show{
+    display:grid;
+  }
+
+  .spinner-card{
+    display:grid;
+    place-items:center;
+    gap:12px;
+    padding:20px;
+    border-radius:24px;
+    background:var(--cat-card);
+    border:1px solid var(--cat-line);
+    box-shadow:var(--cat-shadow);
+    color:var(--cat-muted);
+    font-size:13px;
+    font-weight:850;
+  }
 
   .spinner{
-    width:44px; height:44px;
+    width:42px;
+    height:42px;
     border-radius:999px;
-    border:4px solid color-mix(in oklab, var(--line) 70%, transparent);
-    border-top-color: var(--primary);
-    animation: spin .8s linear infinite;
+    border:4px solid rgba(148,163,184,.24);
+    border-top-color:var(--cat-primary);
+    animation:spin .8s linear infinite;
   }
-  @keyframes spin{ to{ transform: rotate(360deg) } }
 
-  .hint{
-    margin-top:.75rem;
-    padding:.9rem 1rem;
-    border-radius:14px;
-    border:1px solid color-mix(in oklab, var(--primary) 35%, transparent);
-    background: color-mix(in oklab, var(--primary) 10%, transparent);
-    color: color-mix(in oklab, var(--text) 90%, var(--primary));
+  @keyframes spin{
+    to{ transform:rotate(360deg); }
   }
-  .hint strong{ font-weight:900 }
 
-  /* Dark fixes */
-  [data-theme="dark"] .table-wrap{
-    background: color-mix(in oklab, var(--card) 70%, #0b1220);
-    border-color: rgba(255,255,255,.10);
+  .empty-row{
+    text-align:center;
+    color:var(--cat-muted);
+    padding:22px !important;
+    font-weight:800;
   }
-  [data-theme="dark"] .table thead th{
-    color: rgba(226,232,240,.82);
-    background: linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--surface) 75%, #0b1220),
-      color-mix(in oklab, var(--surface) 88%, #0b1220)
-    );
-    border-bottom-color: rgba(255,255,255,.10);
-    backdrop-filter: blur(10px);
-  }
-  [data-theme="dark"] .table th,
-  [data-theme="dark"] .table td{
-    border-bottom-color: rgba(255,255,255,.08);
-    color: rgba(226,232,240,.92);
-  }
-  [data-theme="dark"] .table tbody td{ background: transparent; }
-  [data-theme="dark"] .table tbody tr{ background: rgba(255,255,255,.03); }
-  [data-theme="dark"] .table tbody tr:nth-child(even){ background: rgba(255,255,255,.02); }
-  [data-theme="dark"] .table tbody tr:hover td{
-    background: color-mix(in oklab, var(--primary) 14%, rgba(255,255,255,.04));
+
+  @media (max-width:700px){
+    .cat-hero{
+      padding:18px;
+      border-radius:24px;
+    }
+
+    .hero-actions{
+      width:100%;
+    }
+
+    .hero-actions .btn{
+      flex:1;
+    }
+
+    .panel{
+      padding:15px;
+      border-radius:23px;
+    }
+
+    .mini-grid{
+      grid-template-columns:1fr;
+    }
   }
 </style>
 
-<div class="loading" id="loading">
-  <div class="spinner" role="status" aria-label="Yükleniyor"></div>
-</div>
-
-<div class="toolbar">
-  <div>
-    <h2>Kategori Yönetimi</h2>
-    <p class="subline">
-      Ekle, düzenle, sil; <strong>pasif</strong> kategoriler listelerde gizlenir.
-    </p>
+<div class="cat-scope">
+  <div class="loading" id="loading">
+    <div class="spinner-card">
+      <div class="spinner" role="status" aria-label="Yükleniyor"></div>
+      <div>Yükleniyor...</div>
+    </div>
   </div>
 
-  <a id="backToIdentify"
-     href="{{ url_for('risk_identify') }}"
-     class="btn"
-     style="display:none">
-    ← Risk Tanımlama’ya dön
-  </a>
-</div>
-
-<div id="flash" role="status" aria-live="polite"></div>
-
-<form id="searchForm" class="searchbar" autocomplete="off">
-  <input class="input" id="q" name="q" placeholder="Ara: ad, kod, açıklama…" inputmode="search" />
-  <div style="display:flex; gap:.5rem">
-    <button class="btn" type="submit">Ara</button>
-    <button class="btn" type="button" id="clearSearch" title="Aramayı temizle">Temizle</button>
-  </div>
-</form>
-
-<div class="grid grid-2">
-
-  <!-- Sol: Yeni kategori -->
-  <div>
-    <div class="card-lite">
-      <h3 style="margin:0 0 .55rem; font-weight:900; letter-spacing:-.01em">Yeni Kategori</h3>
-
-      <!-- ✅ Create = klasik POST -->
-      <form id="createForm"
-            method="post"
-            action="{{ url_for('categories_index', next=request.args.get('next')) }}"
-            autocomplete="off">
+  <div class="cat-shell">
+    <section class="cat-hero">
+      <div class="hero-row">
         <div>
-          <label>Ad *</label>
-          <input class="input" name="name" required placeholder="Örn: DİZAYN TASARIM RİSKLERİ" maxlength="120">
+          <div class="hero-kicker">Risk Kütüphanesi</div>
+          <h2 class="hero-title">Kategori Yönetimi</h2>
+          <p class="hero-sub">Kategorileri ekle, düzenle, renklendir ve listelerde görünürlüğünü yönet.</p>
         </div>
 
-        <div class="grid grid-2" style="margin-top:.55rem">
-          <div>
-            <label>Kod</label>
-            <input class="input" name="code" placeholder="Örn: DTR" maxlength="32">
+        <div class="hero-actions">
+          <a id="backToIdentify"
+             href="{{ url_for('risk_identify') }}"
+             class="btn"
+             style="display:none">
+            Risk Tanımlama
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div id="flash" role="status" aria-live="polite"></div>
+
+    <div class="cat-grid">
+      <aside>
+        <section class="panel">
+          <div class="panel-head">
+            <h3 class="panel-title">
+              <span class="icon">+</span>
+              Yeni Kategori
+            </h3>
           </div>
 
-          <div>
-            <label>Renk</label>
-            <div style="display:flex; gap:.5rem; align-items:center">
-              <input class="input" type="color" name="color" value="#0ea371" style="width:64px; padding:0">
-              <input class="input" type="text" id="colorHex" value="#0ea371" maxlength="9" title="Hex renk kodu (#RRGGBB)">
+          <form id="createForm"
+                method="post"
+                action="{{ url_for('categories_index', next=request.args.get('next')) }}"
+                autocomplete="off">
+            <div class="field">
+              <label>Ad *</label>
+              <input class="input" name="name" required placeholder="Örn: Tasarım Riskleri" maxlength="120">
             </div>
+
+            <div class="mini-grid">
+              <div class="field">
+                <label>Kod</label>
+                <input class="input" name="code" placeholder="Örn: DTR" maxlength="32">
+              </div>
+
+              <div class="field">
+                <label>Renk</label>
+                <div class="color-row">
+                  <input class="input" type="color" name="color" value="#0ea371">
+                  <input class="input" type="text" id="colorHex" value="#0ea371" maxlength="9" title="Hex renk kodu (#RRGGBB)">
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Açıklama</label>
+              <textarea class="input" name="description" rows="2" placeholder="İsteğe bağlı" maxlength="240"></textarea>
+            </div>
+
+            <div class="actions">
+              <button class="btn btn-primary" type="submit">Ekle</button>
+            </div>
+          </form>
+        </section>
+
+        <div class="hint">
+          <strong>İpucu:</strong> Kodlar benzersiz olsun. Renkler dashboard grafiklerinde daha hızlı ayrım sağlar.
+        </div>
+      </aside>
+
+      <main>
+        <section class="searchbar">
+          <input class="input" id="q" name="q" placeholder="Ara: ad, kod, açıklama..." inputmode="search" autocomplete="off">
+          <button class="btn btn-primary" type="button" id="searchBtn">Ara</button>
+          <button class="btn" type="button" id="clearSearch" title="Aramayı temizle">Temizle</button>
+        </section>
+
+        <section class="panel table-card">
+          <div class="panel-head">
+            <h3 class="panel-title">
+              <span class="icon">☰</span>
+              Kategoriler
+            </h3>
+            <span class="badge" id="catCount">0 kayıt</span>
           </div>
-        </div>
 
-        <div style="margin-top:.55rem">
-          <label>Açıklama</label>
-          <textarea class="input" name="description" rows="2" placeholder="İsteğe bağlı" maxlength="240"></textarea>
-        </div>
-
-        <div style="margin-top:.7rem; display:flex; justify-content:flex-end; gap:.5rem">
-          <button class="btn btn-primary" type="submit">Ekle</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="hint">
-      <strong>İpucu:</strong> Kodlar benzersiz olmalı. Renkler dashboard grafiklerinde hızlı ayrım sağlar.
-    </div>
-  </div>
-
-  <!-- Sağ: Liste -->
-  <div class="card">
-    <div class="table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th style="width:56px">#</th>
-            <th>Ad</th>
-            <th style="width:120px">Kod</th>
-            <th style="width:160px">Renk</th>
-            <th>Açıklama</th>
-            <th style="width:120px">Durum</th>
-            <th style="width:240px">İşlem</th>
-          </tr>
-        </thead>
-        <tbody id="tbodyCats"></tbody>
-      </table>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width:64px">#</th>
+                  <th>Ad</th>
+                  <th style="width:120px">Kod</th>
+                  <th style="width:160px">Renk</th>
+                  <th>Açıklama</th>
+                  <th style="width:120px">Durum</th>
+                  <th style="width:230px">İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyCats"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 </div>
@@ -323,27 +794,36 @@ let CATS = [];
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
 const flashEl = $("#flash");
 const loadingEl = $("#loading");
+const catCountEl = $("#catCount");
 
-function showLoading(on=true){ loadingEl.classList.toggle('show', !!on); }
+function showLoading(on=true){
+  loadingEl.classList.toggle('show', !!on);
+}
+
 function flash(msg, type="info", dur=2400){
   flashEl.className = type;
   flashEl.textContent = msg;
   flashEl.style.display = "block";
   if(dur){ setTimeout(()=>{ flashEl.style.display="none"; }, dur); }
 }
-function normalize(s){ return (s||"").toString().trim(); }
+
+function normalize(s){
+  return (s||"").toString().trim();
+}
+
 function matchQuery(cat, q){
   if(!q) return true;
   const hay = (cat.name + " " + (cat.code||"") + " " + (cat.description||"")).toLowerCase();
   return hay.includes(q.toLowerCase());
 }
+
 function getParam(name){
   const url = new URL(window.location.href);
   return url.searchParams.get(name);
 }
+
 const shouldGoIdentify = ()=> (getParam("next")||"").toLowerCase()==="identify";
 
-/* ---- güvenli string basma (HTML inject / bozulma engeli) ---- */
 function escHtml(s){
   return (s ?? "").toString()
     .replaceAll("&","&amp;")
@@ -356,12 +836,16 @@ function escHtml(s){
 function makeColorBadge(color){
   const wrap = document.createElement("span");
   wrap.className = "swatch";
+
   const dot = document.createElement("span");
   dot.className = "swatch-dot";
   dot.style.background = color || "#ddd";
+
   const label = document.createElement("span");
   label.textContent = color || "—";
-  wrap.appendChild(dot); wrap.appendChild(label);
+
+  wrap.appendChild(dot);
+  wrap.appendChild(label);
   return wrap;
 }
 
@@ -375,7 +859,9 @@ async function loadCategories(q=""){
     const res = await fetch(url, { headers:{ "Accept":"application/json" }});
     if(!res.ok) throw new Error("Liste alınamadı");
     CATS = await res.json();
-  } finally { showLoading(false); }
+  } finally {
+    showLoading(false);
+  }
 }
 
 /* ==========================================================
@@ -391,18 +877,18 @@ async function postForm(url, fd){
       headers:{ "Accept":"text/html" }
     });
 
-    // Eğer login sayfasına yönlendirdiyse genelde URL değişir.
-    // Render / auth akışlarında bu çok olur.
     const finalUrl = (res && res.url) ? res.url.toLowerCase() : "";
     if(finalUrl.includes("login")){
-      throw new Error("Oturum düşmüş gibi görünüyor (login). Tekrar giriş yap.");
+      throw new Error("Oturum düşmüş gibi görünüyor. Tekrar giriş yap.");
     }
 
     if(!res.ok){
       throw new Error("İşlem başarısız (" + res.status + ")");
     }
     return true;
-  } finally { showLoading(false); }
+  } finally {
+    showLoading(false);
+  }
 }
 
 /* ==========================================================
@@ -420,13 +906,15 @@ function renderTable(){
     })
     .filter(c => matchQuery(c, q));
 
+  if(catCountEl){
+    catCountEl.textContent = list.length + " kayıt";
+  }
+
   if(!list.length){
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 7;
-    td.className = "small";
-    td.style.textAlign = "center";
-    td.style.padding = "1.2rem .9rem";
+    td.className = "empty-row";
     td.textContent = "Kategori bulunamadı.";
     tr.appendChild(td);
     tbody.appendChild(tr);
@@ -437,13 +925,12 @@ function renderTable(){
     const tr = document.createElement("tr");
 
     const tdId = document.createElement("td");
-    tdId.style.fontWeight="800";
+    tdId.style.fontWeight="900";
     tdId.textContent = String(c.id);
     tr.appendChild(tdId);
 
     const tdName = document.createElement("td");
-    tdName.style.fontWeight="900";
-    tdName.textContent = c.name || "";
+    tdName.innerHTML = `<div class="cat-name">${escHtml(c.name || "")}</div>`;
     tr.appendChild(tdName);
 
     const tdCode = document.createElement("td");
@@ -464,7 +951,7 @@ function renderTable(){
 
     const tdStatus = document.createElement("td");
     const statusSpan = document.createElement("span");
-    statusSpan.className = "badge " + (c.is_active ? "score-low" : "score-mid");
+    statusSpan.className = "badge " + (c.is_active ? "active" : "passive");
     statusSpan.textContent = c.is_active ? "Aktif" : "Pasif";
     tdStatus.appendChild(statusSpan);
     tr.appendChild(tdStatus);
@@ -478,13 +965,12 @@ function renderTable(){
     const inner = document.createElement("div");
     inner.className = "inner-card";
 
-    /* ---- Edit form ---- */
     const form = document.createElement("form");
-    form.className = "grid grid-2 js-edit";
+    form.className = "edit-grid js-edit";
     form.dataset.id = String(c.id);
 
     const g1 = document.createElement("div");
-    g1.style.gridColumn = "1 / -1";
+    g1.className = "full";
     g1.innerHTML = `
       <label>Ad *</label>
       <input class="input" name="name" required maxlength="120" value="${escHtml(c.name || '')}">
@@ -499,14 +985,12 @@ function renderTable(){
     const g3 = document.createElement("div");
     g3.innerHTML = `<label>Renk</label>`;
     const rowColor = document.createElement("div");
-    rowColor.style.display="flex"; rowColor.style.gap=".5rem"; rowColor.style.alignItems="center";
+    rowColor.className = "color-row";
 
     const inpColor = document.createElement("input");
     inpColor.className="input";
     inpColor.type="color";
     inpColor.name="color";
-    inpColor.style.width="64px";
-    inpColor.style.padding="0";
     inpColor.value = c.color || "#0ea371";
 
     const inpHex = document.createElement("input");
@@ -515,7 +999,8 @@ function renderTable(){
     inpHex.maxLength=9;
     inpHex.value = c.color || "#0ea371";
 
-    rowColor.appendChild(inpColor); rowColor.appendChild(inpHex);
+    rowColor.appendChild(inpColor);
+    rowColor.appendChild(inpHex);
     g3.appendChild(rowColor);
 
     inpColor.addEventListener("input", ()=>{ inpHex.value = inpColor.value; });
@@ -525,8 +1010,7 @@ function renderTable(){
     });
 
     const g4 = document.createElement("div");
-    g4.style.gridColumn="1 / -1";
-    // textarea içine güvenli bas: textContent ile set edeceğiz (innerHTML değil)
+    g4.className = "full";
     const label4 = document.createElement("label");
     label4.textContent = "Açıklama";
     const ta = document.createElement("textarea");
@@ -534,37 +1018,45 @@ function renderTable(){
     ta.name="description";
     ta.rows=2;
     ta.maxLength=240;
-    ta.textContent = c.description || ""; // ✅ en güvenlisi
+    ta.textContent = c.description || "";
     g4.appendChild(label4);
     g4.appendChild(ta);
 
     const g5 = document.createElement("div");
-    g5.style.display="flex"; g5.style.alignItems="center"; g5.style.gap=".4rem";
+    g5.style.display="flex";
+    g5.style.alignItems="center";
+    g5.style.gap="8px";
     const chk = document.createElement("input");
     chk.type="checkbox";
     chk.id="ia_"+c.id;
     chk.name="is_active";
     chk.checked=!!c.is_active;
     const lbl = document.createElement("label");
-    lbl.htmlFor=chk.id; lbl.style.margin="0"; lbl.textContent="Aktif";
-    g5.appendChild(chk); g5.appendChild(lbl);
+    lbl.htmlFor=chk.id;
+    lbl.style.margin="0";
+    lbl.textContent="Aktif";
+    g5.appendChild(chk);
+    g5.appendChild(lbl);
 
     const g6 = document.createElement("div");
-    g6.style.gridColumn="1 / -1"; g6.className="actions";
+    g6.className="actions full";
     const btnSave = document.createElement("button");
     btnSave.className="btn btn-primary";
     btnSave.type="submit";
     btnSave.textContent="Kaydet";
     g6.appendChild(btnSave);
 
-    form.appendChild(g1); form.appendChild(g2); form.appendChild(g3);
-    form.appendChild(g4); form.appendChild(g5); form.appendChild(g6);
+    form.appendChild(g1);
+    form.appendChild(g2);
+    form.appendChild(g3);
+    form.appendChild(g4);
+    form.appendChild(g5);
+    form.appendChild(g6);
 
-    /* ---- Delete form ---- */
     const delForm = document.createElement("form");
     delForm.className="js-delete actions";
     delForm.dataset.id=String(c.id);
-    delForm.style.marginTop=".55rem";
+    delForm.style.marginTop="10px";
     const btnDel = document.createElement("button");
     btnDel.className="btn btn-danger";
     btnDel.type="submit";
@@ -586,21 +1078,42 @@ function renderTable(){
    ========================================================== */
 function debounce(fn, t=250){
   let h;
-  return (...a)=>{ clearTimeout(h); h=setTimeout(()=>fn(...a), t); }
+  return (...a)=>{ clearTimeout(h); h=setTimeout(()=>fn(...a), t); };
 }
 
-$("#searchForm").addEventListener("submit", async (e)=>{
-  e.preventDefault();
-  try{ await loadCategories(normalize($("#q").value)); renderTable(); }
-  catch(err){ flash(err.message || "Kategoriler alınamadı","danger"); }
+async function runSearch(){
+  try{
+    await loadCategories(normalize($("#q").value));
+    renderTable();
+  }catch(err){
+    flash(err.message || "Kategoriler alınamadı","danger");
+  }
+}
+
+$("#searchBtn").addEventListener("click", runSearch);
+
+$("#q").addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    runSearch();
+  }
 });
+
 $("#q").addEventListener("input", debounce(async ()=>{
-  try{ await loadCategories(normalize($("#q").value)); renderTable(); }catch(_){}
+  try{
+    await loadCategories(normalize($("#q").value));
+    renderTable();
+  }catch(_){}
 }, 300));
+
 $("#clearSearch").addEventListener("click", async ()=>{
   $("#q").value="";
-  try{ await loadCategories(); renderTable(); }
-  catch(err){ flash(err.message || "Kategoriler alınamadı","danger"); }
+  try{
+    await loadCategories();
+    renderTable();
+  }catch(err){
+    flash(err.message || "Kategoriler alınamadı","danger");
+  }
 });
 
 /* ---- Create renk senkronu ---- */
@@ -629,12 +1142,13 @@ document.addEventListener("submit", async (e)=>{
     const id = Number(editForm.dataset.id);
     const fd = new FormData(editForm);
 
-    if(!normalize(fd.get("name"))){ flash("Ad zorunlu.","danger"); return; }
+    if(!normalize(fd.get("name"))){
+      flash("Ad zorunlu.","danger");
+      return;
+    }
 
-    // unchecked checkbox = formdata'da gelmez → backend false yapar; ama biz net:
     if(!fd.get("is_active")) fd.set("is_active","");
 
-    // hex input varsa color'a bas
     const hex = editForm.querySelector('input[type="text"]');
     if (hex && normalize(hex.value)) fd.set("color", hex.value);
 
@@ -696,7 +1210,9 @@ document.addEventListener("submit", async (e)=>{
   const nextParam = (url.searchParams.get("next") || "").toLowerCase();
 
   $("#q").value = qParam;
-  if (nextParam === "identify") { $("#backToIdentify").style.display = "inline-flex"; }
+  if (nextParam === "identify") {
+    $("#backToIdentify").style.display = "inline-flex";
+  }
 
   try{
     await loadCategories(qParam);
