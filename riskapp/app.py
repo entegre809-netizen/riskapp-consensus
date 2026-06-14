@@ -22,9 +22,13 @@ from collections import defaultdict
 from flask import current_app
 from flask import request, redirect, url_for, flash, current_app
 from .models import db, Risk, Comment
-from .ai_local.commenter import make_ai_risk_comment, _propose_actions
+from .ai_local.commenter import make_ai_risk_comment
 from io import BytesIO
-from .models import CostItem, CostTemplate
+try:
+    from .models import CostItem, CostTemplate
+except Exception:
+    from .models import CostItem
+    CostTemplate = None
 from flask import session
 from riskapp.models import db, Risk, Evaluation, CostItem
 
@@ -124,6 +128,10 @@ _REF_PATTERN = _re.compile(r"^R-[A-Z0-9]{2,10}-\d{4}-\d{3,6}$")
 from random import choices
 import string
 COST_CATEGORIES = ["İş Gücü", "Ekipman", "Yazılım", "Eğitim", "Hizmet", "Operasyon"]
+
+
+def _cost_template_model_ready() -> bool:
+    return CostTemplate is not None
 # Basit TTL cache (external cache yoksa bile iş görür)
 _PARETO_AI_CACHE = {}  # key -> (ts, payload)
 _CACHE_TTL_SEC = 30
@@ -358,7 +366,10 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN default_sev INTEGER"))
         changed = True
 
-    # ✅ YENİ: Excel'den gelecek açıklama ve önlem alanları
+    # ✅ YENİ: Excel'den gelecek kısa risk adı, açıklama ve önlem alanları
+    if not has_col("suggestions", "risk_title"):
+        db.session.execute(text("ALTER TABLE suggestions ADD COLUMN risk_title TEXT"))
+        changed = True
     if not has_col("suggestions", "risk_desc"):
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN risk_desc TEXT"))
         changed = True
@@ -5664,12 +5675,15 @@ def create_app():
             .all()
         )
 
-        cost_templates = (
-            CostTemplate.query
-            .filter_by(project_id=project_id)
-            .order_by(CostTemplate.id.desc())
-            .all()
-        )
+        if CostTemplate is not None:
+            cost_templates = (
+                CostTemplate.query
+                .filter_by(project_id=project_id)
+                .order_by(CostTemplate.id.desc())
+                .all()
+            )
+        else:
+            cost_templates = []
 
         # ✅ projeye ait riskleri template’e gönder (dropdown için)
         risks = (
@@ -5928,6 +5942,10 @@ def create_app():
             flash("Şablon için başlık/kategori/birim zorunlu.", "danger")
             return redirect(url_for("costs"))
 
+        if CostTemplate is None:
+            flash("CostTemplate modeli bulunamadı. models.py içinde CostTemplate sınıfını kontrol edin.", "danger")
+            return redirect(url_for("costs"))
+
         t = CostTemplate(
             project_id=project_id,
             title=title,
@@ -5952,6 +5970,14 @@ def create_app():
         if not project_id:
             flash("Aktif proje yok.", "warning")
             return redirect(url_for("dashboard"))
+
+        if CostTemplate is None:
+            flash("CostTemplate modeli bulunamadı. models.py içinde CostTemplate sınıfını kontrol edin.", "danger")
+            return redirect(url_for("costs"))
+
+        if CostTemplate is None:
+            flash("CostTemplate modeli bulunamadı. models.py içinde CostTemplate sınıfını kontrol edin.", "danger")
+            return redirect(url_for("costs"))
 
         t = CostTemplate.query.filter_by(id=tpl_id, project_id=project_id).first()
         if not t:
