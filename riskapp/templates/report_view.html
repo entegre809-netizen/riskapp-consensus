@@ -6,234 +6,831 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
-    /* ============ TEMA ============ */
+    /* ==========================================================
+       Risk Raporu — Premium / Yazdırılabilir PDF Şablonu
+       Fonksiyon kaybı yok: PDF linki, print, logo, QR, maliyet,
+       değerlendirme, AI yorumları, öneriler, imza blokları korunur.
+       ========================================================== */
+
     :root{
-      --bg:#f7f8fb; --ink:#0b1020; --muted:#5a6175;
-      --card:#ffffff; --grid:#e5e7eb; --grid-strong:#cbd5e1;
-      --brand:#0d47a1; --brand-weak:#e8f0fe;
-      --sev-veryhigh:#ffe4e6; --sev-high:#fff1b1; --sev-mid:#dff7d8; --sev-low:#eaf1fb;
-      --radius:12px;
+      --bg:#eef4ff;
+      --page:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --line-strong:#cbd5e1;
+      --soft:#f8fafc;
+      --brand:#2457e6;
+      --brand-dark:#1d4ed8;
+      --teal:#0f766e;
+      --green:#22c55e;
+      --amber:#f59e0b;
+      --orange:#fb923c;
+      --red:#ef4444;
+      --shadow:0 28px 80px rgba(15,23,42,.12);
+      --shadow-sm:0 12px 32px rgba(15,23,42,.07);
+      --radius-xl:26px;
+      --radius-lg:20px;
+      --radius-md:14px;
+
+      --sev-veryhigh:#fee2e2;
+      --sev-high:#ffedd5;
+      --sev-mid:#fef3c7;
+      --sev-low:#dcfce7;
     }
 
     @page{
-      size:A4; margin:12mm;
+      size:A4;
+      margin:12mm;
       @bottom-right{
-        content: "Sayfa " counter(page) " / " counter(pages);
-        font-size:10px; color:#475569;
+        content:"Sayfa " counter(page) " / " counter(pages);
+        font-size:10px;
+        color:#475569;
       }
     }
-    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
-    html,body{height:100%}
+    *{
+      box-sizing:border-box;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    html, body{
+      min-height:100%;
+      margin:0;
+    }
+
     body{
-      margin:0; padding:20px;
-      background:var(--bg); color:var(--ink);
-      font: 13.5px/1.5 system-ui, -apple-system, "Segoe UI", Arial, Helvetica, sans-serif;
+      padding:22px;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(191,219,254,.76), transparent 28%),
+        radial-gradient(circle at 90% 90%, rgba(153,246,228,.58), transparent 30%),
+        linear-gradient(135deg, #f8fbff 0%, #eef6ff 48%, #effffb 100%);
+      color:var(--ink);
+      font:13px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
     }
 
-    /* ============ TOOLBAR ============ */
+    a{
+      color:var(--brand);
+      text-decoration:none;
+      font-weight:800;
+    }
+
+    a:hover{
+      text-decoration:underline;
+    }
+
+    .wrap{
+      max-width:1000px;
+      margin:0 auto;
+    }
+
     .toolbar{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end;
-      margin:0 auto 12px auto; max-width:980px;
+      max-width:1000px;
+      margin:0 auto 14px;
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
     }
+
     .btn{
-      appearance:none; cursor:pointer; user-select:none;
-      padding:.55rem .9rem; border-radius:10px; border:1px solid var(--grid-strong);
-      background:#fff; color:var(--ink); text-decoration:none; font-weight:600;
-      transition:transform .04s ease, box-shadow .2s ease, background .2s ease;
-      box-shadow:0 1px 2px rgba(16,24,40,.06);
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:0 14px;
+      border-radius:14px;
+      border:1px solid rgba(15,23,42,.10);
+      background:#fff;
+      color:var(--ink);
+      box-shadow:var(--shadow-sm);
+      cursor:pointer;
+      user-select:none;
+      text-decoration:none;
+      font:inherit;
+      font-size:12px;
+      font-weight:900;
+      transition:transform .12s ease, filter .12s ease, border-color .12s ease;
     }
-    .btn:hover{ background:#f9fafb; box-shadow:0 2px 6px rgba(16,24,40,.08); }
-    .btn:active{ transform:translateY(1px); }
-    .noprint{ display:inline-flex }
 
-    /* ============ KART & GRID ============ */
-    .wrap{ max-width:980px; margin:0 auto; }
-    .card{
-      background:var(--card);
-      border:1px solid var(--grid);
-      border-radius:var(--radius);
-      padding:14px;
-      box-shadow:0 1px 2px rgba(16,24,40,.05);
-      margin-bottom:12px;
-      break-inside:avoid;
+    .btn:hover{
+      transform:translateY(-1px);
+      filter:brightness(1.02);
+      border-color:rgba(36,87,230,.28);
+      text-decoration:none;
     }
-    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-    @media (max-width:800px){ .grid2{ grid-template-columns:1fr } .grid3{ grid-template-columns:1fr } }
 
-    h1,h2,h3{ margin:0 0 10px 0 }
-    h1{ font-size:20px; letter-spacing:.2px; color:var(--brand) }
-    h2{ font-size:15px; margin-top:4px }
-    .muted{ color:var(--muted) }
+    .btn.primary{
+      background:linear-gradient(135deg, var(--brand), #3264ff);
+      color:#fff;
+      border-color:rgba(36,87,230,.28);
+      box-shadow:0 16px 34px rgba(36,87,230,.20);
+    }
 
-    /* ============ BAŞLIK KARTI ============ */
+    .report-shell{
+      overflow:hidden;
+      border-radius:30px;
+      background:var(--page);
+      border:1px solid rgba(15,23,42,.08);
+      box-shadow:var(--shadow);
+    }
+
     .hero{
-      background:linear-gradient(180deg,#ffffff 0%, #f3f6ff 100%);
-      border:1px solid var(--grid);
-      border-radius:var(--radius);
-      padding:16px 14px;
-      margin-bottom:12px;
-      box-shadow:0 1px 2px rgba(16,24,40,.05);
-      break-inside:avoid;
+      position:relative;
+      overflow:hidden;
+      padding:24px;
+      color:#fff;
+      background:
+        radial-gradient(circle at 15% 8%, rgba(255,255,255,.24), transparent 25%),
+        radial-gradient(circle at 90% 86%, rgba(20,184,166,.32), transparent 31%),
+        linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
     }
+
+    .hero::after{
+      content:"";
+      position:absolute;
+      width:300px;
+      height:300px;
+      right:-145px;
+      bottom:-160px;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+    }
+
     .hero-top{
-      display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center;
+      position:relative;
+      z-index:1;
+      display:grid;
+      grid-template-columns:auto minmax(0,1fr) auto;
+      gap:16px;
+      align-items:center;
     }
+
     .logo{
-      width:44px; height:44px; border-radius:10px; border:1px solid var(--grid-strong);
-      background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden;
+      width:58px;
+      height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border-radius:20px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.22);
+      box-shadow:0 18px 42px rgba(0,0,0,.14);
     }
-    .logo img{ width:100%; height:100%; object-fit:contain; }
-    .logo-fallback{ font-weight:900; color:#1e293b; font-size:12px; letter-spacing:1px; }
-    .company{ display:flex; flex-direction:column; gap:2px; }
-    .company h1{ margin:0; font-size:18px; color:var(--brand); }
-    .company small{ color:var(--muted); }
+
+    .logo img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      background:#fff;
+    }
+
+    .logo-fallback{
+      color:#fff;
+      font-size:12px;
+      font-weight:950;
+      letter-spacing:.12em;
+    }
+
+    .company{
+      min-width:0;
+    }
+
+    .kicker{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      height:30px;
+      padding:0 11px;
+      border-radius:999px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.18);
+      color:rgba(255,255,255,.86);
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      margin-bottom:9px;
+    }
+
+    .company h1{
+      margin:0;
+      color:#fff;
+      font-size:clamp(22px, 3vw, 34px);
+      line-height:1.05;
+      letter-spacing:-.045em;
+      font-weight:950;
+    }
+
+    .company small{
+      display:block;
+      margin-top:5px;
+      color:rgba(255,255,255,.74);
+      font-size:12px;
+      font-weight:650;
+    }
 
     .qr{
-      display:flex; align-items:center; gap:8px;
-      border:1px dashed var(--grid); border-radius:10px; padding:6px 8px; background:#fff;
+      min-width:170px;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      padding:9px;
+      border-radius:18px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.18);
+      backdrop-filter:blur(12px);
     }
-    .qr img{ width:72px; height:72px; object-fit:contain; border-radius:6px; }
-    .qr span{ font-size:11px; color:#334155; }
 
-    .hero-meta{ display:flex; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:12px; margin-top:6px }
-    .chip{ display:inline-flex; align-items:center; gap:6px; padding:2px 10px; background:var(--brand-weak);
-           color:#1a237e; border:1px solid #c7d2fe; border-radius:999px; font-weight:600; }
+    .qr img{
+      width:76px;
+      height:76px;
+      object-fit:contain;
+      border-radius:12px;
+      background:#fff;
+    }
 
-    /* ============ TABLO ============ */
-    table{ width:100%; border-collapse:separate; border-spacing:0; }
-    th,td{ border:1px solid var(--grid); padding:8px 9px; vertical-align:top; }
-    th{ background:#f6f8ff; text-align:left; font-weight:700 }
-    .kv th{ width:34% } /* key-value tabloları için */
-    .center{text-align:center}
+    .qr span{
+      color:rgba(255,255,255,.78);
+      font-size:11px;
+      line-height:1.35;
+      font-weight:800;
+    }
+
+    .hero-meta{
+      position:relative;
+      z-index:1;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+
+    .chip{
+      min-height:30px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      padding:0 11px;
+      border-radius:999px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .content{
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .card{
+      break-inside:avoid;
+      border-radius:var(--radius-xl);
+      border:1px solid var(--line);
+      background:#fff;
+      box-shadow:var(--shadow-sm);
+      padding:16px;
+    }
+
+    .card h2{
+      margin:0 0 12px;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      color:var(--ink);
+      font-size:15px;
+      font-weight:950;
+      letter-spacing:-.02em;
+    }
+
+    .card h2::before{
+      content:"";
+      width:9px;
+      height:9px;
+      border-radius:999px;
+      background:var(--brand);
+      box-shadow:0 0 0 5px rgba(36,87,230,.10);
+      flex:0 0 auto;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:12px;
+    }
+
+    @media (max-width:800px){
+      .grid2,
+      .grid3{
+        grid-template-columns:1fr;
+      }
+
+      .hero-top{
+        grid-template-columns:1fr;
+      }
+
+      .qr{
+        width:100%;
+      }
+    }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius:16px;
+      border:1px solid var(--line);
+    }
+
+    th,
+    td{
+      padding:9px 10px;
+      border-bottom:1px solid var(--line);
+      border-right:1px solid var(--line);
+      vertical-align:top;
+      color:var(--ink);
+      font-size:12.5px;
+    }
+
+    tr:last-child th,
+    tr:last-child td{
+      border-bottom:0;
+    }
+
+    th:last-child,
+    td:last-child{
+      border-right:0;
+    }
+
+    th{
+      background:#f8fbff;
+      color:#334155;
+      text-align:left;
+      font-weight:900;
+    }
+
+    thead th{
+      color:#64748b;
+      font-size:10px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      background:#f6f8ff;
+    }
+
+    .kv th{
+      width:34%;
+      color:#64748b;
+      font-size:11px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .center{
+      text-align:center;
+    }
+
+    .muted{
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .mono{
+      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .pre{
+      white-space:pre-wrap;
+      line-height:1.55;
+    }
 
     .tag{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:2px 10px; border-radius:999px; border:1px solid var(--grid-strong);
-      background:#fff; font-size:12px; font-weight:700; white-space:nowrap;
+      min-height:28px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid var(--line-strong);
+      background:#fff;
+      color:var(--ink);
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
     }
-    .sev-veryhigh{ background:var(--sev-veryhigh); border-color:#fecaca; }
-    .sev-high{ background:var(--sev-high); border-color:#fde68a; }
-    .sev-mid{ background:var(--sev-mid); border-color:#bbf7d0; }
-    .sev-low{ background:var(--sev-low); border-color:#bfdbfe; }
 
-    /* ============ KUTU & MONO ============ */
-    .mono{ font-family:Consolas, Monaco, "Courier New", monospace }
-    .pre{ white-space:pre-wrap }
+    .sev-veryhigh{
+      background:var(--sev-veryhigh);
+      border-color:#fecaca;
+      color:#991b1b;
+    }
 
-    /* ============ AI BOX ============ */
+    .sev-high{
+      background:var(--sev-high);
+      border-color:#fed7aa;
+      color:#9a3412;
+    }
+
+    .sev-mid{
+      background:var(--sev-mid);
+      border-color:#fde68a;
+      color:#854d0e;
+    }
+
+    .sev-low{
+      background:var(--sev-low);
+      border-color:#bbf7d0;
+      color:#166534;
+    }
+
+    .cost-summary{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin:4px 0 12px;
+    }
+
+    .cost-pill{
+      min-height:36px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:0 13px;
+      border-radius:999px;
+      background:rgba(36,87,230,.08);
+      border:1px solid rgba(36,87,230,.16);
+      color:var(--brand);
+      font-size:12px;
+      font-weight:950;
+      white-space:nowrap;
+    }
+
+    .text-box{
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      padding:13px;
+      color:var(--ink);
+      font-weight:650;
+    }
+
     .ai-box{
-      margin-top:8px; border:1px dashed var(--grid); border-radius:10px;
-      padding:10px; background:#fcfdff;
+      margin-top:4px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
     }
-    .ai-box h3{ font-size:14px; margin:0 0 6px 0 }
 
-    /* ============ İMZA ============ */
+    .ai-box details{
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      overflow:hidden;
+    }
+
+    .ai-box summary{
+      cursor:pointer;
+      list-style:none;
+      padding:12px 13px;
+      color:var(--ink);
+      font-size:12px;
+      font-weight:950;
+    }
+
+    .ai-box summary::-webkit-details-marker{
+      display:none;
+    }
+
+    .ai-box pre{
+      margin:0;
+      padding:0 13px 13px;
+      color:#334155;
+      font-size:11.5px;
+      white-space:pre-wrap;
+    }
+
     .sign{
-      display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:12px;
     }
-    .sign-card{
-      border:1px solid var(--grid); border-radius:10px; padding:10px; background:#fff;
-      min-height:120px; display:flex; flex-direction:column; justify-content:space-between;
-    }
-    .sign-row{ display:flex; justify-content:space-between; gap:8px; }
-    .line{ border-bottom:1px dashed var(--grid-strong); height:20px; }
-    .label{ font-size:11px; color:#475569; }
 
-    /* ============ YAZDIRMA ============ */
+    .sign-card{
+      min-height:128px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      padding:12px;
+    }
+
+    .sign-row{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .line{
+      height:24px;
+      border-bottom:1px dashed var(--line-strong);
+      margin:7px 0;
+    }
+
+    .label{
+      color:#475569;
+      font-size:11px;
+      font-weight:750;
+    }
+
+    .label strong{
+      color:var(--ink);
+    }
+
+    @media (max-width:800px){
+      .sign{
+        grid-template-columns:1fr;
+      }
+    }
+
     @media print{
-      body{ background:#fff; padding:0 }
-      .wrap{ max-width:unset; margin:0 12mm }
-      .card, .hero{ box-shadow:none; }
-      table, tr{ break-inside:avoid; }
-      .noprint{ display:none !important }
+      body{
+        background:#fff;
+        padding:0;
+      }
+
+      .wrap{
+        max-width:unset;
+        margin:0;
+      }
+
+      .report-shell{
+        border:0;
+        border-radius:0;
+        box-shadow:none;
+      }
+
+      .content{
+        padding:0;
+        gap:10px;
+      }
+
+      .card,
+      .hero{
+        box-shadow:none;
+        border-radius:12px;
+      }
+
+      .hero{
+        margin-bottom:10px;
+      }
+
+      table,
+      tr,
+      .card,
+      .sign-card{
+        break-inside:avoid;
+      }
+
+      .noprint{
+        display:none !important;
+      }
     }
   </style>
 </head>
-<body>
 
-  <!-- ÜST ARAÇ ÇUBUĞU -->
+<body>
   <div class="toolbar noprint">
     {% if r is defined and r %}
-      <a class="btn" href="/risks/{{ r.id }}/report.pdf" target="_blank" rel="noopener">⬇️ PDF İndir</a>
+      <a class="btn primary" href="/risks/{{ r.id }}/report.pdf" target="_blank" rel="noopener">PDF İndir</a>
     {% endif %}
-    <button class="btn" id="btnPrintTop" type="button">🖨️ Yazdır / PDF Kaydet</button>
+    <button class="btn" id="btnPrintTop" type="button">Yazdır / PDF Kaydet</button>
   </div>
 
   <div class="wrap">
+    <div class="report-shell">
 
-    <!-- BAŞLIK + ŞİRKET + QR -->
-    <section class="hero" role="region" aria-label="Rapor başlığı">
-      <div class="hero-top">
-        <div class="logo" aria-hidden="{{ 'false' if (company_logo_b64 or logo_b64) else 'true' }}">
-          {% set _logo_b64 = company_logo_b64 or logo_b64 %}
-          {% if _logo_b64 %}
-            <img src="data:image/png;base64,{{ _logo_b64 }}" alt="Logo">
+      <section class="hero" role="region" aria-label="Rapor başlığı">
+        <div class="hero-top">
+          <div class="logo" aria-hidden="{{ 'false' if (company_logo_b64 or logo_b64) else 'true' }}">
+            {% set _logo_b64 = company_logo_b64 or logo_b64 %}
+            {% if _logo_b64 %}
+              <img src="data:image/png;base64,{{ _logo_b64 }}" alt="Logo">
+            {% else %}
+              <div class="logo-fallback">LOGO</div>
+            {% endif %}
+          </div>
+
+          <div class="company">
+            <div class="kicker">Risk Raporu</div>
+            <h1>{{ company_name or 'Risk Raporu' }}</h1>
+            {% if company_address %}<small>{{ company_address }}</small>{% endif %}
+            <small>
+              Rapor Tarihi:
+              {{ (r.updated_at or r.created_at).strftime("%Y-%m-%d %H:%M") if (r.updated_at or r.created_at) else "-" }}
+            </small>
+            <small>
+              Kimlik: <strong>#{{ r.id }}</strong> · Başlık: <strong>{{ r.title or "-" }}</strong>
+            </small>
+          </div>
+
+          <div class="qr" aria-hidden="{{ 'false' if report_qr_b64 else 'true' }}">
+            {% if report_qr_b64 %}
+              <img src="data:image/png;base64,{{ report_qr_b64 }}" alt="QR Code">
+            {% else %}
+              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAA" alt="QR" style="opacity:.15">
+            {% endif %}
+            <span>{{ report_qr_caption or 'Doğrulama / Rapor Linki' }}</span>
+          </div>
+        </div>
+
+        <div class="hero-meta">
+          {% if r.project_id %}<span class="chip">Proje ID: {{ r.project_id }}</span>{% endif %}
+          <span class="chip">Risk ID: #{{ r.id }}</span>
+          {% if r.category %}<span class="chip">{{ r.category }}</span>{% endif %}
+        </div>
+      </section>
+
+      <main class="content">
+        <section class="card" role="region" aria-label="Özet bilgiler">
+          <h2>Özet Bilgiler</h2>
+          <div class="grid2">
+            <div>
+              <table class="kv">
+                <tr><th>ID</th><td>{{ r.id }}</td></tr>
+                <tr><th>Başlık</th><td>{{ r.title or "-" }}</td></tr>
+                <tr><th>Kategori</th><td>{{ r.category or "-" }}</td></tr>
+                <tr><th>Durum</th><td>{{ r.status or "-" }}</td></tr>
+                <tr><th>Tip</th><td>{{ r.risk_type or "-" }}</td></tr>
+                <tr><th>Sorumlu</th><td>{{ r.responsible or "-" }}</td></tr>
+                <tr>
+                  <th>Risk Kodu</th>
+                  <td>
+                    {% if r is not none and r.__dict__.get('risk_code') %}
+                      {{ r.risk_code or "—" }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <div>
+              <table class="kv">
+                <tr><th>Süre</th><td>{{ r.duration or "-" }}</td></tr>
+                <tr><th>Başlangıç</th><td>{{ r.start_month or "-" }}</td></tr>
+                <tr><th>Bitiş</th><td>{{ r.end_month or "-" }}</td></tr>
+                <tr><th>Oluşturma</th><td>{{ r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "-" }}</td></tr>
+                <tr><th>Güncelleme</th><td>{{ r.updated_at.strftime("%Y-%m-%d %H:%M") if r.updated_at else "-" }}</td></tr>
+                <tr>
+                  <th>Risk Seviyesi</th>
+                  <td>
+                    {% set _g = r.grade() or '' %}
+                    {% if _g == 'critical' %}
+                      <span class="tag sev-veryhigh">Çok Yüksek</span>
+                    {% elif _g == 'moderate' %}
+                      <span class="tag sev-high">Yüksek</span>
+                    {% elif _g == 'low' %}
+                      <span class="tag sev-mid">Orta</span>
+                    {% elif _g == 'acceptable' %}
+                      <span class="tag sev-low">Düşük</span>
+                    {% else %}
+                      <span class="tag">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" role="region" aria-label="Maliyetler">
+          <h2>Maliyetler</h2>
+
+          {% set _totals = (cost_totals if cost_totals is defined and cost_totals else []) %}
+          {% set _items  = (cost_items  if cost_items  is defined and cost_items  else []) %}
+
+          {% if _totals and _totals|length > 0 %}
+            <div class="cost-summary">
+              {% for cur, total in _totals %}
+                <span class="cost-pill">{{ cur or "TRY" }}: {{ "%.2f"|format(total or 0) }}</span>
+              {% endfor %}
+            </div>
           {% else %}
-            <div class="logo-fallback">LOGO</div>
+            <div class="muted">Bu risk için kayıtlı maliyet kalemi yok.</div>
           {% endif %}
-        </div>
 
-        <div class="company">
-          <h1>{{ company_name or 'Risk Raporu' }}</h1>
-          {% if company_address %}<small>{{ company_address }}</small>{% endif %}
-          <small class="muted">
-            Rapor Tarihi:
-            {{ (r.updated_at or r.created_at).strftime("%Y-%m-%d %H:%M") if (r.updated_at or r.created_at) else "-" }}
-          </small>
-          <small class="muted">
-            Kimlik: <strong>#{{ r.id }}</strong> · Başlık: <strong>{{ r.title or "-" }}</strong>
-          </small>
-        </div>
+          {% if _items and _items|length > 0 %}
+            <table>
+              <thead>
+                <tr>
+                  <th>Kalem</th>
+                  <th>Kategori</th>
+                  <th class="center">Miktar</th>
+                  <th class="center">Birim</th>
+                  <th class="center">Birim Fiyat</th>
+                  <th class="center">Toplam</th>
+                  <th>Periyot</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in _items %}
+                  <tr>
+                    <td>{{ c.title or "-" }}</td>
+                    <td>{{ c.category or "-" }}</td>
+                    <td class="center">{{ "%.2f"|format(c.qty or 0) }}</td>
+                    <td class="center">{{ c.unit or "-" }}</td>
+                    <td class="center">{{ "%.2f"|format(c.unit_price or 0) }} {{ c.currency or "TRY" }}</td>
+                    <td class="center mono"><strong>{{ "%.2f"|format(c.total or 0) }} {{ c.currency or "TRY" }}</strong></td>
+                    <td>{{ c.frequency or "-" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+        </section>
 
-        <div class="qr" aria-hidden="{{ 'false' if report_qr_b64 else 'true' }}">
-          {% if report_qr_b64 %}
-            <img src="data:image/png;base64,{{ report_qr_b64 }}" alt="QR Code">
+        <section class="card" role="region" aria-label="Açıklama">
+          <h2>Açıklama</h2>
+          <div class="text-box">{{ r.description or "-" }}</div>
+        </section>
+
+        <section class="card" role="region" aria-label="Mevcut önlemler">
+          <h2>Mevcut Önlemler / Mitigation</h2>
+          <div class="text-box pre">{{ r.mitigation or "-" }}</div>
+        </section>
+
+        <section class="card" role="region" aria-label="Değerlendirmeler">
+          <h2>Değerlendirmeler</h2>
+          {% if r.evaluations %}
+            <table>
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Değerlendiren</th>
+                  <th class="center">P</th>
+                  <th class="center">Ş</th>
+                  <th class="center">D</th>
+                  <th class="center">RPN</th>
+                  <th>Yorum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for e in r.evaluations|sort(attribute='created_at') %}
+                  <tr>
+                    <td>{{ e.created_at.strftime("%Y-%m-%d %H:%M") if e.created_at else "-" }}</td>
+                    <td>{{ e.evaluator or "-" }}</td>
+                    <td class="center">{{ e.probability or "-" }}</td>
+                    <td class="center">{{ e.severity or "-" }}</td>
+                    <td class="center">{{ e.detection or "-" }}</td>
+                    <td class="mono center">
+                      {% if e.probability and e.severity %}
+                        {% if e.detection %}
+                          {{ e.probability * e.severity * e.detection }}
+                        {% else %}
+                          {{ e.probability * e.severity }}
+                        {% endif %}
+                      {% else %}-{% endif %}
+                    </td>
+                    <td class="pre">{{ e.comment or "-" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           {% else %}
-            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAA" alt="QR" style="opacity:.15">
+            <div class="muted">Henüz değerlendirme yok.</div>
           {% endif %}
-          <span>{{ report_qr_caption or 'Doğrulama / Rapor Linki' }}</span>
-        </div>
-      </div>
+        </section>
 
-      <div class="hero-meta">
-        {% if r.project_id %}<span class="chip">Proje ID: {{ r.project_id }}</span>{% endif %}
-      </div>
-    </section>
-
-    <!-- ÖZET BİLGİLER -->
-    <section class="card" role="region" aria-label="Özet bilgiler">
-      <h2>Özet Bilgiler</h2>
-      <div class="grid2">
-        <div>
+        <section class="card" role="region" aria-label="Ortalama değerler">
+          <h2>Ortalama P/Ş ve RPN</h2>
           <table class="kv">
-            <tr><th>ID</th><td>{{ r.id }}</td></tr>
-            <tr><th>Başlık</th><td>{{ r.title or "-" }}</td></tr>
-            <tr><th>Kategori</th><td>{{ r.category or "-" }}</td></tr>
-            <tr><th>Durum</th><td>{{ r.status or "-" }}</td></tr>
-            <tr><th>Tip</th><td>{{ r.risk_type or "-" }}</td></tr>
-            <tr><th>Sorumlu</th><td>{{ r.responsible or "-" }}</td></tr>
-            <tr><th>Risk Kodu</th>
-              <td>
-                {% if r is not none and r.__dict__.get('risk_code') %}
-                  {{ r.risk_code or "—" }}
-                {% else %}
-                  —
-                {% endif %}
-              </td>
-            </tr>
-          </table>
-        </div>
-        <div>
-          <table class="kv">
-            <tr><th>Süre</th><td>{{ r.duration or "-" }}</td></tr>
-            <tr><th>Başlangıç</th><td>{{ r.start_month or "-" }}</td></tr>
-            <tr><th>Bitiş</th><td>{{ r.end_month or "-" }}</td></tr>
-            <tr><th>Oluşturma</th><td>{{ r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "-" }}</td></tr>
-            <tr><th>Güncelleme</th><td>{{ r.updated_at.strftime("%Y-%m-%d %H:%M") if r.updated_at else "-" }}</td></tr>
+            <tr><th>Avg P</th><td>{{ "%.2f"|format(r.avg_prob()) if r.avg_prob() is not none else "-" }}</td></tr>
+            <tr><th>Avg Ş</th><td>{{ "%.2f"|format(r.avg_sev())  if r.avg_sev()  is not none else "-" }}</td></tr>
+            <tr><th>Avg RPN</th><td>{{ "%.2f"|format(r.avg_rpn()) if r.avg_rpn() is not none else "-" }}</td></tr>
             <tr>
-              <th>Risk Seviyesi</th>
+              <th>Genel Seviye</th>
               <td>
                 {% set _g = r.grade() or '' %}
                 {% if _g == 'critical' %}
@@ -250,262 +847,132 @@
               </td>
             </tr>
           </table>
-        </div>
-      </div>
-    </section>
+        </section>
 
-    <!-- ✅✅ MALİYETLER (EKLENDİ) -->
-    <section class="card" role="region" aria-label="Maliyetler">
-      <h2>Maliyetler</h2>
+        {% set all_ai = (
+          r.comments
+          |selectattr('is_system')
+          |sort(attribute='created_at', reverse=True)
+          |list
+        ) if r and r.comments else [] %}
+        {% if only_last_system %}
+          {% set ai_comments = [all_ai[0]] if all_ai else [] %}
+        {% else %}
+          {% set ai_comments = all_ai %}
+        {% endif %}
 
-      {% set _totals = (cost_totals if cost_totals is defined and cost_totals else []) %}
-      {% set _items  = (cost_items  if cost_items  is defined and cost_items  else []) %}
+        {% if ai_comments %}
+          <section class="card" role="region" aria-label="Yapay zekâ değerlendirmeleri">
+            <h2>Yapay Zekâ Değerlendirmesi{% if only_last_system %} — Son Sistem Yorumu{% endif %}</h2>
+            <div class="ai-box">
+              {% for c in ai_comments %}
+                <details {{ 'open' if loop.first else '' }}>
+                  <summary>{{ c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else '—' }}</summary>
+                  <pre class="pre mono">{{ c.text }}</pre>
+                </details>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
 
-      {% if _totals and _totals|length > 0 %}
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 10px">
-          {% for cur, total in _totals %}
-            <span class="tag">{{ cur or "TRY" }}: {{ "%.2f"|format(total or 0) }}</span>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="muted">Bu risk için kayıtlı maliyet kalemi yok.</div>
-      {% endif %}
+        <section class="card" role="region" aria-label="Benzer öneri şablonları">
+          <h2>Benzer Öneri Şablonları</h2>
+          {% set sugg = (suggestions if suggestions is defined and suggestions else []) %}
 
-      {% if _items and _items|length > 0 %}
-        <table style="margin-top:10px">
-          <thead>
-            <tr>
-              <th>Kalem</th>
-              <th>Kategori</th>
-              <th class="center">Miktar</th>
-              <th class="center">Birim</th>
-              <th class="center">Birim Fiyat</th>
-              <th class="center">Toplam</th>
-              <th>Periyot</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for c in _items %}
-              <tr>
-                <td>{{ c.title or "-" }}</td>
-                <td>{{ c.category or "-" }}</td>
-                <td class="center">{{ "%.2f"|format(c.qty or 0) }}</td>
-                <td class="center">{{ c.unit or "-" }}</td>
-                <td class="center">{{ "%.2f"|format(c.unit_price or 0) }} {{ c.currency or "TRY" }}</td>
-                <td class="center mono">{{ "%.2f"|format(c.total or 0) }} {{ c.currency or "TRY" }}</td>
-                <td>{{ c.frequency or "-" }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% endif %}
-    </section>
+          {% if sugg %}
+            <table>
+              <thead>
+                <tr>
+                  <th>Kod</th>
+                  <th>Metin</th>
+                  <th class="center">Vars. P</th>
+                  <th class="center">Vars. Ş</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in sugg %}
+                  <tr>
+                    <td class="mono">{{ s.risk_code or "-" }}</td>
+                    <td>{{ s.text }}</td>
+                    <td class="center">{{ s.default_prob or "-" }}</td>
+                    <td class="center">{{ s.default_sev or "-" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="muted">Bu kategori için öneri şablonu bulunamadı.</div>
+          {% endif %}
+        </section>
 
-    <!-- AÇIKLAMA -->
-    <section class="card" role="region" aria-label="Açıklama">
-      <h2>Açıklama</h2>
-      <div>{{ r.description or "-" }}</div>
-    </section>
+        <section class="card" role="region" aria-label="İmza">
+          <h2>İmza</h2>
+          <div class="sign">
+            {% set p = sign.prepared_by if sign and sign.get('prepared_by') else {} %}
+            {% set rvw = sign.reviewed_by if sign and sign.get('reviewed_by') else {} %}
+            {% set ap = sign.approved_by if sign and sign.get('approved_by') else {} %}
 
-    <!-- MEVCUT ÖNLEMLER -->
-    <section class="card" role="region" aria-label="Mevcut önlemler">
-      <h2>Mevcut Önlemler / Mitigation</h2>
-      <div class="pre">{{ r.mitigation or "-" }}</div>
-    </section>
+            <div class="sign-card">
+              <div>
+                <div class="label"><strong>Güncelleme</strong></div>
+                <div class="line"></div>
+                <div class="label">{{ p.get('name','') }} {{ p.get('title','') }}</div>
+              </div>
+              <div class="sign-row">
+                <div class="label">Tarih: {{ p.get('date','') }}</div>
+                <div class="label">İmza: ____________</div>
+              </div>
+            </div>
 
-    <!-- DEĞERLENDİRMELER -->
-    <section class="card" role="region" aria-label="Değerlendirmeler">
-      <h2>Değerlendirmeler (P, Ş, D, Yorum)</h2>
-      {% if r.evaluations %}
-        <table>
-          <thead>
-          <tr>
-            <th>Tarih</th>
-            <th>Değerlendiren</th>
-            <th class="center">Olasılık (P)</th>
-            <th class="center">Şiddet (Ş)</th>
-            <th class="center">Detection (D)</th>
-            <th class="center">RPN</th>
-            <th>Yorum</th>
-          </tr>
-          </thead>
-          <tbody>
-          {% for e in r.evaluations|sort(attribute='created_at') %}
-            <tr>
-              <td>{{ e.created_at.strftime("%Y-%m-%d %H:%M") if e.created_at else "-" }}</td>
-              <td>{{ e.evaluator or "-" }}</td>
-              <td class="center">{{ e.probability or "-" }}</td>
-              <td class="center">{{ e.severity or "-" }}</td>
-              <td class="center">{{ e.detection or "-" }}</td>
-              <td class="mono center">
-                {% if e.probability and e.severity %}
-                  {% if e.detection %}
-                    {{ e.probability * e.severity * e.detection }}
-                  {% else %}
-                    {{ e.probability * e.severity }}
-                  {% endif %}
-                {% else %}-{% endif %}
-              </td>
-              <td class="pre">{{ e.comment or "-" }}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="muted">Henüz değerlendirme yok.</div>
-      {% endif %}
-    </section>
+            <div class="sign-card">
+              <div>
+                <div class="label"><strong>Gözden Geçiren</strong></div>
+                <div class="line"></div>
+                <div class="label">{{ rvw.get('name','') }} {{ rvw.get('title','') }}</div>
+              </div>
+              <div class="sign-row">
+                <div class="label">Tarih: {{ rvw.get('date','') }}</div>
+                <div class="label">İmza: ____________</div>
+              </div>
+            </div>
 
-    <!-- ORTALAMALAR -->
-    <section class="card" role="region" aria-label="Ortalama değerler">
-      <h2>Ortalama P/Ş ve RPN</h2>
-      <table class="kv">
-        <tr><th>Avg P</th><td>{{ "%.2f"|format(r.avg_prob()) if r.avg_prob() is not none else "-" }}</td></tr>
-        <tr><th>Avg Ş</th><td>{{ "%.2f"|format(r.avg_sev())  if r.avg_sev()  is not none else "-" }}</td></tr>
-        <tr><th>Avg RPN</th><td>{{ "%.2f"|format(r.avg_rpn()) if r.avg_rpn() is not none else "-" }}</td></tr>
-        <tr>
-          <th>Genel Seviye</th>
-          <td>
-            {% set _g = r.grade() or '' %}
-            {% if _g == 'critical' %}
-              <span class="tag sev-veryhigh">Çok Yüksek</span>
-            {% elif _g == 'moderate' %}
-              <span class="tag sev-high">Yüksek</span>
-            {% elif _g == 'low' %}
-              <span class="tag sev-mid">Orta</span>
-            {% elif _g == 'acceptable' %}
-              <span class="tag sev-low">Düşük</span>
-            {% else %}
-              <span class="tag">—</span>
-            {% endif %}
-          </td>
-        </tr>
-      </table>
-    </section>
-
-    <!-- AI (Sistem) Yorumları — İsteğe bağlı son yorum filtresi -->
-    {% set all_ai = (
-      r.comments
-      |selectattr('is_system')
-      |sort(attribute='created_at', reverse=True)
-      |list
-    ) if r and r.comments else [] %}
-    {% if only_last_system %}
-      {% set ai_comments = [all_ai[0]] if all_ai else [] %}
-    {% else %}
-      {% set ai_comments = all_ai %}
-    {% endif %}
-
-    {% if ai_comments %}
-      <section class="card" role="region" aria-label="Yapay zekâ değerlendirmeleri">
-        <h2>🤖 Yapay Zekâ Değerlendirmesi (Özetler){% if only_last_system %} — Son Sistem Yorumu{% endif %}</h2>
-        <div class="ai-box">
-          {% for c in ai_comments %}
-            <details {{ 'open' if loop.first else '' }} style="margin:.35rem 0">
-              <summary style="cursor:pointer;font-weight:800">
-                {{ c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else '—' }}
-              </summary>
-              <pre class="pre mono" style="margin:8px 0 0">{{ c.text }}</pre>
-            </details>
-          {% endfor %}
-        </div>
-      </section>
-    {% endif %}
-
-    <!-- BENZER ÖNERİ ŞABLONLARI -->
-    <section class="card" role="region" aria-label="Benzer öneri şablonları">
-      <h2>Benzer Öneri Şablonları (Kategori: {{ r.category or "-" }})</h2>
-      {% set sugg = (suggestions if suggestions is defined and suggestions else []) %}
-
-      {% if sugg %}
-        <table>
-          <thead>
-          <tr>
-            <th>Kod</th>
-            <th>Metin</th>
-            <th class="center">Vars. P</th>
-            <th class="center">Vars. Ş</th>
-          </tr>
-          </thead>
-          <tbody>
-          {% for s in sugg %}
-            <tr>
-              <td class="mono">{{ s.risk_code or "-" }}</td>
-              <td>{{ s.text }}</td>
-              <td class="center">{{ s.default_prob or "-" }}</td>
-              <td class="center">{{ s.default_sev or "-" }}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="muted">Bu kategori için öneri şablonu bulunamadı.</div>
-      {% endif %}
-    </section>
-
-    <!-- İMZA BLOĞU -->
-    <section class="card" role="region" aria-label="İmza">
-      <h2>İmza</h2>
-      <div class="sign">
-        {% set p = sign.prepared_by if sign and sign.get('prepared_by') else {} %}
-        {% set rvw = sign.reviewed_by if sign and sign.get('reviewed_by') else {} %}
-        {% set ap = sign.approved_by if sign and sign.get('approved_by') else {} %}
-
-        <div class="sign-card">
-          <div>
-            <div class="label">Güncelleme</div>
-            <div class="line"></div>
-            <div class="label">{{ p.get('name','') }} {{ p.get('title','') }}</div>
+            <div class="sign-card">
+              <div>
+                <div class="label"><strong>Onaylayan</strong></div>
+                <div class="line"></div>
+                <div class="label">{{ ap.get('name','') }} {{ ap.get('title','') }}</div>
+              </div>
+              <div class="sign-row">
+                <div class="label">Tarih: {{ ap.get('date','') }}</div>
+                <div class="label">İmza: ____________</div>
+              </div>
+            </div>
           </div>
-          <div class="sign-row">
-            <div class="label">Tarih: {{ p.get('date','') }}</div>
-            <div class="label">İmza: ____________</div>
-          </div>
-        </div>
+        </section>
 
-        <div class="sign-card">
-          <div>
-            <div class="label">Gözden Geçiren</div>
-            <div class="line"></div>
-            <div class="label">{{ rvw.get('name','') }} {{ rvw.get('title','') }}</div>
-          </div>
-          <div class="sign-row">
-            <div class="label">Tarih: {{ rvw.get('date','') }}</div>
-            <div class="label">İmza: ____________</div>
-          </div>
+        <div class="toolbar noprint" style="margin:0; max-width:unset;">
+          {% if r is defined and r %}
+            <a class="btn primary" href="/risks/{{ r.id }}/report.pdf" target="_blank" rel="noopener">PDF İndir</a>
+          {% endif %}
+          <button class="btn" id="btnPrintBottom" type="button">Yazdır / PDF Kaydet</button>
         </div>
-
-        <div class="sign-card">
-          <div>
-            <div class="label">Onaylayan</div>
-            <div class="line"></div>
-            <div class="label">{{ ap.get('name','') }} {{ ap.get('title','') }}</div>
-          </div>
-          <div class="sign-row">
-            <div class="label">Tarih: {{ ap.get('date','') }}</div>
-            <div class="label">İmza: ____________</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ALT ARAÇ ÇUBUĞU -->
-    <div class="toolbar noprint" style="margin-top:12px">
-      {% if r is defined and r %}
-        <a class="btn" href="/risks/{{ r.id }}/report.pdf" target="_blank" rel="noopener">⬇️ PDF İndir</a>
-      {% endif %}
-      <button class="btn" id="btnPrintBottom" type="button">🖨️ Yazdır / PDF Kaydet</button>
+      </main>
     </div>
-
   </div>
 
-  <!-- Yazdırma JS -->
   <script>
     (function(){
       function openAllDetails(){
-        try{ document.querySelectorAll('details').forEach(d=>d.setAttribute('open','open')); }catch(e){}
+        try{
+          document.querySelectorAll('details').forEach(d => d.setAttribute('open','open'));
+        }catch(e){}
       }
-      function doPrint(){ openAllDetails(); setTimeout(()=>window.print(), 50); }
+
+      function doPrint(){
+        openAllDetails();
+        setTimeout(() => window.print(), 50);
+      }
+
       document.getElementById('btnPrintTop')?.addEventListener('click', doPrint);
       document.getElementById('btnPrintBottom')?.addEventListener('click', doPrint);
     })();
