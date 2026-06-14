@@ -3,1045 +3,1214 @@
 {% block content %}
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
   .dash-scope{
-    font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
+    --bg:#f6f8fc;
+    --card:#ffffff;
+    --text:#0f172a;
+    --muted:#64748b;
+    --line:rgba(15,23,42,.08);
+    --line-2:rgba(15,23,42,.12);
+    --primary:#2457e6;
+    --primary-2:#1d4ed8;
+    --green:#22c55e;
+    --amber:#f59e0b;
+    --orange:#fb923c;
+    --red:#ef4444;
+    --teal:#0f766e;
+    --soft:#f8fafc;
+    --shadow:0 22px 60px rgba(15,23,42,.08);
+    --shadow-sm:0 12px 32px rgba(15,23,42,.06);
+
+    font-family:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color:var(--text);
   }
 
-  .dash-scope .btn{
+  [data-theme="dark"] .dash-scope{
+    --bg:#0b1220;
+    --card:rgba(15,23,42,.76);
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+    --line:rgba(255,255,255,.08);
+    --line-2:rgba(255,255,255,.13);
+    --soft:rgba(15,23,42,.55);
+    --shadow:0 22px 60px rgba(0,0,0,.28);
+    --shadow-sm:0 12px 32px rgba(0,0,0,.22);
+  }
+
+  .dash-shell{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .dash-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:28px;
+    padding:22px;
+    background:
+      radial-gradient(circle at 16% 8%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.30), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 58%, #0f766e 100%);
+    color:#fff;
+    box-shadow:var(--shadow);
+  }
+
+  .dash-hero::after{
+    content:"";
+    position:absolute;
+    width:260px;
+    height:260px;
+    right:-110px;
+    bottom:-130px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+
+  .hero-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    height:32px;
+    padding:0 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  .hero-title{
+    margin:0;
+    font-size:clamp(28px, 3vw, 42px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .hero-sub{
+    margin:9px 0 0;
+    max-width:520px;
+    color:rgba(255,255,255,.72);
+    font-size:14px;
+    line-height:1.45;
+    font-weight:650;
+  }
+
+  .hero-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .btnx{
+    min-height:42px;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    gap:.5rem;
-    padding: .72rem 1rem;
-    border-radius: 12px;
-    border: 1px solid rgba(148,163,184,.35);
-    background: rgba(255,255,255,.85);
-    color: #0f172a;
+    gap:8px;
+    padding:0 14px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--text);
     text-decoration:none;
-    font-weight: 700;
-    font-size: .92rem;
-    box-shadow: 0 10px 30px -18px rgba(15,23,42,.25);
-    backdrop-filter: blur(10px);
-    transition: transform .08s ease, filter .18s ease, border-color .18s ease;
-  }
-  [data-theme="dark"] .dash-scope .btn{
-    background: rgba(30,33,38,.75);
-    color: #e5e7eb;
-    border-color: rgba(148,163,184,.18);
-  }
-  .dash-scope .btn:hover{ transform: translateY(-1px); filter: brightness(1.02); border-color: rgba(40,102,189,.35); }
-
-  .dash-scope .btn.btn-primary{
-    background: #2866bd;
-    border-color: #2866bd;
-    color: #fff;
-    box-shadow: 0 14px 36px -18px rgba(40,102,189,.65);
-  }
-  .dash-scope .btn.btn-primary:hover{ filter: brightness(1.03); }
-
-  .dash-scope .badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding: .22rem .55rem;
-    border-radius: 999px;
-    border: 1px solid rgba(148,163,184,.35);
-    font-weight: 900;
-    font-size: .85rem;
-    line-height: 1;
-    background: rgba(255,255,255,.7);
-  }
-  [data-theme="dark"] .dash-scope .badge{
-    background: rgba(30,33,38,.55);
+    font-size:13px;
+    font-weight:900;
+    box-shadow:var(--shadow-sm);
+    transition:transform .14s ease, filter .14s ease, border-color .14s ease;
+    white-space:nowrap;
   }
 
-  .dash-scope .score-low { background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.35); color: #166534; }
-  .dash-scope .score-mid { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.38); color: #854d0e; }
-  .dash-scope .score-high{ background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.35); color: #7f1d1d; }
-  [data-theme="dark"] .dash-scope .score-low { color:#86efac; }
-  [data-theme="dark"] .dash-scope .score-mid { color:#fde68a; }
-  [data-theme="dark"] .dash-scope .score-high{ color:#fecaca; }
-
-  .dash-scope .score-hi{
-    background: rgba(251,146,60,.18);
-    border-color: rgba(251,146,60,.38);
-    color: #7c2d12;
+  .btnx:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    text-decoration:none;
   }
-  [data-theme="dark"] .dash-scope .score-hi{ color:#fed7aa; }
 
-  /* ===== KPIs (1. görsel style) ===== */
+  .btnx.primary{
+    background:linear-gradient(135deg, var(--primary), #3264ff);
+    border-color:rgba(255,255,255,.18);
+    color:#fff;
+    box-shadow:0 16px 34px rgba(36,87,230,.24);
+  }
+
+  .dash-hero .btnx{
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .dash-hero .btnx.primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
   .kpis{
     display:grid;
-    grid-template-columns: repeat(6, minmax(0,1fr));
-    gap: 12px;
-    margin-bottom: 14px;
+    grid-template-columns:repeat(6, minmax(0, 1fr));
+    gap:12px;
   }
-  @media (max-width: 1200px){ .kpis{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-  @media (max-width: 860px){  .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  @media (max-width: 520px){  .kpis{ grid-template-columns: 1fr; } }
+
+  @media (max-width:1220px){
+    .kpis{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  }
+
+  @media (max-width:680px){
+    .kpis{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  }
+
+  @media (max-width:430px){
+    .kpis{ grid-template-columns:1fr; }
+  }
 
   .kpi{
-    position: relative;
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(226,232,240,.95);
-    background: #fff;
-    box-shadow: 0 12px 34px -28px rgba(15,23,42,.22);
-    min-height: 86px;
+    min-height:112px;
+    padding:17px;
+    border-radius:24px;
+    background:var(--card);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow-sm);
     display:flex;
     flex-direction:column;
     justify-content:space-between;
+    position:relative;
     overflow:hidden;
   }
-  [data-theme="dark"] .kpi{
-    background: rgba(30,33,38,.72);
-    border-color: rgba(51,65,85,.55);
-  }
+
   .kpi::before{
     content:"";
     position:absolute;
-    left:0; top:0; bottom:0;
-    width: 4px;
-    background: transparent;
-    border-radius: 16px 0 0 16px;
-  }
-  .kpi-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-  }
-  .kpi-label{
-    font-size: .70rem;
-    text-transform: uppercase;
-    letter-spacing: .14em;
-    font-weight: 900;
-    color: #64748b;
-  }
-  [data-theme="dark"] .kpi-label{ color:#94a3b8; }
-  .kpi-value{
-    font-size: 1.75rem;
-    font-weight: 950;
-    letter-spacing: -0.02em;
-    color:#0f172a;
-    line-height: 1.1;
-  }
-  [data-theme="dark"] .kpi-value{ color:#e5e7eb; }
-
-  .kpi--total::before   { background: rgba(148,163,184,.7); }
-  .kpi--critical::before{ background: #ef4444; }
-  .kpi--high::before    { background: #fb923c; }
-  .kpi--medium::before  { background: #f59e0b; }
-  .kpi--low::before     { background: #22c55e; }
-
-  .kpi--avg{
-    background: #2b69c3;
-    border-color: #2b69c3;
-    box-shadow: 0 18px 50px -30px rgba(40,102,189,.75);
-  }
-  .kpi--avg::before{ display:none; }
-  .kpi--avg .kpi-label{ color: rgba(255,255,255,.70); }
-  .kpi--avg .kpi-value{ color:#fff; }
-  .kpi-avg-foot{
-    display:flex;
-    align-items:center;
-    justify-content:flex-end;
-    gap:8px;
-    margin-top: 6px;
-    opacity:.9;
-  }
-  .kpi-avg-ico{
-    width: 22px; height: 22px;
-    border-radius: 8px;
-    display:grid; place-items:center;
-    background: rgba(255,255,255,.14);
-    border: 1px solid rgba(255,255,255,.18);
+    inset:0 auto 0 0;
+    width:5px;
+    background:var(--muted);
+    opacity:.75;
   }
 
-  /* --- Kartlar --- */
-  .card{
-    border-radius: 16px;
-    border: 1px solid rgba(226,232,240,.9);
-    background: rgba(255,255,255,.92);
-    box-shadow: 0 14px 40px -26px rgba(15,23,42,.22);
-    padding: 16px;
-    min-width: 0;
-  }
-  [data-theme="dark"] .card{
-    background: rgba(30,33,38,.72);
-    border-color: rgba(51,65,85,.55);
-  }
-
-  .grid{ display:grid; gap: 12px; }
-  .grid-2{ grid-template-columns: 1.7fr 1fr; }
-  @media (max-width: 980px){ .grid-2{ grid-template-columns: 1fr; } }
-
-  .card-head{
-    display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(226,232,240,.75);
-    margin-bottom: 12px;
-  }
-  [data-theme="dark"] .card-head{ border-color: rgba(51,65,85,.45); }
-
-  .card-title{
-    margin:0;
-    display:flex; align-items:center; gap:10px;
-    font-weight: 900;
-    font-size: 1.05rem;
-  }
-  .pill{
-    width: 34px; height: 34px;
-    border-radius: 12px;
-    display:grid; place-items:center;
-    background: rgba(40,102,189,.14);
-    border: 1px solid rgba(40,102,189,.22);
-    color:#2866bd;
-    font-weight: 900;
-  }
-
-  /* --- Risk matrix --- */
-  .risk-matrix{
-    --label-w: 140px;
-    --cell-size: 60px;
-    display:grid;
-    grid-template-columns: var(--label-w) repeat(5, var(--cell-size));
-    grid-auto-rows: var(--cell-size);
-    gap: 8px;
-    margin-top: 10px;
-  }
-  @media (max-width: 980px){ .risk-matrix{ --label-w: 120px; --cell-size: 56px; } }
-  @media (max-width: 640px){ .risk-matrix{ --label-w: 112px; --cell-size: 52px; } }
-
-  .rm-corner{ display:grid; place-items:center; color:#94a3b8; font-weight:900; }
-  .rm-corner::after{ content:"Olasılık →"; }
-
-  .rm-colhead,.rm-rowhead{
-    border-radius: 14px;
-    padding: 10px 10px;
-    border: 1px solid rgba(226,232,240,.9);
-    background: rgba(248,250,252,.85);
-    display:flex;
-    justify-content:space-between;
-    gap: 8px;
-    align-items:flex-start;
-  }
-  [data-theme="dark"] .rm-colhead, [data-theme="dark"] .rm-rowhead{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(18,24,32,.55);
-  }
-  .rm-colhead{ flex-direction:column; }
-  .rm-coltitle,.rm-rowtitle{ font-weight: 900; font-size: .86rem; }
-  .rm-colnum,.rm-rownum{ font-weight: 900; opacity:.6; }
-
-    /* ✅ FIX: Dark mode’da Risk Matrix başlık yazıları görünmüyor */
-  .dash-scope .rm-colhead,
-  .dash-scope .rm-rowhead{
-    color:#0f172a; /* light default */
-  }
-
-  .dash-scope .rm-coltitle,
-  .dash-scope .rm-rowtitle{
-    color:#0f172a;
-  }
-
-  .dash-scope .rm-colnum,
-  .dash-scope .rm-rownum{
-    color:#64748b;
-    opacity:.75; /* .6 dark’ta fazla soluk kalıyordu */
-  }
-
-  [data-theme="dark"] .dash-scope .rm-colhead,
-  [data-theme="dark"] .dash-scope .rm-rowhead{
-    color:#e5e7eb;
-  }
-
-  [data-theme="dark"] .dash-scope .rm-coltitle,
-  [data-theme="dark"] .dash-scope .rm-rowtitle{
-    color:#e5e7eb;
-  }
-
-  [data-theme="dark"] .dash-scope .rm-colnum,
-  [data-theme="dark"] .dash-scope .rm-rownum{
-    color:#94a3b8;
-    opacity:.9;
-  }
-
-  /* (opsiyonel) rm-cell linkleri base.html’den renk yemesin */
-  .dash-scope .rm-cell{ color: inherit; }
-
-
-  .risk-matrix .rm-rowhead:first-of-type::before{
-    content:"↑ Şiddet";
+  .kpi::after{
+    content:"";
     position:absolute;
-    transform: rotate(-90deg) translate(-40%, -120%);
-    transform-origin:left top;
-    color: #94a3b8;
-    font-weight: 900;
-  }
-
-  .rm-cell{
-    position:relative;
-    border-radius: 14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-decoration:none;
-    font-weight: 900;
-    border: 1px solid rgba(0,0,0,.06);
-    transition: transform .08s ease, filter .16s ease;
-    overflow:hidden;
-    min-height: var(--cell-size);
-  }
-  .rm-cell:hover{ transform: translateY(-1px); filter: brightness(1.02); }
-  .rm-cell:focus-visible{ outline: 4px solid rgba(40,102,189,.22); outline-offset: 2px; }
-
-  .rm-score{
-    font: 900 1.06rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono";
-    letter-spacing: -0.02em;
-  }
-
-  .rm-count{
-    position:absolute;
-    right: 6px;
-    bottom: 6px;
-    font-weight: 900;
-    font-size: .72rem;
-    padding: .12rem .42rem;
-    border-radius: 999px;
-    background: rgba(255,255,255,.55);
-    border: 1px solid rgba(0,0,0,.10);
-    line-height: 1;
-    pointer-events: none;
-  }
-  [data-theme="dark"] .rm-count{
-    background: rgba(0,0,0,.28);
-    border-color: rgba(255,255,255,.14);
-  }
-
-  html[data-theme="light"] .rm-cell.low  { background:#d1fae5; border-color:#9fe3c9; color:#0d3a2c; }
-  html[data-theme="light"] .rm-cell.mid  { background:#fde68a; border-color:#f3c24f; color:#5a3f00; }
-  html[data-theme="light"] .rm-cell.hi   { background:#fdba74; border-color:#f59e0b; color:#4a2500; }
-  html[data-theme="light"] .rm-cell.crit { background:#fecaca; border-color:#f87171; color:#5a1010; }
-
-  [data-theme="dark"] .rm-cell.low  { background:#0f2f18; border-color:#1d5d3a; color:#bff5d3; }
-  [data-theme="dark"] .rm-cell.mid  { background:#3a2e05; border-color:#7a5c0b; color:#ffe6a6; }
-  [data-theme="dark"] .rm-cell.hi   { background:#4b2400; border-color:#a24e0a; color:#ffd7b5; }
-  [data-theme="dark"] .rm-cell.crit { background:#3b0b0b; border-color:#7f1d1d; color:#ffd0d0; }
-
-  .donut-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
-  @media (max-width: 980px){ .donut-grid{ grid-template-columns: 1fr; } }
-  .donut-card{
-    border: 1px solid rgba(226,232,240,.9);
-    background: rgba(255,255,255,.92);
-    border-radius: 16px;
-    padding: 14px;
-  }
-  [data-theme="dark"] .donut-card{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(18,24,32,.55);
-  }
-  .donut-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom: 8px; }
-  .donut-title{ font-weight: 900; }
-
-  .legend-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px; }
-  .legend-chip{
-    display:inline-flex; align-items:center; gap:6px;
-    border:1px solid rgba(226,232,240,.9);
-    background: rgba(248,250,252,.65);
+    width:90px;
+    height:90px;
+    right:-40px;
+    top:-42px;
     border-radius:999px;
-    padding: 4px 10px;
-    font-weight: 900;
-    font-size: .86rem;
-    color:#0f172a;
+    background:rgba(15,23,42,.04);
   }
-  [data-theme="dark"] .legend-chip{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(30,33,38,.45);
+
+  [data-theme="dark"] .kpi::after{
+    background:rgba(255,255,255,.04);
+  }
+
+  .kpi-label{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:var(--muted);
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .kpi-dot{
+    width:9px;
+    height:9px;
+    border-radius:999px;
+    background:currentColor;
+  }
+
+  .kpi-value{
+    position:relative;
+    z-index:1;
+    margin-top:10px;
+    color:var(--text);
+    font-size:34px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.055em;
+  }
+
+  .kpi-note{
+    position:relative;
+    z-index:1;
+    margin-top:8px;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:700;
+  }
+
+  .kpi.total::before{ background:#94a3b8; }
+  .kpi.critical::before{ background:var(--red); }
+  .kpi.high::before{ background:var(--orange); }
+  .kpi.medium::before{ background:var(--amber); }
+  .kpi.low::before{ background:var(--green); }
+
+  .kpi.avg{
+    background:linear-gradient(135deg, #1e3a8a, #2457e6);
+    border-color:rgba(255,255,255,.10);
     color:#fff;
   }
-  .chip-dot{ width:10px; height:10px; border-radius:999px; }
 
-  .small{ color:#64748b; }
-  [data-theme="dark"] .small{ color:#94a3b8; }
+  .kpi.avg::before{ display:none; }
+  .kpi.avg .kpi-label,
+  .kpi.avg .kpi-note{ color:rgba(255,255,255,.70); }
+  .kpi.avg .kpi-value{ color:#fff; }
 
-  .empty{
-    border: 2px dashed rgba(226,232,240,.9);
-    border-radius: 16px;
-    padding: 22px;
-    text-align:center;
-    background: rgba(248,250,252,.65);
-    color:#64748b;
-  }
-  [data-theme="dark"] .empty{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(18,24,32,.55);
-    color:#94a3b8;
+  .main-grid{
+    display:grid;
+    grid-template-columns:minmax(0, 1.55fr) minmax(380px, .95fr);
+    gap:16px;
+    align-items:start;
   }
 
-  .go-head{
+  @media (max-width:1080px){
+    .main-grid{ grid-template-columns:1fr; }
+  }
+
+  .cardx{
+    border-radius:26px;
+    background:var(--card);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow-sm);
+    padding:18px;
+    min-width:0;
+  }
+
+  .card-headx{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:12px;
-    padding: 6px 4px 12px;
-    border-bottom: 1px solid rgba(226,232,240,.75);
-    margin-bottom: 10px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
   }
-  [data-theme="dark"] .go-head{ border-color: rgba(51,65,85,.45); }
 
-  .go-title{
+  .card-titlex{
+    margin:0;
     display:flex;
     align-items:center;
     gap:10px;
-    font-weight: 900;
-    font-size: 1.02rem;
-    margin:0;
+    color:var(--text);
+    font-size:16px;
+    font-weight:950;
+    letter-spacing:-.025em;
   }
-  .go-ico{
-    width: 34px; height: 34px;
-    border-radius: 12px;
-    display:grid; place-items:center;
-    background: rgba(40,102,189,.12);
-    border: 1px solid rgba(40,102,189,.20);
-    color:#2866bd;
+
+  .iconbox{
+    width:38px;
+    height:38px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    color:var(--primary);
   }
-  .go-link{
-    font-weight: 900;
-    font-size: .86rem;
-    color:#2866bd;
+
+  [data-theme="dark"] .iconbox{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.18);
+    color:#93c5fd;
+  }
+
+  .tiny-link{
+    color:var(--primary);
     text-decoration:none;
+    font-size:13px;
+    font-weight:900;
   }
-  .go-link:hover{ text-decoration: underline; }
 
-  .go-table-wrap{
+  .tiny-link:hover{ text-decoration:underline; }
+
+  .table-wrap{
     overflow:auto;
-    border-radius: 14px;
-    background: rgba(248,250,252,.55);
-    border: 1px solid rgba(226,232,240,.9);
-  }
-  [data-theme="dark"] .go-table-wrap{
-    background: rgba(18,24,32,.45);
-    border-color: rgba(51,65,85,.55);
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--soft);
   }
 
-  .go-table{
+  .risk-table{
     width:100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    min-width: 900px;
+    min-width:860px;
+    border-collapse:separate;
+    border-spacing:0;
   }
-  .go-table thead th{
-    font-size: .70rem;
-    text-transform: uppercase;
-    letter-spacing: .14em;
-    font-weight: 900;
-    color:#94a3b8;
-    padding: 12px 14px;
-    background: transparent;
-    border-bottom: 1px solid rgba(226,232,240,.75);
+
+  .risk-table th{
+    padding:13px 15px;
+    color:var(--muted);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
     text-align:left;
-  }
-  [data-theme="dark"] .go-table thead th{
-    border-color: rgba(51,65,85,.45);
-    color:#64748b;
+    border-bottom:1px solid var(--line);
+    background:transparent;
   }
 
-  .go-table tbody td{
-    padding: 14px 14px;
-    border-bottom: 1px solid rgba(226,232,240,.65);
-    background: rgba(255,255,255,.75);
-    vertical-align: middle;
-    font-size: .95rem;
+  .risk-table td{
+    padding:15px;
+    border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,.62);
+    vertical-align:middle;
   }
-  [data-theme="dark"] .go-table tbody td{
-    background: rgba(30,33,38,.50);
-    border-color: rgba(51,65,85,.35);
-  }
-  .go-table tbody tr:hover td{ background: rgba(40,102,189,.06); }
-  [data-theme="dark"] .go-table tbody tr:hover td{ background: rgba(40,102,189,.10); }
 
-  .go-risk{
+  [data-theme="dark"] .risk-table td{
+    background:rgba(15,23,42,.42);
+  }
+
+  .risk-table tbody tr:hover td{
+    background:rgba(36,87,230,.055);
+  }
+
+  [data-theme="dark"] .risk-table tbody tr:hover td{
+    background:rgba(59,130,246,.10);
+  }
+
+  .risk-main{
     display:flex;
     flex-direction:column;
     gap:4px;
-    min-width: 360px;
+    min-width:350px;
   }
-  .go-risk a{
-    font-weight: 900;
+
+  .risk-main a{
+    color:var(--text);
     text-decoration:none;
-    color: inherit;
+    font-size:14px;
+    font-weight:950;
   }
-  .go-risk a:hover{ text-decoration: underline; }
-  .go-sub{
-    font-size: .84rem;
-    color:#94a3b8;
+
+  .risk-main a:hover{
+    text-decoration:underline;
+  }
+
+  .risk-desc{
+    max-width:520px;
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.35;
+    font-weight:650;
+    white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
-    white-space:nowrap;
-    max-width: 72ch;
   }
-  [data-theme="dark"] .go-sub{ color:#64748b; }
 
-  .go-chip{
+  .chip{
     display:inline-flex;
     align-items:center;
-    padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(226,232,240,.9);
-    background: rgba(255,255,255,.72);
-    font-weight: 900;
-    font-size: .84rem;
-    color:#334155;
-  }
-  [data-theme="dark"] .go-chip{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(15,23,42,.35);
-    color:#e5e7eb;
+    gap:6px;
+    min-height:28px;
+    padding:0 10px;
+    border-radius:999px;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:12px;
+    font-weight:850;
+    white-space:nowrap;
   }
 
-  .impact{
+  [data-theme="dark"] .chip{
+    background:rgba(15,23,42,.52);
+  }
+
+  .score-line{
     display:flex;
     align-items:center;
     gap:10px;
   }
-  .impact-track{
-    width: 92px;
-    height: 6px;
-    border-radius: 999px;
-    background: rgba(148,163,184,.25);
+
+  .score-track{
+    width:94px;
+    height:7px;
+    border-radius:999px;
+    background:rgba(100,116,139,.18);
     overflow:hidden;
   }
-  .impact-fill{
-    height: 100%;
-    border-radius: 999px;
-    width: var(--w, 0%);
-  }
-  .impact-num{
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-    min-width: 42px;
-    text-align:right;
+
+  .score-fill{
+    height:100%;
+    width:var(--w,0%);
+    border-radius:999px;
   }
 
-  .fill-low{ background:#22c55e; }
-  .fill-mid{ background:#f59e0b; }
-  .fill-hi{  background:#fb923c; }
-  .fill-crit{background:#ef4444; }
+  .score-num{
+    min-width:34px;
+    text-align:right;
+    font-size:13px;
+    font-weight:950;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .fill-low{ background:var(--green); }
+  .fill-mid{ background:var(--amber); }
+  .fill-hi{ background:var(--orange); }
+  .fill-crit{ background:var(--red); }
 
   .num-low{ color:#16a34a; }
   .num-mid{ color:#b45309; }
-  .num-hi{  color:#c2410c; }
-  .num-crit{color:#dc2626; }
+  .num-hi{ color:#c2410c; }
+  .num-crit{ color:#dc2626; }
 
-  .status-pill{
+  .status{
     display:inline-flex;
     align-items:center;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-weight: 900;
-    font-size: .78rem;
-    letter-spacing: .02em;
-    border: 1px solid transparent;
+    min-height:28px;
+    padding:0 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:900;
+    border:1px solid transparent;
+    white-space:nowrap;
   }
-  .st-active{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.28); color:#b91c1c; }
-  .st-mitigated{ background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.28); color:#15803d; }
-  .st-pending{ background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.32); color:#a16207; }
-  .st-other{ background: rgba(148,163,184,.18); border-color: rgba(148,163,184,.28); color:#334155; }
+
+  .st-active{ background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.22); color:#b91c1c; }
+  .st-mitigated{ background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.22); color:#15803d; }
+  .st-pending{ background:rgba(245,158,11,.14); border-color:rgba(245,158,11,.26); color:#a16207; }
+  .st-other{ background:rgba(148,163,184,.16); border-color:rgba(148,163,184,.24); color:#334155; }
+
   [data-theme="dark"] .st-active{ color:#fecaca; }
   [data-theme="dark"] .st-mitigated{ color:#bbf7d0; }
   [data-theme="dark"] .st-pending{ color:#fde68a; }
   [data-theme="dark"] .st-other{ color:#e5e7eb; }
 
-  .go-updated{
-    font-size: .85rem;
-    color:#94a3b8;
-    font-weight: 800;
+  .date-text{
+    color:var(--muted);
+    font-size:12px;
+    font-weight:750;
+    white-space:nowrap;
   }
-  [data-theme="dark"] .go-updated{ color:#64748b; }
 
-  .qa-card{ padding: 14px 16px; }
-  .qa-top{
+  .matrix-card{
+    overflow:hidden;
+  }
+
+  .badge-row{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+
+  .badge{
+    min-height:27px;
+    display:inline-flex;
+    align-items:center;
+    padding:0 9px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    font-size:11px;
+    font-weight:950;
+  }
+
+  .b-low{ background:rgba(34,197,94,.12); color:#15803d; border-color:rgba(34,197,94,.22); }
+  .b-mid{ background:rgba(245,158,11,.14); color:#a16207; border-color:rgba(245,158,11,.26); }
+  .b-hi{ background:rgba(251,146,60,.14); color:#c2410c; border-color:rgba(251,146,60,.26); }
+  .b-crit{ background:rgba(239,68,68,.12); color:#b91c1c; border-color:rgba(239,68,68,.22); }
+
+  [data-theme="dark"] .b-low{ color:#bbf7d0; }
+  [data-theme="dark"] .b-mid{ color:#fde68a; }
+  [data-theme="dark"] .b-hi{ color:#fed7aa; }
+  [data-theme="dark"] .b-crit{ color:#fecaca; }
+
+  .risk-matrix{
+    --label-w:92px;
+    --cell:58px;
+    display:grid;
+    grid-template-columns:var(--label-w) repeat(5, minmax(44px, var(--cell)));
+    grid-auto-rows:var(--cell);
+    gap:8px;
+    overflow:auto;
+    padding-bottom:4px;
+  }
+
+  @media (max-width:560px){
+    .risk-matrix{
+      --label-w:80px;
+      --cell:52px;
+    }
+  }
+
+  .rm-corner{
+    display:grid;
+    place-items:center;
+    color:var(--muted);
+    font-size:11px;
+    font-weight:950;
+    text-align:center;
+  }
+
+  .rm-corner::after{
+    content:"P →";
+  }
+
+  .rm-colhead,
+  .rm-rowhead{
+    border-radius:16px;
+    background:var(--soft);
+    border:1px solid var(--line);
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:7px;
+    overflow:hidden;
+  }
+
+  .rm-colhead{
+    flex-direction:column;
+    gap:2px;
+  }
+
+  .rm-rowhead{
+    justify-content:space-between;
+    gap:6px;
+  }
+
+  .rm-name{
+    font-size:10px;
+    line-height:1.1;
+    font-weight:900;
+  }
+
+  .rm-num{
+    color:var(--muted);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .rm-cell{
+    position:relative;
+    min-height:var(--cell);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:16px;
+    text-decoration:none;
+    border:1px solid transparent;
+    transition:transform .12s ease, filter .12s ease;
+    overflow:hidden;
+  }
+
+  .rm-cell:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.02);
+    text-decoration:none;
+  }
+
+  .rm-score{
+    font-size:17px;
+    line-height:1;
+    font-weight:950;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .rm-count{
+    position:absolute;
+    right:6px;
+    bottom:6px;
+    min-width:22px;
+    height:20px;
+    padding:0 6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    background:rgba(255,255,255,.64);
+    border:1px solid rgba(15,23,42,.10);
+    color:inherit;
+    font-size:11px;
+    font-weight:950;
+  }
+
+  [data-theme="dark"] .rm-count{
+    background:rgba(0,0,0,.26);
+    border-color:rgba(255,255,255,.12);
+  }
+
+  .rm-cell.low{ background:#dcfce7; border-color:#bbf7d0; color:#14532d; }
+  .rm-cell.mid{ background:#fef3c7; border-color:#fde68a; color:#78350f; }
+  .rm-cell.hi{ background:#ffedd5; border-color:#fed7aa; color:#7c2d12; }
+  .rm-cell.crit{ background:#fee2e2; border-color:#fecaca; color:#7f1d1d; }
+
+  [data-theme="dark"] .rm-cell.low{ background:#0f2f18; border-color:#166534; color:#bbf7d0; }
+  [data-theme="dark"] .rm-cell.mid{ background:#3a2e05; border-color:#854d0e; color:#fde68a; }
+  [data-theme="dark"] .rm-cell.hi{ background:#431407; border-color:#9a3412; color:#fed7aa; }
+  [data-theme="dark"] .rm-cell.crit{ background:#3f0b0b; border-color:#991b1b; color:#fecaca; }
+
+  .matrix-note{
+    margin-top:9px;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:700;
+  }
+
+  .charts-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:14px;
+  }
+
+  @media (max-width:900px){
+    .charts-grid{ grid-template-columns:1fr; }
+  }
+
+  .chart-box{
+    border-radius:22px;
+    background:var(--soft);
+    border:1px solid var(--line);
+    padding:16px;
+    min-width:0;
+  }
+
+  .chart-head{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:12px;
-    flex-wrap:wrap;
-  }
-  .qa-label{
-    font-size: .72rem;
-    text-transform: uppercase;
-    letter-spacing: .14em;
-    font-weight: 900;
-    color:#94a3b8;
-  }
-  .qa-actions{
-    display:flex;
     gap:10px;
-    flex-wrap:wrap;
+    margin-bottom:10px;
   }
-  .qa-btn{
+
+  .chart-title{
+    font-size:14px;
+    font-weight:950;
+    color:var(--text);
+  }
+
+  .chart-meta{
+    color:var(--muted);
+    font-size:12px;
+    font-weight:800;
+  }
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+    margin-top:12px;
+  }
+
+  .legend-chip{
+    min-height:28px;
     display:inline-flex;
     align-items:center;
-    gap:10px;
-    padding: 10px 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(226,232,240,.95);
-    background: rgba(248,250,252,.92);
-    color:#0f172a;
+    gap:7px;
+    padding:0 9px;
+    border-radius:999px;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:12px;
+    font-weight:850;
+  }
+
+  [data-theme="dark"] .legend-chip{
+    background:rgba(15,23,42,.55);
+  }
+
+  .legend-dot{
+    width:9px;
+    height:9px;
+    border-radius:999px;
+  }
+
+  .quick-card{
+    padding:16px;
+  }
+
+  .quick-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+
+  .quick-label{
+    color:var(--muted);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .quick-actions{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+  }
+
+  .quick-btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 13px;
+    border-radius:15px;
+    background:var(--soft);
+    border:1px solid var(--line);
+    color:var(--text);
     text-decoration:none;
-    font-weight: 900;
-    font-size: .92rem;
-    box-shadow: 0 10px 26px -20px rgba(15,23,42,.25);
-    transition: transform .08s ease, filter .16s ease, border-color .16s ease;
+    font-size:13px;
+    font-weight:900;
+    transition:transform .12s ease, border-color .12s ease, filter .12s ease;
   }
-  .qa-btn:hover{
-    transform: translateY(-1px);
-    filter: brightness(1.02);
-    border-color: rgba(40,102,189,.28);
+
+  .quick-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.26);
+    text-decoration:none;
   }
-  .qa-btn svg{ width: 18px; height: 18px; opacity: .9; }
-  .qa-btn.primary{
-    background: #2866bd;
-    border-color: #2866bd;
+
+  .quick-btn.primary{
+    background:linear-gradient(135deg, var(--primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
     color:#fff;
-    box-shadow: 0 16px 38px -22px rgba(40,102,189,.65);
+    box-shadow:0 14px 28px rgba(36,87,230,.18);
   }
-  .qa-btn.primary svg{ opacity: 1; }
-  [data-theme="dark"] .qa-label{ color:#64748b; }
-  [data-theme="dark"] .qa-btn{
-    border-color: rgba(51,65,85,.55);
-    background: rgba(30,33,38,.62);
-    color:#e5e7eb;
+
+  .empty{
+    border-radius:22px;
+    border:1px dashed var(--line-2);
+    background:var(--soft);
+    padding:28px;
+    text-align:center;
+    color:var(--muted);
   }
-  [data-theme="dark"] .qa-btn:hover{ border-color: rgba(96,165,250,.35); }
-  [data-theme="dark"] .qa-btn.primary{
-    background:#2866bd;
-    border-color:#2866bd;
-    color:#fff;
+
+  .empty h4{
+    margin:0 0 8px;
+    color:var(--text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.03em;
+  }
+
+  @media (max-width:620px){
+    .dash-hero{ padding:18px; border-radius:24px; }
+    .hero-actions{ width:100%; }
+    .hero-actions .btnx{ flex:1; }
+    .cardx{ padding:15px; border-radius:22px; }
+    .quick-actions{ width:100%; }
+    .quick-btn{ flex:1; }
   }
 </style>
 
 <div class="dash-scope">
+  <div class="dash-shell">
 
-  {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
-  {% for r in risks or [] %}
-    {% set sc_raw = r.score() %}
-    {% if sc_raw is not none %}
-      {% set sc = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
-      {% set ns.sum  = ns.sum + sc %}
-      {% set ns.have = ns.have + 1 %}
-      {% if sc <= 4 %}
-        {% set ns.low = ns.low + 1 %}
-      {% elif sc <= 10 %}
-        {% set ns.mid = ns.mid + 1 %}
-      {% elif sc <= 15 %}
-        {% set ns.high = ns.high + 1 %}
-      {% else %}
-        {% set ns.crit = ns.crit + 1 %}
+    {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
+    {% for r in risks or [] %}
+      {% set sc_raw = r.score() %}
+      {% if sc_raw is not none %}
+        {% set sc = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
+        {% set ns.sum  = ns.sum + sc %}
+        {% set ns.have = ns.have + 1 %}
+        {% if sc <= 4 %}
+          {% set ns.low = ns.low + 1 %}
+        {% elif sc <= 10 %}
+          {% set ns.mid = ns.mid + 1 %}
+        {% elif sc <= 15 %}
+          {% set ns.high = ns.high + 1 %}
+        {% else %}
+          {% set ns.crit = ns.crit + 1 %}
+        {% endif %}
       {% endif %}
-    {% endif %}
-    {% set ns.total = ns.total + 1 %}
-  {% endfor %}
-  {% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
+      {% set ns.total = ns.total + 1 %}
+    {% endfor %}
+    {% set avg = (ns.sum / ns.have) if ns.have > 0 else None %}
 
-  <div class="kpis" role="list" aria-label="Özet göstergeler">
-    <div class="kpi kpi--total" role="listitem">
-      <div class="kpi-head"><div class="kpi-label">TOTAL RISK</div></div>
-      <div class="kpi-value">{{ ns.total }}</div>
-    </div>
+    <section class="dash-hero" aria-label="Dashboard başlık">
+      <div class="hero-row">
+        <div>
+          <div class="hero-kicker">Risk Yönetim Paneli</div>
+          <h1 class="hero-title">Genel Bakış</h1>
+          <p class="hero-sub">Riskleri, skorları ve aksiyonları tek ekrandan takip et.</p>
+        </div>
 
-    <div class="kpi kpi--critical" role="listitem">
-      <div class="kpi-head"><div class="kpi-label">CRITICAL</div></div>
-      <div class="kpi-value">{{ ns.crit }}</div>
-    </div>
-
-    <div class="kpi kpi--high" role="listitem">
-      <div class="kpi-head"><div class="kpi-label">HIGH</div></div>
-      <div class="kpi-value">{{ ns.high }}</div>
-    </div>
-
-    <div class="kpi kpi--medium" role="listitem">
-      <div class="kpi-head"><div class="kpi-label">MEDIUM</div></div>
-      <div class="kpi-value">{{ ns.mid }}</div>
-    </div>
-
-    <div class="kpi kpi--low" role="listitem">
-      <div class="kpi-head"><div class="kpi-label">LOW</div></div>
-      <div class="kpi-value">{{ ns.low }}</div>
-    </div>
-
-    <div class="kpi kpi--avg" role="listitem">
-      <div class="kpi-head"><div class="kpi-label">AVG SCORE</div></div>
-      <div class="kpi-value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
-      <div class="kpi-avg-foot" aria-hidden="true">
-        <span class="kpi-avg-ico">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M6 16V8m6 8V5m6 11v-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-        </span>
+        <div class="hero-actions">
+          <a class="btnx primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+          <a class="btnx" href="{{ url_for('risk_select') }}">Tüm Riskler</a>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <div class="grid grid-2">
-
-    <div class="card" aria-labelledby="genelTitle">
-      <div class="go-head">
-        <h3 id="genelTitle" class="go-title">
-          <span class="go-ico" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            </svg>
-          </span>
-          General Overview
-        </h3>
-        <a class="go-link" href="{{ url_for('risk_select') }}">View All Risks</a>
+    <section class="kpis" role="list" aria-label="Özet göstergeler">
+      <div class="kpi total" role="listitem">
+        <div class="kpi-label"><span class="kpi-dot"></span>Toplam</div>
+        <div>
+          <div class="kpi-value">{{ ns.total }}</div>
+          <div class="kpi-note">Risk kaydı</div>
+        </div>
       </div>
 
-      {% if risks and risks|length > 0 %}
-        <div class="go-table-wrap">
-          <table class="go-table" aria-label="Risk overview table">
-            <thead>
-              <tr>
-                <th>Risk ID &amp; Title</th>
-                <th style="width:220px">Category</th>
-                <th style="width:180px">Impact Score</th>
-                <th style="width:160px">Status</th>
-                <th style="width:150px">Last Updated</th>
-              </tr>
-            </thead>
+      <div class="kpi critical" role="listitem">
+        <div class="kpi-label"><span class="kpi-dot"></span>Kritik</div>
+        <div>
+          <div class="kpi-value">{{ ns.crit }}</div>
+          <div class="kpi-note">16–25</div>
+        </div>
+      </div>
 
-            <tbody>
-              {% for r in risks[:8] %}
-                {% set sc_raw = r.score() %}
-                {% if sc_raw is not none %}
-                  {% set sc25 = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
-                  {% if sc25 < 0 %}{% set sc25 = 0 %}{% endif %}
-                  {% if sc25 > 25 %}{% set sc25 = 25 %}{% endif %}
-                  {% set pct = (sc25 / 25) * 100 %}
-                  {% set lvl =
-                      'fill-low' if sc25 <= 4 else
-                      'fill-mid' if sc25 <= 10 else
-                      'fill-hi'  if sc25 <= 15 else
-                      'fill-crit'
-                  %}
-                  {% set numc =
-                      'num-low' if sc25 <= 4 else
-                      'num-mid' if sc25 <= 10 else
-                      'num-hi'  if sc25 <= 15 else
-                      'num-crit'
-                  %}
-                {% endif %}
+      <div class="kpi high" role="listitem">
+        <div class="kpi-label"><span class="kpi-dot"></span>Yüksek</div>
+        <div>
+          <div class="kpi-value">{{ ns.high }}</div>
+          <div class="kpi-note">11–15</div>
+        </div>
+      </div>
 
-                {% set st = (r.status or '')|lower %}
-                {% set st_class =
-                    'st-active' if ('active' in st)
-                    else ('st-mitigated' if ('mitig' in st or 'closed' in st or 'kapand' in st)
-                    else ('st-pending' if ('pending' in st or 'review' in st)
-                    else 'st-other'))
-                %}
+      <div class="kpi medium" role="listitem">
+        <div class="kpi-label"><span class="kpi-dot"></span>Orta</div>
+        <div>
+          <div class="kpi-value">{{ ns.mid }}</div>
+          <div class="kpi-note">5–10</div>
+        </div>
+      </div>
 
+      <div class="kpi low" role="listitem">
+        <div class="kpi-label"><span class="kpi-dot"></span>Düşük</div>
+        <div>
+          <div class="kpi-value">{{ ns.low }}</div>
+          <div class="kpi-note">1–4</div>
+        </div>
+      </div>
+
+      <div class="kpi avg" role="listitem">
+        <div class="kpi-label"><span class="kpi-dot"></span>Ortalama</div>
+        <div>
+          <div class="kpi-value">{{ avg and ('%.2f'|format(avg)) or '—' }}</div>
+          <div class="kpi-note">Risk skoru</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <div class="cardx" aria-labelledby="overviewTitle">
+        <div class="card-headx">
+          <h3 id="overviewTitle" class="card-titlex">
+            <span class="iconbox">☰</span>
+            Riskler
+          </h3>
+          <a class="tiny-link" href="{{ url_for('risk_select') }}">Tümünü gör</a>
+        </div>
+
+        {% if risks and risks|length > 0 %}
+          <div class="table-wrap">
+            <table class="risk-table" aria-label="Risk overview table">
+              <thead>
                 <tr>
-                  <td>
-                    <div class="go-risk">
-                      <a href="{{ url_for('risk_detail', risk_id=r.id) }}">#R-{{ r.id }} {{ r.title }}</a>
-                      {% if r.description %}
-                        <div class="go-sub">{{ r.description }}</div>
-                      {% else %}
-                        <div class="go-sub">—</div>
-                      {% endif %}
-                    </div>
-                  </td>
-
-                  <td><span class="go-chip">{{ r.category or "-" }}</span></td>
-
-                  <td>
-                    {% if sc_raw is not none %}
-                      <div class="impact" title="Skor: {{ '%.2f'|format(sc25) }} / 25">
-                        <div class="impact-track" aria-hidden="true">
-                          <div class="impact-fill {{ lvl }}" style="--w: {{ '%.0f'|format(pct) }}%"></div>
-                        </div>
-                        <div class="impact-num {{ numc }}">{{ '%.0f'|format(sc25) }}</div>
-                      </div>
-                    {% else %}
-                      <span class="go-updated">—</span>
-                    {% endif %}
-                  </td>
-
-                  <td><span class="status-pill {{ st_class }}">{{ r.status or "—" }}</span></td>
-
-                  <td>
-                    <span class="go-updated">
-                      {% if r.updated_at is defined and r.updated_at %}
-                        {{ r.updated_at }}
-                      {% elif r.updated_on is defined and r.updated_on %}
-                        {{ r.updated_on }}
-                      {% elif r.updated is defined and r.updated %}
-                        {{ r.updated }}
-                      {% elif r.created_at is defined and r.created_at %}
-                        {{ r.created_at }}
-                      {% else %}
-                        —
-                      {% endif %}
-                    </span>
-                  </td>
+                  <th>Risk</th>
+                  <th style="width:210px">Kategori</th>
+                  <th style="width:170px">Skor</th>
+                  <th style="width:145px">Durum</th>
+                  <th style="width:145px">Güncelleme</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+              </thead>
 
-        <div class="small" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center">
-          <span>Son güncellenen 8 risk gösteriliyor.</span>
-          <a class="go-link" href="{{ url_for('risk_new') }}">+ Define Risk</a>
-          {% if session.get('role') == 'admin' %}
-            <a class="go-link" href="{{ url_for('categories_index') }}">Category Management</a>
-          {% endif %}
-        </div>
+              <tbody>
+                {% for r in risks[:8] %}
+                  {% set sc_raw = r.score() %}
+                  {% if sc_raw is not none %}
+                    {% set sc25 = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
+                    {% if sc25 < 0 %}{% set sc25 = 0 %}{% endif %}
+                    {% if sc25 > 25 %}{% set sc25 = 25 %}{% endif %}
+                    {% set pct = (sc25 / 25) * 100 %}
+                    {% set lvl =
+                        'fill-low' if sc25 <= 4 else
+                        'fill-mid' if sc25 <= 10 else
+                        'fill-hi'  if sc25 <= 15 else
+                        'fill-crit'
+                    %}
+                    {% set numc =
+                        'num-low' if sc25 <= 4 else
+                        'num-mid' if sc25 <= 10 else
+                        'num-hi'  if sc25 <= 15 else
+                        'num-crit'
+                    %}
+                  {% endif %}
 
-      {% else %}
-        <div class="empty" role="note" aria-live="polite">
-          <h4 style="margin:0 0 .3rem; font-weight:900;">Henüz risk yok</h4>
-          <div class="small">Hızlı başlamak için bir şablon seçin veya yeni bir risk oluşturun.</div>
-          <div style="margin-top:.8rem; display:flex; gap:8px; justify-content:center; flex-wrap:wrap">
-            <a class="btn btn-primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
-            <a class="btn" href="{{ url_for('risk_identify') }}">📋 Şablondan Seç</a>
+                  {% set st = (r.status or '')|lower %}
+                  {% set st_class =
+                      'st-active' if ('active' in st or 'açık' in st or 'acik' in st)
+                      else ('st-mitigated' if ('mitig' in st or 'closed' in st or 'kapand' in st or 'azalt' in st)
+                      else ('st-pending' if ('pending' in st or 'review' in st or 'bekle' in st)
+                      else 'st-other'))
+                  %}
+
+                  <tr>
+                    <td>
+                      <div class="risk-main">
+                        <a href="{{ url_for('risk_detail', risk_id=r.id) }}">#R-{{ r.id }} {{ r.title }}</a>
+                        {% if r.description %}
+                          <div class="risk-desc">{{ r.description }}</div>
+                        {% else %}
+                          <div class="risk-desc">—</div>
+                        {% endif %}
+                      </div>
+                    </td>
+
+                    <td><span class="chip">{{ r.category or "-" }}</span></td>
+
+                    <td>
+                      {% if sc_raw is not none %}
+                        <div class="score-line" title="Skor: {{ '%.2f'|format(sc25) }} / 25">
+                          <div class="score-track" aria-hidden="true">
+                            <div class="score-fill {{ lvl }}" style="--w: {{ '%.0f'|format(pct) }}%"></div>
+                          </div>
+                          <div class="score-num {{ numc }}">{{ '%.0f'|format(sc25) }}</div>
+                        </div>
+                      {% else %}
+                        <span class="date-text">—</span>
+                      {% endif %}
+                    </td>
+
+                    <td><span class="status {{ st_class }}">{{ r.status or "—" }}</span></td>
+
+                    <td>
+                      <span class="date-text">
+                        {% if r.updated_at is defined and r.updated_at %}
+                          {{ r.updated_at }}
+                        {% elif r.updated_on is defined and r.updated_on %}
+                          {{ r.updated_on }}
+                        {% elif r.updated is defined and r.updated %}
+                          {{ r.updated }}
+                        {% elif r.created_at is defined and r.created_at %}
+                          {{ r.created_at }}
+                        {% else %}
+                          —
+                        {% endif %}
+                      </span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="card" aria-labelledby="matrixTitle">
-      <div class="card-head">
-        <h3 id="matrixTitle" class="card-title"><span class="pill">▦</span>Risk Matrix</h3>
-        <div style="display:flex; gap:8px; flex-wrap:wrap">
-          <span class="badge score-low">1–4</span>
-          <span class="badge score-mid">5–10</span>
-          <span class="badge score-hi">11–15</span>
-          <span class="badge score-high">16–25</span>
-        </div>
+        {% else %}
+          <div class="empty" role="note" aria-live="polite">
+            <h4>Henüz risk yok</h4>
+            <div>Yeni risk oluştur veya şablondan başla.</div>
+            <div style="margin-top:14px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap">
+              <a class="btnx primary" href="{{ url_for('risk_new') }}">+ Yeni Risk</a>
+              <a class="btnx" href="{{ url_for('risk_identify') }}">Şablondan Seç</a>
+            </div>
+          </div>
+        {% endif %}
       </div>
 
-      {% set prob_labels = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
-      {% set sev_labels  = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
-
-      <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
-        <div class="rm-corner" aria-hidden="true"></div>
-
-        {% for p in range(5,0,-1) %}
-          <div class="rm-colhead" role="columnheader" aria-label="Olasılık {{p}}: {{ prob_labels[p-1] }}">
-            <div class="rm-coltitle">{{ prob_labels[p-1] }}</div>
-            <div class="rm-colnum">{{ p }}</div>
+      <div class="cardx matrix-card" aria-labelledby="matrixTitle">
+        <div class="card-headx">
+          <h3 id="matrixTitle" class="card-titlex">
+            <span class="iconbox">▦</span>
+            Risk Matrisi
+          </h3>
+          <div class="badge-row">
+            <span class="badge b-low">1–4</span>
+            <span class="badge b-mid">5–10</span>
+            <span class="badge b-hi">11–15</span>
+            <span class="badge b-crit">16–25</span>
           </div>
-        {% endfor %}
+        </div>
 
-        {% for s in range(5,0,-1) %}
-          <div class="rm-rowhead" role="rowheader" aria-label="Şiddet {{s}}: {{ sev_labels[s-1] }}" style="position:relative">
-            <div class="rm-rowtitle">{{ sev_labels[s-1] }}</div>
-            <div class="rm-rownum">{{ s }}</div>
-          </div>
+        {% set prob_labels = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
+        {% set sev_labels  = ['Çok Düşük','Düşük','Orta','Yüksek','Çok Yüksek'] %}
+
+        <div class="risk-matrix" role="grid" aria-label="Olasılık × Şiddet matrisi">
+          <div class="rm-corner" aria-hidden="true"></div>
 
           {% for p in range(5,0,-1) %}
-            {% set score = p * s %}
-            {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
-
-            {% set cell = namespace(cnt=0) %}
-            {% for r in risks or [] %}
-              {% set evals = (r.evaluations or [])|sort(attribute='id') %}
-              {% if evals %}
-                {% set last_eval = evals|last %}
-                {% if last_eval.probability == p and last_eval.severity == s %}
-                  {% set cell.cnt = cell.cnt + 1 %}
-                {% endif %}
-              {% endif %}
-            {% endfor %}
-
-            <a class="rm-cell {{ lvl }}"
-               href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
-               title="Şiddet {{s}} · Olasılık {{p}} → Skor {{score}} · {{cell.cnt}} adet"
-               role="gridcell"
-               aria-label="S={{s}}, P={{p}}, Skor {{score}}, {{cell.cnt}} adet"
-               tabindex="0">
-              <span class="rm-score">{{ score }}</span>
-              <span class="rm-count">{{ cell.cnt }}</span>
-            </a>
+            <div class="rm-colhead" role="columnheader" aria-label="Olasılık {{p}}: {{ prob_labels[p-1] }}">
+              <div class="rm-name">{{ prob_labels[p-1] }}</div>
+              <div class="rm-num">{{ p }}</div>
+            </div>
           {% endfor %}
-        {% endfor %}
-      </div>
 
-      <div class="small" style="margin-top:10px">
-        Hücrelerde büyük sayı <strong>skor (P×S)</strong>, sağ altta <strong>adet</strong> gösterilir.
-      </div>
-    </div>
-  </div>
+          {% for s in range(5,0,-1) %}
+            <div class="rm-rowhead" role="rowheader" aria-label="Şiddet {{s}}: {{ sev_labels[s-1] }}">
+              <div class="rm-name">{{ sev_labels[s-1] }}</div>
+              <div class="rm-num">{{ s }}</div>
+            </div>
 
-  <div class="card" style="margin-top:12px" aria-labelledby="donutTitle">
-    <div class="card-head">
-      <h3 id="donutTitle" class="card-title"><span class="pill">◎</span>Category & Risk Distribution</h3>
-      <div class="small">Düşük / Orta / Yüksek / Çok Yüksek</div>
-    </div>
+            {% for p in range(5,0,-1) %}
+              {% set score = p * s %}
+              {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
 
-    {% if category_stats and category_stats|length > 0 %}
-      <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
+              {% set cell = namespace(cnt=0) %}
+              {% for r in risks or [] %}
+                {% set evals = (r.evaluations or [])|sort(attribute='id') %}
+                {% if evals %}
+                  {% set last_eval = evals|last %}
+                  {% if last_eval.probability == p and last_eval.severity == s %}
+                    {% set cell.cnt = cell.cnt + 1 %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
 
-      <div class="donut-grid">
-        <div class="donut-card">
-          <div class="donut-head">
-            <div class="donut-title">1- Kategori Bazında Dağılım</div>
-            <div class="small" id="catTotal"></div>
-          </div>
-          <canvas id="donut-categories" height="220" aria-label="Kategori dağılım donut" role="img"></canvas>
-          <div class="legend-row" id="legend-cats"></div>
+              <a class="rm-cell {{ lvl }}"
+                 href="{{ url_for('risk_select') }}?p={{p}}&s={{s}}"
+                 title="Şiddet {{s}} · Olasılık {{p}} · Skor {{score}} · {{cell.cnt}} adet"
+                 role="gridcell"
+                 aria-label="Şiddet {{s}}, Olasılık {{p}}, Skor {{score}}, {{cell.cnt}} adet"
+                 tabindex="0">
+                <span class="rm-score">{{ score }}</span>
+                <span class="rm-count">{{ cell.cnt }}</span>
+              </a>
+            {% endfor %}
+          {% endfor %}
         </div>
 
-        <div class="donut-card">
-          <div class="donut-head">
-            <div class="donut-title">2- Risk Seviyeleri (Toplam)</div>
+        <div class="matrix-note">Büyük sayı skor, köşedeki sayı adet.</div>
+      </div>
+    </section>
+
+    <section class="cardx" aria-labelledby="chartsTitle">
+      <div class="card-headx">
+        <h3 id="chartsTitle" class="card-titlex">
+          <span class="iconbox">◎</span>
+          Dağılım
+        </h3>
+        <span class="date-text">Kategori ve seviye özeti</span>
+      </div>
+
+      {% if category_stats and category_stats|length > 0 %}
+        <script id="categoryStats" type="application/json">{{ category_stats|tojson }}</script>
+
+        <div class="charts-grid">
+          <div class="chart-box">
+            <div class="chart-head">
+              <div class="chart-title">Kategoriler</div>
+              <div class="chart-meta" id="catTotal"></div>
+            </div>
+            <canvas id="donut-categories" height="220" aria-label="Kategori dağılımı" role="img"></canvas>
+            <div class="legend" id="legend-cats"></div>
           </div>
-          <canvas id="donut-levels" height="220" aria-label="Seviye dağılım donut" role="img"></canvas>
-          <div class="legend-row" id="legend-levels"></div>
+
+          <div class="chart-box">
+            <div class="chart-head">
+              <div class="chart-title">Risk Seviyeleri</div>
+              <div class="chart-meta">Toplam</div>
+            </div>
+            <canvas id="donut-levels" height="220" aria-label="Seviye dağılımı" role="img"></canvas>
+            <div class="legend" id="legend-levels"></div>
+          </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+          (function(){
+            const raw = document.getElementById('categoryStats');
+            const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
+            const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
+
+            const PALETTE = ['#2457e6','#60a5fa','#14b8a6','#22c55e','#f59e0b','#fb923c','#ef4444','#a78bfa','#f472b6','#22d3ee','#84cc16'];
+            const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
+
+            const catLabels = rows.map(r => r.cat);
+            const catCounts = rows.map(r => Number(r.total)||0);
+            const catColors = catLabels.map((_,i)=> PALETTE[i % PALETTE.length]);
+
+            new Chart(document.getElementById('donut-categories').getContext('2d'), {
+              type: 'doughnut',
+              data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors, borderWidth: 0 }]},
+              options: {
+                cutout: '68%',
+                plugins: {
+                  legend: { display:false },
+                  tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+                }
+              }
+            });
+
+            const totalCat = catCounts.reduce((a,b)=>a+b,0);
+            const catTotalEl = document.getElementById('catTotal');
+            if (catTotalEl) catTotalEl.textContent = `${totalCat} adet`;
+
+            const legendCats = document.getElementById('legend-cats');
+            catLabels.forEach((lbl, i) => {
+              const n = catCounts[i]||0;
+              const el = document.createElement('span');
+              el.className = 'legend-chip';
+              el.innerHTML = `<span class="legend-dot" style="background:${catColors[i]}"></span>${lbl} (${n})`;
+              legendCats.appendChild(el);
+            });
+
+            const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
+            const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
+            const lvlKeys   = ['low','mid','high','vhigh'];
+            const lvlData   = lvlKeys.map(k => sum(k));
+            const lvlColors = lvlKeys.map(k => LEVEL_COLORS[k]);
+
+            new Chart(document.getElementById('donut-levels').getContext('2d'), {
+              type: 'doughnut',
+              data: { labels: lvlLabels, datasets: [{ data: lvlData, backgroundColor: lvlColors, borderWidth: 0 }]},
+              options: {
+                cutout: '68%',
+                plugins: {
+                  legend: { display:false },
+                  tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
+                }
+              }
+            });
+
+            const legendLvls = document.getElementById('legend-levels');
+            lvlLabels.forEach((lbl, i) => {
+              const el = document.createElement('span');
+              el.className = 'legend-chip';
+              el.innerHTML = `<span class="legend-dot" style="background:${lvlColors[i]}"></span>${lbl} (${lvlData[i]})`;
+              legendLvls.appendChild(el);
+            });
+          })();
+        </script>
+      {% else %}
+        <div class="empty">Grafik için yeterli veri yok.</div>
+      {% endif %}
+    </section>
+
+    <section class="cardx quick-card">
+      <div class="quick-row">
+        <div class="quick-label">Hızlı İşlemler</div>
+
+        <div class="quick-actions">
+          <a class="quick-btn primary" href="{{ url_for('risk_new') }}">+ Define Risk</a>
+          <a class="quick-btn" href="{{ url_for('risk_identify') }}">Risk Tanımla</a>
+
+          {% if session.get('role') == 'admin' %}
+            <a class="quick-btn" href="{{ url_for('categories_index') }}">Kategoriler</a>
+            <a class="quick-btn" href="{{ url_for('import_suggestions') }}">CSV İçe Aktar</a>
+          {% endif %}
+
+          <a class="quick-btn" href="{{ url_for('risks_export_csv') }}">Export CSV</a>
+          <a class="quick-btn" href="{{ url_for('settings_account') }}">Ayarlar</a>
+          <a class="quick-btn" href="{{ url_for('settings_project') }}">Proje</a>
         </div>
       </div>
+    </section>
 
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-      <script>
-        (function(){
-          const raw = document.getElementById('categoryStats');
-          const stats = raw ? JSON.parse(raw.textContent || '[]') : [];
-          const rows = stats.filter(r => (r.cat || '').toLowerCase() !== 'toplam riskler');
-
-          const PALETTE = ['#2866bd','#60a5fa','#34d399','#f59e0b','#ef4444','#a78bfa','#f472b6','#22d3ee','#84cc16','#fb7185','#f97316'];
-          const LEVEL_COLORS = { low:'#22c55e', mid:'#f59e0b', high:'#fb923c', vhigh:'#ef4444' };
-
-          const catLabels = rows.map(r => r.cat);
-          const catCounts = rows.map(r => Number(r.total)||0);
-          const catColors = catLabels.map((_,i)=> PALETTE[i % PALETTE.length]);
-
-          new Chart(document.getElementById('donut-categories').getContext('2d'), {
-            type: 'doughnut',
-            data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors, borderWidth: 0 }]},
-            options: {
-              cutout: '65%',
-              plugins: {
-                legend: { display:false },
-                tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
-              }
-            }
-          });
-
-          const totalCat = catCounts.reduce((a,b)=>a+b,0);
-          const catTotalEl = document.getElementById('catTotal');
-          if (catTotalEl) catTotalEl.textContent = `${totalCat} adet`;
-
-          const legendCats = document.getElementById('legend-cats');
-          catLabels.forEach((lbl, i) => {
-            const n = catCounts[i]||0;
-            const el = document.createElement('span');
-            el.className = 'legend-chip';
-            el.innerHTML = `<span class="chip-dot" style="background:${catColors[i]}"></span>${lbl} (${n})`;
-            legendCats.appendChild(el);
-          });
-
-          const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
-          const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
-          const lvlKeys   = ['low','mid','high','vhigh'];
-          const lvlData   = lvlKeys.map(k => sum(k));
-          const lvlColors = lvlKeys.map(k => LEVEL_COLORS[k]);
-
-          new Chart(document.getElementById('donut-levels').getContext('2d'), {
-            type: 'doughnut',
-            data: { labels: lvlLabels, datasets: [{ data: lvlData, backgroundColor: lvlColors, borderWidth: 0 }]},
-            options: {
-              cutout: '65%',
-              plugins: {
-                legend: { display:false },
-                tooltip: { callbacks:{ label:(c)=> `${c.label}: ${c.parsed} adet` } }
-              }
-            }
-          });
-
-          const legendLvls = document.getElementById('legend-levels');
-          lvlLabels.forEach((lbl, i) => {
-            const el = document.createElement('span');
-            el.className = 'legend-chip';
-            el.innerHTML = `<span class="chip-dot" style="background:${lvlColors[i]}"></span>${lbl} (${lvlData[i]})`;
-            legendLvls.appendChild(el);
-          });
-        })();
-      </script>
-    {% else %}
-      <div class="empty">Grafik oluşturmak için yeterli veri yok.</div>
-    {% endif %}
   </div>
-
-  <div class="card qa-card" style="margin-top:12px">
-    <div class="qa-top">
-      <div class="qa-label">QUICK ACTIONS</div>
-
-      <div class="qa-actions">
-        <a class="qa-btn primary" href="{{ url_for('risk_new') }}">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-          Define Risk
-        </a>
-
-        <a class="qa-btn" href="{{ url_for('risk_identify') }}">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-          Risk Tanımla
-        </a>
-
-        {% if session.get('role') == 'admin' %}
-        <a class="qa-btn" href="{{ url_for('categories_index') }}">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3 3 8l9 5 9-5-9-5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
-            <path d="M3 12l9 5 9-5" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
-          </svg>
-          Category Management
-        </a>
-
-        <a class="qa-btn" href="{{ url_for('import_suggestions') }}">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 21V11m0 0 4 4m-4-4-4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M4 7a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-          CSV İçe Aktar
-        </a>
-        {% endif %}
-
-        <a class="qa-btn" href="{{ url_for('risks_export_csv') }}">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3v10m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M4 17v3h16v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-          Export CSV
-        </a>
-
-        <a class="qa-btn" href="{{ url_for('settings_account') }}">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="2.2"/>
-            <path d="M19.4 15a7.8 7.8 0 0 0 .1-2l2-1.2-2-3.4-2.3.6a7.4 7.4 0 0 0-1.7-1l-.3-2.4H9.8l-.3 2.4a7.4 7.4 0 0 0-1.7 1l-2.3-.6-2 3.4 2 1.2a7.8 7.8 0 0 0 .1 2l-2 1.2 2 3.4 2.3-.6c.5.4 1.1.7 1.7 1l.3 2.4h4.4l.3-2.4c.6-.3 1.2-.6 1.7-1l2.3.6 2-3.4-2-1.2Z"
-                  stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" opacity=".9"/>
-          </svg>
-          App Settings
-        </a>
-
-        <a class="qa-btn" href="{{ url_for('settings_project') }}">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 7.5 12 3l8 4.5V16.5L12 21l-8-4.5V7.5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
-            <path d="M12 21v-9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-          Proje Bilgileri
-        </a>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 {% endblock %}
