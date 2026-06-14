@@ -5,18 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{% block title %}Entegre Risk Yönetimi{% endblock %}</title>
 
-  <!-- Tailwind (senin RiskApp şablon dili için) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
   <!-- Fonts + Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap" rel="stylesheet"/>
 
-  <!-- Bootstrap kalabilir (modal/backdrop vs) -->
+  <!-- Bootstrap kalabilir -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 
-  <!-- Senin ana CSS'in -->
+  <!-- Ana CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <script id="tailwind-config">
@@ -25,17 +27,15 @@
       theme: {
         extend: {
           colors: {
-            primary: "#2866bd",
-            "background-light": "#f0f2f4",
-            "background-dark": "#17191c",
-            "slate-muted": "#8B919D",
-            charcoal: "#474B52"
+            primary: "#2457e6",
+            "background-light": "#f6f8fc",
+            "background-dark": "#0b1220"
           },
           fontFamily: {
-            display: ["Space Grotesk", "sans-serif"]
+            display: ["Inter", "sans-serif"]
           },
           borderRadius: {
-            DEFAULT: "0.5rem",
+            DEFAULT: "0.75rem",
             lg: "1rem",
             xl: "1.5rem",
             full: "9999px"
@@ -46,493 +46,872 @@
   </script>
 
   <style>
-    /* ==========================================================
-       RiskApp · Base Template (2026 Modern)
-       - data-theme tokenları (dashboard template'in buna bağlı)
-       - Tailwind dark class ile uyum
-       - Sticky topbar + modern sidebar
-       ========================================================== */
+    :root{
+      color-scheme:light;
 
-    :root{ color-scheme: light; }
-    [data-theme="dark"]{ color-scheme: dark; }
-
-    /* ====================
-       Tokenlar (LIGHT)
-       ==================== */
-    [data-theme="light"]{
-      --bg: #f0f2f4;
-      --bg-soft: #ffffff;
-      --surface: #f6f7f8;
-
-      --card: #ffffff;
+      --bg:#f6f8fc;
+      --bg-2:#edf5ff;
+      --surface:#ffffff;
+      --surface-soft:#f8fafc;
+      --card:rgba(255,255,255,.86);
       --card-solid:#ffffff;
 
-      --text: #0f172a;
-      --text-dim:#64748b;
-      --text-soft:#94a3b8;
+      --text:#0f172a;
+      --muted:#64748b;
+      --soft:#94a3b8;
 
-      --line: #e5e7eb;
+      --line:rgba(15,23,42,.09);
+      --line-2:rgba(15,23,42,.13);
 
-      --primary: #2866bd;
-      --primary-2:#3b82f6;
+      --primary:#2457e6;
+      --primary-2:#3264ff;
+      --teal:#0f766e;
+      --green:#22c55e;
+      --amber:#f59e0b;
+      --orange:#fb923c;
+      --red:#ef4444;
 
-      --success: #16a34a;
-      --warning: #f59e0b;
-      --danger:  #ef4444;
+      --radius-xl:26px;
+      --radius-lg:20px;
+      --radius-md:15px;
 
-      --ring: rgba(40,102,189,.35);
+      --shadow-lg:0 28px 80px rgba(15,23,42,.10);
+      --shadow-md:0 18px 44px rgba(15,23,42,.08);
+      --shadow-sm:0 10px 28px rgba(15,23,42,.06);
 
-      --elev: 0 10px 40px -10px rgba(0,0,0,0.08);
-      --elev-card: 0 10px 40px -10px rgba(0,0,0,0.10);
-      --glass-blur: saturate(120%) blur(8px);
-
-      --radius-2xl: 18px;
-      --radius: 14px;
-      --radius-sm: 10px;
-
-      --font: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-      --ease: cubic-bezier(.22,1,.36,1);
+      --ring:rgba(36,87,230,.18);
+      --font:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --ease:cubic-bezier(.22,1,.36,1);
     }
 
-    /* ====================
-       Tokenlar (DARK)  ✅ OKUNURLUK FIX
-       ==================== */
     [data-theme="dark"]{
-      /* Arka planları biraz daha "katmanlı" yap: yazı netleşir */
-      --bg: #0b1220;          /* eski: #17191c */
-      --bg-soft: #0f172a;     /* eski: #121820 */
-      --surface: #0f172a;
+      color-scheme:dark;
 
-      /* Kartlar: az şeffaf + daha dolu => sis azalır */
-      --card: rgba(17, 24, 39, .78);
-      --card-solid: #111827;
+      --bg:#070d1a;
+      --bg-2:#0b1220;
+      --surface:#0f172a;
+      --surface-soft:rgba(15,23,42,.72);
+      --card:rgba(15,23,42,.78);
+      --card-solid:#111827;
 
-      /* Metin: dim'i güçlendir (asıl sorun buydu) */
-      --text: rgba(255,255,255,.92);
-      --text-dim: rgba(255,255,255,.74);
-      --text-soft: rgba(255,255,255,.58);
+      --text:rgba(255,255,255,.93);
+      --muted:rgba(226,232,240,.72);
+      --soft:rgba(226,232,240,.52);
 
-      /* Çizgiler: biraz daha görünür */
-      --line: rgba(148, 163, 184, .20);
+      --line:rgba(255,255,255,.09);
+      --line-2:rgba(255,255,255,.15);
 
-      --primary: #2866bd;
-      --primary-2:#60a5fa;
+      --primary:#60a5fa;
+      --primary-2:#93c5fd;
+      --teal:#2dd4bf;
+      --green:#22c55e;
+      --amber:#fbbf24;
+      --orange:#fb923c;
+      --red:#f87171;
 
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger:  #ef4444;
+      --shadow-lg:0 28px 80px rgba(0,0,0,.44);
+      --shadow-md:0 18px 44px rgba(0,0,0,.35);
+      --shadow-sm:0 10px 28px rgba(0,0,0,.28);
 
-      --ring: rgba(96,165,250,.35);
-
-      --elev: 0 10px 40px -10px rgba(0,0,0,0.45);
-      --elev-card: 0 16px 40px rgba(0,0,0,.45);
-      --glass-blur: saturate(140%) blur(10px);
-
-      --radius-2xl: 18px;
-      --radius: 14px;
-      --radius-sm: 10px;
-
-      --font: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-      --ease: cubic-bezier(.22,1,.36,1);
+      --ring:rgba(96,165,250,.22);
     }
 
-    /* ========== Reset/Global ========== */
-    *{ box-sizing:border-box }
-    html,body{
-      margin:0; padding:0;
+    *{ box-sizing:border-box; }
+
+    html, body{
+      margin:0;
+      padding:0;
+      min-height:100dvh;
       font-family:var(--font);
       color:var(--text);
-      background: var(--bg);
-      min-height:100dvh;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-      transition: background .25s ease, color .25s ease;
+      background:
+        radial-gradient(circle at 8% 4%, rgba(191,219,254,.78), transparent 26%),
+        radial-gradient(circle at 92% 88%, rgba(153,246,228,.54), transparent 26%),
+        linear-gradient(135deg, var(--bg) 0%, var(--bg-2) 100%);
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+      transition:background .25s ease, color .25s ease;
     }
-    @media (prefers-reduced-motion: reduce){
-      *{ animation:none !important; transition:none !important; }
+
+    [data-theme="dark"] body{
+      background:
+        radial-gradient(circle at 10% 2%, rgba(37,99,235,.20), transparent 28%),
+        radial-gradient(circle at 92% 92%, rgba(20,184,166,.15), transparent 30%),
+        linear-gradient(135deg, #020617 0%, var(--bg) 100%);
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      *{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }
     }
 
     a{
-      color: var(--primary);
+      color:var(--primary);
       text-decoration:none;
-      font-weight:700;
+      font-weight:800;
     }
-    a:hover{ text-decoration:underline }
+    a:hover{ text-decoration:underline; }
 
-    /* Whisper shadow helper */
-    .whisper-shadow{ box-shadow: var(--elev); }
-
-    /* ========== Layout ========== */
     .shell{
-      display:grid;
-      grid-template-rows: auto 1fr;
       min-height:100dvh;
+      display:grid;
+      grid-template-rows:auto 1fr;
     }
 
-    /* TOPBAR */
+    /* ================= TOPBAR ================= */
     .topbar{
-      position:sticky; top:0; z-index:50;
-      height:64px;
-      display:flex; align-items:center; gap:12px;
-      padding: 0 16px;
-      background: color-mix(in oklab, var(--bg-soft) 75%, transparent);
-      backdrop-filter: blur(10px);
+      position:sticky;
+      top:0;
+      z-index:80;
+      height:72px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:0 18px;
+      background:color-mix(in oklab, var(--card-solid) 76%, transparent);
       border-bottom:1px solid var(--line);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+    }
+
+    [data-theme="dark"] .topbar{
+      background:rgba(2,6,23,.68);
     }
 
     .brand{
-      display:flex; align-items:center; gap:10px;
-      font-weight:900;
-      letter-spacing:-.01em;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      min-width:0;
     }
+
     .brand-badge{
-      width:38px; height:38px;
-      border-radius:12px;
-      display:grid; place-items:center;
-      background: var(--primary);
+      width:42px;
+      height:42px;
+      flex:0 0 42px;
+      display:grid;
+      place-items:center;
+      border-radius:16px;
+      background:linear-gradient(135deg, #2457e6, #0f766e);
       color:#fff;
-      box-shadow: 0 12px 24px color-mix(in oklab, var(--primary) 35%, transparent);
+      box-shadow:0 16px 34px rgba(36,87,230,.24);
     }
+
     .brand-title{
-      font-size:1.1rem;
-      color: var(--text);
+      color:var(--text);
+      font-size:20px;
+      line-height:1;
+      font-weight:950;
+      letter-spacing:-.055em;
+      white-space:nowrap;
     }
 
-    .topbar .spacer{ flex:1 }
+    .topbar .spacer{ flex:1; }
 
-    .btn-icon{
-      width:40px; height:40px;
-      display:grid; place-items:center;
-      border-radius:12px;
+    .icon-btn{
+      width:42px;
+      height:42px;
+      display:grid;
+      place-items:center;
+      border-radius:15px;
       border:1px solid var(--line);
-      background: color-mix(in oklab, var(--card) 85%, transparent);
+      background:var(--card);
+      color:var(--text);
       cursor:pointer;
-      transition: filter .15s ease, transform .08s ease;
+      box-shadow:var(--shadow-sm);
+      transition:transform .14s ease, border-color .14s ease, filter .14s ease;
     }
-    .btn-icon:hover{ filter:brightness(1.04) }
-    .btn-icon:active{ transform: translateY(1px) }
 
-    /* MAIN LAYOUT */
+    .icon-btn:hover{
+      transform:translateY(-1px);
+      border-color:color-mix(in oklab, var(--primary) 36%, var(--line));
+      filter:brightness(1.02);
+    }
+
+    .theme-btn{
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:0 13px;
+      border-radius:15px;
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      cursor:pointer;
+      box-shadow:var(--shadow-sm);
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+      transition:transform .14s ease, border-color .14s ease, filter .14s ease;
+    }
+
+    .theme-btn:hover{
+      transform:translateY(-1px);
+      border-color:color-mix(in oklab, var(--primary) 36%, var(--line));
+    }
+
+    .user-chip{
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:0 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      box-shadow:var(--shadow-sm);
+      max-width:260px;
+    }
+
+    .user-avatar{
+      width:28px;
+      height:28px;
+      display:grid;
+      place-items:center;
+      border-radius:999px;
+      background:rgba(36,87,230,.12);
+      color:var(--primary);
+      font-size:12px;
+      font-weight:950;
+    }
+
+    .user-meta{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      line-height:1.08;
+    }
+
+    .user-name{
+      max-width:150px;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .user-role{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:750;
+    }
+
+    /* ================= LAYOUT ================= */
     .layout{
       display:grid;
-      grid-template-columns: 280px 1fr;
-      min-height: calc(100dvh - 64px);
-    }
-    @media (max-width: 980px){
-      .layout{ grid-template-columns: 1fr; }
+      grid-template-columns:286px minmax(0, 1fr);
+      min-height:calc(100dvh - 72px);
     }
 
-    /* Desktop: sidebar collapse */
-    @media (min-width: 981px){
-      body.sidebar-collapsed .layout{ grid-template-columns: 1fr; }
+    @media (max-width:980px){
+      .layout{ grid-template-columns:1fr; }
+    }
+
+    @media (min-width:981px){
+      body.sidebar-collapsed .layout{ grid-template-columns:1fr; }
       body.sidebar-collapsed .sidebar{ display:none; }
     }
 
-    /* Sidebar */
+    /* ================= SIDEBAR ================= */
     .sidebar{
-      position:sticky; top:64px; align-self:start;
-      height: calc(100dvh - 64px);
+      position:sticky;
+      top:72px;
+      align-self:start;
+      height:calc(100dvh - 72px);
       overflow:auto;
-      background: var(--card);
+      padding:14px 12px 18px;
+      background:color-mix(in oklab, var(--card-solid) 84%, transparent);
       border-right:1px solid var(--line);
-      padding: 14px 0;
-      box-shadow: var(--elev);
-      transition: transform .28s var(--ease);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
     }
-    @media (max-width: 980px){
+
+    [data-theme="dark"] .sidebar{
+      background:rgba(2,6,23,.52);
+    }
+
+    @media (max-width:980px){
       .sidebar{
         position:fixed;
-        inset:64px auto 0 0;
-        width:min(78vw, 300px);
-        transform: translateX(-102%);
-        z-index:60;
+        inset:72px auto 0 0;
+        width:min(82vw, 320px);
+        z-index:70;
+        transform:translateX(-104%);
+        transition:transform .28s var(--ease);
+        box-shadow:var(--shadow-lg);
       }
       .sidebar.open{ transform:none; }
     }
 
-    .menu-section{ margin:10px 0 14px; }
-    .menu-title{
-      margin: .25rem 0 .5rem 1rem;
-      font-size:.72rem;
+    .project-card{
+      margin:0 2px 16px;
+      padding:14px;
+      border-radius:22px;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(255,255,255,.20), transparent 28%),
+        linear-gradient(135deg, #111c36 0%, #2457e6 62%, #0f766e 100%);
+      color:#fff;
+      box-shadow:var(--shadow-md);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .project-card::after{
+      content:"";
+      position:absolute;
+      width:130px;
+      height:130px;
+      right:-68px;
+      bottom:-72px;
+      border-radius:999px;
+      background:rgba(255,255,255,.11);
+    }
+
+    .project-label{
+      position:relative;
+      z-index:1;
+      margin:0 0 8px;
+      color:rgba(255,255,255,.68);
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.13em;
       text-transform:uppercase;
-      letter-spacing:.12em;
-      color: var(--text-dim);
-      font-weight:900;
+    }
+
+    .project-card select.input{
+      position:relative;
+      z-index:1;
+      min-height:42px;
+      border-radius:15px;
+      background:rgba(255,255,255,.15);
+      border-color:rgba(255,255,255,.22);
+      color:#fff;
+      font-weight:850;
+    }
+
+    .project-card option{
+      color:#0f172a;
+      background:#fff;
+    }
+
+    .menu-section{
+      margin:10px 0 16px;
+    }
+
+    .menu-title{
+      margin:0 0 8px 9px;
+      color:var(--soft);
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+    }
+
+    .menu{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
     }
 
     .menu a{
-      display:flex; align-items:center; gap:.55rem;
-      padding:.68rem 1.1rem;
-      color: color-mix(in oklab, var(--text) 90%, transparent);
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:0 12px;
+      border-radius:16px;
+      color:color-mix(in oklab, var(--text) 88%, transparent);
       text-decoration:none;
-      border-left:3px solid transparent;
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      transition: background .18s ease, color .18s ease, border-color .18s ease;
-      font-weight:800;
+      font-size:14px;
+      font-weight:850;
+      border:1px solid transparent;
+      transition:background .16s ease, color .16s ease, border-color .16s ease, transform .12s ease;
     }
+
     .menu a:hover{
-      background: color-mix(in oklab, var(--primary) 7%, transparent);
-      color: var(--text);
-    }
-    .menu a.active,[aria-current="page"]{
-      background: color-mix(in oklab, var(--primary) 12%, transparent);
-      border-left-color: var(--primary);
-      color: var(--text);
-    }
-
-    .submenu{ margin-left:.25rem; border-left:2px dashed color-mix(in oklab, var(--line) 85%, transparent); }
-    .submenu a{ padding-left:1.2rem; font-size:.98rem; }
-
-    /* Main content */
-    .main{
-      padding: 18px min(4vw, 32px) 40px;
-    }
-    .panel{
-      background: var(--card);
-      border:1px solid var(--line);
-      border-radius: var(--radius-2xl);
-      padding: clamp(16px, 2vw, 22px);
-      box-shadow: var(--elev-card);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-    }
-
-    /* Forms */
-    label{ display:block; font-size:.86rem; color:var(--text-dim); margin-bottom:.45rem; font-weight:850; }
-    .input, select.input, textarea.input{
-      width:100%;
-      padding:.78rem .85rem;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background: color-mix(in oklab, var(--card) 95%, transparent);
-      color: var(--text);
-      outline:none;
-      font-weight:600;
-      transition:.2s border-color, .2s box-shadow, .2s background;
-    }
-    .input::placeholder{
-      color: var(--text-soft);
-      opacity: 1;
-    }
-    .input:focus{
-      border-color: color-mix(in oklab, var(--primary) 70%, transparent);
-      box-shadow: 0 0 0 4px var(--ring);
-      background: color-mix(in oklab, var(--card) 92%, transparent);
-    }
-
-    /* Buttons */
-    .btn{
-      display:inline-flex; align-items:center; gap:.55rem;
-      border:1px solid var(--line);
-      background: color-mix(in oklab, var(--card) 95%, transparent);
-      color: var(--text);
-      padding:.66rem 1rem;
-      border-radius:12px;
-      cursor:pointer;
-      transition: transform .08s ease, filter .15s ease, box-shadow .2s ease;
-      box-shadow: 0 10px 30px -15px rgba(0,0,0,.18);
-      font-weight:900;
+      background:rgba(36,87,230,.08);
+      border-color:rgba(36,87,230,.12);
+      transform:translateX(2px);
+      color:var(--text);
       text-decoration:none;
-      line-height:1;
     }
-    .btn:hover{ filter:brightness(1.03); }
-    .btn:active{ transform: translateY(1px); }
-    .btn[disabled]{ opacity:.6; cursor:not-allowed; }
+
+    .menu a.active,
+    .menu a[aria-current="page"]{
+      background:linear-gradient(135deg, rgba(36,87,230,.14), rgba(15,118,110,.08));
+      border-color:rgba(36,87,230,.18);
+      color:var(--text);
+      box-shadow:var(--shadow-sm);
+    }
+
+    .menu-icon{
+      width:32px;
+      height:32px;
+      flex:0 0 32px;
+      display:grid;
+      place-items:center;
+      border-radius:13px;
+      background:var(--surface-soft);
+      color:var(--primary);
+      border:1px solid var(--line);
+    }
+
+    .menu a.active .menu-icon{
+      background:var(--primary);
+      color:#fff;
+      border-color:transparent;
+    }
+
+    .menu-text{
+      min-width:0;
+      overflow:hidden;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    /* ================= MAIN ================= */
+    .main{
+      min-width:0;
+      padding:18px min(3vw, 30px) 38px;
+    }
+
+    .panel{
+      min-height:calc(100dvh - 132px);
+      border-radius:28px;
+      background:var(--card);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow-lg);
+      padding:clamp(16px, 2vw, 22px);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+    }
+
+    .footer{
+      margin:18px 4px 0;
+      color:var(--soft);
+      font-size:12px;
+      font-weight:750;
+    }
+
+    /* ================= AUTH MODE ================= */
+    body.auth{
+      background:
+        radial-gradient(circle at 12% 10%, rgba(191,219,254,.92), transparent 28%),
+        radial-gradient(circle at 86% 88%, rgba(153,246,228,.72), transparent 30%),
+        linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #effffb 100%);
+    }
+
+    .layout.auth{
+      grid-template-columns:1fr !important;
+    }
+
+    .auth .sidebar,
+    .auth #sidebarToggle{
+      display:none !important;
+    }
+
+    .auth .main{
+      padding:0 !important;
+      width:100%;
+      max-width:100% !important;
+    }
+
+    .auth .panel{
+      min-height:auto;
+      width:100%;
+      max-width:100%;
+      margin:0;
+      padding:0;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      box-shadow:none;
+      backdrop-filter:none;
+      -webkit-backdrop-filter:none;
+    }
+
+    .auth .footer{
+      display:none;
+    }
+
+    /* ================= COMPONENTS ================= */
+    label{
+      display:block;
+      margin-bottom:.45rem;
+      color:var(--muted);
+      font-size:.86rem;
+      font-weight:850;
+    }
+
+    .input,
+    select.input,
+    textarea.input{
+      width:100%;
+      min-height:44px;
+      padding:.76rem .86rem;
+      border-radius:15px;
+      border:1px solid var(--line);
+      background:var(--card-solid);
+      color:var(--text);
+      outline:none;
+      font-weight:700;
+      transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .input::placeholder{
+      color:var(--soft);
+      opacity:1;
+    }
+
+    .input:focus{
+      border-color:color-mix(in oklab, var(--primary) 55%, var(--line));
+      box-shadow:0 0 0 4px var(--ring);
+      background:var(--card-solid);
+    }
+
+    .btn{
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:.55rem;
+      padding:0 14px;
+      border-radius:15px;
+      border:1px solid var(--line);
+      background:var(--card-solid);
+      color:var(--text);
+      cursor:pointer;
+      box-shadow:var(--shadow-sm);
+      font-size:13px;
+      font-weight:900;
+      line-height:1;
+      text-decoration:none;
+      transition:transform .14s ease, border-color .14s ease, filter .14s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+      border-color:color-mix(in oklab, var(--primary) 32%, var(--line));
+      filter:brightness(1.02);
+      text-decoration:none;
+    }
+
+    .btn:active{
+      transform:translateY(0);
+    }
+
+    .btn[disabled]{
+      opacity:.58;
+      cursor:not-allowed;
+      transform:none;
+    }
 
     .btn-primary{
-      background: var(--primary);
-      color: #fff;
-      border-color: transparent;
-      box-shadow: 0 14px 30px -18px color-mix(in oklab, var(--primary) 55%, transparent);
-    }
-    .btn-success{
-      background: var(--success);
-      color:#fff;
-      border-color: transparent;
+      background:linear-gradient(135deg, #2457e6, #3264ff);
+      border-color:rgba(36,87,230,.35);
+      color:#fff !important;
+      box-shadow:0 16px 34px rgba(36,87,230,.22);
     }
 
-    /* Focus ring */
+    .btn-success{
+      background:var(--green);
+      border-color:rgba(34,197,94,.35);
+      color:#fff !important;
+    }
+
     :where(a, button, .btn, .input, textarea.input, select.input):focus-visible{
       outline:none;
-      box-shadow: 0 0 0 4px var(--ring);
-      border-color: color-mix(in oklab, var(--primary) 70%, transparent);
+      box-shadow:0 0 0 4px var(--ring);
+      border-color:color-mix(in oklab, var(--primary) 55%, var(--line));
     }
 
-    /* Table */
-    .table-wrap{ overflow:auto; border-radius:14px; }
-    .table{ width:100%; border-collapse:separate; border-spacing:0; min-width:720px; }
-    .table th,.table td{
-      padding:.78rem .9rem;
+    .table-wrap{
+      overflow:auto;
+      border-radius:20px;
+      border:1px solid var(--line);
+    }
+
+    .table{
+      width:100%;
+      min-width:720px;
+      border-collapse:separate;
+      border-spacing:0;
+    }
+
+    .table th,
+    .table td{
+      padding:.86rem 1rem;
       border-bottom:1px solid var(--line);
       text-align:left;
-      font-size:.96rem;
       vertical-align:top;
-      color: var(--text); /* ✅ dark'ta td yazısı sabit okunur */
+      color:var(--text);
+      font-size:.94rem;
     }
+
     .table thead th{
-      font-size:.82rem;
+      position:sticky;
+      top:0;
+      z-index:1;
+      color:var(--muted);
+      background:var(--surface-soft);
+      font-size:.76rem;
+      font-weight:950;
+      letter-spacing:.12em;
       text-transform:uppercase;
-      letter-spacing:.09em;
-      color:var(--text-dim);
-      position:sticky; top:0; z-index:1;
-      background: color-mix(in oklab, var(--bg-soft) 92%, transparent);
-      backdrop-filter: blur(8px);
-      font-weight:900;
-    }
-    /* ✅ dark'ta thead arka planını daha dolu yap */
-    [data-theme="dark"] .table thead th{
-      background: color-mix(in oklab, var(--card-solid) 86%, transparent);
-      border-bottom-color: rgba(148,163,184,.22);
+      backdrop-filter:blur(8px);
     }
 
     .table tbody tr:hover td{
-      background: color-mix(in oklab, var(--primary) 8%, transparent);
+      background:rgba(36,87,230,.055);
     }
 
-    /* Flash/Badge */
+    [data-theme="dark"] .table tbody tr:hover td{
+      background:rgba(96,165,250,.08);
+    }
+
     .flash{
-      margin:.7rem 0;
-      padding:.85rem 1rem;
-      border-radius:12px;
-      font-size:.98rem;
-      border:1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-      background: color-mix(in oklab, var(--primary) 10%, var(--card));
-      color: var(--text);
-      font-weight:800;
-    }
-    .flash.success{ border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.12); }
-    .flash.danger{  border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.12); }
-    .flash.info{    border-color: rgba(96,165,250,.25); background: rgba(96,165,250,.12); }
-
-    .badge{
-      display:inline-block;
-      padding:.28rem .6rem;
-      border-radius:999px;
-      font-size:.86rem;
+      margin:0 0 14px;
+      padding:13px 15px;
+      border-radius:18px;
       border:1px solid var(--line);
-      background: color-mix(in oklab, var(--card) 92%, transparent);
-      color: var(--text);
+      background:var(--card);
+      color:var(--text);
+      box-shadow:var(--shadow-sm);
+      font-size:14px;
       font-weight:800;
     }
-    .score-low{ background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.25); }
-    .score-mid{ background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.25); }
-    .score-high{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.25); }
 
-    .small{ font-size:.86rem; color:var(--text-dim); font-weight:600; }
-    .footer{ margin-top:28px; color:var(--text-dim); font-size:.9rem; }
-
-    /* Print */
-    @media print{
-      .noprint{ display:none !important; }
-      body{ background:#fff; color:#111; }
-      .topbar, .sidebar{ display:none; }
-      .main{ padding:0; }
-      .panel{ box-shadow:none; border:1px solid #ddd; background:#fff; color:#111; }
-      .table th,.table td{ border-color:#eee; }
+    .flash.success{
+      color:#166534;
+      background:#f0fdf4;
+      border-color:rgba(34,197,94,.20);
     }
 
-    /* ==========================================================
-       AUTH MODE (✅ /forgot, /login, /welcome vs. için FIX)
-       ========================================================== */
-    .layout.auth{ grid-template-columns:1fr !important; }
-    .auth .sidebar{ display:none !important; }
-    .auth #sidebarToggle{ display:none !important; }
-
-    .auth .main{
-      padding: 24px 16px 40px !important;
-      width: 100%;
-      max-width: 100% !important;
-      margin: 0 auto !important;
-    }
-    .auth .panel{
-      width: 100%;
-      max-width: 720px;
-      margin: 0 auto;
-    }
-    .auth .flash{
-      max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
+    .flash.danger,
+    .flash.error{
+      color:#991b1b;
+      background:#fff7f7;
+      border-color:rgba(239,68,68,.20);
     }
 
-    /* ==========================================================
-       ✅ IMPACT SCORE (aktif bar + renkli sayı)
-       Dashboard template bunu kullanacak
-       ========================================================== */
-    .impact-cell{ display:flex; align-items:center; gap:10px; }
+    .flash.info{
+      color:#1e40af;
+      background:#eff6ff;
+      border-color:rgba(59,130,246,.20);
+    }
+
+    .flash.warning{
+      color:#92400e;
+      background:#fffbeb;
+      border-color:rgba(245,158,11,.22);
+    }
+
+    [data-theme="dark"] .flash.success,
+    [data-theme="dark"] .flash.danger,
+    [data-theme="dark"] .flash.error,
+    [data-theme="dark"] .flash.info,
+    [data-theme="dark"] .flash.warning{
+      color:var(--text);
+      background:var(--card);
+    }
+
+    .badge,
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      padding:.30rem .62rem;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--card-solid);
+      color:var(--text);
+      font-size:.82rem;
+      font-weight:850;
+    }
+
+    .score-low,
+    .pill.green{
+      background:rgba(34,197,94,.13);
+      border-color:rgba(34,197,94,.24);
+      color:#15803d;
+    }
+
+    .score-mid,
+    .pill.yellow{
+      background:rgba(245,158,11,.14);
+      border-color:rgba(245,158,11,.26);
+      color:#92400e;
+    }
+
+    .score-high,
+    .pill.red{
+      background:rgba(239,68,68,.13);
+      border-color:rgba(239,68,68,.24);
+      color:#b91c1c;
+    }
+
+    .pill.orange{
+      background:rgba(251,146,60,.14);
+      border-color:rgba(251,146,60,.26);
+      color:#9a3412;
+    }
+
+    [data-theme="dark"] .score-low,
+    [data-theme="dark"] .score-mid,
+    [data-theme="dark"] .score-high,
+    [data-theme="dark"] .pill.green,
+    [data-theme="dark"] .pill.yellow,
+    [data-theme="dark"] .pill.orange,
+    [data-theme="dark"] .pill.red{
+      color:var(--text);
+    }
+
+    .small{
+      color:var(--muted);
+      font-size:.86rem;
+      font-weight:700;
+    }
+
+    .impact-cell{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
     .impact-track{
-      width: 92px; height: 6px;
-      border-radius: 999px;
-      background: color-mix(in oklab, var(--line,#e5e7eb) 70%, transparent);
+      width:92px;
+      height:7px;
+      border-radius:999px;
+      background:rgba(100,116,139,.18);
       overflow:hidden;
     }
-    .impact-fill{ height:100%; border-radius:999px; width: var(--w, 50%); }
-    .impact-val{
-      font-weight: 900;
-      min-width: 32px;
-      text-align: right;
-      letter-spacing: -.01em;
-      color: var(--text); /* ✅ sayı asla sönmesin */
-    }
 
-    /* Light için aynı kalsın */
-    .impact-green .impact-fill{ background: #22c55e; }
-    .impact-green .impact-val{ color: #16a34a; }
-
-    .impact-yellow .impact-fill{ background: #fbbf24; }
-    .impact-yellow .impact-val{ color: #b45309; }
-
-    .impact-orange .impact-fill{ background: #fb923c; }
-    .impact-orange .impact-val{ color: #c2410c; }
-
-    .impact-red .impact-fill{ background: #ef4444; }
-    .impact-red .impact-val{ color: #dc2626; }
-
-    /* ✅ Dark modda: renkli sayıların tonu aç (koyu kahverengiler patlıyordu) */
-    [data-theme="dark"] .impact-green .impact-val{ color: rgba(34,197,94,.95); }
-    [data-theme="dark"] .impact-yellow .impact-val{ color: rgba(251,191,36,.95); }
-    [data-theme="dark"] .impact-orange .impact-val{ color: rgba(251,146,60,.95); }
-    [data-theme="dark"] .impact-red .impact-val{ color: rgba(248,113,113,.95); }
-
-    /* (Opsiyonel) Status pill renkleri */
-    .pill{
-      display:inline-flex; align-items:center;
-      padding:.28rem .6rem;
+    .impact-fill{
+      height:100%;
+      width:var(--w,50%);
       border-radius:999px;
-      font-weight:900;
-      font-size:.78rem;
-      border:1px solid var(--line,#e5e7eb);
-      background: color-mix(in oklab, var(--card) 92%, transparent);
-      color: var(--text);
     }
 
-    /* Light tonlar */
-    .pill.green{ background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.25); color:#15803d; }
-    .pill.yellow{ background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.28); color:#92400e; }
-    .pill.orange{ background: rgba(251,146,60,.16); border-color: rgba(251,146,60,.30); color:#9a3412; }
-    .pill.red{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.28); color:#b91c1c; }
+    .impact-val{
+      min-width:34px;
+      text-align:right;
+      color:var(--text);
+      font-weight:950;
+      font-variant-numeric:tabular-nums;
+    }
 
-    /* ✅ Dark mod: pill yazıları beyaz/aydınlık olsun (okunurluk) */
-    [data-theme="dark"] .pill.green{ color: rgba(255,255,255,.92); background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.30); }
-    [data-theme="dark"] .pill.yellow{ color: rgba(255,255,255,.92); background: rgba(245,158,11,.20); border-color: rgba(245,158,11,.34); }
-    [data-theme="dark"] .pill.orange{ color: rgba(255,255,255,.92); background: rgba(251,146,60,.20); border-color: rgba(251,146,60,.34); }
-    [data-theme="dark"] .pill.red{ color: rgba(255,255,255,.92); background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.34); }
+    .impact-green .impact-fill{ background:var(--green); }
+    .impact-yellow .impact-fill{ background:var(--amber); }
+    .impact-orange .impact-fill{ background:var(--orange); }
+    .impact-red .impact-fill{ background:var(--red); }
 
-    /* ✅ Bootstrap modal içi yazılar da dark'ta bazen sönüyor — güvenlik kemeri */
+    .impact-green .impact-val{ color:#16a34a; }
+    .impact-yellow .impact-val{ color:#b45309; }
+    .impact-orange .impact-val{ color:#c2410c; }
+    .impact-red .impact-val{ color:#dc2626; }
+
+    [data-theme="dark"] .impact-green .impact-val{ color:#4ade80; }
+    [data-theme="dark"] .impact-yellow .impact-val{ color:#fbbf24; }
+    [data-theme="dark"] .impact-orange .impact-val{ color:#fb923c; }
+    [data-theme="dark"] .impact-red .impact-val{ color:#f87171; }
+
+    .modal-content{
+      border-radius:24px;
+      border:1px solid var(--line);
+      background:var(--card-solid);
+      color:var(--text);
+      box-shadow:var(--shadow-lg);
+    }
+
     [data-theme="dark"] .modal-content{
-      background: #0f172a;
-      color: var(--text);
-      border-color: rgba(148,163,184,.22);
+      background:#0f172a;
+      color:var(--text);
+      border-color:var(--line-2);
     }
-    [data-theme="dark"] .modal-header, 
+
+    [data-theme="dark"] .modal-header,
     [data-theme="dark"] .modal-footer{
-      border-color: rgba(148,163,184,.16);
+      border-color:var(--line);
+    }
+
+    @media (max-width:760px){
+      .topbar{
+        height:66px;
+        padding:0 12px;
+      }
+
+      .layout{
+        min-height:calc(100dvh - 66px);
+      }
+
+      .sidebar{
+        top:66px;
+        height:calc(100dvh - 66px);
+      }
+
+      .brand-title{
+        font-size:18px;
+      }
+
+      .user-chip{
+        display:none;
+      }
+
+      .theme-btn{
+        width:42px;
+        padding:0;
+      }
+
+      .theme-text{
+        display:none;
+      }
+
+      .main{
+        padding:14px 12px 30px;
+      }
+
+      .panel{
+        border-radius:22px;
+        padding:14px;
+      }
+    }
+
+    @media print{
+      body{
+        background:#fff !important;
+        color:#111 !important;
+      }
+
+      .noprint,
+      .topbar,
+      .sidebar{
+        display:none !important;
+      }
+
+      .layout{
+        display:block;
+      }
+
+      .main{
+        padding:0;
+      }
+
+      .panel{
+        min-height:auto;
+        box-shadow:none;
+        border:1px solid #ddd;
+        background:#fff;
+        color:#111;
+      }
+
+      .table th,
+      .table td{
+        border-color:#eee;
+        color:#111;
+      }
     }
   </style>
 </head>
@@ -540,48 +919,51 @@
 <body class="{% block body_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
 
 <div class="shell">
-  <!-- TOPBAR -->
   <header class="topbar noprint">
     {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
-      <button class="btn-icon" id="sidebarToggle" aria-label="Menüyü Aç/Kapat">
-        <span class="material-icons-outlined" style="font-size:20px;">menu</span>
+      <button class="icon-btn" id="sidebarToggle" aria-label="Menüyü aç/kapat">
+        <span class="material-icons-outlined" style="font-size:21px;">menu</span>
       </button>
     {% endif %}
 
-    <div class="brand">
+    <a class="brand" href="{{ url_for('dashboard') if session.get('username') else url_for('welcome') }}" aria-label="RiskApp">
       <div class="brand-badge">
-        <span class="material-icons-outlined" style="font-size:22px;">shield</span>
+        <span class="material-icons-outlined" style="font-size:23px;">shield</span>
       </div>
       <div class="brand-title">RiskApp</div>
-    </div>
+    </a>
 
     <div class="spacer"></div>
 
     {% if session.get('username') and request.endpoint != 'welcome' %}
-      <div class="small" style="white-space:nowrap;">
-        👋 {{ session.get('username') }}
-        {% if session.get('role') %} · {{ session.get('role')|capitalize }}{% endif %}
+      <div class="user-chip">
+        <div class="user-avatar">{{ (session.get('username') or 'U')[:1]|upper }}</div>
+        <div class="user-meta">
+          <div class="user-name">{{ session.get('username') }}</div>
+          {% if session.get('role') %}
+            <div class="user-role">{{ session.get('role')|capitalize }}</div>
+          {% endif %}
+        </div>
       </div>
     {% endif %}
 
-    <button id="themeToggle" class="btn" onclick="window.__toggleTheme?.()" style="margin-left:8px">
-      🌙 Koyu Tema
+    <button id="themeToggle" class="theme-btn" onclick="window.__toggleTheme?.()" type="button">
+      <span class="theme-icon">🌙</span>
+      <span class="theme-text">Koyu Tema</span>
     </button>
   </header>
 
   <div class="layout {% block layout_class %}{{ 'auth' if (hide_nav|default(false) or request.endpoint=='welcome') }}{% endblock %}">
-    <!-- SIDEBAR -->
     {% block sidebar %}
     {% if not (hide_nav|default(false) or request.endpoint=='welcome') %}
     <aside class="sidebar" id="sidebar">
 
-      <!-- Proje Seçici (varsa) -->
       {% if session.get('account_id') %}
         {% set _acc_id = session.get('account_id') %}
         {% set _projects = ProjectInfo.query.filter_by(account_id=_acc_id).order_by(ProjectInfo.created_at.desc()).all() %}
         {% if _projects and _projects|length > 1 %}
-          <form method="post" action="{{ url_for('switch_project') }}" class="small" style="padding:0 1rem .75rem">
-            <label for="project_id" style="display:block;margin-bottom:6px;font-weight:900">Aktif Proje</label>
+          <form method="post" action="{{ url_for('switch_project') }}" class="project-card">
+            <div class="project-label">Aktif Proje</div>
             <select class="input" id="project_id" name="project_id" onchange="this.form.submit()">
               {% set _pid = session.get('project_id') %}
               {% for p in _projects %}
@@ -593,22 +975,43 @@
       {% endif %}
 
       <div class="menu-section">
-        <div class="menu-title">Dashboard</div>
+        <div class="menu-title">Panel</div>
         <nav class="menu">
-          <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">Genel Görünüm</a>
+          <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">dashboard</span></span>
+            <span class="menu-text">Genel Görünüm</span>
+          </a>
         </nav>
       </div>
 
       <div class="menu-section">
         <div class="menu-title">Risk</div>
-        <nav class="menu submenu">
-          <a href="{{ url_for('risk_identify') }}" class="{{ 'active' if request.endpoint=='risk_identify' }}">Risk / Kategorisi Görüntüleme</a>
-          <a href="{{ url_for('risk_new') }}" class="{{ 'active' if request.endpoint=='risk_new' }}">Yeni Risk Tanımlama</a>
-          <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">Geçmiş İşlem Verilerim</a>
-          <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">Kategoriler</a>
-          <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">Zaman Çizelgesi</a>
+        <nav class="menu">
+          <a href="{{ url_for('risk_identify') }}" class="{{ 'active' if request.endpoint=='risk_identify' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">category</span></span>
+            <span class="menu-text">Risk Kütüphanesi</span>
+          </a>
 
-          {# ✅ Maliyetler linki (endpoint yoksa sayfa patlamasın) #}
+          <a href="{{ url_for('risk_new') }}" class="{{ 'active' if request.endpoint=='risk_new' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">add_circle</span></span>
+            <span class="menu-text">Yeni Risk</span>
+          </a>
+
+          <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">history</span></span>
+            <span class="menu-text">Risk Kayıtları</span>
+          </a>
+
+          <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">folder</span></span>
+            <span class="menu-text">Kategoriler</span>
+          </a>
+
+          <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">calendar_month</span></span>
+            <span class="menu-text">Zaman Çizelgesi</span>
+          </a>
+
           {% set _has_ep_helper = (has_endpoint is defined) %}
           {% set _costs_ep = (
               'costs' if (
@@ -618,12 +1021,17 @@
               else None
           ) %}
           {% if _costs_ep %}
-            <a href="{{ url_for(_costs_ep) }}" class="{{ 'active' if request.endpoint==_costs_ep }}">Maliyetler</a>
+            <a href="{{ url_for(_costs_ep) }}" class="{{ 'active' if request.endpoint==_costs_ep }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">payments</span></span>
+              <span class="menu-text">Maliyetler</span>
+            </a>
           {% endif %}
 
-          <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">Raporlar</a>
+          <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">description</span></span>
+            <span class="menu-text">Raporlar</span>
+          </a>
 
-          {# ✅✅ Pareto Analizi (endpoint varsa göster) #}
           {% set _pareto_ep = (
               'pareto_view' if (
                 (_has_ep_helper and has_endpoint('pareto_view')) or
@@ -632,21 +1040,34 @@
               else None
           ) %}
           {% if _pareto_ep %}
-            <a href="{{ url_for(_pareto_ep) }}" class="{{ 'active' if request.endpoint==_pareto_ep }}">Pareto Analizi</a>
+            <a href="{{ url_for(_pareto_ep) }}" class="{{ 'active' if request.endpoint==_pareto_ep }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">bar_chart</span></span>
+              <span class="menu-text">Pareto Analizi</span>
+            </a>
           {% endif %}
 
           {% if session.get('role') == 'admin' %}
-            <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">Risk ve Kategori Aktarma (CSV,Excel)</a>
+            <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">upload_file</span></span>
+              <span class="menu-text">İçe Aktar</span>
+            </a>
           {% endif %}
 
-          <a href="{{ url_for('responsibles') }}" class="{{ 'active' if request.endpoint=='responsibles' }}">Sorumlu Özeti</a>
-          <a href="{{ url_for('risks_export_xlsx', title='DENİZ YAPILARI İNŞAAT PROJESİ RİSK ANALİZİ') }}">Excel (Biçimli) Dışa Aktar</a>
+          <a href="{{ url_for('responsibles') }}" class="{{ 'active' if request.endpoint=='responsibles' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">groups</span></span>
+            <span class="menu-text">Sorumlular</span>
+          </a>
+
+          <a href="{{ url_for('risks_export_xlsx', title='DENİZ YAPILARI İNŞAAT PROJESİ RİSK ANALİZİ') }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">table_view</span></span>
+            <span class="menu-text">Excel Dışa Aktar</span>
+          </a>
         </nav>
       </div>
 
       <div class="menu-section">
         <div class="menu-title">Ayarlar</div>
-        <nav class="menu submenu">
+        <nav class="menu">
           {% set _has_ep_helper = (has_endpoint is defined) %}
           {% set _admin_ep = (
               'admin.admin_users' if (
@@ -662,26 +1083,37 @@
               )
           ) %}
           {% if _admin_ep %}
-            <a href="{{ url_for(_admin_ep) }}"
-               class="{{ 'active' if request.endpoint == _admin_ep }}">Kullanıcı Yönetimi</a>
+            <a href="{{ url_for(_admin_ep) }}" class="{{ 'active' if request.endpoint == _admin_ep }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">manage_accounts</span></span>
+              <span class="menu-text">Kullanıcılar</span>
+            </a>
           {% endif %}
 
-          <a href="{{ url_for('settings_account') }}" class="{{ 'active' if request.endpoint=='settings_account' }}">Hesap Bilgileri</a>
-          <a href="{{ url_for('settings_project') }}" class="{{ 'active' if request.endpoint=='settings_project' }}">Proje Bilgileri</a>
+          <a href="{{ url_for('settings_account') }}" class="{{ 'active' if request.endpoint=='settings_account' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">person</span></span>
+            <span class="menu-text">Hesap</span>
+          </a>
+
+          <a href="{{ url_for('settings_project') }}" class="{{ 'active' if request.endpoint=='settings_project' }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">business_center</span></span>
+            <span class="menu-text">Proje</span>
+          </a>
         </nav>
       </div>
 
       <div class="menu-section">
         <div class="menu-title">Hesap</div>
         <nav class="menu">
-          <a href="{{ url_for('logout') }}">Oturumu Kapat</a>
+          <a href="{{ url_for('logout') }}">
+            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">logout</span></span>
+            <span class="menu-text">Çıkış</span>
+          </a>
         </nav>
       </div>
     </aside>
     {% endif %}
     {% endblock %}
 
-    <!-- MAIN -->
     <main class="main">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -691,7 +1123,7 @@
         {% endif %}
       {% endwith %}
 
-      <section class="panel whisper-shadow">
+      <section class="panel">
         {% block content %}{% endblock %}
       </section>
 
@@ -702,8 +1134,6 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- ✅ Chart.js (Pareto grafikleri için) -->
 <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
 
 <script>
@@ -714,23 +1144,35 @@
 
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
-  const btnTheme = () => document.getElementById('themeToggle');
+  const themeButton = () => document.getElementById('themeToggle');
 
   function applyTheme(t){
     root.setAttribute('data-theme', t);
     root.classList.toggle('dark', t === 'dark');
+
     try{ localStorage.setItem(KEY, t); }catch(e){}
 
-    const btn = btnTheme();
+    const btn = themeButton();
     if (btn){
-      btn.textContent = (t === 'light') ? '🌙 Koyu Tema' : '🌞 Açık Tema';
+      const icon = btn.querySelector('.theme-icon');
+      const text = btn.querySelector('.theme-text');
+
+      if (t === 'dark'){
+        if (icon) icon.textContent = '🌞';
+        if (text) text.textContent = 'Açık Tema';
+      } else {
+        if (icon) icon.textContent = '🌙';
+        if (text) text.textContent = 'Koyu Tema';
+      }
     }
   }
 
-  const saved = (()=>{ try{ return localStorage.getItem(KEY); }catch(e){ return null } })();
+  const saved = (() => {
+    try{ return localStorage.getItem(KEY); }catch(e){ return null; }
+  })();
+
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initial = saved || (prefersDark ? 'dark' : 'light');
-  applyTheme(initial);
+  applyTheme(saved || (prefersDark ? 'dark' : 'light'));
 
   window.__toggleTheme = function(){
     const current = root.getAttribute('data-theme') || 'light';
@@ -743,8 +1185,10 @@
 
   (function initSidebarPref(){
     if (!sidebar) return;
+
     let collapsed = false;
-    try{ collapsed = localStorage.getItem(SIDEBAR_KEY) === '1'; } catch(e){}
+    try{ collapsed = localStorage.getItem(SIDEBAR_KEY) === '1'; }catch(e){}
+
     if (collapsed && !isMobile()){
       document.body.classList.add('sidebar-collapsed');
     }
@@ -759,18 +1203,19 @@
         try{
           const collapsed = document.body.classList.contains('sidebar-collapsed');
           localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
-        } catch(e){}
+        }catch(e){}
       }
     });
 
-    document.addEventListener('click', (e)=>{
+    document.addEventListener('click', (e) => {
       if (!isMobile()) return;
       if (!sidebar.classList.contains('open')) return;
+
       const within = sidebar.contains(e.target) || sidebarToggle.contains(e.target);
       if (!within) sidebar.classList.remove('open');
     });
 
-    window.addEventListener('resize', ()=>{
+    window.addEventListener('resize', () => {
       if (!isMobile()){
         sidebar.classList.remove('open');
       }
@@ -783,9 +1228,11 @@
 (function(){
   function cleanupBackdrops(){
     const openModal = document.querySelector('.modal.show');
+
     if (!openModal){
       document.body.classList.remove('modal-open');
       document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
       document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
     }
   }
@@ -795,7 +1242,11 @@
     if (!dismissBtn) return;
 
     const modalEl = dismissBtn.closest('.modal');
-    if (!modalEl) { cleanupBackdrops(); return; }
+
+    if (!modalEl){
+      cleanupBackdrops();
+      return;
+    }
 
     try{
       if (window.bootstrap){
@@ -815,7 +1266,7 @@
   document.addEventListener('hidden.bs.modal', cleanupBackdrops);
   window.addEventListener('pageshow', cleanupBackdrops);
 
-  document.addEventListener('keydown', (e)=>{
+  document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') cleanupBackdrops();
   });
 })();
