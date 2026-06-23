@@ -468,7 +468,7 @@
         <div>
           <div class="cost-kicker">Maliyet Yönetimi</div>
           <h2 class="cost-title">Maliyetleri Yönet</h2>
-          <p class="cost-sub">Şablon seç, maliyet gir, Pareto ile odağı netleştir.</p>
+          <p class="cost-sub">Şablon seç, maliyet gir, risk puanı × maliyet önceliğine göre odağı netleştir.</p>
         </div>
 
         <div class="cost-metrics">
@@ -529,7 +529,7 @@
           <div class="form-check ms-1">
             <input class="form-check-input" type="checkbox" id="paretoUseAnnual" checked>
             <label class="form-check-label small text-muted" for="paretoUseAnnual">
-              Pareto’da yıllıklaştır
+              Pareto’da maliyeti yıllıklaştır
             </label>
           </div>
         </div>
@@ -830,7 +830,7 @@
                     {% endif %}
                   </select>
                   <div class="form-text text-muted">
-                    Pareto Front için risk skoru ile eşleşir.
+                    Pareto öncelik skoru için risk puanı ile eşleşir.
                   </div>
                 </div>
 
@@ -1050,10 +1050,10 @@
         <div class="card cost-card">
           <div class="card-header">
             <div class="cost-section-title">Pareto Analizi</div>
-            <div class="cost-section-sub">Odaklanılacak maliyetleri gösterir</div>
+            <div class="cost-section-sub">Risk puanı × maliyet önceliğini gösterir</div>
           </div>
           <div class="card-body">
-            <div class="chart-note">En yüksek etkiyi en az kaynakla yakalama denemesi.</div>
+            <div class="chart-note">Öncelik skoru = risk puanı × maliyet mantığıyla kritik riskleri gösterir.</div>
             <canvas id="paretoChart" height="140"></canvas>
             <div id="paretoEmpty" class="text-muted small mt-2" style="display:none;">
               Pareto verisi yok.
@@ -1066,10 +1066,10 @@
         <div class="card cost-card">
           <div class="card-header">
             <div class="cost-section-title">Pareto Front</div>
-            <div class="cost-section-sub">Maliyet ve fayda dengesi</div>
+            <div class="cost-section-sub">Maliyet ve risk dengesi</div>
           </div>
           <div class="card-body">
-            <div class="chart-note">Maliyet (x) ve fayda/azaltım (y) ilişkisi.</div>
+            <div class="chart-note">Maliyet (x) ve risk puanı/fayda (y) ilişkisi.</div>
             <canvas id="frontChart" height="140"></canvas>
             <div id="frontEmpty" class="text-muted small mt-2" style="display:none;">
               Pareto front verisi yok.

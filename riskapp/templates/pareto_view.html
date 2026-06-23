@@ -663,7 +663,7 @@
       <div>
         <div class="pt-kicker">80/20 Analizi</div>
         <h2 class="pt-title">Pareto Analizi</h2>
-        <p class="pt-sub">Maliyet yükünü oluşturan kritik riskleri sırala, Top 80’i gör ve aksiyonları netleştir.</p>
+        <p class="pt-sub">Risk puanı ve maliyet etkisini birlikte hesaplayarak kritik riskleri sırala, Top 80’i gör ve aksiyonları netleştir.</p>
       </div>
 
       <div class="pt-metrics">
@@ -704,8 +704,8 @@
       <label for="sort">Sırala</label>
       <select id="sort" class="pt-input">
         <option value="pareto">Pareto sırası</option>
-        <option value="value_desc">Tutar ↓</option>
-        <option value="value_asc">Tutar ↑</option>
+        <option value="value_desc">Öncelik Skoru ↓</option>
+        <option value="value_asc">Öncelik Skoru ↑</option>
         <option value="pct_desc">Yüzde ↓</option>
         <option value="pct_asc">Yüzde ↑</option>
         <option value="title_az">Başlık A→Z</option>
@@ -755,7 +755,7 @@
       <div class="pt-chart-wrap">
         <div class="pt-chart-box">
           <canvas id="paretoChart" width="1100" height="330"></canvas>
-          <div class="pt-chart-note">Grafik Pareto sırasına göre ilk 25 kalemi çizer. Kırmızı çizgi %80 eşiğidir.</div>
+          <div class="pt-chart-note">Grafik, risk puanı × maliyet ile hesaplanan Pareto öncelik skoruna göre ilk 25 kalemi çizer. Kırmızı çizgi %80 eşiğidir.</div>
         </div>
       </div>
 
@@ -766,7 +766,9 @@
               <th style="width:58px;">#</th>
               <th>Risk</th>
               <th>Kategori</th>
-              <th style="text-align:right;">Tutar</th>
+              <th style="text-align:right;">Maliyet</th>
+              <th style="text-align:right;">Risk Puanı</th>
+              <th style="text-align:right;">Öncelik Skoru</th>
               <th style="text-align:right;">%</th>
               <th style="text-align:right;">Kümülatif</th>
             </tr>
@@ -1071,7 +1073,7 @@
     if (!state.viewItems.length){
       els.tbody.innerHTML = `
         <tr>
-          <td colspan="6">
+          <td colspan="8">
             <div class="pt-empty" style="margin:0;">Kayıt yok. Filtreyi temizlemeyi dene.</div>
           </td>
         </tr>
@@ -1102,6 +1104,8 @@
           </div>
         </td>
         <td>${escapeHtml(it.category || "-")}</td>
+        <td class="mono" style="text-align:right;">${fmt(it.cost_value ?? it.cost_total ?? it.total ?? 0)} ${currency}</td>
+        <td class="mono" style="text-align:right;">${fmt(it.risk_score ?? 0, 1)}</td>
         <td class="mono" style="text-align:right;">${fmt(it.value)} ${currency}</td>
         <td class="mono" style="text-align:right;">%${fmt(it.pct)}</td>
         <td class="mono" style="text-align:right;">%${fmt(it.cum_pct)}</td>
@@ -1359,7 +1363,7 @@
 
     const cut = cutValue / 100;
     const scope = els.scope.value || "top3";
-    const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&top_n=10&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
+    const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&top_n=3&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
 
     try{
       const ai = await fetchJson(url);
@@ -1410,7 +1414,7 @@
     if (!exportItems.length) return;
 
     const rows = [
-      ["rank","risk_id","title","category","value","pct","cum_pct","currency"].join(",")
+      ["rank","risk_id","title","category","cost_value","risk_score","priority_score","pct","cum_pct","currency"].join(",")
     ];
 
     exportItems.forEach(it => {
@@ -1419,6 +1423,8 @@
         `"${text(it.risk_id).replaceAll('"','""')}"`,
         `"${text(it.title).replaceAll('"','""')}"`,
         `"${text(it.category).replaceAll('"','""')}"`,
+        (it.cost_value ?? it.cost_total ?? it.total ?? 0),
+        (it.risk_score ?? 0),
         it.value,
         it.pct,
         it.cum_pct,

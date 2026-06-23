@@ -529,29 +529,50 @@
   let paretoChart = null;
   let frontChart = null;
 
-  function buildParetoDataset(){
-    const rows = readRows();
-    applyFilters(rows);
-    const v = visibleRows(rows);
+  async function buildParetoDataset(){
+    /*
+      ✅ Yeni Pareto mantığı:
+      Bu küçük grafiği artık sadece maliyet kategorilerine göre hesaplamıyoruz.
+      Backend'deki /analytics/pareto endpoint'i zaten:
+        Öncelik Skoru = Risk Puanı × Maliyet
+      mantığıyla sıralama yapıyor.
+    */
+    const { base } = getPrefs();
+    const url = `/analytics/pareto?currency=${encodeURIComponent(base)}`;
 
-    const { base, oneTimePolicy, amortizeYears, paretoUseAnnual } = getPrefs();
-    const fx = getFx();
-
-    const map = new Map();
-    v.forEach(r => {
-      const factor = paretoUseAnnual ? annualFactor(r.frequency, oneTimePolicy, amortizeYears) : 1;
-      const amt = r.total * factor;
-      const b = convert(amt, r.currency, base, fx);
-      if (!Number.isFinite(b)) return;
-      const key = (r.category || "Diğer").trim();
-      map.set(key, (map.get(key) || 0) + b);
+    const res = await fetch(url, {
+      headers: { "Accept": "application/json" },
+      cache: "no-store"
     });
 
-    const items = Array.from(map.entries())
-      .map(([k,v]) => ({ k, v }))
-      .sort((a,b)=> b.v - a.v);
+    if (!res.ok){
+      throw new Error(`Pareto endpoint hata verdi: HTTP ${res.status}`);
+    }
 
-    const total = items.reduce((s,x)=>s+x.v,0);
+    const payload = await res.json();
+    const rawItems = Array.isArray(payload?.items) ? payload.items : [];
+
+    const items = rawItems
+      .map((it, idx) => {
+        const priority = safeNum(it.priority_score ?? it.value ?? 0, 0);
+        const cost = safeNum(it.cost_value ?? it.cost ?? it.total ?? 0, 0);
+        const riskScore = safeNum(it.risk_score ?? it.score ?? 0, 0);
+        const riskId = it.risk_id ?? it.id ?? "";
+        const title = String(it.title || it.risk_title || (riskId ? `Risk #${riskId}` : `Risk ${idx + 1}`));
+        return {
+          label: title.length > 24 ? `${title.slice(0, 24)}…` : title,
+          fullLabel: title,
+          riskId,
+          priority,
+          cost,
+          riskScore
+        };
+      })
+      .filter(it => it.priority > 0)
+      .sort((a,b) => b.priority - a.priority)
+      .slice(0, 12);
+
+    const total = items.reduce((s,x) => s + x.priority, 0);
     if (!items.length || !Number.isFinite(total) || total <= 0) return null;
 
     let cum = 0;
@@ -560,21 +581,35 @@
     const cumPct = [];
 
     items.forEach(it => {
-      labels.push(it.k);
-      bars.push(it.v);
-      cum += it.v;
+      labels.push(it.label);
+      bars.push(it.priority);
+      cum += it.priority;
       cumPct.push((cum / total) * 100);
     });
 
-    return { base, labels, bars, cumPct };
+    return {
+      base,
+      labels,
+      bars,
+      cumPct,
+      items
+    };
   }
 
-  function renderPareto(){
+  async function renderPareto(){
     const canvas = $("#paretoChart");
     const empty = $("#paretoEmpty");
     if (!canvas || typeof Chart === "undefined") return;
 
-    const data = buildParetoDataset();
+    let data = null;
+
+    try{
+      data = await buildParetoDataset();
+    }catch(err){
+      console.warn("Pareto grafiği alınamadı:", err);
+      data = null;
+    }
+
     if (!data){
       empty && (empty.style.display = "block");
       if (paretoChart){ paretoChart.destroy(); paretoChart = null; }
@@ -588,7 +623,7 @@
       data: {
         labels: data.labels,
         datasets: [
-          { type: "bar", label: `Maliyet (${data.base})`, data: data.bars, yAxisID: "y", borderWidth: 1 },
+          { type: "bar", label: `Öncelik Skoru (${data.base})`, data: data.bars, yAxisID: "y", borderWidth: 1 },
           { type: "line", label: "Birikimli %", data: data.cumPct, yAxisID: "y1", tension: 0.35, borderDash: [6,4], pointRadius: 3 }
         ]
       },
@@ -599,10 +634,24 @@
           legend: { position: "top" },
           tooltip: {
             callbacks: {
+              title: (items) => {
+                const idx = items?.[0]?.dataIndex ?? 0;
+                const it = data.items[idx];
+                return it?.fullLabel || "";
+              },
               label: (ctx) => {
                 const v = ctx.raw;
-                if (ctx.dataset.yAxisID === "y1") return `Birikimli: ${nf2.format(v)}%`;
-                return `Maliyet: ${money(v, data.base)}`;
+                const it = data.items[ctx.dataIndex];
+
+                if (ctx.dataset.yAxisID === "y1"){
+                  return `Birikimli: ${nf2.format(v)}%`;
+                }
+
+                return [
+                  `Öncelik skoru: ${nf2.format(v)}`,
+                  `Maliyet: ${money(it?.cost || 0, data.base)}`,
+                  `Risk puanı: ${nf2.format(it?.riskScore || 0)}`
+                ];
               }
             }
           }

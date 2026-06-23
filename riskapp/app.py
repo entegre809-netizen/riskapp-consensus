@@ -6058,11 +6058,22 @@ def create_app():
         if pid:
             rq = rq.filter(Risk.project_id == pid)
 
-        risk_ids = [r.id for r in rq.with_entities(Risk.id).all()]
+        # Riskleri tek seferde alıyoruz; hem id hem skor bilgisi lazım.
+        risks = rq.all()
+        risk_ids = [r.id for r in risks]
         if not risk_ids:
-            return jsonify({"currency": currency, "items": [], "total": 0, "note": "No risks in scope"})
+            return jsonify({
+                "currency": currency,
+                "items": [],
+                "total": 0,
+                "note": "No risks in scope"
+            })
+
+        risk_map = {r.id: r for r in risks}
 
         # Risk bazlı toplam maliyet
+        # ESKİ MANTIK: sadece CostItem.total toplamına göre sıralıyordu.
+        # YENİ MANTIK: maliyet alınıyor, aşağıda risk puanı ile çarpılıp sıralanıyor.
         rows = (
             db.session.query(
                 CostItem.risk_id,
@@ -6071,39 +6082,115 @@ def create_app():
             .filter(CostItem.risk_id.in_(risk_ids))
             .filter(func.coalesce(CostItem.currency, "TRY") == currency)
             .group_by(CostItem.risk_id)
-            .order_by(func.coalesce(func.sum(CostItem.total), 0).desc())
-            .limit(limit)
             .all()
         )
 
         if not rows:
-            return jsonify({"currency": currency, "items": [], "total": 0, "note": "No cost items for this currency"})
+            return jsonify({
+                "currency": currency,
+                "items": [],
+                "total": 0,
+                "note": "No cost items for this currency"
+            })
 
-        # Risk bilgilerini tek seferde çek
-        rid_list = [rid for rid, _ in rows]
-        risk_map = {r.id: r for r in Risk.query.filter(Risk.id.in_(rid_list)).all()}
+        def _risk_score_for_pareto(r):
+            """
+            Pareto için risk puanı.
+            Öncelik sırası:
+            1) Risk.score() varsa onu kullan.
+            2) Yoksa son Evaluation kaydından probability x severity hesapla.
+            3) O da yoksa avg_prob x avg_sev dene.
+            """
+            if not r:
+                return 0.0
 
-        total = sum(float(t or 0) for _, t in rows) or 0.0
-        running = 0.0
+            # 1) Modelde score metodu varsa
+            try:
+                score_fn = getattr(r, "score", None)
+                if callable(score_fn):
+                    sc = score_fn()
+                    if sc is not None:
+                        return float(sc or 0)
+            except Exception:
+                pass
 
-        items = []
-        for rid, t in rows:
-            v = float(t or 0)
-            running += v
+            # 2) Son evaluation üzerinden P x S
+            try:
+                evals = sorted(r.evaluations or [], key=lambda e: e.id)
+                if evals:
+                    last_eval = evals[-1]
+                    p = float(last_eval.probability or 0)
+                    s = float(last_eval.severity or 0)
+                    if p and s:
+                        return p * s
+            except Exception:
+                pass
+
+            # 3) Ortalama P x S fallback
+            try:
+                p = float(r.avg_prob() or 0)
+                s = float(r.avg_sev() or 0)
+                if p and s:
+                    return p * s
+            except Exception:
+                pass
+
+            return 0.0
+
+        # -------------------------------------------------
+        # Yeni Pareto mantığı:
+        # Öncelik Skoru = Toplam Maliyet x Risk Değerlendirme Puanı
+        # Böylece aynı maliyette yüksek risk puanı olan kayıt üste çıkar.
+        # -------------------------------------------------
+        raw_items = []
+        for rid, cost_total in rows:
             r = risk_map.get(rid)
+            cost_value = float(cost_total or 0)
+            risk_score = _risk_score_for_pareto(r)
+            priority_score = cost_value * risk_score
 
-            pct = (v / total) * 100 if total else 0
-            cum = (running / total) * 100 if total else 0
+            # Maliyeti olmayan veya skoru olmayan kayıt Pareto etkisi üretmez.
+            if priority_score <= 0:
+                continue
 
-            items.append({
+            raw_items.append({
                 "risk_id": rid,
                 "title": (r.title if r else f"Risk #{rid}"),
                 "category": (r.category if r else None),
                 "owner": (r.responsible if r else None),
-                "value": round(v, 2),
-                "pct": round(pct, 2),
-                "cum_pct": round(cum, 2),
+
+                # UI eski alanı beklediği için value korunuyor.
+                # Ancak artık value sadece maliyet değil, birleşik öncelik skorudur.
+                "value": round(priority_score, 2),
+
+                # Şeffaflık için ayrı ayrı değerleri de döndürüyoruz.
+                "cost_value": round(cost_value, 2),
+                "risk_score": round(risk_score, 2),
+                "priority_score": round(priority_score, 2),
             })
+
+        raw_items.sort(key=lambda x: x["priority_score"], reverse=True)
+        items = raw_items[:limit]
+
+        if not items:
+            return jsonify({
+                "currency": currency,
+                "items": [],
+                "total": 0,
+                "note": "No positive cost x risk score items for this currency",
+                "mode": "cost_x_risk_score"
+            })
+
+        total = sum(float(it.get("priority_score") or 0) for it in items) or 0.0
+        running = 0.0
+
+        for it in items:
+            v = float(it.get("priority_score") or 0)
+            running += v
+            pct = (v / total) * 100 if total else 0
+            cum = (running / total) * 100 if total else 0
+            it["pct"] = round(pct, 2)
+            it["cum_pct"] = round(cum, 2)
 
         # 80% cutoff
         cutoff_index = next((i for i, it in enumerate(items) if it["cum_pct"] >= 80), len(items)-1)
@@ -6114,6 +6201,7 @@ def create_app():
             "total": round(total, 2),
             "top_80_count": len(top_80),
             "items": items,
+            "mode": "cost_x_risk_score"
         })
 
 
@@ -6494,7 +6582,7 @@ def create_app():
         # params
         # ----------------------------
         currency = norm_currency(request.args.get("currency"))
-        top_n = clamp_int(request.args.get("top_n"), 3, 50, 10)               # UI için
+        top_n = clamp_int(request.args.get("top_n"), 3, 50, 3)                # UI için sade varsayılan
         scenario_cut = clamp_float(request.args.get("cut"), 0.0, 0.9, 0.10)   # 0.10 = %10
         scenario_scope = (request.args.get("scope") or "top3").strip().lower()  # top3 | top80 | topcat
 
@@ -6537,7 +6625,7 @@ def create_app():
                 top_80_count = min(len(items), 5)
 
         top_80_items = items[:top_80_count]
-        top_risks_raw = items[:min(top_80_count, top_n)]
+        top_risks_raw = items[:min(top_80_count, top_n, 3)]
 
         # items içindeki id alanı bazen id bazen risk_id olabiliyor
         def item_rid(it):
@@ -6784,7 +6872,7 @@ def create_app():
         })
 
         # Summary: ilk 3 insight’tan tek paragraf
-        summary = " ".join([i["text"] for i in insights[:3]])
+        summary = " ".join([i["text"] for i in insights[:2]])
 
         # ----------------------------
         # Actions (structured) - EXPANDED
@@ -6980,12 +7068,12 @@ def create_app():
         })
 
         # UI’yi boğma diye (sonsuz aksiyon üretmek kolay)
-        actions = actions[:14]
+        actions = actions[:5]
 
         payload = {
             "currency": currency,
             "summary": summary,
-            "insights": insights,
+            "insights": insights[:5],
             "top_risks": top_risks,
             "actions": actions,
             "meta": {
