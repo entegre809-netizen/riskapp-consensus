@@ -130,6 +130,105 @@ KEYSETS = {
         "depo", "ambar", "stok", "stok sayim", "emniyet stogu", "raf",
         "malzeme teslim", "giris cikis", "stok devir", "ambar fisi"
     ],
+    "trafik_lojistik": [
+        "trafik", "yol kapama", "yol izin", "guzergah", "güzergah", "servis yolu",
+        "site access", "access road", "mobilizasyon", "demobilizasyon", "kamyon",
+        "tir", "tır", "nakliye planı", "trafik yönetimi", "traffic management"
+    ],
+    "paydas_iletisim": [
+        "paydas", "paydaş", "stakeholder", "halk", "mahalle", "sikayet", "şikayet",
+        "toplanti", "toplantı", "bilgilendirme", "iletişim", "communication",
+        "kamuoyu", "yerel halk", "muhtar", "community"
+    ],
+    "taseron_yonetimi": [
+        "taseron", "taşeron", "alt yuklenici", "alt yüklenici", "subcontractor",
+        "sub-contractor", "ekip performansi", "ekip performansı", "yetersiz ekip",
+        "niteliksiz personel", "vasifsiz", "vasıfsız", "isci", "işçi"
+    ],
+    "insan_kaynaklari": [
+        "personel", "isgucu", "işgücü", "labour", "labor", "operator eksikligi",
+        "operatör eksikliği", "vardiya", "fazla mesai", "egitim", "eğitim",
+        "yetkinlik", "sertifika", "oryantasyon", "devamsizlik", "devamsızlık"
+    ],
+    "saha_erisim": [
+        "saha erisimi", "saha erişimi", "alan teslimi", "yer teslimi", "mobilizasyon",
+        "erişim kısıtı", "access restriction", "kamulaştırma", "kamulastirma",
+        "gecis hakki", "geçiş hakkı", "right of way", "parsel", "mülkiyet"
+    ],
+    "arkeoloji_kultur": [
+        "arkeoloji", "arkeolojik", "tarihi eser", "kultur varligi", "kültür varlığı",
+        "sit alani", "sit alanı", "koruma kurulu", "heritage", "cultural heritage"
+    ],
+    "komsu_yapilar": [
+        "komsu yapi", "komşu yapı", "bina hasari", "bina hasarı", "çatlak",
+        "vibrasyon hasari", "vibrasyon hasarı", "oturma", "deformasyon",
+        "settlement", "adjacent building", "third party damage"
+    ],
+    "enerji_yakit": [
+        "enerji", "elektrik kesintisi", "power outage", "yakit", "yakıt",
+        "jenerator", "jeneratör", "mazot", "akaryakit", "akaryakıt",
+        "enerji maliyeti", "fuel", "diesel"
+    ],
+    "dijital_veri": [
+        "veri", "data", "dokuman", "doküman", "document control", "dokuman kontrol",
+        "doküman kontrol", "versiyon", "revizyon takibi", "yanlis dosya",
+        "yanlış dosya", "arsiv", "arşiv", "dms", "edms"
+    ],
+    "hava_deniz": [
+        "hava", "hava durumu", "yagis", "yağış", "ruzgar", "rüzgar", "firtina",
+        "fırtına", "dalga", "akıntı", "akınti", "sis", "visibility", "metocean",
+        "weather window", "deniz kosulu", "deniz koşulu"
+    ],
+    "maliyet_artisi": [
+        "maliyet artisi", "maliyet artışı", "fiyat artisi", "fiyat artışı",
+        "enflasyon", "kur", "doviz", "döviz", "price escalation",
+        "cost escalation", "butce", "bütçe", "bütçe aşımı", "butce asimi"
+    ],
+    "tedarik_kritik": [
+        "kritik ekipman", "long lead", "uzun teslim", "ithalat", "gümrük",
+        "gumruk", "customs", "teslim gecikmesi", "malzeme gecikmesi",
+        "tedarik gecikmesi", "procurement delay"
+    ],
+    "dokumantasyon": [
+        "rapor", "form", "tutanak", "checklist", "kontrol listesi", "as-built",
+        "as built", "redline", "metod beyanı", "method statement", "prosedür",
+        "prosedur", "kayıt", "kayit"
+    ],
+    "acil_durum": [
+        "acil durum", "emergency", "yangin", "yangın", "tahliye", "ilk yardim",
+        "ilk yardım", "tatbikat", "kriz", "kaza", "incident", "near miss",
+        "ramak kala"
+    ],
+    "test_devreye_alma": [
+        "test", "devreye alma", "commissioning", "pre-commissioning", "sat",
+        "fat", "performans testi", "punch", "snag", "kalibrasyon",
+        "acceptance test"
+    ],
+    "tasarim_koordinasyon": [
+        "tasarim koordinasyon", "tasarım koordinasyon", "multidisiplin",
+        "interface", "arayuz", "arayüz", "koordinasyon", "çakışma",
+        "clash", "model koordinasyonu", "ifc koordinasyon"
+    ],
+    "tedarikci_performans": [
+        "tedarikci performansi", "tedarikçi performansı", "supplier performance",
+        "gec teslim", "geç teslim", "kalitesiz tedarik", "tedarikci kalite",
+        "vendor", "imalatci", "imalatçı"
+    ],
+    "sozlesme_claim": [
+        "claim", "hak talebi", "variation", "vo", "değişiklik emri",
+        "degisiklik emri", "süre uzatımı", "sure uzatimi", "ek süre",
+        "ek sure", "uyuşmazlık", "uyusmazlik", "dispute"
+    ],
+    "kalite_malzeme": [
+        "malzeme kalite", "kusurlu malzeme", "defolu malzeme", "uygunsuz malzeme",
+        "material defect", "nonconforming material", "sertifika eksik",
+        "mill test", "mtr", "certificate"
+    ],
+    "cevre_izin": [
+        "çed", "ced", "çevre izni", "cevre izni", "deşarj", "desarj",
+        "emisyon izni", "atik izin", "atık izin", "hafriyat döküm",
+        "hafriyat dokum", "çevre mevzuatı", "cevre mevzuati"
+    ],
 }
 
 
@@ -140,96 +239,196 @@ KEYSETS = {
 # Kategori -> aksiyon şablonları (metin, due_gun)
 ACTION_TEMPLATES = {
     "insaat": [
-        ("Dokum oncesi Kalip & Donati Checklist %100 tamamlansin", 7),
-        ("ITP ve Muayene-Kabul plani revize edilip saha ekibine brief verilsin", 10),
-        ("TS EN 206’a gore numune alma-kur plani ve tedarikci denetimi yapilsin", 14),
-        ("Ustalara beton yerlestirme & vibrasyon toolbox talk (egitim)", 5),
+        ("Döküm öncesi kalıp ve donatı kontrol listesi eksiksiz tamamlanmalıdır.", 7),
+        ("ITP ve muayene-kabul planı revize edilerek saha ekibine bilgilendirme yapılmalıdır.", 10),
+        ("TS EN 206 standardına göre numune alma, kür planı ve tedarikçi denetimi yapılmalıdır.", 14),
+        ("Ustalara beton yerleştirme ve vibrasyon uygulamaları hakkında kısa saha eğitimi verilmelidir.", 5),
     ],
     "satinalma": [
-        ("Kritik malzemeler icin ikincil tedarikci onayi (dual sourcing)", 14),
-        ("Satinalma sozlesmelerine gecikme cezasi & SLA maddeleri eklensin", 10),
-        ("Lojistikte emniyet stok seviyesi ve takip KPI’lari tanimlansin", 7),
+        ("Kritik malzemeler için alternatif tedarikçi onayı alınmalıdır.", 14),
+        ("Satınalma sözleşmelerine gecikme cezası ve hizmet seviyesi şartları eklenmelidir.", 10),
+        ("Lojistik süreçlerinde emniyet stok seviyesi ve takip göstergeleri tanımlanmalıdır.", 7),
     ],
     "sozlesme": [
-        ("Kritik izin/onaylar icin izleme matrisi ve sorumlu atamasi", 5),
-        ("Sozlesme risk maddeleri (ceza/force majeure) gozden gecirme", 10),
-        ("Isveren/danisman iletisim plani ve haftalik durum raporu", 7),
+        ("Kritik izin ve onay süreçleri için izleme matrisi oluşturulmalı ve sorumlular atanmalıdır.", 5),
+        ("Sözleşmedeki ceza ve mücbir sebep maddeleri gözden geçirilmelidir.", 10),
+        ("İşveren ve danışman ile iletişim planı oluşturulmalı, haftalık durum raporu paylaşılmalıdır.", 7),
     ],
     "isg_cevre": [
-        ("Cevresel Etki Plani guncelleme (toz, gurultu, atik yonetimi)", 7),
-        ("Izleme ekipmani (gurultu/toz) kalibrasyon ve kayit duzeni", 10),
-        ("Yerel otoriteye raporlama periyotlari ve sorumlular netlesin", 14),
+        ("Çevresel etki planı; toz, gürültü ve atık yönetimi başlıklarını kapsayacak şekilde güncellenmelidir.", 7),
+        ("Gürültü ve toz izleme ekipmanlarının kalibrasyonu yapılmalı, kayıt düzeni oluşturulmalıdır.", 10),
+        ("Yerel otoritelere yapılacak raporlamaların periyotları ve sorumluları netleştirilmelidir.", 14),
     ],
     "geoteknik": [
-        ("Zemin parametreleri guncellenip tasarim emniyet katsayilari teyit", 10),
-        ("Iksa/sev stabilitesi gunluk izleme ve tetik degerleri", 5),
-        ("Beklenmeyen zemin kosul proseduru (claim/KEsIF) hazir", 14),
+        ("Zemin parametreleri güncellenmeli ve tasarım emniyet katsayıları teyit edilmelidir.", 10),
+        ("İksa ve şev stabilitesi günlük olarak izlenmeli, tetik değerler tanımlanmalıdır.", 5),
+        ("Beklenmeyen zemin koşulları için hak talebi ve keşif prosedürü hazırlanmalıdır.", 14),
     ],
     "kalite": [
-        ("Kritik sureclere ic tetkik (haftalik) ve NCR/CCR takibi", 7),
-        ("ITP’lerde muayene tutanaklari dijital arsive islesin", 10),
+        ("Kritik süreçler için haftalık iç tetkik yapılmalı, NCR/CCR kayıtları takip edilmelidir.", 7),
+        ("ITP kapsamındaki muayene tutanakları dijital arşive düzenli olarak işlenmelidir.", 10),
     ],
     "pmo": [
-        ("Paydas haritasi ve iletisim frekansi (RACI ile hizali) guncellensin", 7),
-        ("Aylik proje performans raporu (KPI/Trend) standardize edilsin", 10),
+        ("Paydaş haritası ve iletişim sıklığı RACI dağılımıyla uyumlu olacak şekilde güncellenmelidir.", 7),
+        ("Aylık proje performans raporu, KPI ve trend takibini içerecek şekilde standardize edilmelidir.", 10),
     ],
     "planlama": [
-        ("Kritik yol (CPM) ve kaynak yukleri yeniden hesaplanip yayimlansin", 7),
-        ("Hava/deniz kosullari icin program tamponlari (float) revize edilsin", 5),
-        ("Gecikme nedenleri analizi ve toparlama plani (recovery) paylasilsin", 10),
+        ("Kritik yol (CPM) ve kaynak yükleri yeniden hesaplanarak güncel program yayımlanmalıdır.", 7),
+        ("Hava ve deniz koşulları dikkate alınarak program tamponları revize edilmelidir.", 5),
+        ("Gecikme nedenleri analiz edilmeli ve toparlama planı ilgili ekiplerle paylaşılmalıdır.", 10),
     ],
     "mep_elektrik": [
-        ("Test & Devreye Alma (T&C) planlari ve checklist’leri yayinlansin", 7),
-        ("Topraklama/izolasyon (megger) testleri takvime baglansin", 10),
-        ("Kritik ekipman icin yedek parca/stok plani olussun", 14),
+        ("Test ve devreye alma planları ile kontrol listeleri yayımlanmalıdır.", 7),
+        ("Topraklama ve izolasyon testleri takvime bağlanmalıdır.", 10),
+        ("Kritik ekipmanlar için yedek parça ve stok planı oluşturulmalıdır.", 14),
     ],
     "mep_mekanik": [
-        ("Hidrostatik/basinç test programi ve kabul kriterleri netlestsin", 7),
-        ("Komisyoning sirasi (HVAC balancing vb.) planla ve ekip ata", 10),
-        ("Yangin hatlari icin devreye alma proseduru ve tatbikat", 14),
+        ("Hidrostatik ve basınç test programı ile kabul kriterleri netleştirilmelidir.", 7),
+        ("Komisyoning sırası planlanmalı ve ilgili ekipler atanmalıdır.", 10),
+        ("Yangın hatları için devreye alma prosedürü hazırlanmalı ve tatbikat yapılmalıdır.", 14),
     ],
     "marine": [
-        ("Deniz calismalari icin metocean pencereleri ve izinler teyit", 5),
-        ("Barge/vinc rigging planlari ve emniyet brifingi", 7),
-        ("Batimetri/posizyonlama kayitlari gunluk arsivlensin", 10),
+        ("Deniz çalışmaları için metocean çalışma pencereleri ve gerekli izinler teyit edilmelidir.", 5),
+        ("Barge, vinç ve rigging planları hazırlanmalı; ekiplerle emniyet brifingi yapılmalıdır.", 7),
+        ("Batimetri ve pozisyonlama kayıtları günlük olarak arşivlenmelidir.", 10),
     ],
     "tasarim": [
-        ("RFI/Shop drawing akisi ve onay SLA’lari netlestsin", 7),
-        ("Clash detection (Navis) raporu ve cozum takip listesi", 10),
+        ("RFI ve shop drawing onay süreçleri için süre hedefleri netleştirilmelidir.", 7),
+        ("Navisworks clash detection raporu hazırlanmalı ve çözüm takip listesi oluşturulmalıdır.", 10),
     ],
     "teknik_ofis": [
-        ("Metraj-BOQ eslestirme ve fark analizi (variance) yayinlansin", 7),
-        ("Hak edis dokumantasyonu (atasman/foto) standardize edilsin", 10),
+        ("Metraj ve BOQ eşleştirmesi yapılarak fark analizi yayımlanmalıdır.", 7),
+        ("Hakediş dokümantasyonu, ataşman ve fotoğraf kayıtlarını içerecek şekilde standardize edilmelidir.", 10),
     ],
     "finans": [
-        ("Aylik nakit akis projeksiyonu ve sapma analizi (EV/MS) paylas", 7),
-        ("Teminat/avans/kesinti takvimleri risk matrisi ile hizalansin", 10),
+        ("Aylık nakit akış projeksiyonu ve sapma analizi ilgili ekiplerle paylaşılmalıdır.", 7),
+        ("Teminat, avans ve kesinti takvimleri risk matrisiyle uyumlu hale getirilmelidir.", 10),
     ],
     "makine_bakim": [
-        ("Periyodik bakim planlari (OEM) CMMS’e islenip hatirlatici ac", 7),
-        ("Kritik ekipman icin ariza MTBF/MTTR KPI’lari takip edilsin", 10),
+        ("Periyodik bakım planları CMMS sistemine işlenmeli ve hatırlatıcılar oluşturulmalıdır.", 7),
+        ("Kritik ekipmanlar için MTBF ve MTTR göstergeleri takip edilmelidir.", 10),
     ],
     "bim_bt": [
-        ("Model versiyonlama ve yedekleme politikalari uygulanir olsun", 7),
-        ("IFC cikti standartlari ve clash threshold degerleri sabitlensin", 10),
+        ("Model versiyonlama ve yedekleme politikaları uygulanabilir hale getirilmelidir.", 7),
+        ("IFC çıktı standartları ve clash threshold değerleri sabitlenmelidir.", 10),
     ],
     "izin_ruhsat": [
-        ("Ruhsat/izin takip matrisi ve sorumlu listesi guncellensin", 5),
-        ("Resmi yazisma sablonlari ve dosyalama agaci standardize edilsin", 10),
+        ("Ruhsat ve izin takip matrisi ile sorumlu listesi güncellenmelidir.", 5),
+        ("Resmi yazışma şablonları ve dosyalama yapısı standardize edilmelidir.", 10),
     ],
     "laboratuvar": [
-        ("Numune alma/kur/raporlama zinciri (traceability) garanti altina alınsın", 7),
-        ("Cihaz kalibrasyon planlari ve sertifika arsivi kontrol edilsin", 10),
+        ("Numune alma, kür ve raporlama zincirinde izlenebilirlik güvence altına alınmalıdır.", 7),
+        ("Cihaz kalibrasyon planları ve sertifika arşivi kontrol edilmelidir.", 10),
     ],
     "depo": [
-        ("Stok sayim ve emniyet stogu esik degerleri (min/max) tanimlansin", 7),
-        ("Giris-cikis ve lot/seri takibi icin barkod/etiket duzeni kurulsun", 10),
+        ("Stok sayımı ve emniyet stoğu için minimum/maksimum eşik değerleri tanımlanmalıdır.", 7),
+        ("Giriş-çıkış işlemleri ile lot/seri takibi için barkod ve etiket düzeni kurulmalıdır.", 10),
+    ],
+    "trafik_lojistik": [
+        ("Trafik yönetim planı hazırlanmalı ve ilgili kurum onayları alınmalıdır.", 7),
+        ("Malzeme sevkiyat saatleri, güzergâh ve araç bekleme alanları netleştirilmelidir.", 10),
+        ("Saha giriş-çıkış noktaları için günlük takip ve güvenlik kontrol listesi oluşturulmalıdır.", 5),
+    ],
+    "paydas_iletisim": [
+        ("Paydaş iletişim planı güncellenmeli ve bilgilendirme sıklığı netleştirilmelidir.", 7),
+        ("Şikâyet ve geri bildirim kayıtları için tek bir takip listesi oluşturulmalıdır.", 5),
+        ("Yerel paydaşlarla düzenli bilgilendirme toplantıları planlanmalıdır.", 14),
+    ],
+    "taseron_yonetimi": [
+        ("Taşeron performansı haftalık olarak ölçülmeli ve eksik kalan işler aksiyon listesine alınmalıdır.", 7),
+        ("Taşeron ekipleri için işe başlamadan önce oryantasyon ve saha kuralları bilgilendirmesi yapılmalıdır.", 5),
+        ("Kritik taşeronlar için alternatif ekip veya ikinci kaynak planı hazırlanmalıdır.", 14),
+    ],
+    "insan_kaynaklari": [
+        ("Kritik pozisyonlar için yetkinlik matrisi hazırlanmalı ve eksik eğitimler planlanmalıdır.", 10),
+        ("Vardiya, devamsızlık ve fazla mesai verileri haftalık olarak takip edilmelidir.", 7),
+        ("Sertifika gerektiren görevler için belge kontrolü yapılmadan saha görevlendirmesi yapılmamalıdır.", 5),
+    ],
+    "saha_erisim": [
+        ("Saha erişimi ve alan teslim koşulları için sorumlular ve hedef tarihler netleştirilmelidir.", 7),
+        ("Kamulaştırma, geçiş hakkı veya parsel kısıtları için resmi takip matrisi oluşturulmalıdır.", 10),
+        ("Erişim kısıtı olan alanlar için alternatif çalışma sırası ve program tamponu hazırlanmalıdır.", 14),
+    ],
+    "arkeoloji_kultur": [
+        ("Olası kültür varlığı bulguları için durdurma ve bildirim prosedürü hazırlanmalıdır.", 7),
+        ("Koruma kurulu ve ilgili resmi kurumlarla iletişim sorumluları netleştirilmelidir.", 10),
+        ("Saha ekiplerine arkeolojik bulgu farkındalık bilgilendirmesi yapılmalıdır.", 5),
+    ],
+    "komsu_yapilar": [
+        ("Komşu yapılar için başlangıç durum tespiti, fotoğraf kaydı ve çatlak ölçüm planı yapılmalıdır.", 7),
+        ("Titreşim ve oturma ölçümleri için izleme noktaları ve alarm eşikleri tanımlanmalıdır.", 10),
+        ("Üçüncü taraf hasar bildirimleri için kayıt ve müdahale prosedürü oluşturulmalıdır.", 5),
+    ],
+    "enerji_yakit": [
+        ("Kritik ekipmanlar için yakıt ve enerji sürekliliği planı hazırlanmalıdır.", 7),
+        ("Jeneratör, yakıt stoku ve enerji kesintisi senaryoları haftalık olarak kontrol edilmelidir.", 10),
+        ("Enerji tüketimi ve yakıt maliyetleri için sapma takibi başlatılmalıdır.", 14),
+    ],
+    "dijital_veri": [
+        ("Doküman kontrol sistemi içinde versiyonlama ve onay akışı netleştirilmelidir.", 7),
+        ("Yanlış veya eski revizyon kullanımını önlemek için güncel doküman listesi yayımlanmalıdır.", 5),
+        ("Kritik proje dokümanları için düzenli yedekleme ve erişim yetkisi kontrolü yapılmalıdır.", 10),
+    ],
+    "hava_deniz": [
+        ("Hava ve deniz koşullarına göre çalışma pencereleri günlük olarak takip edilmelidir.", 5),
+        ("Olumsuz hava koşulları için alternatif iş sırası ve toparlama planı hazırlanmalıdır.", 10),
+        ("Rüzgâr, yağış, dalga ve görüş limitleri için durdurma kriterleri tanımlanmalıdır.", 7),
+    ],
+    "maliyet_artisi": [
+        ("Fiyat artışı ve kur riski için maliyet sapma analizi haftalık olarak güncellenmelidir.", 7),
+        ("Kritik kalemler için erken satınalma, alternatif tedarik ve fiyat sabitleme seçenekleri değerlendirilmelidir.", 10),
+        ("Kontenjan bütçe kullanımı ve onay limitleri proje yönetimi tarafından netleştirilmelidir.", 14),
+    ],
+    "tedarik_kritik": [
+        ("Uzun teslim süreli ekipmanlar için satınalma takip listesi ve kritik tarih planı oluşturulmalıdır.", 7),
+        ("Gümrük, ithalat ve lojistik riskleri için alternatif teslim senaryoları hazırlanmalıdır.", 14),
+        ("Kritik tedarikler için haftalık tedarikçi ilerleme raporu alınmalıdır.", 5),
+    ],
+    "dokumantasyon": [
+        ("Zorunlu saha kayıtları, tutanaklar ve kontrol listeleri için standart format belirlenmelidir.", 7),
+        ("As-built ve redline kayıtları haftalık olarak kontrol edilmelidir.", 10),
+        ("Eksik dokümanlar için sorumlu, hedef tarih ve kapanış durumu içeren takip listesi açılmalıdır.", 5),
+    ],
+    "acil_durum": [
+        ("Acil durum planı güncellenmeli ve ekiplerin görev dağılımı netleştirilmelidir.", 7),
+        ("Yangın, tahliye ve ilk yardım tatbikatları için uygulama takvimi hazırlanmalıdır.", 14),
+        ("Ramak kala ve olay kayıtları kök neden analiziyle birlikte takip edilmelidir.", 5),
+    ],
+    "test_devreye_alma": [
+        ("Test ve devreye alma planı, sorumlular ve kabul kriterleriyle birlikte yayımlanmalıdır.", 7),
+        ("Punch list kayıtları önceliklendirilerek kapanış hedef tarihleri belirlenmelidir.", 5),
+        ("FAT, SAT ve performans testleri için gerekli dokümanlar önceden kontrol edilmelidir.", 10),
+    ],
+    "tasarim_koordinasyon": [
+        ("Disiplinler arası tasarım koordinasyon toplantıları düzenli hale getirilmelidir.", 7),
+        ("Arayüz ve çakışma konuları için tek bir takip listesi oluşturulmalıdır.", 5),
+        ("IFC ve model revizyonları için onaylı yayın takvimi hazırlanmalıdır.", 10),
+    ],
+    "tedarikci_performans": [
+        ("Tedarikçi performansı teslimat, kalite ve doküman uygunluğu üzerinden haftalık izlenmelidir.", 7),
+        ("Zayıf performans gösteren tedarikçiler için düzeltici faaliyet planı istenmelidir.", 10),
+        ("Kritik tedarikçiler için alternatif kaynak ve hızlandırma planı hazırlanmalıdır.", 14),
+    ],
+    "sozlesme_claim": [
+        ("Hak talebi ve değişiklik emri kayıtları için kanıt dosyası düzenli tutulmalıdır.", 5),
+        ("Süre uzatımı veya ek maliyet doğuran konular için sözleşme bildirim tarihleri takip edilmelidir.", 7),
+        ("Uyuşmazlıkları azaltmak için işveren ve danışmanla erken uyarı toplantıları planlanmalıdır.", 10),
+    ],
+    "kalite_malzeme": [
+        ("Malzeme kabul kriterleri ve sertifika kontrol listesi netleştirilmelidir.", 5),
+        ("Uygunsuz malzemeler için karantina alanı ve iade prosedürü uygulanmalıdır.", 7),
+        ("Kritik malzemelerde giriş kalite kontrolü ve tedarikçi denetimi yapılmalıdır.", 10),
+    ],
+    "cevre_izin": [
+        ("Çevre izinleri ve mevzuat gereklilikleri için resmi takip matrisi oluşturulmalıdır.", 7),
+        ("Hafriyat, deşarj, emisyon ve atık süreçleri için kayıt düzeni oluşturulmalıdır.", 10),
+        ("Çevresel uygunsuzluklar için düzeltici faaliyet ve sorumlu takibi yapılmalıdır.", 5),
     ],
 }
 
 
 def _match_keys(text: str) -> List[str]:
-    """Metni KEYSETS'e gore tarar, eslesen anahtar listesi dondurur."""
+    """Metni KEYSETS'e göre tarar ve eşleşen anahtar listesini döndürür."""
     hits: List[str] = []
     for key, kw in KEYSETS.items():
         if _any_in(text, kw):
@@ -547,9 +746,15 @@ def _propose_actions(risk: "Risk") -> List[Dict[str, Any]]:
     base RACI: _dept_raci_defaults(cat)
     """
     cat_raw = (risk.category or "")
-    base = _dept_raci_defaults(cat_raw)
+    text_blob = " ".join([
+        risk.category or "",
+        risk.title or "",
+        risk.description or "",
+        getattr(risk, "mitigation", "") or "",
+    ])
+    base = _dept_raci_defaults(text_blob)
 
-    matched = _match_keys(cat_raw)
+    matched = _match_keys(text_blob)
     actions: List[Dict[str, Any]] = []
 
     # Eşleşme yoksa genel set
@@ -557,12 +762,12 @@ def _propose_actions(risk: "Risk") -> List[Dict[str, Any]]:
         actions += [
             {
                 **base,
-                "action": "Risk icin ayrintili metod beyanı ve kontrol listesi hazirlanmasi",
+                "action": "Risk için ayrıntılı yöntem beyanı ve kontrol listesi hazırlanmalıdır.",
                 "due": _smart_due(7),
             },
             {
                 **base,
-                "action": "Haftalik izleme formu ac; trend/KPI takibi baslasin",
+                "action": "Haftalık izleme formu açılarak trend ve KPI takibi başlatılmalıdır.",
                 "due": _smart_due(7),
             },
         ]
@@ -589,99 +794,134 @@ def _kpis_default(cat_lower: str) -> List[str]:
     cat_lower_norm = _normalize(cat_lower or "")
 
     common = [
-        "Uygunsuzluk (NCR) sayisi = 0 / ay",
-        "Rework saatleri ≤ toplam isçilik saatinin %2’si",
+        "Aylık uygunsuzluk (NCR) sayısı 0 olmalıdır.",
+        "Yeniden işleme (rework) süresi, toplam işçilik süresinin %2’sini aşmamalıdır.",
     ]
 
     if "beton" in cat_lower_norm or "kalip" in cat_lower_norm or "donati" in cat_lower_norm or _any_in(cat_lower_norm, KEYSETS["insaat"]):
         return common + [
-            "Beton basinç testi basarisizlik orani ≤ %1",
-            "Slump/sicaklik tolerans disi orani ≤ %2",
+            "Beton basınç testi başarısızlık oranı %1’i aşmamalıdır.",
+            "Slump ve sıcaklık tolerans dışı oranı %2’yi aşmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["satinalma"]):
         return common + [
-            "OTD (On-Time Delivery) ≥ %95",
-            "Emniyet stogu altina dusus olay sayisi = 0 / ay",
+            "Zamanında teslimat oranı (OTD) en az %95 olmalıdır.",
+            "Aylık emniyet stoğu altına düşme olayı 0 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["sozlesme"]):
         return common + [
-            "Kritik izin/onay gecikmesi = 0",
-            "Sozlesme ihlal/NCR sayisi = 0",
+            "Kritik izin ve onay süreçlerinde gecikme olmamalıdır.",
+            "Sözleşme ihlali veya NCR sayısı 0 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["isg_cevre"]):
         return common + [
-            "Toz/gurultu limit asimlari = 0",
-            "Atik bertaraf uygunsuzlugu = 0",
+            "Toz ve gürültü limit aşımı olmamalıdır.",
+            "Atık bertarafında uygunsuzluk olmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["geoteknik"]):
         return common + [
-            "Sev stabilitesi ihlal (trigger asimi) = 0",
-            "Zemin parametre guncelleme gecikmesi = 0",
+            "Şev stabilitesi tetik değer aşımı olmamalıdır.",
+            "Zemin parametrelerinin güncellenmesinde gecikme olmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["kalite"]):
         return common + [
-            "NCR kapama ort. suresi ≤ 10 gun",
-            "ITP adim uyum orani ≥ %98",
+            "NCR kapama ortalama süresi 10 günü aşmamalıdır.",
+            "ITP adımlarına uyum oranı en az %98 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["planlama"]):
         return common + [
-            "Kritik faaliyet gecikme orani ≤ %3",
-            "Gantt/P6 haftalik guncelleme tamamlama orani = %100",
+            "Kritik faaliyetlerde gecikme oranı %3’ü aşmamalıdır.",
+            "Gantt/P6 haftalık güncelleme tamamlama oranı %100 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["mep_elektrik"]):
         return common + [
-            "Izolasyon (megger) test basari orani ≥ %99",
-            "T&C (elektrik) punch sayisi ≤ 5 / alan",
+            "İzolasyon (megger) test başarı oranı en az %99 olmalıdır.",
+            "Elektrik test ve devreye alma sürecinde alan başına punch sayısı 5’i aşmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["mep_mekanik"]):
         return common + [
-            "Hidrostatik/basinç test basari orani ≥ %99",
-            "HVAC balancing sapma ≤ %5",
+            "Hidrostatik ve basınç test başarı oranı en az %99 olmalıdır.",
+            "HVAC balancing sapması %5’i aşmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["marine"]):
         return common + [
-            "Metocean pencere disi calisma olayi = 0",
-            "Barge/rigging plan uygunsuzlugu = 0",
+            "Metocean çalışma penceresi dışında çalışma yapılmamalıdır.",
+            "Barge ve rigging planlarında uygunsuzluk olmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["tasarim"]):
         return common + [
-            "RFI ort. kapanma suresi ≤ 7 gun",
-            "Shop drawing onay zamaninda tamamlama ≥ %95",
+            "RFI ortalama kapanma süresi 7 günü aşmamalıdır.",
+            "Shop drawing onaylarının zamanında tamamlanma oranı en az %95 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["teknik_ofis"]):
         return common + [
-            "Metraj–BOQ fark orani ≤ %1",
-            "Hak edis teslim gecikmesi = 0",
+            "Metraj ve BOQ fark oranı %1’i aşmamalıdır.",
+            "Hakediş tesliminde gecikme olmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["finans"]):
         return common + [
-            "Nakit akis sapma (plan vs gercek) ≤ %5",
-            "Fatura gecikme orani ≤ %2",
+            "Planlanan ve gerçekleşen nakit akışı arasındaki sapma %5’i aşmamalıdır.",
+            "Fatura gecikme oranı %2’yi aşmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["makine_bakim"]):
         return common + [
-            "MTBF artisi (aylik) ≥ %5",
-            "Planli bakim gerceklesme orani ≥ %95",
+            "Aylık MTBF artışı en az %5 olmalıdır.",
+            "Planlı bakım gerçekleşme oranı en az %95 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["bim_bt"]):
         return common + [
-            "Clash sayisi (kritik) ≤ X/hafta (hedef belirlenmeli)",
-            "Model versiyonlari yedekleme uyumu = %100",
+            "Haftalık kritik clash sayısı belirlenen hedefin altında tutulmalıdır.",
+            "Model versiyonlarının yedekleme uyumu %100 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["izin_ruhsat"]):
         return common + [
-            "Kritik izin gecikmesi = 0",
-            "Resmi yazisma SLA uyum orani ≥ %95",
+            "Kritik izinlerde gecikme olmamalıdır.",
+            "Resmi yazışma SLA uyum oranı en az %95 olmalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["laboratuvar"]):
         return common + [
-            "Numune izlenebilirlik (traceability) hatasi = 0",
-            "Kalibrasyon gecikmesi = 0",
+            "Numune izlenebilirlik hatası olmamalıdır.",
+            "Kalibrasyon süreçlerinde gecikme olmamalıdır.",
         ]
     if _any_in(cat_lower_norm, KEYSETS["depo"]):
         return common + [
-            "Stok sayim uyumsuzluk orani ≤ %1",
-            "Lot/seri izlenebilirlik hatasi = 0",
+            "Stok sayım uyumsuzluk oranı %1’i aşmamalıdır.",
+            "Lot ve seri izlenebilirlik hatası olmamalıdır.",
+        ]
+    if _any_in(cat_lower_norm, KEYSETS["trafik_lojistik"]):
+        return common + [
+            "Plan dışı sevkiyat gecikmesi haftalık 0 olmalıdır.",
+            "Saha giriş-çıkış kayıt uyumu %100 olmalıdır.",
+        ]
+    if _any_in(cat_lower_norm, KEYSETS["paydas_iletisim"]):
+        return common + [
+            "Paydaş şikâyetlerine ilk dönüş süresi 2 iş gününü aşmamalıdır.",
+            "Açık paydaş aksiyonu sayısı haftalık olarak azaltılmalıdır.",
+        ]
+    if _any_in(cat_lower_norm, KEYSETS["taseron_yonetimi"]):
+        return common + [
+            "Taşeron haftalık iş tamamlama oranı en az %95 olmalıdır.",
+            "Taşeron kaynaklı tekrar iş oranı %2’yi aşmamalıdır.",
+        ]
+    if _any_in(cat_lower_norm, KEYSETS["saha_erisim"]):
+        return common + [
+            "Alan teslimi veya erişim kaynaklı program sapması haftalık izlenmelidir.",
+            "Erişim engeli nedeniyle duran iş sayısı 0 olmalıdır.",
+        ]
+    if _any_in(cat_lower_norm, KEYSETS["maliyet_artisi"]):
+        return common + [
+            "Maliyet sapması aylık %5’i aşmamalıdır.",
+            "Kritik maliyet kalemlerinde güncel teklif kontrolü %100 tamamlanmalıdır.",
+        ]
+    if _any_in(cat_lower_norm, KEYSETS["test_devreye_alma"]):
+        return common + [
+            "Punch list kapanış oranı haftalık en az %90 olmalıdır.",
+            "Test tekrar oranı %5’i aşmamalıdır.",
+        ]
+    if _any_in(cat_lower_norm, KEYSETS["dokumantasyon"]):
+        return common + [
+            "Eksik doküman sayısı haftalık olarak azaltılmalıdır.",
+            "Güncel revizyon kullanım uyumu %100 olmalıdır.",
         ]
 
     return common
@@ -715,8 +955,8 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
     ]):
         out.append(
             "Genc 2021 çalışması, kalifiye olmayan taşeron/işçi/personel kullanımını "
-            "Türk inşaat sektöründe en yüksek olasılıklı risklerden biri olarak raporluyor; "
-            "taşeron seçimi, oryantasyon ve denetim bu riski yönetmek için kritik."
+            "Türk inşaat sektöründe en yüksek olasılıklı risklerden biri olarak değerlendirmektedir; "
+            "bu nedenle taşeron seçimi, oryantasyon ve düzenli denetim süreçleri kritik önem taşır."
         )
 
     # Ödeme gecikmeleri / hakediş
@@ -726,7 +966,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
     ]):
         out.append(
             "Aynı çalışmada, ödemelerde gecikme ve hakediş sorunları en olası riskler arasında; "
-            "sözleşmede net ödeme takvimi, gecikme faizi ve nakit akış planı öneriliyor."
+            "bu nedenle sözleşmede net ödeme takvimi, gecikme faizi ve nakit akış planı tanımlanmalıdır."
         )
 
     # Enflasyon / fiyat spekülasyonu / kur riski
@@ -737,7 +977,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
         out.append(
             "Genc 2021 sonuçlarına göre enflasyon ve fiyat dalgalanmaları yüksek olasılıklı "
             "dışsal riskler arasında; fiyat farkı maddeleri, kısa vadeli alım sözleşmeleri "
-            "ve kur riskini hedge eden finansal araçlar öneriliyor."
+            "ve kur riskini azaltacak finansal araçlar önerilmektedir."
         )
 
     # Geç change-order / son dakika revizyon
@@ -748,7 +988,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
         out.append(
             "Çalışma, geç gelen change-order/değişiklik taleplerinin hem süre hem maliyet "
             "üzerinde kritik etki yaptığını vurguluyor; onaylı değişiklik prosedürü ve "
-            "kapsam dondurma tarihleri tanımlanmalı."
+            "kapsam dondurma tarihleri tanımlanmalıdır."
         )
 
     # Bütçe aşımı / cost overrun
@@ -759,7 +999,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
         out.append(
             "Genc 2021'de işin beklenen bütçe sınırları içinde tamamlanamaması, en olası "
             "üst seviye risklerden biri; erken aşamada ayrıntılı maliyet kırılımı ve "
-            "kontenjan bütçe yönetimi öneriliyor."
+            "kontenjan bütçe yönetimi önerilmektedir."
         )
 
     # --- Satpal 2022: Kurumsal bina projeleri, risk tahsisi ---
@@ -771,7 +1011,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
         out.append(
             "Satpal 2022, kurumsal bina işlerinde iş kazaları ve zayıf iş güvenliğini "
             "ağırlıklı olarak yüklenicinin yönetmesi gereken riskler olarak sınıflandırıyor; "
-            "sistematik İSG planı, toolbox talk'lar ve saha denetimleri kritik."
+            "sistematik İSG planı, kısa saha eğitimleri ve düzenli saha denetimleri kritik önem taşır."
         )
 
     # Malzeme kalitesi / kusurlu malzeme
@@ -781,7 +1021,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
         out.append(
             "Aynı çalışmada kusurlu malzeme tedariki, tedarik zinciri ve yüklenici "
             "sorumluluğu altında ele alınıyor; tedarikçi onay süreci ve giriş kalite kontrolü "
-            "önemli azaltıcı tedbirler olarak belirtiliyor."
+            "önemli azaltıcı tedbirler olarak belirtilmektedir."
         )
 
     # İşgücü / ekipman / malzeme bulunabilirliği
@@ -792,7 +1032,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
         out.append(
             "Satpal 2022, işgücü/ekipman/malzeme bulunabilirliğini yüklenici tarafında "
             "yoğunlaşan önemli bir üretim riski olarak veriyor; alternatif tedarikçiler ve "
-            "yedek kapasite planı öneriliyor."
+            "yedek kapasite planı önerilmektedir."
         )
 
     # Hava koşulları
@@ -801,7 +1041,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
     ]):
         out.append(
             "Çalışmada öngörülemeyen hava koşulları, iş programı ve maliyet üzerinde "
-            "önemli etkiye sahip; süre tamponları ve mevsimsellik analizi ile yönetilmesi öneriliyor."
+            "önemli etkiye sahip; süre tamponları ve mevsimsellik analizi ile yönetilmesi önerilmektedir."
         )
 
     # --- Shelake 2022: Tünel projeleri ---
@@ -825,7 +1065,7 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
             "Ke vd. 2010, PPP projelerinde politik/hukuki makro risklerin genelde kamu "
             "tarafında tutulduğunu, proje-özel meso risklerin daha çok özel sektöre "
             "aktarılabildiğini, operasyonel mikro risklerin ise çoğunlukla yüklenicide "
-            "toplandığını raporluyor; bu risk için taraflara göre adil paylaşım kurgulanmalı."
+            "toplandığını raporlamaktadır; bu risk için taraflara göre adil paylaşım kurgulanmalı."
         )
 
     # --- Genel metodoloji makaleleri: Akintoye 1997, Dziadosz 2015 vs. ---
@@ -836,12 +1076,12 @@ def _paper_rule_summaries(risk: "Risk") -> List[str]:
             "Akintoye & MacLeod 1997, inşaat projelerinde risklerin çoğunlukla maliyet, süre "
             "ve kalite hedeflerine etkisi üzerinden algılandığını ve yönetimin çoğu zaman "
             "sezgiye bırakıldığını belirtiyor; yapılandırılmış risk analizi (senaryo, hassasiyet, "
-            "olasilik-etki matrisleri) ile daha sağlam kararlar alınabiliyor."
+            "olasılık-etki matrisleri) ile daha sağlam kararlar alınabiliyor."
         )
         out.append(
             "Dziadosz & Rejment 2015, risk yönetim sürecini üç çekirdeğe indiriyor: tanımla, "
             "nicelleştir, tepki ver; projede hem nitel uzman görüşü hem RII gibi nicel araçların "
-            "beraber kullanılması öneriliyor."
+            "beraber kullanılması önerilmektedir."
         )
 
     # Aynı cümleleri tekrar yazmamak için uniq yap
@@ -888,7 +1128,7 @@ def make_ai_risk_comment(risk_id: int) -> str:
     cat_lower = (r.category or "").lower()
     actions = _propose_actions(r)
     kpis = _kpis_default(cat_lower)
-    close_criteria = "Arka arkaya 8 hafta KPI’lar hedefte + 2 ay uygunsuzluk (NCR) sıfır"
+    close_criteria = "Risk, arka arkaya 8 hafta boyunca KPI hedefleri sağlandığında ve son 2 ayda uygunsuzluk (NCR) oluşmadığında kapatılabilir."
 
     # 4) Metni derle
     lines: List[str] = []
@@ -897,17 +1137,16 @@ def make_ai_risk_comment(risk_id: int) -> str:
     lines.append(f"**Açıklama:** {r.description or '—'}\n")
 
     # --- Sayısal özet ---
-    lines.append("### 1) Sayısal Özet")
+    lines.append("### 1) Risk Skoru Özeti")
     if hint:
         try:
             n_cat = hint.get("n_cat") or (0, 0)
             n_all = hint.get("n_all") or (0, 0)
             lines.append(
-                f"- Tahmini Olasılık **P={hint.get('p', '-')}**, "
-                f"Şiddet **S={hint.get('s', '-')}** "
-                f"(kaynak: {hint.get('source', '-')} "
-                f"örnek: P {n_cat[0]}/{n_all[0]}, "
-                f"S {n_cat[1]}/{n_all[1]})"
+                f"- Sistem, bu risk için tahmini olasılığı **P={hint.get('p', '-')}** "
+                f"ve tahmini şiddeti **S={hint.get('s', '-')}** olarak önermektedir. "
+                f"Bu tahmin; kategori geçmişi, benzer risk kayıtları ve mevcut veri örnekleri dikkate alınarak oluşturulmuştur "
+                f"(kaynak: {hint.get('source', '-')}, P örneği: {n_cat[0]}/{n_all[0]}, S örneği: {n_cat[1]}/{n_all[1]})."
             )
             if hint.get("applied_rules"):
                 lines.append(
@@ -921,31 +1160,37 @@ def make_ai_risk_comment(risk_id: int) -> str:
         lines.append("- P/S tahmini üretilemedi (yeterli veri yok ya da model hatası).")
 
     # --- Departman & RACI ---
-    lines.append("\n### 2) Departman & RACI")
+    lines.append("\n### 2) Sorumlu Departman ve RACI Dağılımı")
     if actions:
         ex = actions[0]
         C0 = ", ".join(ex["C"]) if isinstance(ex["C"], list) else ex["C"]
         I0 = ", ".join(ex["I"]) if isinstance(ex["I"], list) else ex["I"]
         lines.append(f"- **Departman:** {ex['dept']}")
-        lines.append(f"- **R:** {ex['R']}  | **A:** {ex['A']}  | **C:** {C0}  | **I:** {I0}")
+        lines.append(
+            f"- **R (Sorumlu):** {ex['R']} | "
+            f"**A (Hesap Veren):** {ex['A']} | "
+            f"**C (Danışılan):** {C0} | "
+            f"**I (Bilgilendirilen):** {I0}"
+        )
     else:
         lines.append("- Bu kategori için hazır RACI bulunamadı, manuel belirlenmeli.")
 
     # --- Aksiyon Planı ---
-    lines.append("\n### 3) Ne Yapılacak? (Aksiyon Planı)")
+    lines.append("\n### 3) Aksiyon Planı")
     if actions:
         for i, a in enumerate(actions, 1):
             C = ", ".join(a["C"]) if isinstance(a["C"], list) else a["C"]
             I = ", ".join(a["I"]) if isinstance(a["I"], list) else a["I"]
             lines.append(
-                f"{i}. **{a['action']}** — **Termin:** {a['due']}  \n"
-                f"   R:{a['R']} · A:{a['A']} · C:{C} · I:{I}"
+                f"{i}. **{a['action']}**\n"
+                f"   - **Termin:** {a['due']}\n"
+                f"   - **RACI:** R: {a['R']} · A: {a['A']} · C: {C} · I: {I}"
             )
     else:
         lines.append("- Otomatik aksiyon üretilmedi, proje ekibi ile aksiyon seti netleştirilmeli.")
 
     # --- KPI'lar ---
-    lines.append("\n### 4) İzleme Göstergeleri (KPI)")
+    lines.append("\n### 4) İzleme Göstergeleri")
     if kpis:
         for k in kpis:
             lines.append(f"- {k}")
@@ -959,7 +1204,7 @@ def make_ai_risk_comment(risk_id: int) -> str:
     # --- Makale / literatür bağlamı ---
     paper_notes = _paper_rule_summaries(r)
     if paper_notes or rules:
-        lines.append("\n### 6) Literatür Bağlamı (Makaleler)")
+        lines.append("\n### 6) Literatür ve Akademik Bağlam")
 
         if paper_notes:
             lines.append("**Seçilmiş akademik bulgular (manuel gömülü kurallar):**")
