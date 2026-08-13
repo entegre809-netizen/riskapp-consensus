@@ -1053,27 +1053,33 @@
       </div>
 
       <div class="menu-section">
-        <div class="menu-title">Risk</div>
+        <details class="module-group" open>
+          <summary>Risk Bilgi Tabanı ve Risk Tanımlama Modülü</summary>
+
+          <nav class="menu">
+            <a href="{{ url_for('risk_identify') }}" class="{{ 'active' if request.endpoint=='risk_identify' }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">category</span></span>
+              <span class="menu-text">Risk Kütüphanesi</span>
+            </a>
+
+            <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">folder</span></span>
+              <span class="menu-text">Kategoriler</span>
+            </a>
+
+            <a href="{{ url_for('risk_new') }}" class="{{ 'active' if request.endpoint=='risk_new' }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">add_circle</span></span>
+              <span class="menu-text">Yeni Risk Tanımlama</span>
+            </a>
+
+            <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">history</span></span>
+              <span class="menu-text">Risk Kayıtları</span>
+            </a>
+          </nav>
+        </details>
+
         <nav class="menu">
-          <a href="{{ url_for('risk_identify') }}" class="{{ 'active' if request.endpoint=='risk_identify' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">category</span></span>
-            <span class="menu-text">Risk Kütüphanesi</span>
-          </a>
-
-          <a href="{{ url_for('risk_new') }}" class="{{ 'active' if request.endpoint=='risk_new' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">add_circle</span></span>
-            <span class="menu-text">Yeni Risk</span>
-          </a>
-
-          <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">history</span></span>
-            <span class="menu-text">Risk Kayıtları</span>
-          </a>
-
-          <a href="{{ url_for('categories_index') }}" class="{{ 'active' if request.endpoint=='categories_index' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">folder</span></span>
-            <span class="menu-text">Kategoriler</span>
-          </a>
 
           <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">
             <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">calendar_month</span></span>
