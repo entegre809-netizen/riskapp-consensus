@@ -472,6 +472,74 @@
       text-overflow:ellipsis;
     }
 
+    /* ================= MODÜLER SIDEBAR ================= */
+
+    .module-group{
+      margin:0 0 8px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:color-mix(in oklab, var(--card-solid) 72%, transparent);
+      overflow:hidden;
+    }
+
+    .module-group summary{
+      min-height:48px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      cursor:pointer;
+      user-select:none;
+      color:var(--muted);
+      background:var(--surface-soft);
+      font-size:10px;
+      line-height:1.35;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      list-style:none;
+    }
+
+    .module-group summary::-webkit-details-marker{
+      display:none;
+    }
+
+    .module-group summary::after{
+      content:"expand_more";
+      font-family:"Material Icons Outlined";
+      font-size:20px;
+      color:var(--soft);
+      transition:transform .18s ease;
+    }
+
+    .module-group[open] summary::after{
+      transform:rotate(180deg);
+    }
+
+    .module-group[open] summary{
+      color:var(--text);
+      border-bottom:1px solid var(--line);
+    }
+
+    .module-group .menu{
+      padding:7px;
+    }
+
+    .module-group .menu a{
+      min-height:42px;
+      border-radius:13px;
+    }
+
+    .module-group summary:hover{
+      background:rgba(36,87,230,.07);
+      color:var(--text);
+    }
+
+    [data-theme="dark"] .module-group{
+      background:rgba(15,23,42,.48);
+    }
+
     /* ================= MAIN ================= */
     .main{
       min-width:0;
