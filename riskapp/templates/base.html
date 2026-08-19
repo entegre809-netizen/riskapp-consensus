@@ -1043,16 +1043,6 @@
       {% endif %}
 
       <div class="menu-section">
-        <div class="menu-title">Panel</div>
-        <nav class="menu">
-          <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">dashboard</span></span>
-            <span class="menu-text">Genel Görünüm</span>
-          </a>
-        </nav>
-      </div>
-
-      <div class="menu-section">
         <details class="module-group" open>
           <summary>Risk Bilgi Tabanı ve Risk Tanımlama Modülü</summary>
 
@@ -1143,6 +1133,18 @@
             {% endif %}
           </nav>
         </details>
+
+        <details class="module-group" {% if request.endpoint == 'dashboard' %}open{% endif %}>
+          <summary>Gösterge Paneli ve Görselleştirme Modülü</summary>
+
+          <nav class="menu">
+            <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">dashboard</span></span>
+              <span class="menu-text">Genel Görünüm</span>
+            </a>
+          </nav>
+        </details>
+
 
 
 
