@@ -1072,9 +1072,16 @@
               <span class="menu-text">Yeni Risk Tanımlama</span>
             </a>
 
-            <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">
-              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">history</span></span>
-              <span class="menu-text">Risk Kayıtları</span>
+          </nav>
+        </details>
+
+        <details class="module-group" {% if request.endpoint in ['risk_select', 'risk_detail'] %}open{% endif %}>
+          <summary>Akıllı Risk Değerlendirme ve Karar Destek Modülü</summary>
+
+          <nav class="menu">
+            <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint in ['risk_select', 'risk_detail'] }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">psychology</span></span>
+              <span class="menu-text">Risk Değerlendirme</span>
             </a>
           </nav>
         </details>
