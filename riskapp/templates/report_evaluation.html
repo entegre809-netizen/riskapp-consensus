@@ -1,0 +1,816 @@
+{% extends "base.html" %}
+{% block title %}Risk Değerlendirme Raporu · Risk Yönetim{% endblock %}
+
+{% block content %}
+<style>
+  .re-scope{
+    --re-card:#ffffff;
+    --re-text:#0f172a;
+    --re-muted:#64748b;
+    --re-soft:#f8fafc;
+    --re-line:rgba(15,23,42,.09);
+    --re-primary:#2457e6;
+    --re-green:#22c55e;
+    --re-amber:#f59e0b;
+    --re-orange:#fb923c;
+    --re-red:#ef4444;
+    --re-shadow:0 24px 70px rgba(15,23,42,.09);
+    --re-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--re-text);
+  }
+
+  [data-theme="dark"] .re-scope{
+    --re-card:rgba(15,23,42,.76);
+    --re-text:#e5e7eb;
+    --re-muted:#94a3b8;
+    --re-soft:rgba(15,23,42,.55);
+    --re-line:rgba(255,255,255,.08);
+    --re-shadow:0 24px 70px rgba(0,0,0,.28);
+    --re-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .re-wrap{
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .re-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:28px;
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--re-shadow);
+  }
+
+  .re-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .re-hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .re-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .re-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px,3.2vw,44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .re-sub{
+    max-width:650px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.5;
+    font-weight:650;
+  }
+
+  .re-actions{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+  }
+
+  .re-btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--re-line);
+    background:var(--re-card);
+    color:var(--re-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:900;
+    box-shadow:var(--re-shadow-sm);
+    transition:transform .14s ease, border-color .14s ease, filter .14s ease;
+  }
+
+  .re-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .re-hero .re-btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .re-hero .re-btn.primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .re-kpis{
+    display:grid;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .re-kpi{
+    min-height:108px;
+    position:relative;
+    overflow:hidden;
+    padding:16px;
+    border-radius:22px;
+    background:var(--re-card);
+    border:1px solid var(--re-line);
+    box-shadow:var(--re-shadow-sm);
+  }
+
+  .re-kpi::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:5px;
+    background:var(--re-primary);
+  }
+
+  .re-kpi.low::before{ background:var(--re-green); }
+  .re-kpi.medium::before{ background:var(--re-amber); }
+  .re-kpi.high::before{ background:var(--re-orange); }
+  .re-kpi.critical::before{ background:var(--re-red); }
+  .re-kpi.avg::before{ background:#6366f1; }
+
+  .re-kpi-label{
+    color:var(--re-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .re-kpi-value{
+    margin-top:11px;
+    color:var(--re-text);
+    font-size:31px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.05em;
+  }
+
+  .re-kpi-note{
+    margin-top:7px;
+    color:var(--re-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .re-flow{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+
+  .re-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--re-card);
+    border:1px solid var(--re-line);
+    box-shadow:var(--re-shadow-sm);
+    overflow:hidden;
+  }
+
+  .re-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg,var(--re-primary),#0f766e);
+  }
+
+  .re-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .re-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--re-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .re-flow-title{
+    margin:0;
+    color:var(--re-text);
+    font-size:14px;
+    font-weight:950;
+  }
+
+  .re-flow-sub{
+    margin-top:2px;
+    color:var(--re-muted);
+    font-size:11px;
+    font-weight:850;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+
+  .re-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--re-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .re-flow-list li + li{ margin-top:4px; }
+
+  .re-card{
+    border-radius:28px;
+    background:var(--re-card);
+    border:1px solid var(--re-line);
+    box-shadow:var(--re-shadow-sm);
+    overflow:hidden;
+  }
+
+  .re-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:14px;
+    border-bottom:1px solid var(--re-line);
+    background:var(--re-soft);
+  }
+
+  .re-search{
+    position:relative;
+    min-width:260px;
+    flex:1;
+    max-width:560px;
+  }
+
+  .re-search input{
+    width:100%;
+    min-height:46px;
+    padding:0 14px 0 42px;
+    border-radius:16px;
+    border:1px solid var(--re-line);
+    background:var(--re-card);
+    color:var(--re-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+  }
+
+  .re-search input:focus{
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+  }
+
+  .re-search-icon{
+    position:absolute;
+    left:14px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--re-muted);
+    pointer-events:none;
+  }
+
+  .re-filter{
+    min-height:46px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--re-line);
+    background:var(--re-card);
+    color:var(--re-text);
+    font:inherit;
+    font-size:13px;
+    font-weight:850;
+    outline:none;
+  }
+
+  .re-table-wrap{
+    overflow:auto;
+  }
+
+  .re-table{
+    width:100%;
+    min-width:980px;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .re-table th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    padding:13px 14px;
+    background:var(--re-soft);
+    color:var(--re-muted);
+    border-bottom:1px solid var(--re-line);
+    text-align:left;
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .re-table td{
+    padding:14px;
+    border-bottom:1px solid var(--re-line);
+    color:var(--re-text);
+    vertical-align:middle;
+    background:color-mix(in oklab,var(--re-card) 94%,transparent);
+  }
+
+  .re-table tbody tr:hover td{
+    background:rgba(36,87,230,.05);
+  }
+
+  [data-theme="dark"] .re-table tbody tr:hover td{
+    background:rgba(96,165,250,.08);
+  }
+
+  .re-risk-name{
+    color:var(--re-text);
+    font-size:14px;
+    font-weight:950;
+    text-decoration:none;
+  }
+
+  .re-risk-name:hover{
+    color:var(--re-primary);
+  }
+
+  .re-risk-meta{
+    margin-top:4px;
+    color:var(--re-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .re-badge{
+    min-height:29px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--re-line);
+    background:var(--re-soft);
+    color:var(--re-text);
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  .re-badge.low{
+    color:#15803d;
+    background:rgba(34,197,94,.11);
+    border-color:rgba(34,197,94,.22);
+  }
+
+  .re-badge.medium{
+    color:#a16207;
+    background:rgba(245,158,11,.13);
+    border-color:rgba(245,158,11,.25);
+  }
+
+  .re-badge.high{
+    color:#c2410c;
+    background:rgba(251,146,60,.13);
+    border-color:rgba(251,146,60,.25);
+  }
+
+  .re-badge.critical{
+    color:#b91c1c;
+    background:rgba(239,68,68,.11);
+    border-color:rgba(239,68,68,.22);
+  }
+
+  .re-badge.not_evaluated{
+    color:var(--re-muted);
+  }
+
+  [data-theme="dark"] .re-badge.low{ color:#bbf7d0; }
+  [data-theme="dark"] .re-badge.medium{ color:#fde68a; }
+  [data-theme="dark"] .re-badge.high{ color:#fed7aa; }
+  [data-theme="dark"] .re-badge.critical{ color:#fecaca; }
+
+  .re-score{
+    width:42px;
+    height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    background:linear-gradient(135deg,var(--re-primary),#3264ff);
+    color:#fff;
+    font-size:14px;
+    font-weight:950;
+    box-shadow:0 12px 26px rgba(36,87,230,.18);
+  }
+
+  .re-score.empty{
+    background:var(--re-soft);
+    color:var(--re-muted);
+    box-shadow:none;
+    border:1px solid var(--re-line);
+  }
+
+  .re-empty{
+    padding:34px 20px;
+    text-align:center;
+    color:var(--re-muted);
+    font-size:14px;
+    font-weight:750;
+  }
+
+  .re-footnote{
+    padding:13px 14px;
+    color:var(--re-muted);
+    background:var(--re-soft);
+    border-top:1px solid var(--re-line);
+    font-size:12px;
+    line-height:1.5;
+    font-weight:700;
+  }
+
+  @media (max-width:1180px){
+    .re-kpis{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:980px){
+    .re-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:680px){
+    .re-kpis{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .re-toolbar{
+      align-items:stretch;
+    }
+
+    .re-search{
+      max-width:none;
+      width:100%;
+      min-width:0;
+    }
+
+    .re-filter{
+      width:100%;
+    }
+
+    .re-actions{
+      width:100%;
+    }
+
+    .re-actions .re-btn{
+      flex:1;
+    }
+  }
+
+  @media (max-width:430px){
+    .re-kpis{
+      grid-template-columns:1fr;
+    }
+  }
+</style>
+
+<div class="re-scope">
+  <div class="re-wrap">
+
+    <section class="re-hero">
+      <div class="re-hero-row">
+        <div>
+          <div class="re-kicker">
+            <span class="material-icons-outlined" style="font-size:17px;">fact_check</span>
+            Rapor 02
+          </div>
+          <h1 class="re-title">Risk Değerlendirme Raporu</h1>
+          <p class="re-sub">
+            Risklerin son değerlendirmelerine göre olasılık, şiddet, P×S skoru ve risk seviyelerini tek ekranda incele.
+          </p>
+        </div>
+
+        <div class="re-actions">
+          <a class="re-btn primary" href="{{ url_for('reports') }}">
+            <span class="material-icons-outlined" style="font-size:18px;">arrow_back</span>
+            Rapor Merkezi
+          </a>
+          <a class="re-btn" href="{{ url_for('risk_select') }}">
+            Tüm Riskler
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="re-flow" aria-label="Risk değerlendirme raporu bilgi akışı">
+      <article class="re-flow-card">
+        <div class="re-flow-head">
+          <div class="re-flow-icon">
+            <span class="material-icons-outlined">input</span>
+          </div>
+          <div>
+            <h3 class="re-flow-title">Girdi</h3>
+            <div class="re-flow-sub">Değerlendirme verileri</div>
+          </div>
+        </div>
+        <ul class="re-flow-list">
+          <li>Risk kayıtları, kategori ve sorumlu bilgileri</li>
+          <li>Risklere ait son değerlendirme kayıtları</li>
+          <li>Olasılık ve şiddet değerleri</li>
+        </ul>
+      </article>
+
+      <article class="re-flow-card">
+        <div class="re-flow-head">
+          <div class="re-flow-icon">
+            <span class="material-icons-outlined">calculate</span>
+          </div>
+          <div>
+            <h3 class="re-flow-title">İşlem Süreci</h3>
+            <div class="re-flow-sub">P × S analizi</div>
+          </div>
+        </div>
+        <ul class="re-flow-list">
+          <li>Her risk için son değerlendirmenin seçilmesi</li>
+          <li>Olasılık × şiddet skorunun hesaplanması</li>
+          <li>Skora göre risk seviyesinin sınıflandırılması</li>
+        </ul>
+      </article>
+
+      <article class="re-flow-card">
+        <div class="re-flow-head">
+          <div class="re-flow-icon">
+            <span class="material-icons-outlined">output</span>
+          </div>
+          <div>
+            <h3 class="re-flow-title">Çıktı</h3>
+            <div class="re-flow-sub">Değerlendirme sonuçları</div>
+          </div>
+        </div>
+        <ul class="re-flow-list">
+          <li>Nihai P, S ve P×S skorları</li>
+          <li>Düşük / Orta / Yüksek / Çok Yüksek sınıfları</li>
+          <li>Yönetim için risk değerlendirme özeti</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="re-kpis" aria-label="Risk değerlendirme özetleri">
+      <div class="re-kpi">
+        <div class="re-kpi-label">Toplam Risk</div>
+        <div class="re-kpi-value">{{ stats.total }}</div>
+        <div class="re-kpi-note">{{ stats.evaluated }} değerlendirildi</div>
+      </div>
+
+      <div class="re-kpi low">
+        <div class="re-kpi-label">Düşük</div>
+        <div class="re-kpi-value">{{ stats.low }}</div>
+        <div class="re-kpi-note">1–4</div>
+      </div>
+
+      <div class="re-kpi medium">
+        <div class="re-kpi-label">Orta</div>
+        <div class="re-kpi-value">{{ stats.medium }}</div>
+        <div class="re-kpi-note">5–10</div>
+      </div>
+
+      <div class="re-kpi high">
+        <div class="re-kpi-label">Yüksek</div>
+        <div class="re-kpi-value">{{ stats.high }}</div>
+        <div class="re-kpi-note">11–15</div>
+      </div>
+
+      <div class="re-kpi critical">
+        <div class="re-kpi-label">Çok Yüksek</div>
+        <div class="re-kpi-value">{{ stats.critical }}</div>
+        <div class="re-kpi-note">16–25</div>
+      </div>
+
+      <div class="re-kpi avg">
+        <div class="re-kpi-label">Ortalama Skor</div>
+        <div class="re-kpi-value">
+          {{ '%.2f'|format(stats.average_score) if stats.average_score is not none else '—' }}
+        </div>
+        <div class="re-kpi-note">{{ stats.not_evaluated }} değerlendirilmedi</div>
+      </div>
+    </section>
+
+    <section class="re-card">
+      <div class="re-toolbar">
+        <div class="re-search">
+          <span class="re-search-icon material-icons-outlined" style="font-size:19px;">search</span>
+          <input id="reSearch" type="search" placeholder="Risk adı, kategori, sorumlu veya ID ara…">
+        </div>
+
+        <select id="reLevel" class="re-filter" aria-label="Risk seviyesi filtresi">
+          <option value="">Tüm seviyeler</option>
+          <option value="low">Düşük</option>
+          <option value="medium">Orta</option>
+          <option value="high">Yüksek</option>
+          <option value="critical">Çok Yüksek</option>
+          <option value="not_evaluated">Değerlendirilmedi</option>
+        </select>
+      </div>
+
+      <div class="re-table-wrap">
+        <table class="re-table" id="reTable">
+          <thead>
+            <tr>
+              <th>Risk</th>
+              <th>Kategori</th>
+              <th>Sorumlu</th>
+              <th style="text-align:center;">P</th>
+              <th style="text-align:center;">S</th>
+              <th style="text-align:center;">Skor</th>
+              <th>Seviye</th>
+              <th>Değerlendiren</th>
+              <th style="text-align:right;">İşlem</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for row in rows %}
+              {% set r = row.risk %}
+              {% set ev = row.evaluation %}
+              <tr
+                data-level="{{ row.level_key }}"
+                data-filter="{{ (
+                  (r.id|string) ~ ' ' ~
+                  (r.title or '') ~ ' ' ~
+                  (r.category or '') ~ ' ' ~
+                  (r.responsible or '') ~ ' ' ~
+                  (row.level or '') ~ ' ' ~
+                  ((ev.evaluator if ev else '') or '')
+                )|lower }}"
+              >
+                <td>
+                  <a class="re-risk-name" href="{{ url_for('risk_detail', risk_id=r.id) }}">
+                    #R-{{ r.id }} {{ r.title }}
+                  </a>
+                  <div class="re-risk-meta">
+                    {{ r.status or 'Durum belirtilmedi' }}
+                  </div>
+                </td>
+
+                <td>
+                  <span class="re-badge">{{ r.category or '—' }}</span>
+                </td>
+
+                <td>
+                  {{ r.responsible or '—' }}
+                </td>
+
+                <td style="text-align:center; font-weight:950;">
+                  {{ row.probability if row.probability is not none else '—' }}
+                </td>
+
+                <td style="text-align:center; font-weight:950;">
+                  {{ row.severity if row.severity is not none else '—' }}
+                </td>
+
+                <td style="text-align:center;">
+                  {% if row.score is not none %}
+                    <span class="re-score">{{ row.score }}</span>
+                  {% else %}
+                    <span class="re-score empty">—</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <span class="re-badge {{ row.level_key }}">
+                    {{ row.level }}
+                  </span>
+                </td>
+
+                <td>
+                  {% if ev %}
+                    {{ ev.evaluator or '—' }}
+                  {% else %}
+                    <span style="color:var(--re-muted);">—</span>
+                  {% endif %}
+                </td>
+
+                <td style="text-align:right;">
+                  <a class="re-btn" href="{{ url_for('risk_detail', risk_id=r.id) }}">
+                    Detay
+                  </a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="9">
+                  <div class="re-empty">
+                    Risk değerlendirme verisi bulunamadı.
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="re-footnote">
+        Risk seviyesi eşikleri: 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek.
+        Her risk için yalnızca en son değerlendirme kaydı dikkate alınır.
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const search = document.getElementById("reSearch");
+  const level = document.getElementById("reLevel");
+  const rows = Array.from(document.querySelectorAll("#reTable tbody tr[data-filter]"));
+
+  function apply(){
+    const q = (search?.value || "").trim().toLowerCase();
+    const lvl = level?.value || "";
+
+    rows.forEach(row => {
+      const hay = (row.dataset.filter || "").toLowerCase();
+      const rowLevel = row.dataset.level || "";
+
+      const matchesText = !q || hay.includes(q);
+      const matchesLevel = !lvl || rowLevel === lvl;
+
+      row.style.display = matchesText && matchesLevel ? "" : "none";
+    });
+  }
+
+  search?.addEventListener("input", apply);
+  level?.addEventListener("change", apply);
+})();
+</script>
+{% endblock %}

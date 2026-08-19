@@ -456,6 +456,98 @@
       width:100%;
     }
   }
+
+  /* ============================================================
+     GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 5. MODÜL
+     ============================================================ */
+  .cost-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:14px;
+    margin:0 0 16px;
+  }
+
+  .cost-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--cp-card);
+    border:1px solid var(--cp-line);
+    box-shadow:var(--cp-shadow-sm);
+    overflow:hidden;
+  }
+
+  .cost-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--cp-primary), var(--cp-teal));
+  }
+
+  .cost-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .cost-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--cp-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .cost-flow-title{
+    margin:0;
+    color:var(--cp-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .cost-flow-sub{
+    margin-top:2px;
+    color:var(--cp-soft);
+    font-size:11px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .cost-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--cp-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .cost-flow-list li + li{
+    margin-top:4px;
+  }
+
+  [data-theme="dark"] .cost-flow-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.20);
+  }
+
+  @media (max-width:980px){
+    .cost-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <div class="costs-page"
@@ -490,6 +582,65 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="cost-flow" aria-label="Risk maliyet yönetimi ve önceliklendirme modülü bilgi akışı">
+      <article class="cost-flow-card">
+        <div class="cost-flow-head">
+          <div class="cost-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">input</span>
+          </div>
+          <div>
+            <h3 class="cost-flow-title">Girdi</h3>
+            <div class="cost-flow-sub">Maliyet ve risk verileri</div>
+          </div>
+        </div>
+
+        <ul class="cost-flow-list">
+          <li>Maliyet kayıtları, miktar, birim fiyat, para birimi ve sıklık bilgileri</li>
+          <li>Risk kayıtları, risk skoru / RPN ve risk seviyesi</li>
+          <li>Önlem, etki ve aksiyonlarla ilişkili maliyet kalemleri</li>
+          <li>Kategori ve yıllıklaştırma / döviz dönüşüm parametreleri</li>
+        </ul>
+      </article>
+
+      <article class="cost-flow-card">
+        <div class="cost-flow-head">
+          <div class="cost-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">calculate</span>
+          </div>
+          <div>
+            <h3 class="cost-flow-title">İşlem Süreci</h3>
+            <div class="cost-flow-sub">Maliyet ve öncelik analizi</div>
+          </div>
+        </div>
+
+        <ul class="cost-flow-list">
+          <li>Risk bazlı maliyetlerin hesaplanması ve yıllıklaştırılması</li>
+          <li>Kategori ve para birimi bazında maliyet dağılımının değerlendirilmesi</li>
+          <li>Risk puanı × maliyet yaklaşımıyla öncelik skorunun oluşturulması</li>
+          <li>Pareto, kümülatif yüzde ve kritik maliyet/risk dengesinin analiz edilmesi</li>
+        </ul>
+      </article>
+
+      <article class="cost-flow-card">
+        <div class="cost-flow-head">
+          <div class="cost-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">output</span>
+          </div>
+          <div>
+            <h3 class="cost-flow-title">Çıktı</h3>
+            <div class="cost-flow-sub">Önceliklendirme sonuçları</div>
+          </div>
+        </div>
+
+        <ul class="cost-flow-list">
+          <li>Risk bazlı ve kategori bazlı maliyet özetleri</li>
+          <li>Pareto analizi, kümülatif yüzde ve öncelik sıralaması</li>
+          <li>Kritik maliyet oluşturan risklerin ve aksiyonların görünümü</li>
+          <li>Bütçe planlamasına ve yönetim kararlarına temel olacak maliyet önerileri</li>
+        </ul>
+      </article>
     </section>
 
     {% if selection_mode %}

@@ -925,6 +925,97 @@
     .quick-actions{ width:100%; }
     .quick-btn{ flex:1; }
   }
+
+  /* ============================================================
+     GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 6. MODÜL · DASHBOARD
+     ============================================================ */
+  .dash-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:14px;
+  }
+
+  .dash-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--card);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow-sm);
+    overflow:hidden;
+  }
+
+  .dash-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--primary), var(--teal));
+  }
+
+  .dash-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .dash-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .dash-flow-title{
+    margin:0;
+    color:var(--text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .dash-flow-sub{
+    margin-top:2px;
+    color:var(--muted);
+    font-size:11px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .dash-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .dash-flow-list li + li{
+    margin-top:4px;
+  }
+
+  [data-theme="dark"] .dash-flow-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.20);
+  }
+
+  @media (max-width:980px){
+    .dash-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <div class="dash-scope">
@@ -964,6 +1055,65 @@
           <a class="btnx" href="{{ url_for('risk_select') }}">Tüm Riskler</a>
         </div>
       </div>
+    </section>
+
+    <section class="dash-flow" aria-label="Gösterge paneli ve görselleştirme modülü bilgi akışı">
+      <article class="dash-flow-card">
+        <div class="dash-flow-head">
+          <div class="dash-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">input</span>
+          </div>
+          <div>
+            <h3 class="dash-flow-title">Girdi</h3>
+            <div class="dash-flow-sub">Toplanan risk verileri</div>
+          </div>
+        </div>
+
+        <ul class="dash-flow-list">
+          <li>Tüm risk kayıtları, kategori, durum ve sorumlu bilgileri</li>
+          <li>Olasılık / şiddet değerleri, risk skorları ve RPN sonuçları</li>
+          <li>Zaman, maliyet ve sorumluluk modüllerinden gelen özet veriler</li>
+          <li>Kategori ve risk seviyesi dağılımlarına ait güncel kayıtlar</li>
+        </ul>
+      </article>
+
+      <article class="dash-flow-card">
+        <div class="dash-flow-head">
+          <div class="dash-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">dashboard</span>
+          </div>
+          <div>
+            <h3 class="dash-flow-title">İşlem Süreci</h3>
+            <div class="dash-flow-sub">Gösterge ve görselleştirme</div>
+          </div>
+        </div>
+
+        <ul class="dash-flow-list">
+          <li>Toplam risk, seviye dağılımı ve ortalama risk skorunun hesaplanması</li>
+          <li>Olasılık × şiddet verilerinin 5×5 risk matrisinde konumlandırılması</li>
+          <li>Kategori ve risk seviyesi dağılımlarının görselleştirilmesi</li>
+          <li>Kritik risk yoğunluğu ve yönetim göstergelerinin tek ekranda birleştirilmesi</li>
+        </ul>
+      </article>
+
+      <article class="dash-flow-card">
+        <div class="dash-flow-head">
+          <div class="dash-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">output</span>
+          </div>
+          <div>
+            <h3 class="dash-flow-title">Çıktı</h3>
+            <div class="dash-flow-sub">Yönetici görünümü</div>
+          </div>
+        </div>
+
+        <ul class="dash-flow-list">
+          <li>Toplam, kritik, yüksek, orta ve düşük risk KPI’ları</li>
+          <li>Ortalama risk skoru ve 5×5 risk matrisi</li>
+          <li>Kategori / seviye dağılımları ve risk yoğunluğu görünümü</li>
+          <li>Yönetim kararlarına temel olacak güncel risk ve ekonomik etki özeti</li>
+        </ul>
+      </article>
     </section>
 
     <section class="kpis" role="list" aria-label="Özet göstergeler">

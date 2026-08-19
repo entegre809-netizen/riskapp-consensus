@@ -866,6 +866,98 @@
       box-shadow:none !important;
     }
   }
+
+  /* ============================================================
+     GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 4. MODÜL
+     ============================================================ */
+  .tl-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:14px;
+    margin:0;
+  }
+
+  .tl-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--tl-card);
+    border:1px solid var(--tl-line);
+    box-shadow:var(--tl-shadow-sm);
+    overflow:hidden;
+  }
+
+  .tl-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--tl-primary), var(--tl-teal));
+  }
+
+  .tl-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .tl-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--tl-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .tl-flow-title{
+    margin:0;
+    color:var(--tl-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .tl-flow-sub{
+    margin-top:2px;
+    color:var(--tl-muted);
+    font-size:11px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .tl-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--tl-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .tl-flow-list li + li{
+    margin-top:4px;
+  }
+
+  [data-theme="dark"] .tl-flow-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.20);
+  }
+
+  @media (max-width:980px){
+    .tl-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <div class="tl-scope">
@@ -897,6 +989,65 @@
              target="_blank" rel="noopener">PDF</a>
         </div>
       </div>
+    </section>
+
+    <section class="tl-flow" aria-label="Zamansal risk yönetimi ve zaman çizelgesi modülü bilgi akışı">
+      <article class="tl-flow-card">
+        <div class="tl-flow-head">
+          <div class="tl-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">input</span>
+          </div>
+          <div>
+            <h3 class="tl-flow-title">Girdi</h3>
+            <div class="tl-flow-sub">Zaman verileri</div>
+          </div>
+        </div>
+
+        <ul class="tl-flow-list">
+          <li>Risk kayıtları ile proje / risk başlangıç ve bitiş tarihleri</li>
+          <li>Risk sorumlusu, kategori, durum ve risk seviyesi bilgileri</li>
+          <li>Olasılık / şiddet değerlendirmelerinden üretilen RPN değerleri</li>
+          <li>Ay ve yıl bazında izlenecek zaman aralığı</li>
+        </ul>
+      </article>
+
+      <article class="tl-flow-card">
+        <div class="tl-flow-head">
+          <div class="tl-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">timeline</span>
+          </div>
+          <div>
+            <h3 class="tl-flow-title">İşlem Süreci</h3>
+            <div class="tl-flow-sub">Zamansal analiz</div>
+          </div>
+        </div>
+
+        <ul class="tl-flow-list">
+          <li>Risklerin başlangıç ve bitiş dönemlerine göre zaman çizelgesine yerleştirilmesi</li>
+          <li>Aylık dağılımın tablo ve takvim görünümünde izlenmesi</li>
+          <li>Kritik risklerin aynı dönemlerdeki çakışmalarının değerlendirilmesi</li>
+          <li>Risk yoğunluğu, zaman yükü ve sorumlu bazlı dönemsel dağılımın incelenmesi</li>
+        </ul>
+      </article>
+
+      <article class="tl-flow-card">
+        <div class="tl-flow-head">
+          <div class="tl-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">output</span>
+          </div>
+          <div>
+            <h3 class="tl-flow-title">Çıktı</h3>
+            <div class="tl-flow-sub">Zaman yönetimi sonuçları</div>
+          </div>
+        </div>
+
+        <ul class="tl-flow-list">
+          <li>Risklerin aylık ve dönemsel zaman çizelgesi</li>
+          <li>Kritik risk çakışmaları ve yoğun dönemlerin görünümü</li>
+          <li>Sorumlu / risk bazlı zamansal iş yükü özeti</li>
+          <li>PDF, takvim ve hatırlatıcı çıktılarıyla desteklenen zaman yönetimi raporu</li>
+        </ul>
+      </article>
     </section>
 
     <form method="get" class="tl-filterbar noprint" id="filtersForm">

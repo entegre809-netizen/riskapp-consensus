@@ -1254,6 +1254,98 @@
     }
   }
 
+
+  /* ============================================================
+     GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 2. MODÜL
+     ============================================================ */
+  .rd-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:14px;
+    margin:0;
+  }
+
+  .rd-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rd-card, #fff);
+    border:1px solid var(--rd-line, rgba(15,23,42,.09));
+    box-shadow:var(--rd-shadow-sm, 0 12px 34px rgba(15,23,42,.06));
+    overflow:hidden;
+  }
+
+  .rd-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--rd-primary,#2457e6), var(--rd-teal,#0f766e));
+  }
+
+  .rd-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .rd-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--rd-primary,#2457e6);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .rd-flow-title{
+    margin:0;
+    color:var(--rd-text,#0f172a);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .rd-flow-sub{
+    margin-top:2px;
+    color:var(--rd-soft,#94a3b8);
+    font-size:11px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .rd-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--rd-muted,#64748b);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .rd-flow-list li + li{
+    margin-top:4px;
+  }
+
+  [data-theme="dark"] .rd-flow-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.20);
+  }
+
+  @media (max-width:980px){
+    .rd-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <div class="page">
@@ -1359,6 +1451,62 @@
       </div>
     {% endif %}
   </div>
+
+  <section class="rd-flow" aria-label="Akıllı risk değerlendirme ve karar destek modülü bilgi akışı">
+    <article class="rd-flow-card">
+      <div class="rd-flow-head">
+        <div class="rd-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">input</span>
+        </div>
+        <div>
+          <h3 class="rd-flow-title">Girdi</h3>
+          <div class="rd-flow-sub">Değerlendirme verileri</div>
+        </div>
+      </div>
+      <ul class="rd-flow-list">
+        <li>Tanımlanmış risk kaydı, kategori, tür ve açıklama bilgileri</li>
+        <li>Mevcut olasılık ve şiddet değerleri ile geçmiş değerlendirmeler</li>
+        <li>Risk sorumlusu, önleyici faaliyetler ve tarih bilgileri</li>
+        <li>Uzman / kullanıcı değerlendirmeleri ve varsa konsensüs verisi</li>
+      </ul>
+    </article>
+
+    <article class="rd-flow-card">
+      <div class="rd-flow-head">
+        <div class="rd-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">psychology</span>
+        </div>
+        <div>
+          <h3 class="rd-flow-title">İşlem Süreci</h3>
+          <div class="rd-flow-sub">Karar destek adımları</div>
+        </div>
+      </div>
+      <ul class="rd-flow-list">
+        <li>Olasılık ve şiddet değerlerinin yeniden değerlendirilmesi</li>
+        <li>AI yorum ve karar destek çıktılarının değerlendirmeye katılması</li>
+        <li>Konsensüs sonucunun incelenmesi ve gerektiğinde forma uygulanması</li>
+        <li>Nihai P / S değerlerinin kullanıcı tarafından doğrulanıp kaydedilmesi</li>
+      </ul>
+    </article>
+
+    <article class="rd-flow-card">
+      <div class="rd-flow-head">
+        <div class="rd-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">output</span>
+        </div>
+        <div>
+          <h3 class="rd-flow-title">Çıktı</h3>
+          <div class="rd-flow-sub">Karar sonuçları</div>
+        </div>
+      </div>
+      <ul class="rd-flow-list">
+        <li>Nihai olasılık ve şiddet değerleri</li>
+        <li>Risk skoru / RPN ve buna bağlı risk seviyesi</li>
+        <li>Risk matrisindeki konum ve öncelik bilgisi</li>
+        <li>AI değerlendirmesi, karar destek önerileri ve sonraki aksiyonlara temel olacak kayıtlar</li>
+      </ul>
+    </article>
+  </section>
 
   <div class="cols">
     {# ========= SOL: RİSK FORMU (tasarım) ========= #}

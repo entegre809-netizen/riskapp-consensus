@@ -2971,6 +2971,122 @@ def create_app():
         return render_template("reports.html", risks=risks, cost_map=cost_map)
 
 
+    # -------------------------------------------------
+    #  Raporlar — Risk Değerlendirme Raporu
+    # -------------------------------------------------
+    @app.route("/reports/evaluation")
+    def report_evaluation():
+        """
+        Aktif projedeki risklerin SON değerlendirmesini kullanarak
+        Risk Değerlendirme Raporu için satırları hazırlar.
+
+        Çıktı:
+        - Risk
+        - Son değerlendirme
+        - Olasılık (P)
+        - Şiddet (S)
+        - P × S skoru (1–25)
+        - Risk seviyesi
+        """
+        pid = _get_active_project_id()
+
+        query = Risk.query
+        if pid:
+            query = query.filter(Risk.project_id == pid)
+
+        risks = query.order_by(Risk.updated_at.desc()).all()
+
+        rows = []
+
+        # Özet KPI'lar
+        stats = {
+            "total": len(risks),
+            "evaluated": 0,
+            "not_evaluated": 0,
+            "low": 0,
+            "medium": 0,
+            "high": 0,
+            "critical": 0,
+            "score_sum": 0.0,
+        }
+
+        for r in risks:
+            # Her risk için en son Evaluation kaydını kullan.
+            evals = sorted(
+                (r.evaluations or []),
+                key=lambda e: (getattr(e, "id", 0) or 0)
+            )
+            last_eval = evals[-1] if evals else None
+
+            probability = getattr(last_eval, "probability", None) if last_eval else None
+            severity = getattr(last_eval, "severity", None) if last_eval else None
+
+            # Güvenli şekilde 1..5 aralığına al.
+            try:
+                probability = int(probability) if probability is not None else None
+            except (TypeError, ValueError):
+                probability = None
+
+            try:
+                severity = int(severity) if severity is not None else None
+            except (TypeError, ValueError):
+                severity = None
+
+            if probability is not None:
+                probability = max(1, min(5, probability))
+
+            if severity is not None:
+                severity = max(1, min(5, severity))
+
+            score = None
+            level = "Değerlendirilmedi"
+            level_key = "not_evaluated"
+
+            if probability is not None and severity is not None:
+                score = probability * severity
+                stats["evaluated"] += 1
+                stats["score_sum"] += score
+
+                if score <= 4:
+                    level = "Düşük"
+                    level_key = "low"
+                elif score <= 10:
+                    level = "Orta"
+                    level_key = "medium"
+                elif score <= 15:
+                    level = "Yüksek"
+                    level_key = "high"
+                else:
+                    level = "Çok Yüksek"
+                    level_key = "critical"
+
+                stats[level_key] += 1
+            else:
+                stats["not_evaluated"] += 1
+
+            rows.append({
+                "risk": r,
+                "evaluation": last_eval,
+                "probability": probability,
+                "severity": severity,
+                "score": score,
+                "level": level,
+                "level_key": level_key,
+            })
+
+        stats["average_score"] = (
+            stats["score_sum"] / stats["evaluated"]
+            if stats["evaluated"] > 0
+            else None
+        )
+
+        return render_template(
+            "report_evaluation.html",
+            rows=rows,
+            stats=stats,
+        )
+
+
     @app.route("/reports/<int:risk_id>")
     def report_view(risk_id):
         r = Risk.query.get_or_404(risk_id)
@@ -5919,6 +6035,8 @@ def create_app():
         db.session.commit()
         flash("Maliyet silindi.", "success")
         return redirect(url_for("costs"))
+
+    
 
 
     # -------------------------------------------------

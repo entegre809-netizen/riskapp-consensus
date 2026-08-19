@@ -655,6 +655,98 @@
       padding:15px;
     }
   }
+
+  /* ============================================================
+     GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 5. MODÜL · PARETO
+     ============================================================ */
+  .pt-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:14px;
+    margin:0 0 16px;
+  }
+
+  .pt-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--pt-card);
+    border:1px solid var(--pt-line);
+    box-shadow:var(--pt-shadow-sm);
+    overflow:hidden;
+  }
+
+  .pt-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--pt-primary), var(--pt-teal));
+  }
+
+  .pt-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .pt-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--pt-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .pt-flow-title{
+    margin:0;
+    color:var(--pt-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .pt-flow-sub{
+    margin-top:2px;
+    color:var(--pt-soft);
+    font-size:11px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .pt-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--pt-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .pt-flow-list li + li{
+    margin-top:4px;
+  }
+
+  [data-theme="dark"] .pt-flow-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.20);
+  }
+
+  @media (max-width:980px){
+    .pt-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <div class="pareto-page">
@@ -681,6 +773,65 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="pt-flow" aria-label="Pareto önceliklendirme modülü bilgi akışı">
+    <article class="pt-flow-card">
+      <div class="pt-flow-head">
+        <div class="pt-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">input</span>
+        </div>
+        <div>
+          <h3 class="pt-flow-title">Girdi</h3>
+          <div class="pt-flow-sub">Analiz verileri</div>
+        </div>
+      </div>
+
+      <ul class="pt-flow-list">
+        <li>Risk kayıtları, risk puanları / RPN değerleri ve kategori bilgileri</li>
+        <li>Riske bağlı maliyet kayıtları ve seçilen para birimi</li>
+        <li>Öncelik hesabında kullanılacak maliyet ve risk etkisi verileri</li>
+        <li>AI senaryosu, kesinti oranı ve Top 80 filtre parametreleri</li>
+      </ul>
+    </article>
+
+    <article class="pt-flow-card">
+      <div class="pt-flow-head">
+        <div class="pt-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">leaderboard</span>
+        </div>
+        <div>
+          <h3 class="pt-flow-title">İşlem Süreci</h3>
+          <div class="pt-flow-sub">Pareto analizi</div>
+        </div>
+      </div>
+
+      <ul class="pt-flow-list">
+        <li>Risk puanı × maliyet yaklaşımıyla öncelik skorlarının hesaplanması</li>
+        <li>Risklerin yüksekten düşüğe sıralanması ve yüzdesel katkılarının bulunması</li>
+        <li>Kümülatif yüzde üzerinden %80 eşiğinin ve Top 80 kapsamının belirlenmesi</li>
+        <li>AI içgörüleriyle kritik risk, maliyet ve önerilen aksiyonların değerlendirilmesi</li>
+      </ul>
+    </article>
+
+    <article class="pt-flow-card">
+      <div class="pt-flow-head">
+        <div class="pt-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">output</span>
+        </div>
+        <div>
+          <h3 class="pt-flow-title">Çıktı</h3>
+          <div class="pt-flow-sub">Öncelik sonuçları</div>
+        </div>
+      </div>
+
+      <ul class="pt-flow-list">
+        <li>Pareto sıralaması ve risk bazlı öncelik skorları</li>
+        <li>Yüzde ve kümülatif yüzde değerleri ile Top 80 risk listesi</li>
+        <li>Kategori bazlı maliyet yoğunluğu ve kritik risk görünümü</li>
+        <li>AI destekli içgörü, aksiyon önerileri ve CSV dışa aktarım çıktısı</li>
+      </ul>
+    </article>
   </section>
 
   <div class="pt-toolbar noprint">

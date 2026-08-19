@@ -591,6 +591,98 @@
       padding:15px;
     }
   }
+
+  /* ============================================================
+     GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 3. MODÜL
+     ============================================================ */
+  .rs-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:14px;
+    margin:0 0 16px;
+  }
+
+  .rs-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rs-card);
+    border:1px solid var(--rs-line);
+    box-shadow:var(--rs-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rs-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--rs-primary), var(--rs-teal));
+  }
+
+  .rs-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .rs-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--rs-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .rs-flow-title{
+    margin:0;
+    color:var(--rs-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .rs-flow-sub{
+    margin-top:2px;
+    color:var(--rs-soft);
+    font-size:11px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .rs-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--rs-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .rs-flow-list li + li{
+    margin-top:4px;
+  }
+
+  [data-theme="dark"] .rs-flow-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.20);
+  }
+
+  @media (max-width:980px){
+    .rs-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 {% set total_resp = rows_safe|length %}
@@ -613,6 +705,65 @@
         <button class="rs-btn primary" type="button" onclick="window.print()">Raporu İndir</button>
       </div>
     </div>
+  </section>
+
+  <section class="rs-flow" aria-label="Risk izleme ve sorumluluk yönetimi modülü bilgi akışı">
+    <article class="rs-flow-card">
+      <div class="rs-flow-head">
+        <div class="rs-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">input</span>
+        </div>
+        <div>
+          <h3 class="rs-flow-title">Girdi</h3>
+          <div class="rs-flow-sub">Sorumluluk verileri</div>
+        </div>
+      </div>
+
+      <ul class="rs-flow-list">
+        <li>Tanımlanmış risk kayıtları ve atanmış sorumlu kişi / ekip bilgileri</li>
+        <li>Risk puanları, RPN değerleri ve risk seviyeleri</li>
+        <li>Risklerin mevcut durum ve kategori bilgileri</li>
+        <li>Kişi bazlı mevcut risk yükü ve kritik risk kayıtları</li>
+      </ul>
+    </article>
+
+    <article class="rs-flow-card">
+      <div class="rs-flow-head">
+        <div class="rs-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">manage_accounts</span>
+        </div>
+        <div>
+          <h3 class="rs-flow-title">İşlem Süreci</h3>
+          <div class="rs-flow-sub">Sorumluluk yönetimi</div>
+        </div>
+      </div>
+
+      <ul class="rs-flow-list">
+        <li>Risk sahibi / sorumlu kişi veya ekibin belirlenmesi ve izlenmesi</li>
+        <li>Sorumlu bazında toplam risk sayısının ve iş yükünün hesaplanması</li>
+        <li>Ortalama RPN değerlerinin karşılaştırılması</li>
+        <li>Her sorumlunun en kritik riskinin ve risk yoğunluğunun belirlenmesi</li>
+      </ul>
+    </article>
+
+    <article class="rs-flow-card">
+      <div class="rs-flow-head">
+        <div class="rs-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:21px;">output</span>
+        </div>
+        <div>
+          <h3 class="rs-flow-title">Çıktı</h3>
+          <div class="rs-flow-sub">İzleme sonuçları</div>
+        </div>
+      </div>
+
+      <ul class="rs-flow-list">
+        <li>Sorumlu bazlı risk listesi ve toplam atama sayıları</li>
+        <li>Kişi / ekip bazında ortalama risk skoru ve RPN seviyesi</li>
+        <li>Kritik riski bulunan sorumluların görünümü</li>
+        <li>İş yükü, sorumluluk dağılımı ve yönetim raporlamasına temel olacak özet</li>
+      </ul>
+    </article>
   </section>
 
   <section class="rs-kpis" aria-label="Sorumlu özet göstergeleri">

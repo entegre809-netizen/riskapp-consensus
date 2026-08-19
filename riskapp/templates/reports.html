@@ -656,6 +656,312 @@
       width:100%;
     }
   }
+
+  /* ============================================================
+     GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 7. MODÜL · RAPORLAMA
+     ============================================================ */
+  .rp-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:14px;
+  }
+
+  .rp-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rp-card);
+    border:1px solid var(--rp-line);
+    box-shadow:var(--rp-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rp-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--rp-primary), var(--rp-teal));
+  }
+
+  .rp-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .rp-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--rp-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .rp-flow-title{
+    margin:0;
+    color:var(--rp-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .rp-flow-sub{
+    margin-top:2px;
+    color:var(--rp-muted);
+    font-size:11px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .rp-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--rp-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .rp-flow-list li + li{
+    margin-top:4px;
+  }
+
+  [data-theme="dark"] .rp-flow-icon,
+  .dark .rp-flow-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.20);
+  }
+
+  @media (max-width:980px){
+    .rp-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
+
+  /* ============================================================
+     RAPOR MERKEZİ · 7 ALT RAPOR
+     ============================================================ */
+  .rp-center{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .rp-center-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+
+  .rp-center-title-wrap{
+    min-width:0;
+  }
+
+  .rp-center-kicker{
+    color:var(--rp-primary);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rp-center-title{
+    margin:4px 0 0;
+    color:var(--rp-text);
+    font-size:21px;
+    font-weight:950;
+    letter-spacing:-.035em;
+  }
+
+  .rp-center-desc{
+    max-width:720px;
+    margin:5px 0 0;
+    color:var(--rp-muted);
+    font-size:13px;
+    line-height:1.5;
+    font-weight:700;
+  }
+
+  .rp-report-grid{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:12px;
+  }
+
+  .rp-report-card{
+    position:relative;
+    min-width:0;
+    min-height:190px;
+    display:flex;
+    flex-direction:column;
+    padding:17px;
+    border-radius:24px;
+    border:1px solid var(--rp-line);
+    background:var(--rp-card);
+    box-shadow:var(--rp-shadow-sm);
+    overflow:hidden;
+    transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+  }
+
+  .rp-report-card:hover{
+    transform:translateY(-2px);
+    border-color:rgba(36,87,230,.24);
+    box-shadow:0 18px 42px rgba(15,23,42,.09);
+  }
+
+  [data-theme="dark"] .rp-report-card:hover,
+  .dark .rp-report-card:hover{
+    box-shadow:0 18px 42px rgba(0,0,0,.28);
+  }
+
+  .rp-report-card::after{
+    content:"";
+    position:absolute;
+    width:120px;
+    height:120px;
+    right:-58px;
+    top:-58px;
+    border-radius:999px;
+    background:rgba(36,87,230,.055);
+    pointer-events:none;
+  }
+
+  .rp-report-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    position:relative;
+    z-index:1;
+  }
+
+  .rp-report-icon{
+    width:46px;
+    height:46px;
+    flex:0 0 46px;
+    display:grid;
+    place-items:center;
+    border-radius:17px;
+    color:var(--rp-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.17);
+  }
+
+  [data-theme="dark"] .rp-report-icon,
+  .dark .rp-report-icon{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.19);
+  }
+
+  .rp-report-no{
+    min-height:26px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 9px;
+    border-radius:999px;
+    background:var(--rp-soft);
+    border:1px solid var(--rp-line);
+    color:var(--rp-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.08em;
+  }
+
+  .rp-report-name{
+    position:relative;
+    z-index:1;
+    margin:13px 0 0;
+    color:var(--rp-text);
+    font-size:15px;
+    line-height:1.25;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .rp-report-text{
+    position:relative;
+    z-index:1;
+    margin:7px 0 14px;
+    color:var(--rp-muted);
+    font-size:12px;
+    line-height:1.48;
+    font-weight:700;
+  }
+
+  .rp-report-actions{
+    position:relative;
+    z-index:1;
+    margin-top:auto;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .rp-report-link{
+    min-height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    padding:0 12px;
+    border-radius:13px;
+    border:1px solid var(--rp-line);
+    background:var(--rp-soft);
+    color:var(--rp-text);
+    text-decoration:none;
+    font-size:12px;
+    font-weight:950;
+    transition:transform .13s ease, border-color .13s ease, background .13s ease;
+  }
+
+  .rp-report-link:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.26);
+    color:var(--rp-primary);
+    text-decoration:none;
+  }
+
+  .rp-report-link.primary{
+    background:linear-gradient(135deg, var(--rp-primary), #3264ff);
+    border-color:rgba(36,87,230,.28);
+    color:#fff;
+    box-shadow:0 12px 26px rgba(36,87,230,.16);
+  }
+
+  .rp-report-link.primary:hover{
+    color:#fff;
+  }
+
+  @media (max-width:1050px){
+    .rp-report-grid{
+      grid-template-columns:repeat(2, minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:680px){
+    .rp-report-grid{
+      grid-template-columns:1fr;
+    }
+
+    .rp-report-card{
+      min-height:auto;
+    }
+  }
+
 </style>
 
 {# -----------------------------
@@ -756,6 +1062,219 @@
       </div>
     </section>
 
+    <section class="rp-flow" aria-label="Raporlama modülü bilgi akışı">
+      <article class="rp-flow-card">
+        <div class="rp-flow-head">
+          <div class="rp-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">input</span>
+          </div>
+          <div>
+            <h3 class="rp-flow-title">Girdi</h3>
+            <div class="rp-flow-sub">Rapor veri kaynakları</div>
+          </div>
+        </div>
+
+        <ul class="rp-flow-list">
+          <li>Tüm risk kayıtları, kategori, durum ve risk skorları</li>
+          <li>Olasılık / şiddet değerlendirmeleri ve risk seviyeleri</li>
+          <li>Sorumluluk, tarih, aksiyon ve zaman çizelgesi verileri</li>
+          <li>Maliyet kayıtları, Pareto sonuçları ve önceliklendirme çıktıları</li>
+        </ul>
+      </article>
+
+      <article class="rp-flow-card">
+        <div class="rp-flow-head">
+          <div class="rp-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">summarize</span>
+          </div>
+          <div>
+            <h3 class="rp-flow-title">İşlem Süreci</h3>
+            <div class="rp-flow-sub">Rapor oluşturma</div>
+          </div>
+        </div>
+
+        <ul class="rp-flow-list">
+          <li>Risk, kategori, skor ve para birimi kriterlerine göre verilerin filtrelenmesi</li>
+          <li>Risk detayları, maliyetler, aksiyonlar ve tarih bilgilerinin bir araya getirilmesi</li>
+          <li>Zaman, faktör, maliyet ve değerlendirme verilerinin rapor formatında düzenlenmesi</li>
+          <li>Yönetim için özet KPI ve detay tablolarının oluşturulması</li>
+        </ul>
+      </article>
+
+      <article class="rp-flow-card">
+        <div class="rp-flow-head">
+          <div class="rp-flow-icon" aria-hidden="true">
+            <span class="material-icons-outlined" style="font-size:21px;">output</span>
+          </div>
+          <div>
+            <h3 class="rp-flow-title">Çıktı</h3>
+            <div class="rp-flow-sub">Rapor çıktıları</div>
+          </div>
+        </div>
+
+        <ul class="rp-flow-list">
+          <li>Zaman yönetimi ve risk faktörü / detay raporları</li>
+          <li>Maliyet, Pareto ve önceliklendirme raporları</li>
+          <li>Risk değerlendirme ve yönetici özet raporları</li>
+          <li>Filtrelenebilir ekran çıktısı ile Excel / PDF dışa aktarımına hazır raporlar</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="rp-center" aria-labelledby="reportCenterTitle">
+      <div class="rp-center-head">
+        <div class="rp-center-title-wrap">
+          <div class="rp-center-kicker">Rapor Merkezi</div>
+          <h2 class="rp-center-title" id="reportCenterTitle">Rapor Türleri</h2>
+          <p class="rp-center-desc">
+            Risk değerlendirmesinden zaman ve maliyet analizine kadar tüm rapor ekranlarına
+            tek noktadan ulaş. Risk bazlı detay raporları için aşağıdaki kayıt listesinden risk seçebilirsin.
+          </p>
+        </div>
+      </div>
+
+      <div class="rp-report-grid">
+
+        <article class="rp-report-card">
+          <div class="rp-report-top">
+            <div class="rp-report-icon" aria-hidden="true">
+              <span class="material-icons-outlined">description</span>
+            </div>
+            <span class="rp-report-no">RAPOR 01</span>
+          </div>
+          <h3 class="rp-report-name">Risk Detay Raporu</h3>
+          <p class="rp-report-text">
+            Seçilen riskin başlık, kategori, skor, maliyet ve ilgili detaylarını tek raporda incele.
+          </p>
+          <div class="rp-report-actions">
+            <a class="rp-report-link primary" href="#riskReportsTable">
+              Risk Seç
+              <span class="material-icons-outlined" style="font-size:17px;">south</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="rp-report-card">
+          <div class="rp-report-top">
+            <div class="rp-report-icon" aria-hidden="true">
+              <span class="material-icons-outlined">fact_check</span>
+            </div>
+            <span class="rp-report-no">RAPOR 02</span>
+          </div>
+          <h3 class="rp-report-name">Risk Değerlendirme Raporu</h3>
+          <p class="rp-report-text">
+            Olasılık, şiddet, risk skoru ve değerlendirme sonuçlarını risk kayıtları üzerinden karşılaştır.
+          </p>
+          <div class="rp-report-actions">
+            <a class="rp-report-link primary" href="{{ url_for('risk_select') }}">
+              Görüntüle
+              <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="rp-report-card">
+          <div class="rp-report-top">
+            <div class="rp-report-icon" aria-hidden="true">
+              <span class="material-icons-outlined">groups</span>
+            </div>
+            <span class="rp-report-no">RAPOR 03</span>
+          </div>
+          <h3 class="rp-report-name">Sorumluluk / İş Yükü Raporu</h3>
+          <p class="rp-report-text">
+            Sorumlu kişi ve ekip bazında risk dağılımını, ortalama skoru ve kritik iş yükünü incele.
+          </p>
+          <div class="rp-report-actions">
+            <a class="rp-report-link primary" href="{{ url_for('responsibles') }}">
+              Görüntüle
+              <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="rp-report-card">
+          <div class="rp-report-top">
+            <div class="rp-report-icon" aria-hidden="true">
+              <span class="material-icons-outlined">calendar_month</span>
+            </div>
+            <span class="rp-report-no">RAPOR 04</span>
+          </div>
+          <h3 class="rp-report-name">Zaman Yönetimi Raporu</h3>
+          <p class="rp-report-text">
+            Risklerin başlangıç-bitiş dönemlerini, zamansal yoğunluğu ve kritik çakışmaları takip et.
+          </p>
+          <div class="rp-report-actions">
+            <a class="rp-report-link primary" href="{{ url_for('schedule') }}">
+              Görüntüle
+              <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('schedule_pdf') }}">
+              PDF
+              <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="rp-report-card">
+          <div class="rp-report-top">
+            <div class="rp-report-icon" aria-hidden="true">
+              <span class="material-icons-outlined">payments</span>
+            </div>
+            <span class="rp-report-no">RAPOR 05</span>
+          </div>
+          <h3 class="rp-report-name">Maliyet Raporu</h3>
+          <p class="rp-report-text">
+            Risklere bağlı maliyet kalemlerini, para birimlerini ve yıllık / anlık maliyet etkilerini analiz et.
+          </p>
+          <div class="rp-report-actions">
+            <a class="rp-report-link primary" href="{{ url_for('costs') }}">
+              Görüntüle
+              <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="rp-report-card">
+          <div class="rp-report-top">
+            <div class="rp-report-icon" aria-hidden="true">
+              <span class="material-icons-outlined">leaderboard</span>
+            </div>
+            <span class="rp-report-no">RAPOR 06</span>
+          </div>
+          <h3 class="rp-report-name">Pareto / Önceliklendirme Raporu</h3>
+          <p class="rp-report-text">
+            Risk puanı × maliyet yaklaşımıyla öncelik skorlarını, Top 80 kapsamını ve kümülatif etkiyi gör.
+          </p>
+          <div class="rp-report-actions">
+            <a class="rp-report-link primary" href="{{ url_for('pareto_view') }}">
+              Görüntüle
+              <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="rp-report-card">
+          <div class="rp-report-top">
+            <div class="rp-report-icon" aria-hidden="true">
+              <span class="material-icons-outlined">dashboard</span>
+            </div>
+            <span class="rp-report-no">RAPOR 07</span>
+          </div>
+          <h3 class="rp-report-name">Yönetici Özet Raporu</h3>
+          <p class="rp-report-text">
+            Toplam risk, kritik seviyeler, ortalama skor, risk matrisi ve kategori dağılımlarını tek görünümde izle.
+          </p>
+          <div class="rp-report-actions">
+            <a class="rp-report-link primary" href="{{ url_for('dashboard') }}">
+              Görüntüle
+              <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
     <section class="rp-kpis" aria-label="Rapor özetleri">
       <div class="rp-kpi">
         <div class="label">Aktif Riskler</div>
@@ -790,7 +1309,7 @@
       </div>
     </section>
 
-    <section class="rp-table-card">
+    <section class="rp-table-card" id="riskReportsTable">
       <div class="rp-table-toolbar">
         <form class="rp-search" method="get" action="{{ url_for(request.endpoint) }}">
           {% for k,v in _args.items() %}
