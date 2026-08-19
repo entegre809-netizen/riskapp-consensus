@@ -1225,4 +1225,99 @@
   {{ super() }}
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="{{ url_for('static', filename='js/costs.js') }}"></script>
+
+  <script>
+  (function(){
+    const exportBtn = document.getElementById('exportCsv');
+    const tbody = document.getElementById('costTbody');
+
+    if (!exportBtn || !tbody) return;
+
+    function csvEscape(value){
+      const s = String(value ?? '')
+        .replace(/\r?\n/g, ' ')
+        .trim();
+
+      if (/[;"\n]/.test(s)){
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+
+      return s;
+    }
+
+    function isVisible(row){
+      if (!row) return false;
+      if (row.hidden) return false;
+
+      const style = window.getComputedStyle(row);
+      return style.display !== 'none' && style.visibility !== 'hidden';
+    }
+
+    function formatNumber(value){
+      const n = Number(value);
+      if (!Number.isFinite(n)) return value ?? '';
+      return String(n).replace('.', ',');
+    }
+
+    function exportCostsCsv(){
+      const rows = Array.from(tbody.querySelectorAll('tr.cost-row'))
+        .filter(isVisible);
+
+      if (!rows.length){
+        window.alert('CSV oluşturmak için görünür maliyet kaydı bulunamadı.');
+        return;
+      }
+
+      const header = [
+        'ID',
+        'Başlık',
+        'Kategori',
+        'Miktar',
+        'Birim Fiyat',
+        'Toplam',
+        'Para Birimi',
+        'Sıklık',
+        'Risk ID'
+      ];
+
+      const lines = [header.map(csvEscape).join(';')];
+
+      rows.forEach(row => {
+        const values = [
+          row.dataset.id || '',
+          row.dataset.title || '',
+          row.dataset.category || '',
+          formatNumber(row.dataset.qty || ''),
+          formatNumber(row.dataset.unit_price || ''),
+          formatNumber(row.dataset.total || ''),
+          row.dataset.currency || '',
+          row.dataset.frequency || '',
+          row.dataset.riskId || ''
+        ];
+
+        lines.push(values.map(csvEscape).join(';'));
+      });
+
+      const csv = '\uFEFF' + lines.join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `maliyetler_${yyyy}-${mm}-${dd}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    exportBtn.addEventListener('click', exportCostsCsv);
+  })();
+  </script>
 {% endblock %}
