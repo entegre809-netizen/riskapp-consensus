@@ -769,6 +769,91 @@
     .ri-action-inner{ flex-direction:column; align-items:stretch; }
     .ri-action-right .ri-btn{ width:100%; }
   }
+
+  /* ================= GİRDİ / İŞLEM / ÇIKTI ================= */
+  .ri-flow{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:14px;
+    margin:0 0 16px;
+  }
+
+  .ri-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--ri-card);
+    border:1px solid var(--ri-line);
+    box-shadow:var(--ri-shadow-sm);
+    overflow:hidden;
+  }
+
+  .ri-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg, var(--ri-primary), #0f766e);
+  }
+
+  .ri-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .ri-flow-icon{
+    width:38px;
+    height:38px;
+    flex:0 0 38px;
+    display:grid;
+    place-items:center;
+    border-radius:14px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    color:var(--ri-primary);
+  }
+
+  .ri-flow-title{
+    margin:0;
+    color:var(--ri-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .ri-flow-sub{
+    margin-top:2px;
+    color:var(--ri-soft);
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .ri-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--ri-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .ri-flow-list li + li{
+    margin-top:4px;
+  }
+
+  @media (max-width:980px){
+    .ri-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <div class="ri-page" id="top">
@@ -785,6 +870,65 @@
         <a class="ri-btn" href="{{ url_for('categories_index') }}?next=identify">Kategoriler</a>
       </div>
     </div>
+  </section>
+
+  <section class="ri-flow" aria-label="Risk tanımlama modülü bilgi akışı">
+    <article class="ri-flow-card">
+      <div class="ri-flow-head">
+        <div class="ri-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:20px;">input</span>
+        </div>
+        <div>
+          <h3 class="ri-flow-title">Girdi</h3>
+          <div class="ri-flow-sub">Kaynak veriler</div>
+        </div>
+      </div>
+
+      <ul class="ri-flow-list">
+        <li>Literatürden ve geçmiş projelerden gelen risk kayıtları</li>
+        <li>Uzman görüşleri ve saha tecrübeleri</li>
+        <li>Anket ve değerlendirme verileri</li>
+        <li>Risk açıklamaları, kategori ve varsayılan olasılık / şiddet değerleri</li>
+      </ul>
+    </article>
+
+    <article class="ri-flow-card">
+      <div class="ri-flow-head">
+        <div class="ri-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:20px;">account_tree</span>
+        </div>
+        <div>
+          <h3 class="ri-flow-title">İşlem Süreci</h3>
+          <div class="ri-flow-sub">Tanımlama adımları</div>
+        </div>
+      </div>
+
+      <ul class="ri-flow-list">
+        <li>Risk kütüphanesinden faktör seçme veya yeni risk tanımlama</li>
+        <li>Kategori, risk başlığı, açıklama ve risk kodu belirleme</li>
+        <li>Olasılık ve şiddet değerlerini değerlendirme</li>
+        <li>Önerilen önlem / azaltıcı faaliyetleri belirleme ve kayıt altına alma</li>
+      </ul>
+    </article>
+
+    <article class="ri-flow-card">
+      <div class="ri-flow-head">
+        <div class="ri-flow-icon" aria-hidden="true">
+          <span class="material-icons-outlined" style="font-size:20px;">output</span>
+        </div>
+        <div>
+          <h3 class="ri-flow-title">Çıktı</h3>
+          <div class="ri-flow-sub">Oluşan kayıtlar</div>
+        </div>
+      </div>
+
+      <ul class="ri-flow-list">
+        <li>Standartlaştırılmış risk kayıtları</li>
+        <li>Risk kodu, kategori, başlık ve açıklama bilgileri</li>
+        <li>Olasılık / şiddet başlangıç değerleri</li>
+        <li>Önerilen önlemler ve sonraki değerlendirme modülüne aktarılacak riskler</li>
+      </ul>
+    </article>
   </section>
 
   <div class="ri-toolbar noprint" role="region" aria-label="Filtreler">

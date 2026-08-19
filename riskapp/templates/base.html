@@ -302,7 +302,7 @@
     /* ================= LAYOUT ================= */
     .layout{
       display:grid;
-      grid-template-columns:286px minmax(0, 1fr);
+      grid-template-columns:340px minmax(0, 1fr);
       min-height:calc(100dvh - 72px);
     }
 
@@ -322,8 +322,9 @@
       align-self:start;
       height:calc(100dvh - 72px);
       overflow:auto;
-      padding:14px 12px 18px;
-      background:color-mix(in oklab, var(--card-solid) 84%, transparent);
+      padding:18px 14px 22px;
+      background:
+        linear-gradient(180deg, color-mix(in oklab, var(--card-solid) 94%, transparent), color-mix(in oklab, var(--surface-soft) 88%, transparent));
       border-right:1px solid var(--line);
       backdrop-filter:blur(18px);
       -webkit-backdrop-filter:blur(18px);
@@ -337,7 +338,7 @@
       .sidebar{
         position:fixed;
         inset:72px auto 0 0;
-        width:min(82vw, 320px);
+        width:min(88vw, 360px);
         z-index:70;
         transform:translateX(-104%);
         transition:transform .28s var(--ease);
@@ -472,72 +473,199 @@
       text-overflow:ellipsis;
     }
 
-    /* ================= MODÜLER SIDEBAR ================= */
+    /* ================= MODÜLER SIDEBAR — PRO ================= */
 
-    .module-group{
-      margin:0 0 8px;
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:color-mix(in oklab, var(--card-solid) 72%, transparent);
-      overflow:hidden;
-    }
-
-    .module-group summary{
-      min-height:48px;
+    .modules-kicker{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      padding:10px 12px;
+      margin:2px 4px 12px;
+      padding:0 4px;
+      color:var(--soft);
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+    }
+
+    .modules-kicker::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background:linear-gradient(90deg, var(--line-2), transparent);
+    }
+
+    .module-group{
+      position:relative;
+      margin:0 0 10px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:color-mix(in oklab, var(--card-solid) 93%, transparent);
+      overflow:hidden;
+      box-shadow:0 5px 18px rgba(15,23,42,.035);
+      transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease, background .18s ease;
+    }
+
+    .module-group:hover{
+      border-color:rgba(36,87,230,.18);
+      box-shadow:0 10px 28px rgba(15,23,42,.065);
+    }
+
+    .module-group[open]{
+      border-color:rgba(36,87,230,.22);
+      box-shadow:0 12px 34px rgba(36,87,230,.08);
+      background:var(--card-solid);
+    }
+
+    .module-group summary{
+      min-height:62px;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:10px 11px;
       cursor:pointer;
       user-select:none;
-      color:var(--muted);
-      background:var(--surface-soft);
-      font-size:10px;
-      line-height:1.35;
-      font-weight:950;
-      letter-spacing:.10em;
-      text-transform:uppercase;
       list-style:none;
+      color:var(--text);
+      background:transparent;
     }
 
-    .module-group summary::-webkit-details-marker{
-      display:none;
+    .module-group summary::-webkit-details-marker{ display:none; }
+    .module-group summary::marker{ display:none; content:""; }
+
+    .module-summary-icon{
+      width:36px;
+      height:36px;
+      flex:0 0 36px;
+      display:grid;
+      place-items:center;
+      border-radius:12px;
+      color:var(--primary);
+      background:linear-gradient(145deg, rgba(36,87,230,.12), rgba(15,118,110,.07));
+      border:1px solid rgba(36,87,230,.12);
     }
 
-    .module-group summary::after{
-      content:"expand_more";
-      font-family:"Material Icons Outlined";
-      font-size:20px;
+    .module-summary-icon .material-icons-outlined{
+      font-size:19px;
+    }
+
+    .module-summary-copy{
+      min-width:0;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+    }
+
+    .module-summary-index{
+      color:var(--primary);
+      font-size:9px;
+      line-height:1;
+      font-weight:950;
+      letter-spacing:.13em;
+      text-transform:uppercase;
+    }
+
+    .module-summary-title{
+      color:var(--text);
+      font-size:11.25px;
+      line-height:1.28;
+      font-weight:900;
+      letter-spacing:-.015em;
+      text-transform:none;
+    }
+
+    .module-chevron{
+      width:28px;
+      height:28px;
+      flex:0 0 28px;
+      display:grid;
+      place-items:center;
+      border-radius:10px;
       color:var(--soft);
-      transition:transform .18s ease;
+      background:var(--surface-soft);
+      border:1px solid var(--line);
+      font-size:18px !important;
+      transition:transform .2s var(--ease), color .18s ease, background .18s ease;
     }
 
-    .module-group[open] summary::after{
+    .module-group[open] .module-chevron{
       transform:rotate(180deg);
+      color:#fff;
+      background:var(--primary);
+      border-color:transparent;
     }
 
     .module-group[open] summary{
-      color:var(--text);
       border-bottom:1px solid var(--line);
+      background:linear-gradient(135deg, rgba(36,87,230,.055), rgba(15,118,110,.025));
+    }
+
+    .module-group[open] .module-summary-icon{
+      color:#fff;
+      background:linear-gradient(135deg, var(--primary), #0f766e);
+      border-color:transparent;
+      box-shadow:0 7px 18px rgba(36,87,230,.18);
     }
 
     .module-group .menu{
       padding:7px;
+      gap:3px;
     }
 
     .module-group .menu a{
       min-height:42px;
-      border-radius:13px;
+      padding:0 9px;
+      border-radius:12px;
+      font-size:12.5px;
+      font-weight:800;
     }
 
-    .module-group summary:hover{
-      background:rgba(36,87,230,.07);
-      color:var(--text);
+    .module-group .menu-icon{
+      width:30px;
+      height:30px;
+      flex-basis:30px;
+      border-radius:10px;
+    }
+
+    .module-group .menu a.active,
+    .module-group .menu a[aria-current="page"]{
+      background:linear-gradient(135deg, rgba(36,87,230,.13), rgba(15,118,110,.07));
+      border-color:rgba(36,87,230,.18);
+      box-shadow:none;
+    }
+
+    .module-group .menu a.active::after{
+      content:"";
+      width:6px;
+      height:6px;
+      margin-left:auto;
+      flex:0 0 6px;
+      border-radius:999px;
+      background:var(--primary);
+      box-shadow:0 0 0 4px rgba(36,87,230,.10);
+    }
+
+    .utility-menu{
+      margin-top:12px;
+      padding-top:12px;
+      border-top:1px solid var(--line);
     }
 
     [data-theme="dark"] .module-group{
-      background:rgba(15,23,42,.48);
+      background:rgba(15,23,42,.70);
+      box-shadow:none;
+    }
+
+    [data-theme="dark"] .module-group[open]{
+      background:rgba(15,23,42,.92);
+      border-color:rgba(96,165,250,.24);
+    }
+
+    @media (max-width:1180px) and (min-width:981px){
+      .layout{ grid-template-columns:320px minmax(0, 1fr); }
+      .module-summary-title{ font-size:10.7px; }
     }
 
     /* ================= MAIN ================= */
@@ -1043,8 +1171,17 @@
       {% endif %}
 
       <div class="menu-section">
-        <details class="module-group" open>
-          <summary>Risk Bilgi Tabanı ve Risk Tanımlama Modülü</summary>
+        <div class="modules-kicker"><span>Risk Yönetim Modülleri</span></div>
+
+        <details class="module-group" {% if request.endpoint in ['risk_identify','categories_index','risk_new'] %}open{% endif %}>
+          <summary>
+            <span class="module-summary-icon"><span class="material-icons-outlined">inventory_2</span></span>
+            <span class="module-summary-copy">
+              <span class="module-summary-index">Modül 01</span>
+              <span class="module-summary-title">Risk Bilgi Tabanı ve Risk Tanımlama Modülü</span>
+            </span>
+            <span class="material-icons-outlined module-chevron">expand_more</span>
+          </summary>
 
           <nav class="menu">
             <a href="{{ url_for('risk_identify') }}" class="{{ 'active' if request.endpoint=='risk_identify' }}">
@@ -1062,7 +1199,6 @@
               <span class="menu-text">Yeni Risk Tanımlama</span>
             </a>
 
-
             <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint=='risk_select' }}">
               <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">history</span></span>
               <span class="menu-text">Risk Kayıtları</span>
@@ -1072,7 +1208,14 @@
         </details>
 
         <details class="module-group" {% if request.endpoint in ['risk_select', 'risk_detail'] %}open{% endif %}>
-          <summary>Akıllı Risk Değerlendirme ve Karar Destek Modülü</summary>
+          <summary>
+            <span class="module-summary-icon"><span class="material-icons-outlined">psychology</span></span>
+            <span class="module-summary-copy">
+              <span class="module-summary-index">Modül 02</span>
+              <span class="module-summary-title">Akıllı Risk Değerlendirme ve Karar Destek Modülü</span>
+            </span>
+            <span class="material-icons-outlined module-chevron">expand_more</span>
+          </summary>
 
           <nav class="menu">
             <a href="{{ url_for('risk_select') }}" class="{{ 'active' if request.endpoint in ['risk_select', 'risk_detail'] }}">
@@ -1083,7 +1226,14 @@
         </details>
 
         <details class="module-group" {% if request.endpoint in ['responsibles', 'responsibles_export_csv'] %}open{% endif %}>
-          <summary>Risk İzleme ve Sorumluluk Yönetim Modülü</summary>
+          <summary>
+            <span class="module-summary-icon"><span class="material-icons-outlined">groups</span></span>
+            <span class="module-summary-copy">
+              <span class="module-summary-index">Modül 03</span>
+              <span class="module-summary-title">Risk İzleme ve Sorumluluk Yönetim Modülü</span>
+            </span>
+            <span class="material-icons-outlined module-chevron">expand_more</span>
+          </summary>
 
           <nav class="menu">
             <a href="{{ url_for('responsibles') }}" class="{{ 'active' if request.endpoint in ['responsibles', 'responsibles_export_csv'] }}">
@@ -1094,7 +1244,14 @@
         </details>
 
         <details class="module-group" {% if request.endpoint in ['schedule', 'schedule_pdf'] %}open{% endif %}>
-          <summary>Zamansal Risk Yönetimi ve Zaman Çizelgesi Modülü</summary>
+          <summary>
+            <span class="module-summary-icon"><span class="material-icons-outlined">calendar_month</span></span>
+            <span class="module-summary-copy">
+              <span class="module-summary-index">Modül 04</span>
+              <span class="module-summary-title">Zamansal Risk Yönetimi ve Zaman Çizelgesi Modülü</span>
+            </span>
+            <span class="material-icons-outlined module-chevron">expand_more</span>
+          </summary>
 
           <nav class="menu">
             <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint in ['schedule', 'schedule_pdf'] }}">
@@ -1121,7 +1278,14 @@
         ) %}
 
         <details class="module-group" {% if request.endpoint in [_costs_ep, _pareto_ep] %}open{% endif %}>
-          <summary>Risk Maliyet Yönetimi ve Önceliklendirme Modülü</summary>
+          <summary>
+            <span class="module-summary-icon"><span class="material-icons-outlined">payments</span></span>
+            <span class="module-summary-copy">
+              <span class="module-summary-index">Modül 05</span>
+              <span class="module-summary-title">Risk Maliyet Yönetimi ve Önceliklendirme Modülü</span>
+            </span>
+            <span class="material-icons-outlined module-chevron">expand_more</span>
+          </summary>
 
           <nav class="menu">
             {% if _costs_ep %}
@@ -1141,7 +1305,14 @@
         </details>
 
         <details class="module-group" {% if request.endpoint == 'dashboard' %}open{% endif %}>
-          <summary>Gösterge Paneli ve Görselleştirme Modülü</summary>
+          <summary>
+            <span class="module-summary-icon"><span class="material-icons-outlined">dashboard</span></span>
+            <span class="module-summary-copy">
+              <span class="module-summary-index">Modül 06</span>
+              <span class="module-summary-title">Gösterge Paneli ve Görselleştirme Modülü</span>
+            </span>
+            <span class="material-icons-outlined module-chevron">expand_more</span>
+          </summary>
 
           <nav class="menu">
             <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">
@@ -1152,7 +1323,14 @@
         </details>
 
         <details class="module-group" {% if request.endpoint in ['reports', 'report_view'] %}open{% endif %}>
-          <summary>Raporlama Modülü</summary>
+          <summary>
+            <span class="module-summary-icon"><span class="material-icons-outlined">description</span></span>
+            <span class="module-summary-copy">
+              <span class="module-summary-index">Modül 07</span>
+              <span class="module-summary-title">Raporlama Modülü</span>
+            </span>
+            <span class="material-icons-outlined module-chevron">expand_more</span>
+          </summary>
 
           <nav class="menu">
             <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint in ['reports', 'report_view'] }}">
@@ -1166,31 +1344,17 @@
             </a>
           </nav>
         </details>
+      </div>
 
-
-
-
-
-
-        <nav class="menu">
-
+      <div class="menu-section">
+        <div class="menu-title">Ayarlar</div>
+        <nav class="menu utility-menu">
           {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">
               <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">upload_file</span></span>
               <span class="menu-text">İçe Aktar</span>
             </a>
           {% endif %}
-
-          <a href="{{ url_for('risks_export_xlsx', title='DENİZ YAPILARI İNŞAAT PROJESİ RİSK ANALİZİ') }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">table_view</span></span>
-            <span class="menu-text">Excel Dışa Aktar</span>
-          </a>
-        </nav>
-      </div>
-
-      <div class="menu-section">
-        <div class="menu-title">Ayarlar</div>
-        <nav class="menu">
           {% set _has_ep_helper = (has_endpoint is defined) %}
           {% set _admin_ep = (
               'admin.admin_users' if (
