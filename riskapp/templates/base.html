@@ -1145,16 +1145,28 @@
           </nav>
         </details>
 
+        <details class="module-group" {% if request.endpoint in ['reports', 'report_view'] %}open{% endif %}>
+          <summary>Raporlama Modülü</summary>
+
+          <nav class="menu">
+            <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint in ['reports', 'report_view'] }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">description</span></span>
+              <span class="menu-text">Raporlar</span>
+            </a>
+
+            <a href="{{ url_for('risks_export_xlsx', title='DENİZ YAPILARI İNŞAAT PROJESİ RİSK ANALİZİ') }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">table_view</span></span>
+              <span class="menu-text">Excel Dışa Aktar</span>
+            </a>
+          </nav>
+        </details>
+
+
 
 
 
 
         <nav class="menu">
-
-          <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">description</span></span>
-            <span class="menu-text">Raporlar</span>
-          </a>
 
           {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">
@@ -1379,4 +1391,4 @@
 {% endblock %}
 
 </body>
-</html>
+</html>ch7
