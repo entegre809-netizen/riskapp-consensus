@@ -1086,46 +1086,73 @@
           </nav>
         </details>
 
-        <nav class="menu">
+        <details class="module-group" {% if request.endpoint in ['responsibles', 'responsibles_export_csv'] %}open{% endif %}>
+          <summary>Risk İzleme ve Sorumluluk Yönetim Modülü</summary>
 
-          <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint=='schedule' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">calendar_month</span></span>
-            <span class="menu-text">Zaman Çizelgesi</span>
-          </a>
-
-          {% set _has_ep_helper = (has_endpoint is defined) %}
-          {% set _costs_ep = (
-              'costs' if (
-                (_has_ep_helper and has_endpoint('costs')) or
-                (not _has_ep_helper and ('costs' in current_app.view_functions))
-              )
-              else None
-          ) %}
-          {% if _costs_ep %}
-            <a href="{{ url_for(_costs_ep) }}" class="{{ 'active' if request.endpoint==_costs_ep }}">
-              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">payments</span></span>
-              <span class="menu-text">Maliyetler</span>
+          <nav class="menu">
+            <a href="{{ url_for('responsibles') }}" class="{{ 'active' if request.endpoint in ['responsibles', 'responsibles_export_csv'] }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">groups</span></span>
+              <span class="menu-text">Sorumlular</span>
             </a>
-          {% endif %}
+          </nav>
+        </details>
+
+        <details class="module-group" {% if request.endpoint in ['schedule', 'schedule_pdf'] %}open{% endif %}>
+          <summary>Zamansal Risk Yönetimi ve Zaman Çizelgesi Modülü</summary>
+
+          <nav class="menu">
+            <a href="{{ url_for('schedule') }}" class="{{ 'active' if request.endpoint in ['schedule', 'schedule_pdf'] }}">
+              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">calendar_month</span></span>
+              <span class="menu-text">Zaman Çizelgesi</span>
+            </a>
+          </nav>
+        </details>
+
+        {% set _has_ep_helper = (has_endpoint is defined) %}
+        {% set _costs_ep = (
+            'costs' if (
+              (_has_ep_helper and has_endpoint('costs')) or
+              (not _has_ep_helper and ('costs' in current_app.view_functions))
+            )
+            else None
+        ) %}
+        {% set _pareto_ep = (
+            'pareto_view' if (
+              (_has_ep_helper and has_endpoint('pareto_view')) or
+              (not _has_ep_helper and ('pareto_view' in current_app.view_functions))
+            )
+            else None
+        ) %}
+
+        <details class="module-group" {% if request.endpoint in [_costs_ep, _pareto_ep] %}open{% endif %}>
+          <summary>Risk Maliyet Yönetimi ve Önceliklendirme Modülü</summary>
+
+          <nav class="menu">
+            {% if _costs_ep %}
+              <a href="{{ url_for(_costs_ep) }}" class="{{ 'active' if request.endpoint==_costs_ep }}">
+                <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">payments</span></span>
+                <span class="menu-text">Maliyetler</span>
+              </a>
+            {% endif %}
+
+            {% if _pareto_ep %}
+              <a href="{{ url_for(_pareto_ep) }}" class="{{ 'active' if request.endpoint==_pareto_ep }}">
+                <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">bar_chart</span></span>
+                <span class="menu-text">Pareto Analizi</span>
+              </a>
+            {% endif %}
+          </nav>
+        </details>
+
+
+
+
+        <nav class="menu">
 
           <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">
             <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">description</span></span>
             <span class="menu-text">Raporlar</span>
           </a>
-
-          {% set _pareto_ep = (
-              'pareto_view' if (
-                (_has_ep_helper and has_endpoint('pareto_view')) or
-                (not _has_ep_helper and ('pareto_view' in current_app.view_functions))
-              )
-              else None
-          ) %}
-          {% if _pareto_ep %}
-            <a href="{{ url_for(_pareto_ep) }}" class="{{ 'active' if request.endpoint==_pareto_ep }}">
-              <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">bar_chart</span></span>
-              <span class="menu-text">Pareto Analizi</span>
-            </a>
-          {% endif %}
 
           {% if session.get('role') == 'admin' %}
             <a href="{{ url_for('import_suggestions') }}" class="{{ 'active' if request.endpoint=='import_suggestions' }}">
@@ -1133,11 +1160,6 @@
               <span class="menu-text">İçe Aktar</span>
             </a>
           {% endif %}
-
-          <a href="{{ url_for('responsibles') }}" class="{{ 'active' if request.endpoint=='responsibles' }}">
-            <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">groups</span></span>
-            <span class="menu-text">Sorumlular</span>
-          </a>
 
           <a href="{{ url_for('risks_export_xlsx', title='DENİZ YAPILARI İNŞAAT PROJESİ RİSK ANALİZİ') }}">
             <span class="menu-icon"><span class="material-icons-outlined" style="font-size:19px;">table_view</span></span>
