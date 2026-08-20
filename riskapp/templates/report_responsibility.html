@@ -1,0 +1,869 @@
+{% extends "base.html" %}
+{% block title %}Sorumluluk / İş Yükü Raporu · Risk Yönetim{% endblock %}
+
+{% block content %}
+<style>
+  .rr-scope{
+    --rr-card:#ffffff;
+    --rr-text:#0f172a;
+    --rr-muted:#64748b;
+    --rr-soft:#f8fafc;
+    --rr-line:rgba(15,23,42,.09);
+    --rr-primary:#2457e6;
+    --rr-teal:#0f766e;
+    --rr-green:#22c55e;
+    --rr-amber:#f59e0b;
+    --rr-red:#ef4444;
+    --rr-shadow:0 24px 70px rgba(15,23,42,.09);
+    --rr-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--rr-text);
+  }
+
+  [data-theme="dark"] .rr-scope{
+    --rr-card:rgba(15,23,42,.76);
+    --rr-text:#e5e7eb;
+    --rr-muted:#94a3b8;
+    --rr-soft:rgba(15,23,42,.55);
+    --rr-line:rgba(255,255,255,.08);
+    --rr-shadow:0 24px 70px rgba(0,0,0,.28);
+    --rr-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .rr-wrap{
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .rr-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:28px;
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--rr-shadow);
+  }
+
+  .rr-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .rr-hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .rr-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rr-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px,3.2vw,44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .rr-sub{
+    max-width:660px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.5;
+    font-weight:650;
+  }
+
+  .rr-actions{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+  }
+
+  .rr-btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--rr-line);
+    background:var(--rr-card);
+    color:var(--rr-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:900;
+    box-shadow:var(--rr-shadow-sm);
+    transition:transform .14s ease, border-color .14s ease;
+  }
+
+  .rr-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .rr-hero .rr-btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .rr-hero .rr-btn.primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .rr-flow{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+
+  .rr-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rr-card);
+    border:1px solid var(--rr-line);
+    box-shadow:var(--rr-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rr-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg,var(--rr-primary),var(--rr-teal));
+  }
+
+  .rr-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .rr-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--rr-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .rr-flow-title{
+    margin:0;
+    color:var(--rr-text);
+    font-size:14px;
+    font-weight:950;
+  }
+
+  .rr-flow-sub{
+    margin-top:2px;
+    color:var(--rr-muted);
+    font-size:11px;
+    font-weight:850;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+
+  .rr-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--rr-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .rr-flow-list li + li{ margin-top:4px; }
+
+  .rr-kpis{
+    display:grid;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .rr-kpi{
+    min-height:108px;
+    position:relative;
+    overflow:hidden;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rr-card);
+    border:1px solid var(--rr-line);
+    box-shadow:var(--rr-shadow-sm);
+  }
+
+  .rr-kpi::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:5px;
+    background:var(--rr-primary);
+  }
+
+  .rr-kpi.teal::before{ background:var(--rr-teal); }
+  .rr-kpi.green::before{ background:var(--rr-green); }
+  .rr-kpi.amber::before{ background:var(--rr-amber); }
+  .rr-kpi.red::before{ background:var(--rr-red); }
+  .rr-kpi.purple::before{ background:#6366f1; }
+
+  .rr-kpi-label{
+    color:var(--rr-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rr-kpi-value{
+    margin-top:11px;
+    color:var(--rr-text);
+    font-size:31px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.05em;
+  }
+
+  .rr-kpi-note{
+    margin-top:7px;
+    color:var(--rr-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rr-card{
+    border-radius:28px;
+    background:var(--rr-card);
+    border:1px solid var(--rr-line);
+    box-shadow:var(--rr-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rr-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:14px;
+    border-bottom:1px solid var(--rr-line);
+    background:var(--rr-soft);
+  }
+
+  .rr-search{
+    position:relative;
+    min-width:260px;
+    flex:1;
+    max-width:560px;
+  }
+
+  .rr-search input{
+    width:100%;
+    min-height:46px;
+    padding:0 14px 0 42px;
+    border-radius:16px;
+    border:1px solid var(--rr-line);
+    background:var(--rr-card);
+    color:var(--rr-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+  }
+
+  .rr-search input:focus{
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+  }
+
+  .rr-search-icon{
+    position:absolute;
+    left:14px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--rr-muted);
+    pointer-events:none;
+  }
+
+  .rr-filter{
+    min-height:46px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--rr-line);
+    background:var(--rr-card);
+    color:var(--rr-text);
+    font:inherit;
+    font-size:13px;
+    font-weight:850;
+    outline:none;
+  }
+
+  .rr-table-wrap{
+    overflow:auto;
+  }
+
+  .rr-table{
+    width:100%;
+    min-width:1050px;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .rr-table th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    padding:13px 14px;
+    background:var(--rr-soft);
+    color:var(--rr-muted);
+    border-bottom:1px solid var(--rr-line);
+    text-align:left;
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .rr-table td{
+    padding:14px;
+    border-bottom:1px solid var(--rr-line);
+    color:var(--rr-text);
+    vertical-align:middle;
+  }
+
+  .rr-table tbody tr:hover td{
+    background:rgba(36,87,230,.05);
+  }
+
+  .rr-person{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    min-width:210px;
+  }
+
+  .rr-avatar{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--rr-primary);
+    font-size:13px;
+    font-weight:950;
+  }
+
+  .rr-name{
+    color:var(--rr-text);
+    font-size:14px;
+    font-weight:950;
+  }
+
+  .rr-meta{
+    margin-top:3px;
+    color:var(--rr-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rr-count{
+    min-width:38px;
+    min-height:31px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--rr-line);
+    background:var(--rr-soft);
+    color:var(--rr-text);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .rr-score{
+    min-height:31px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    color:var(--rr-primary);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .rr-critical{
+    min-height:31px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(239,68,68,.11);
+    border:1px solid rgba(239,68,68,.22);
+    color:#b91c1c;
+    font-size:12px;
+    font-weight:950;
+  }
+
+  [data-theme="dark"] .rr-critical{
+    color:#fecaca;
+  }
+
+  .rr-load{
+    min-width:170px;
+  }
+
+  .rr-load-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    color:var(--rr-muted);
+    font-size:11px;
+    font-weight:850;
+  }
+
+  .rr-load-bar{
+    height:8px;
+    margin-top:7px;
+    border-radius:999px;
+    background:var(--rr-soft);
+    overflow:hidden;
+    border:1px solid var(--rr-line);
+  }
+
+  .rr-load-fill{
+    height:100%;
+    border-radius:999px;
+    background:linear-gradient(90deg,var(--rr-primary),var(--rr-teal));
+  }
+
+  .rr-risk{
+    min-width:260px;
+  }
+
+  .rr-risk a{
+    color:var(--rr-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:950;
+  }
+
+  .rr-risk a:hover{
+    color:var(--rr-primary);
+  }
+
+  .rr-risk-sub{
+    margin-top:4px;
+    color:var(--rr-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rr-empty{
+    padding:34px 20px;
+    text-align:center;
+    color:var(--rr-muted);
+    font-size:14px;
+    font-weight:750;
+  }
+
+  .rr-footnote{
+    padding:13px 14px;
+    color:var(--rr-muted);
+    background:var(--rr-soft);
+    border-top:1px solid var(--rr-line);
+    font-size:12px;
+    line-height:1.5;
+    font-weight:700;
+  }
+
+  @media (max-width:1180px){
+    .rr-kpis{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:980px){
+    .rr-flow{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:680px){
+    .rr-kpis{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .rr-toolbar{
+      align-items:stretch;
+    }
+
+    .rr-search{
+      max-width:none;
+      min-width:0;
+      width:100%;
+    }
+
+    .rr-filter{
+      width:100%;
+    }
+
+    .rr-actions{
+      width:100%;
+    }
+
+    .rr-actions .rr-btn{
+      flex:1;
+    }
+  }
+
+  @media (max-width:430px){
+    .rr-kpis{
+      grid-template-columns:1fr;
+    }
+  }
+</style>
+
+<div class="rr-scope">
+  <div class="rr-wrap">
+
+    <section class="rr-hero">
+      <div class="rr-hero-row">
+        <div>
+          <div class="rr-kicker">
+            <span class="material-icons-outlined" style="font-size:17px;">groups</span>
+            Rapor 03
+          </div>
+          <h1 class="rr-title">Sorumluluk / İş Yükü Raporu</h1>
+          <p class="rr-sub">
+            Sorumlu kişi ve ekiplerin risk yükünü, ortalama skorlarını, kritik risklerini ve iş yükü dağılımını tek ekranda incele.
+          </p>
+        </div>
+
+        <div class="rr-actions">
+          <a class="rr-btn primary" href="{{ url_for('reports') }}">
+            <span class="material-icons-outlined" style="font-size:18px;">arrow_back</span>
+            Rapor Merkezi
+          </a>
+          <a class="rr-btn" href="{{ url_for('responsibles') }}">
+            Sorumluluk Modülü
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="rr-flow" aria-label="Sorumluluk ve iş yükü raporu bilgi akışı">
+      <article class="rr-flow-card">
+        <div class="rr-flow-head">
+          <div class="rr-flow-icon">
+            <span class="material-icons-outlined">input</span>
+          </div>
+          <div>
+            <h3 class="rr-flow-title">Girdi</h3>
+            <div class="rr-flow-sub">Sorumluluk verileri</div>
+          </div>
+        </div>
+        <ul class="rr-flow-list">
+          <li>Risk kayıtları ve atanmış sorumlu kişi / ekipler</li>
+          <li>Risk skorları, RPN değerleri ve risk seviyeleri</li>
+          <li>Risk kategori, durum ve değerlendirme bilgileri</li>
+        </ul>
+      </article>
+
+      <article class="rr-flow-card">
+        <div class="rr-flow-head">
+          <div class="rr-flow-icon">
+            <span class="material-icons-outlined">manage_accounts</span>
+          </div>
+          <div>
+            <h3 class="rr-flow-title">İşlem Süreci</h3>
+            <div class="rr-flow-sub">İş yükü analizi</div>
+          </div>
+        </div>
+        <ul class="rr-flow-list">
+          <li>Sorumlu bazında toplam risk sayısının hesaplanması</li>
+          <li>Ortalama risk skorlarının karşılaştırılması</li>
+          <li>Kritik risk ve iş yükü yüzdesinin belirlenmesi</li>
+        </ul>
+      </article>
+
+      <article class="rr-flow-card">
+        <div class="rr-flow-head">
+          <div class="rr-flow-icon">
+            <span class="material-icons-outlined">output</span>
+          </div>
+          <div>
+            <h3 class="rr-flow-title">Çıktı</h3>
+            <div class="rr-flow-sub">Yönetim özeti</div>
+          </div>
+        </div>
+        <ul class="rr-flow-list">
+          <li>Sorumlu kişi / ekip bazlı risk dağılımı</li>
+          <li>Ortalama skor, kritik risk ve yük oranı</li>
+          <li>Kaynak ve sorumluluk planlamasına temel özet</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="rr-kpis" aria-label="Sorumluluk raporu özetleri">
+      <div class="rr-kpi">
+        <div class="rr-kpi-label">Toplam Sorumlu</div>
+        <div class="rr-kpi-value">{{ stats.responsible_count }}</div>
+        <div class="rr-kpi-note">Kişi / ekip</div>
+      </div>
+
+      <div class="rr-kpi teal">
+        <div class="rr-kpi-label">Atanmış Risk</div>
+        <div class="rr-kpi-value">{{ stats.assigned_total }}</div>
+        <div class="rr-kpi-note">Toplam atama</div>
+      </div>
+
+      <div class="rr-kpi green">
+        <div class="rr-kpi-label">Değerlendirilen</div>
+        <div class="rr-kpi-value">{{ stats.evaluated_total }}</div>
+        <div class="rr-kpi-note">{{ stats.not_evaluated_total }} değerlendirilmedi</div>
+      </div>
+
+      <div class="rr-kpi red">
+        <div class="rr-kpi-label">Kritik Risk</div>
+        <div class="rr-kpi-value">{{ stats.critical_total }}</div>
+        <div class="rr-kpi-note">Çok yüksek seviye</div>
+      </div>
+
+      <div class="rr-kpi amber">
+        <div class="rr-kpi-label">Ortalama Skor</div>
+        <div class="rr-kpi-value">
+          {{ '%.2f'|format(stats.average_score) if stats.average_score is not none else '—' }}
+        </div>
+        <div class="rr-kpi-note">Genel risk ortalaması</div>
+      </div>
+
+      <div class="rr-kpi purple">
+        <div class="rr-kpi-label">Maks. İş Yükü</div>
+        <div class="rr-kpi-value">{{ stats.max_workload }}</div>
+        <div class="rr-kpi-note">Tek sorumludaki risk</div>
+      </div>
+    </section>
+
+    <section class="rr-card">
+      <div class="rr-toolbar">
+        <div class="rr-search">
+          <span class="rr-search-icon material-icons-outlined" style="font-size:19px;">search</span>
+          <input id="rrSearch" type="search" placeholder="Sorumlu, kritik risk veya kategori ara…">
+        </div>
+
+        <select id="rrCriticalFilter" class="rr-filter" aria-label="Kritik risk filtresi">
+          <option value="">Tüm sorumlular</option>
+          <option value="critical">Kritik riski olanlar</option>
+          <option value="no-critical">Kritik riski olmayanlar</option>
+        </select>
+      </div>
+
+      <div class="rr-table-wrap">
+        <table class="rr-table" id="rrTable">
+          <thead>
+            <tr>
+              <th>Sorumlu</th>
+              <th style="text-align:center;">Risk Sayısı</th>
+              <th style="text-align:center;">Değerlendirilen</th>
+              <th style="text-align:center;">Ortalama Skor</th>
+              <th style="text-align:center;">Kritik</th>
+              <th>İş Yükü</th>
+              <th>En Kritik Risk</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for row in rows %}
+              {% set critical_risk = row.critical_risk %}
+              <tr
+                data-critical="{{ 'critical' if row.critical_count > 0 else 'no-critical' }}"
+                data-filter="{{ (
+                  (row.responsible or '') ~ ' ' ~
+                  ((critical_risk.title if critical_risk else '') or '') ~ ' ' ~
+                  ((critical_risk.category if critical_risk else '') or '') ~ ' ' ~
+                  ((critical_risk.status if critical_risk else '') or '')
+                )|lower }}"
+              >
+                <td>
+                  <div class="rr-person">
+                    <div class="rr-avatar">{{ (row.responsible or '?')[:2]|upper }}</div>
+                    <div>
+                      <div class="rr-name">{{ row.responsible or '—' }}</div>
+                      <div class="rr-meta">Sorumlu kişi / ekip</div>
+                    </div>
+                  </div>
+                </td>
+
+                <td style="text-align:center;">
+                  <span class="rr-count">{{ row.count }}</span>
+                </td>
+
+                <td style="text-align:center;">
+                  <span class="rr-count">{{ row.evaluated_count }}</span>
+                </td>
+
+                <td style="text-align:center;">
+                  {% if row.avg_score is not none %}
+                    <span class="rr-score">{{ '%.2f'|format(row.avg_score) }}</span>
+                  {% else %}
+                    <span class="rr-count">—</span>
+                  {% endif %}
+                </td>
+
+                <td style="text-align:center;">
+                  {% if row.critical_count > 0 %}
+                    <span class="rr-critical">{{ row.critical_count }}</span>
+                  {% else %}
+                    <span class="rr-count">0</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <div class="rr-load">
+                    <div class="rr-load-top">
+                      <span>{{ row.count }} risk</span>
+                      <strong>{{ '%.1f'|format(row.workload_pct) }}%</strong>
+                    </div>
+                    <div class="rr-load-bar">
+                      <div class="rr-load-fill" data-width="{{ [row.workload_pct, 100] | min }}"></div>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  {% if critical_risk %}
+                    <div class="rr-risk">
+                      <a href="{{ url_for('risk_detail', risk_id=critical_risk.id) }}">
+                        {{ critical_risk.title }}
+                      </a>
+                      <div class="rr-risk-sub">
+                        {{ critical_risk.category or '—' }}
+                        ·
+                        {% if row.critical_score is not none %}
+                          Skor {{ '%.2f'|format(row.critical_score) }}
+                        {% else %}
+                          Skor —
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% else %}
+                    <span class="rr-meta">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="7">
+                  <div class="rr-empty">
+                    Sorumlusu atanmış risk bulunamadı.
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rr-footnote">
+        İş yükü yüzdesi, sorumluya atanmış risk sayısının tüm atanmış risklere oranıdır.
+        Ortalama skor yalnızca değerlendirilebilen riskler üzerinden hesaplanır.
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const search = document.getElementById("rrSearch");
+  const criticalFilter = document.getElementById("rrCriticalFilter");
+  const rows = Array.from(document.querySelectorAll("#rrTable tbody tr[data-filter]"));
+
+  document.querySelectorAll(".rr-load-fill[data-width]").forEach(bar => {
+    const raw = Number(bar.dataset.width || 0);
+    const safe = Math.max(0, Math.min(100, Number.isFinite(raw) ? raw : 0));
+    bar.style.width = safe + "%";
+  });
+
+  function apply(){
+    const q = (search?.value || "").trim().toLowerCase();
+    const cf = criticalFilter?.value || "";
+
+    rows.forEach(row => {
+      const hay = (row.dataset.filter || "").toLowerCase();
+      const criticalState = row.dataset.critical || "";
+
+      const matchesText = !q || hay.includes(q);
+      const matchesCritical = !cf || criticalState === cf;
+
+      row.style.display = matchesText && matchesCritical ? "" : "none";
+    });
+  }
+
+  search?.addEventListener("input", apply);
+  criticalFilter?.addEventListener("change", apply);
+})();
+</script>
+
+{% endblock %}

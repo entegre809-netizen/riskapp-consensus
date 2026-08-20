@@ -1,0 +1,1013 @@
+{% extends "base.html" %}
+{% block title %}Maliyet Raporu · Risk Yönetim{% endblock %}
+
+{% block content %}
+<style>
+  .rc-scope{
+    --rc-card:#ffffff;
+    --rc-text:#0f172a;
+    --rc-muted:#64748b;
+    --rc-soft:#f8fafc;
+    --rc-line:rgba(15,23,42,.09);
+    --rc-primary:#2457e6;
+    --rc-teal:#0f766e;
+    --rc-green:#22c55e;
+    --rc-amber:#f59e0b;
+    --rc-red:#ef4444;
+    --rc-purple:#6366f1;
+    --rc-shadow:0 24px 70px rgba(15,23,42,.09);
+    --rc-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--rc-text);
+  }
+
+  [data-theme="dark"] .rc-scope{
+    --rc-card:rgba(15,23,42,.76);
+    --rc-text:#e5e7eb;
+    --rc-muted:#94a3b8;
+    --rc-soft:rgba(15,23,42,.55);
+    --rc-line:rgba(255,255,255,.08);
+    --rc-shadow:0 24px 70px rgba(0,0,0,.28);
+    --rc-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .rc-wrap{
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .rc-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:28px;
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--rc-shadow);
+  }
+
+  .rc-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .rc-hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .rc-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rc-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px,3.2vw,44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .rc-sub{
+    max-width:720px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.5;
+    font-weight:650;
+  }
+
+  .rc-actions{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+  }
+
+  .rc-btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--rc-line);
+    background:var(--rc-card);
+    color:var(--rc-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:900;
+    box-shadow:var(--rc-shadow-sm);
+    transition:transform .14s ease,border-color .14s ease;
+  }
+
+  .rc-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .rc-hero .rc-btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .rc-hero .rc-btn.primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .rc-flow{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+
+  .rc-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rc-card);
+    border:1px solid var(--rc-line);
+    box-shadow:var(--rc-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rc-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg,var(--rc-primary),var(--rc-teal));
+  }
+
+  .rc-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .rc-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--rc-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .rc-flow-title{
+    margin:0;
+    color:var(--rc-text);
+    font-size:14px;
+    font-weight:950;
+  }
+
+  .rc-flow-sub{
+    margin-top:2px;
+    color:var(--rc-muted);
+    font-size:11px;
+    font-weight:850;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+
+  .rc-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--rc-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .rc-flow-list li + li{ margin-top:4px; }
+
+  .rc-kpis{
+    display:grid;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .rc-kpi{
+    min-height:108px;
+    position:relative;
+    overflow:hidden;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rc-card);
+    border:1px solid var(--rc-line);
+    box-shadow:var(--rc-shadow-sm);
+  }
+
+  .rc-kpi::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:5px;
+    background:var(--rc-primary);
+  }
+
+  .rc-kpi.teal::before{ background:var(--rc-teal); }
+  .rc-kpi.green::before{ background:var(--rc-green); }
+  .rc-kpi.amber::before{ background:var(--rc-amber); }
+  .rc-kpi.red::before{ background:var(--rc-red); }
+  .rc-kpi.purple::before{ background:var(--rc-purple); }
+
+  .rc-kpi-label{
+    color:var(--rc-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rc-kpi-value{
+    margin-top:11px;
+    color:var(--rc-text);
+    font-size:31px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.05em;
+  }
+
+  .rc-kpi-note{
+    margin-top:7px;
+    color:var(--rc-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rc-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+
+  .rc-card{
+    border-radius:28px;
+    background:var(--rc-card);
+    border:1px solid var(--rc-line);
+    box-shadow:var(--rc-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rc-card-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:17px;
+    border-bottom:1px solid var(--rc-line);
+    background:var(--rc-soft);
+  }
+
+  .rc-card-title{
+    margin:0;
+    color:var(--rc-text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .rc-card-sub{
+    margin:4px 0 0;
+    color:var(--rc-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .rc-chip{
+    min-height:29px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--rc-line);
+    background:var(--rc-card);
+    color:var(--rc-muted);
+    font-size:11px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  .rc-table-wrap{ overflow:auto; }
+
+  .rc-table{
+    width:100%;
+    min-width:760px;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .rc-table th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    padding:13px 14px;
+    background:var(--rc-soft);
+    color:var(--rc-muted);
+    border-bottom:1px solid var(--rc-line);
+    text-align:left;
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .rc-table td{
+    padding:14px;
+    border-bottom:1px solid var(--rc-line);
+    color:var(--rc-text);
+    vertical-align:middle;
+    font-size:13px;
+  }
+
+  .rc-table tbody tr:hover td{
+    background:rgba(36,87,230,.05);
+  }
+
+  .rc-num{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    background:var(--rc-soft);
+    border:1px solid var(--rc-line);
+    color:var(--rc-text);
+    font-size:12px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  .rc-money{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+
+  .rc-money-pill{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    padding:0 10px;
+    border-radius:999px;
+    background:rgba(36,87,230,.08);
+    border:1px solid rgba(36,87,230,.16);
+    color:var(--rc-primary);
+    font-size:12px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  [data-theme="dark"] .rc-money-pill{
+    color:#bfdbfe;
+  }
+
+  .rc-list{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .rc-list-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--rc-line);
+  }
+
+  .rc-list-item:last-child{ border-bottom:0; }
+
+  .rc-list-main{ min-width:0; }
+
+  .rc-list-title{
+    color:var(--rc-text);
+    font-size:13px;
+    font-weight:950;
+  }
+
+  .rc-list-sub{
+    margin-top:4px;
+    color:var(--rc-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rc-empty{
+    padding:30px 18px;
+    text-align:center;
+    color:var(--rc-muted);
+    font-size:13px;
+    font-weight:750;
+  }
+
+  .rc-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:14px;
+    border-bottom:1px solid var(--rc-line);
+    background:var(--rc-soft);
+  }
+
+  .rc-search{
+    position:relative;
+    min-width:260px;
+    flex:1;
+    max-width:560px;
+  }
+
+  .rc-search input{
+    width:100%;
+    min-height:46px;
+    padding:0 14px 0 42px;
+    border-radius:16px;
+    border:1px solid var(--rc-line);
+    background:var(--rc-card);
+    color:var(--rc-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+  }
+
+  .rc-search input:focus{
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+  }
+
+  .rc-search-icon{
+    position:absolute;
+    left:14px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--rc-muted);
+    pointer-events:none;
+  }
+
+  .rc-filter{
+    min-height:46px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--rc-line);
+    background:var(--rc-card);
+    color:var(--rc-text);
+    font:inherit;
+    font-size:13px;
+    font-weight:850;
+    outline:none;
+  }
+
+  .rc-link{
+    color:var(--rc-text);
+    text-decoration:none;
+    font-weight:950;
+  }
+
+  .rc-link:hover{
+    color:var(--rc-primary);
+  }
+
+  .rc-meta{
+    margin-top:4px;
+    color:var(--rc-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  @media (max-width:1180px){
+    .rc-kpis{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:980px){
+    .rc-flow,
+    .rc-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:680px){
+    .rc-kpis{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .rc-actions{
+      width:100%;
+    }
+
+    .rc-actions .rc-btn{
+      flex:1;
+    }
+
+    .rc-toolbar{
+      align-items:stretch;
+    }
+
+    .rc-search{
+      max-width:none;
+      min-width:0;
+      width:100%;
+    }
+
+    .rc-filter{
+      width:100%;
+    }
+  }
+
+  @media (max-width:430px){
+    .rc-kpis{
+      grid-template-columns:1fr;
+    }
+  }
+</style>
+
+<div class="rc-scope">
+  <div class="rc-wrap">
+
+    <section class="rc-hero">
+      <div class="rc-hero-row">
+        <div>
+          <div class="rc-kicker">
+            <span class="material-icons-outlined" style="font-size:17px;">payments</span>
+            Rapor 05
+          </div>
+          <h1 class="rc-title">Maliyet Raporu</h1>
+          <p class="rc-sub">
+            Risklere bağlı maliyet kalemlerini, para birimi dağılımını, kategori etkilerini ve yıllıklaştırılmış maliyet görünümünü tek raporda incele.
+          </p>
+        </div>
+
+        <div class="rc-actions">
+          <a class="rc-btn primary" href="{{ url_for('reports') }}">
+            <span class="material-icons-outlined" style="font-size:18px;">arrow_back</span>
+            Rapor Merkezi
+          </a>
+          <a class="rc-btn" href="{{ url_for('costs') }}">
+            Maliyet Yönetimi
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="rc-flow" aria-label="Maliyet raporu bilgi akışı">
+      <article class="rc-flow-card">
+        <div class="rc-flow-head">
+          <div class="rc-flow-icon">
+            <span class="material-icons-outlined">input</span>
+          </div>
+          <div>
+            <h3 class="rc-flow-title">Girdi</h3>
+            <div class="rc-flow-sub">Maliyet kayıtları</div>
+          </div>
+        </div>
+        <ul class="rc-flow-list">
+          <li>Risk bazlı maliyet kalemleri ve kategorileri</li>
+          <li>Miktar, birim fiyat, toplam ve para birimi bilgileri</li>
+          <li>Tek sefer, aylık ve yıllık maliyet frekansları</li>
+        </ul>
+      </article>
+
+      <article class="rc-flow-card">
+        <div class="rc-flow-head">
+          <div class="rc-flow-icon">
+            <span class="material-icons-outlined">analytics</span>
+          </div>
+          <div>
+            <h3 class="rc-flow-title">İşlem Süreci</h3>
+            <div class="rc-flow-sub">Maliyet analizi</div>
+          </div>
+        </div>
+        <ul class="rc-flow-list">
+          <li>Para birimi bazında toplamların hesaplanması</li>
+          <li>Kategori ve risk bazında maliyet dağılımının çıkarılması</li>
+          <li>Frekans bazlı ve yıllıklaştırılmış maliyetlerin hesaplanması</li>
+        </ul>
+      </article>
+
+      <article class="rc-flow-card">
+        <div class="rc-flow-head">
+          <div class="rc-flow-icon">
+            <span class="material-icons-outlined">output</span>
+          </div>
+          <div>
+            <h3 class="rc-flow-title">Çıktı</h3>
+            <div class="rc-flow-sub">Maliyet özeti</div>
+          </div>
+        </div>
+        <ul class="rc-flow-list">
+          <li>Toplam maliyet kayıtları ve bağlantı durumu</li>
+          <li>Kategori, risk ve para birimi bazında dağılımlar</li>
+          <li>En yüksek maliyet kalemleri ve yıllık maliyet görünümü</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="rc-kpis">
+      <div class="rc-kpi">
+        <div class="rc-kpi-label">Toplam Kayıt</div>
+        <div class="rc-kpi-value">{{ stats.total_items }}</div>
+        <div class="rc-kpi-note">Maliyet kalemi</div>
+      </div>
+
+      <div class="rc-kpi green">
+        <div class="rc-kpi-label">Riske Bağlı</div>
+        <div class="rc-kpi-value">{{ stats.linked_count }}</div>
+        <div class="rc-kpi-note">Risk ile ilişkilendirilmiş</div>
+      </div>
+
+      <div class="rc-kpi amber">
+        <div class="rc-kpi-label">Bağlantısız</div>
+        <div class="rc-kpi-value">{{ stats.unlinked_count }}</div>
+        <div class="rc-kpi-note">Risk bağlantısı olmayan</div>
+      </div>
+
+      <div class="rc-kpi teal">
+        <div class="rc-kpi-label">Maliyetli Risk</div>
+        <div class="rc-kpi-value">{{ stats.risk_count_with_cost }}</div>
+        <div class="rc-kpi-note">En az bir maliyet kaydı olan</div>
+      </div>
+
+      <div class="rc-kpi purple">
+        <div class="rc-kpi-label">Kategori</div>
+        <div class="rc-kpi-value">{{ stats.category_count }}</div>
+        <div class="rc-kpi-note">Maliyet kategorisi</div>
+      </div>
+
+      <div class="rc-kpi red">
+        <div class="rc-kpi-label">Para Birimi</div>
+        <div class="rc-kpi-value">{{ stats.currency_count }}</div>
+        <div class="rc-kpi-note">Ayrı ayrı raporlanır</div>
+      </div>
+    </section>
+
+    <section class="rc-grid">
+      <article class="rc-card">
+        <div class="rc-card-head">
+          <div>
+            <h2 class="rc-card-title">Para Birimi Özeti</h2>
+            <p class="rc-card-sub">Toplam ve yıllıklaştırılmış maliyet görünümü</p>
+          </div>
+          <span class="rc-chip">{{ currency_rows|length }} para birimi</span>
+        </div>
+
+        <div class="rc-table-wrap">
+          <table class="rc-table">
+            <thead>
+              <tr>
+                <th>Para Birimi</th>
+                <th style="text-align:center;">Kayıt</th>
+                <th>Toplam</th>
+                <th>Yıllıklaştırılmış</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in currency_rows %}
+                <tr>
+                  <td><strong>{{ row.currency }}</strong></td>
+                  <td style="text-align:center;"><span class="rc-num">{{ row.count }}</span></td>
+                  <td><span class="rc-money-pill">{{ row.currency }} {{ "%.2f"|format(row.total) }}</span></td>
+                  <td><span class="rc-money-pill">{{ row.currency }} {{ "%.2f"|format(row.annual_total) }}</span></td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="4"><div class="rc-empty">Maliyet verisi bulunamadı.</div></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="rc-card">
+        <div class="rc-card-head">
+          <div>
+            <h2 class="rc-card-title">Frekans Dağılımı</h2>
+            <p class="rc-card-sub">Tek sefer, aylık ve yıllık maliyet kırılımı</p>
+          </div>
+          <span class="rc-chip">{{ frequency_rows|length }} frekans</span>
+        </div>
+
+        <div class="rc-list">
+          {% for row in frequency_rows %}
+            <div class="rc-list-item">
+              <div class="rc-list-main">
+                <div class="rc-list-title">{{ row.frequency }}</div>
+                <div class="rc-list-sub">{{ row.count }} maliyet kaydı</div>
+              </div>
+              <div class="rc-money">
+                {% for total in row.totals %}
+                  <span class="rc-money-pill">{{ total.currency }} {{ "%.2f"|format(total.total) }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <div class="rc-empty">Frekans verisi bulunamadı.</div>
+          {% endfor %}
+        </div>
+      </article>
+    </section>
+
+    <section class="rc-card">
+      <div class="rc-card-head">
+        <div>
+          <h2 class="rc-card-title">Kategori Bazında Maliyet Dağılımı</h2>
+          <p class="rc-card-sub">Her maliyet kategorisinin para birimi bazında toplam etkisi</p>
+        </div>
+        <span class="rc-chip">{{ category_rows|length }} kategori</span>
+      </div>
+
+      <div class="rc-table-wrap">
+        <table class="rc-table">
+          <thead>
+            <tr>
+              <th>Kategori</th>
+              <th style="text-align:center;">Kayıt</th>
+              <th>Toplamlar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in category_rows %}
+              <tr>
+                <td><strong>{{ row.category }}</strong></td>
+                <td style="text-align:center;"><span class="rc-num">{{ row.count }}</span></td>
+                <td>
+                  <div class="rc-money">
+                    {% for total in row.totals %}
+                      <span class="rc-money-pill">{{ total.currency }} {{ "%.2f"|format(total.total) }}</span>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="3"><div class="rc-empty">Kategori maliyet dağılımı bulunamadı.</div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rc-card">
+      <div class="rc-card-head">
+        <div>
+          <h2 class="rc-card-title">Risk Bazında Maliyet Dağılımı</h2>
+          <p class="rc-card-sub">Maliyeti bulunan risklerin toplam etkisi</p>
+        </div>
+        <span class="rc-chip">{{ risk_rows|length }} risk</span>
+      </div>
+
+      <div class="rc-table-wrap">
+        <table class="rc-table">
+          <thead>
+            <tr>
+              <th>Risk</th>
+              <th>Kategori</th>
+              <th style="text-align:center;">Maliyet Kaydı</th>
+              <th>Toplamlar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in risk_rows %}
+              {% set r = row.risk %}
+              <tr>
+                <td>
+                  <a class="rc-link" href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                  <div class="rc-meta">ID-{{ r.id }}</div>
+                </td>
+                <td>{{ r.category or '—' }}</td>
+                <td style="text-align:center;"><span class="rc-num">{{ row.cost_item_count }}</span></td>
+                <td>
+                  <div class="rc-money">
+                    {% for total in row.totals %}
+                      <span class="rc-money-pill">{{ total.currency }} {{ "%.2f"|format(total.total) }}</span>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4"><div class="rc-empty">Risk bazında maliyet verisi bulunamadı.</div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rc-card">
+      <div class="rc-card-head">
+        <div>
+          <h2 class="rc-card-title">En Yüksek Maliyet Kalemleri</h2>
+          <p class="rc-card-sub">Her para birimi kendi içinde sıralanır</p>
+        </div>
+      </div>
+
+      {% if top_items_by_currency %}
+        {% for currency, items in top_items_by_currency.items() %}
+          <div class="rc-card-head" style="border-top:1px solid var(--rc-line);">
+            <div>
+              <h3 class="rc-card-title" style="font-size:15px;">{{ currency }}</h3>
+              <p class="rc-card-sub">En yüksek {{ items|length }} maliyet kalemi</p>
+            </div>
+          </div>
+
+          <div class="rc-table-wrap">
+            <table class="rc-table">
+              <thead>
+                <tr>
+                  <th>Maliyet Kalemi</th>
+                  <th>Risk</th>
+                  <th>Kategori</th>
+                  <th>Frekans</th>
+                  <th>Toplam</th>
+                  <th>Yıllıklaştırılmış</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in items %}
+                  {% set item = row.item %}
+                  <tr>
+                    <td>
+                      <strong>{{ item.title or '—' }}</strong>
+                    </td>
+                    <td>
+                      {% if row.risk %}
+                        <a class="rc-link" href="{{ url_for('risk_detail', risk_id=row.risk.id) }}">{{ row.risk.title }}</a>
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td>{{ row.category }}</td>
+                    <td>{{ row.frequency }}</td>
+                    <td><span class="rc-money-pill">{{ row.currency }} {{ "%.2f"|format(row.total) }}</span></td>
+                    <td><span class="rc-money-pill">{{ row.currency }} {{ "%.2f"|format(row.annual_total) }}</span></td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="6"><div class="rc-empty">Kayıt bulunamadı.</div></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="rc-empty">Maliyet kaydı bulunamadı.</div>
+      {% endif %}
+    </section>
+
+    <section class="rc-card">
+      <div class="rc-toolbar">
+        <div class="rc-search">
+          <span class="rc-search-icon material-icons-outlined" style="font-size:19px;">search</span>
+          <input id="rcSearch" type="search" placeholder="Maliyet, risk veya kategori ara…">
+        </div>
+
+        <select id="rcCurrencyFilter" class="rc-filter">
+          <option value="">Tüm para birimleri</option>
+          {% for row in currency_rows %}
+            <option value="{{ row.currency }}">{{ row.currency }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="rc-table-wrap">
+        <table class="rc-table" id="rcCostTable">
+          <thead>
+            <tr>
+              <th>Maliyet Kalemi</th>
+              <th>Risk</th>
+              <th>Kategori</th>
+              <th>Para Birimi</th>
+              <th>Frekans</th>
+              <th>Toplam</th>
+              <th>Yıllıklaştırılmış</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              {% set item = row.item %}
+              <tr
+                data-currency="{{ row.currency }}"
+                data-filter="{{ (
+                  ((item.title or '') if item else '') ~ ' ' ~
+                  ((row.risk.title if row.risk else '') or '') ~ ' ' ~
+                  (row.category or '') ~ ' ' ~
+                  (row.currency or '') ~ ' ' ~
+                  (row.frequency or '')
+                )|lower }}"
+              >
+                <td>
+                  <strong>{{ (item.title if item else None) or '—' }}</strong>
+                </td>
+                <td>
+                  {% if row.risk %}
+                    <a class="rc-link" href="{{ url_for('risk_detail', risk_id=row.risk.id) }}">{{ row.risk.title }}</a>
+                    <div class="rc-meta">ID-{{ row.risk.id }}</div>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>{{ row.category }}</td>
+                <td><span class="rc-num">{{ row.currency }}</span></td>
+                <td>{{ row.frequency }}</td>
+                <td><span class="rc-money-pill">{{ row.currency }} {{ "%.2f"|format(row.total) }}</span></td>
+                <td><span class="rc-money-pill">{{ row.currency }} {{ "%.2f"|format(row.annual_total) }}</span></td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="7"><div class="rc-empty">Maliyet kaydı bulunamadı.</div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const search = document.getElementById("rcSearch");
+  const currency = document.getElementById("rcCurrencyFilter");
+  const rows = Array.from(document.querySelectorAll("#rcCostTable tbody tr[data-filter]"));
+
+  function apply(){
+    const q = (search?.value || "").trim().toLowerCase();
+    const cur = currency?.value || "";
+
+    rows.forEach(row => {
+      const hay = (row.dataset.filter || "").toLowerCase();
+      const rowCur = row.dataset.currency || "";
+
+      const matchesText = !q || hay.includes(q);
+      const matchesCurrency = !cur || rowCur === cur;
+
+      row.style.display = matchesText && matchesCurrency ? "" : "none";
+    });
+  }
+
+  search?.addEventListener("input", apply);
+  currency?.addEventListener("change", apply);
+})();
+</script>
+
+{% endblock %}

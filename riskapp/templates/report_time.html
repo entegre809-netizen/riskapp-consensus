@@ -1,0 +1,973 @@
+{% extends "base.html" %}
+{% block title %}Zaman Yönetimi Raporu · Risk Yönetim{% endblock %}
+
+{% block content %}
+<style>
+  .rt-scope{
+    --rt-card:#ffffff;
+    --rt-text:#0f172a;
+    --rt-muted:#64748b;
+    --rt-soft:#f8fafc;
+    --rt-line:rgba(15,23,42,.09);
+    --rt-primary:#2457e6;
+    --rt-teal:#0f766e;
+    --rt-green:#22c55e;
+    --rt-amber:#f59e0b;
+    --rt-red:#ef4444;
+    --rt-purple:#6366f1;
+    --rt-shadow:0 24px 70px rgba(15,23,42,.09);
+    --rt-shadow-sm:0 12px 34px rgba(15,23,42,.06);
+    color:var(--rt-text);
+  }
+
+  [data-theme="dark"] .rt-scope{
+    --rt-card:rgba(15,23,42,.76);
+    --rt-text:#e5e7eb;
+    --rt-muted:#94a3b8;
+    --rt-soft:rgba(15,23,42,.55);
+    --rt-line:rgba(255,255,255,.08);
+    --rt-shadow:0 24px 70px rgba(0,0,0,.28);
+    --rt-shadow-sm:0 12px 34px rgba(0,0,0,.22);
+  }
+
+  .rt-wrap{
+    width:100%;
+    max-width:1240px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .rt-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:28px;
+    padding:22px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.22), transparent 24%),
+      radial-gradient(circle at 88% 86%, rgba(20,184,166,.31), transparent 30%),
+      linear-gradient(135deg, #111c36 0%, #2457e6 57%, #0f766e 100%);
+    box-shadow:var(--rt-shadow);
+  }
+
+  .rt-hero::after{
+    content:"";
+    position:absolute;
+    width:280px;
+    height:280px;
+    right:-130px;
+    bottom:-145px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+  }
+
+  .rt-hero-row{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .rt-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:32px;
+    padding:0 12px;
+    margin-bottom:10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.86);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rt-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(28px,3.2vw,44px);
+    line-height:1;
+    letter-spacing:-.055em;
+    font-weight:950;
+  }
+
+  .rt-sub{
+    max-width:690px;
+    margin:9px 0 0;
+    color:rgba(255,255,255,.74);
+    font-size:14px;
+    line-height:1.5;
+    font-weight:650;
+  }
+
+  .rt-actions{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+  }
+
+  .rt-btn{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border-radius:15px;
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    color:var(--rt-text);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:900;
+    box-shadow:var(--rt-shadow-sm);
+    transition:transform .14s ease, border-color .14s ease;
+  }
+
+  .rt-btn:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.28);
+    text-decoration:none;
+  }
+
+  .rt-hero .rt-btn{
+    color:#fff;
+    background:rgba(255,255,255,.14);
+    border-color:rgba(255,255,255,.20);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .rt-hero .rt-btn.primary{
+    background:#fff;
+    color:#1d4ed8;
+  }
+
+  .rt-flow{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+
+  .rt-flow-card{
+    position:relative;
+    min-width:0;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rt-card);
+    border:1px solid var(--rt-line);
+    box-shadow:var(--rt-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rt-flow-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    width:4px;
+    height:100%;
+    background:linear-gradient(180deg,var(--rt-primary),var(--rt-teal));
+  }
+
+  .rt-flow-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .rt-flow-icon{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--rt-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+  }
+
+  .rt-flow-title{
+    margin:0;
+    color:var(--rt-text);
+    font-size:14px;
+    font-weight:950;
+  }
+
+  .rt-flow-sub{
+    margin-top:2px;
+    color:var(--rt-muted);
+    font-size:11px;
+    font-weight:850;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+
+  .rt-flow-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--rt-muted);
+    font-size:13px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .rt-flow-list li + li{ margin-top:4px; }
+
+  .rt-kpis{
+    display:grid;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .rt-kpi{
+    min-height:108px;
+    position:relative;
+    overflow:hidden;
+    padding:16px;
+    border-radius:22px;
+    background:var(--rt-card);
+    border:1px solid var(--rt-line);
+    box-shadow:var(--rt-shadow-sm);
+  }
+
+  .rt-kpi::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:5px;
+    background:var(--rt-primary);
+  }
+
+  .rt-kpi.teal::before{ background:var(--rt-teal); }
+  .rt-kpi.green::before{ background:var(--rt-green); }
+  .rt-kpi.amber::before{ background:var(--rt-amber); }
+  .rt-kpi.red::before{ background:var(--rt-red); }
+  .rt-kpi.purple::before{ background:var(--rt-purple); }
+
+  .rt-kpi-label{
+    color:var(--rt-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rt-kpi-value{
+    margin-top:11px;
+    color:var(--rt-text);
+    font-size:31px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.05em;
+  }
+
+  .rt-kpi-note{
+    margin-top:7px;
+    color:var(--rt-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rt-grid{
+    display:grid;
+    grid-template-columns:1.15fr .85fr;
+    gap:16px;
+  }
+
+  .rt-card{
+    border-radius:28px;
+    background:var(--rt-card);
+    border:1px solid var(--rt-line);
+    box-shadow:var(--rt-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rt-card-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:17px;
+    border-bottom:1px solid var(--rt-line);
+    background:var(--rt-soft);
+  }
+
+  .rt-card-title{
+    margin:0;
+    color:var(--rt-text);
+    font-size:18px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .rt-card-sub{
+    margin:4px 0 0;
+    color:var(--rt-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .rt-chip{
+    min-height:29px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    color:var(--rt-muted);
+    font-size:11px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  .rt-table-wrap{
+    overflow:auto;
+  }
+
+  .rt-table{
+    width:100%;
+    min-width:760px;
+    border-collapse:separate;
+    border-spacing:0;
+  }
+
+  .rt-table th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    padding:13px 14px;
+    background:var(--rt-soft);
+    color:var(--rt-muted);
+    border-bottom:1px solid var(--rt-line);
+    text-align:left;
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  .rt-table td{
+    padding:14px;
+    border-bottom:1px solid var(--rt-line);
+    color:var(--rt-text);
+    vertical-align:middle;
+    font-size:13px;
+  }
+
+  .rt-table tbody tr:hover td{
+    background:rgba(36,87,230,.05);
+  }
+
+  .rt-month{
+    font-weight:950;
+    color:var(--rt-text);
+  }
+
+  .rt-num{
+    min-width:36px;
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    background:var(--rt-soft);
+    border:1px solid var(--rt-line);
+    color:var(--rt-text);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .rt-num.red{
+    background:rgba(239,68,68,.11);
+    border-color:rgba(239,68,68,.22);
+    color:#b91c1c;
+  }
+
+  [data-theme="dark"] .rt-num.red{ color:#fecaca; }
+
+  .rt-status{
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:950;
+    border:1px solid var(--rt-line);
+  }
+
+  .rt-status.ok{
+    color:#15803d;
+    background:rgba(34,197,94,.11);
+    border-color:rgba(34,197,94,.22);
+  }
+
+  .rt-status.warn{
+    color:#b45309;
+    background:rgba(245,158,11,.12);
+    border-color:rgba(245,158,11,.24);
+  }
+
+  .rt-status.bad{
+    color:#b91c1c;
+    background:rgba(239,68,68,.11);
+    border-color:rgba(239,68,68,.22);
+  }
+
+  [data-theme="dark"] .rt-status.ok,
+  [data-theme="dark"] .rt-status.warn,
+  [data-theme="dark"] .rt-status.bad{
+    color:var(--rt-text);
+  }
+
+  .rt-list{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .rt-list-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--rt-line);
+  }
+
+  .rt-list-item:last-child{ border-bottom:0; }
+
+  .rt-list-main{
+    min-width:0;
+  }
+
+  .rt-list-title{
+    color:var(--rt-text);
+    font-size:13px;
+    font-weight:950;
+  }
+
+  .rt-list-sub{
+    margin-top:4px;
+    color:var(--rt-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rt-empty{
+    padding:30px 18px;
+    text-align:center;
+    color:var(--rt-muted);
+    font-size:13px;
+    font-weight:750;
+  }
+
+  .rt-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:14px;
+    border-bottom:1px solid var(--rt-line);
+    background:var(--rt-soft);
+  }
+
+  .rt-search{
+    position:relative;
+    min-width:260px;
+    flex:1;
+    max-width:560px;
+  }
+
+  .rt-search input{
+    width:100%;
+    min-height:46px;
+    padding:0 14px 0 42px;
+    border-radius:16px;
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    color:var(--rt-text);
+    outline:none;
+    font:inherit;
+    font-size:14px;
+    font-weight:750;
+  }
+
+  .rt-search input:focus{
+    border-color:rgba(36,87,230,.55);
+    box-shadow:0 0 0 4px rgba(36,87,230,.12);
+  }
+
+  .rt-search-icon{
+    position:absolute;
+    left:14px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--rt-muted);
+    pointer-events:none;
+  }
+
+  .rt-filter{
+    min-height:46px;
+    padding:0 13px;
+    border-radius:16px;
+    border:1px solid var(--rt-line);
+    background:var(--rt-card);
+    color:var(--rt-text);
+    font:inherit;
+    font-size:13px;
+    font-weight:850;
+    outline:none;
+  }
+
+  .rt-risk-link{
+    color:var(--rt-text);
+    text-decoration:none;
+    font-weight:950;
+  }
+
+  .rt-risk-link:hover{
+    color:var(--rt-primary);
+  }
+
+  .rt-risk-meta{
+    margin-top:4px;
+    color:var(--rt-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  @media (max-width:1180px){
+    .rt-kpis{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:980px){
+    .rt-flow,
+    .rt-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:680px){
+    .rt-kpis{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .rt-actions{
+      width:100%;
+    }
+
+    .rt-actions .rt-btn{
+      flex:1;
+    }
+
+    .rt-toolbar{
+      align-items:stretch;
+    }
+
+    .rt-search{
+      max-width:none;
+      min-width:0;
+      width:100%;
+    }
+
+    .rt-filter{
+      width:100%;
+    }
+  }
+
+  @media (max-width:430px){
+    .rt-kpis{
+      grid-template-columns:1fr;
+    }
+  }
+</style>
+
+<div class="rt-scope">
+  <div class="rt-wrap">
+
+    <section class="rt-hero">
+      <div class="rt-hero-row">
+        <div>
+          <div class="rt-kicker">
+            <span class="material-icons-outlined" style="font-size:17px;">calendar_month</span>
+            Rapor 04
+          </div>
+          <h1 class="rt-title">Zaman Yönetimi Raporu</h1>
+          <p class="rt-sub">
+            Risklerin zaman aralıklarını, aylık yoğunluğu, kritik çakışmaları ve sorumlu bazında zamansal iş yükünü tek görünümde incele.
+          </p>
+        </div>
+
+        <div class="rt-actions">
+          <a class="rt-btn primary" href="{{ url_for('reports') }}">
+            <span class="material-icons-outlined" style="font-size:18px;">arrow_back</span>
+            Rapor Merkezi
+          </a>
+          <a class="rt-btn" href="{{ url_for('schedule') }}">
+            Zaman Çizelgesi
+          </a>
+          <a class="rt-btn" href="{{ url_for('schedule_pdf') }}">
+            PDF
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="rt-flow" aria-label="Zaman yönetimi raporu bilgi akışı">
+      <article class="rt-flow-card">
+        <div class="rt-flow-head">
+          <div class="rt-flow-icon">
+            <span class="material-icons-outlined">input</span>
+          </div>
+          <div>
+            <h3 class="rt-flow-title">Girdi</h3>
+            <div class="rt-flow-sub">Zaman verileri</div>
+          </div>
+        </div>
+        <ul class="rt-flow-list">
+          <li>Risk başlangıç ve bitiş dönemleri</li>
+          <li>Risk skoru, seviye, kategori ve sorumlu bilgileri</li>
+          <li>Aktif proje zaman aralığı ve aylık dağılım kayıtları</li>
+        </ul>
+      </article>
+
+      <article class="rt-flow-card">
+        <div class="rt-flow-head">
+          <div class="rt-flow-icon">
+            <span class="material-icons-outlined">timeline</span>
+          </div>
+          <div>
+            <h3 class="rt-flow-title">İşlem Süreci</h3>
+            <div class="rt-flow-sub">Zamansal analiz</div>
+          </div>
+        </div>
+        <ul class="rt-flow-list">
+          <li>Risklerin aktif olduğu ayların belirlenmesi</li>
+          <li>Aylık risk ve kritik risk yoğunluğunun hesaplanması</li>
+          <li>Kritik çakışmalar ve sorumlu bazlı dönemsel yükün analizi</li>
+        </ul>
+      </article>
+
+      <article class="rt-flow-card">
+        <div class="rt-flow-head">
+          <div class="rt-flow-icon">
+            <span class="material-icons-outlined">output</span>
+          </div>
+          <div>
+            <h3 class="rt-flow-title">Çıktı</h3>
+            <div class="rt-flow-sub">Zaman yönetimi özeti</div>
+          </div>
+        </div>
+        <ul class="rt-flow-list">
+          <li>Aylık risk yoğunluğu ve en yoğun dönem</li>
+          <li>Kritik çakışma bulunan aylar</li>
+          <li>Sorumlu bazında zamansal iş yükü ve risk dönemleri</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="rt-kpis">
+      <div class="rt-kpi">
+        <div class="rt-kpi-label">Toplam Risk</div>
+        <div class="rt-kpi-value">{{ stats.total_risks }}</div>
+        <div class="rt-kpi-note">Zaman çizelgesi kapsamı</div>
+      </div>
+
+      <div class="rt-kpi green">
+        <div class="rt-kpi-label">Tarihi Olan</div>
+        <div class="rt-kpi-value">{{ stats.with_period }}</div>
+        <div class="rt-kpi-note">Başlangıç / bitiş dönemi mevcut</div>
+      </div>
+
+      <div class="rt-kpi amber">
+        <div class="rt-kpi-label">Tarihi Olmayan</div>
+        <div class="rt-kpi-value">{{ stats.without_period }}</div>
+        <div class="rt-kpi-note">Dönem bilgisi eksik</div>
+      </div>
+
+      <div class="rt-kpi red">
+        <div class="rt-kpi-label">Kritik Risk</div>
+        <div class="rt-kpi-value">{{ stats.critical_with_period }}</div>
+        <div class="rt-kpi-note">Dönemi olan kritik risk</div>
+      </div>
+
+      <div class="rt-kpi purple">
+        <div class="rt-kpi-label">Kritik Çakışma</div>
+        <div class="rt-kpi-value">{{ stats.overlap_month_count }}</div>
+        <div class="rt-kpi-note">2+ kritik risk bulunan ay</div>
+      </div>
+
+      <div class="rt-kpi teal">
+        <div class="rt-kpi-label">En Yoğun Ay</div>
+        <div class="rt-kpi-value" style="font-size:22px;">
+          {% if stats.peak_month %}
+            {{ stats.peak_month.ym }}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+        <div class="rt-kpi-note">
+          {% if stats.peak_month %}
+            {{ stats.peak_month.active_count }} aktif risk
+          {% else %}
+            Veri yok
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="rt-grid">
+      <article class="rt-card">
+        <div class="rt-card-head">
+          <div>
+            <h2 class="rt-card-title">Aylık Risk Yoğunluğu</h2>
+            <p class="rt-card-sub">Her ay aktif olan riskler ve kritik yoğunluk</p>
+          </div>
+          <span class="rt-chip">{{ stats.month_count }} ay</span>
+        </div>
+
+        <div class="rt-table-wrap">
+          <table class="rt-table">
+            <thead>
+              <tr>
+                <th>Ay</th>
+                <th style="text-align:center;">Aktif Risk</th>
+                <th style="text-align:center;">Kritik Risk</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in month_stats %}
+                <tr>
+                  <td><span class="rt-month">{{ item.ym }}</span></td>
+                  <td style="text-align:center;">
+                    <span class="rt-num">{{ item.active_count }}</span>
+                  </td>
+                  <td style="text-align:center;">
+                    <span class="rt-num {{ 'red' if item.critical_count > 0 else '' }}">{{ item.critical_count }}</span>
+                  </td>
+                  <td>
+                    {% if item.critical_overlap %}
+                      <span class="rt-status bad">Kritik Çakışma</span>
+                    {% elif item.critical_count > 0 %}
+                      <span class="rt-status warn">Kritik Risk Var</span>
+                    {% else %}
+                      <span class="rt-status ok">Normal</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="4"><div class="rt-empty">Aylık zaman verisi bulunamadı.</div></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="rt-card">
+        <div class="rt-card-head">
+          <div>
+            <h2 class="rt-card-title">Kritik Çakışmalar</h2>
+            <p class="rt-card-sub">Aynı ayda 2 veya daha fazla kritik risk</p>
+          </div>
+          <span class="rt-chip">{{ overlap_months|length }} kayıt</span>
+        </div>
+
+        <div class="rt-list">
+          {% for item in overlap_months %}
+            <div class="rt-list-item">
+              <div class="rt-list-main">
+                <div class="rt-list-title">{{ item.ym }}</div>
+                <div class="rt-list-sub">{{ item.active_count }} toplam aktif risk</div>
+              </div>
+              <span class="rt-num red">{{ item.critical_count }} kritik</span>
+            </div>
+          {% else %}
+            <div class="rt-empty">Kritik çakışma tespit edilmedi.</div>
+          {% endfor %}
+        </div>
+      </article>
+    </section>
+
+    <section class="rt-card">
+      <div class="rt-card-head">
+        <div>
+          <h2 class="rt-card-title">Sorumlu Bazında Zamansal İş Yükü</h2>
+          <p class="rt-card-sub">Risklerin ay bazında sorumlular üzerindeki yoğunluğu</p>
+        </div>
+        <span class="rt-chip">{{ owner_rows|length }} sorumlu</span>
+      </div>
+
+      <div class="rt-table-wrap">
+        <table class="rt-table">
+          <thead>
+            <tr>
+              <th>Sorumlu</th>
+              <th style="text-align:center;">Toplam Aylık Yük</th>
+              <th style="text-align:center;">Tepe Yük</th>
+              <th>En Yoğun Dönem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in owner_rows %}
+              <tr>
+                <td>
+                  <div class="rt-month">{{ row.responsible }}</div>
+                </td>
+                <td style="text-align:center;">
+                  <span class="rt-num">{{ row.temporal_load }}</span>
+                </td>
+                <td style="text-align:center;">
+                  <span class="rt-num {{ 'red' if row.peak_load >= 2 else '' }}">{{ row.peak_load }}</span>
+                </td>
+                <td>
+                  {% if row.peak_months %}
+                    {{ row.peak_months|join(', ') }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4"><div class="rt-empty">Sorumlu bazında zaman yükü bulunamadı.</div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rt-card">
+      <div class="rt-toolbar">
+        <div class="rt-search">
+          <span class="rt-search-icon material-icons-outlined" style="font-size:19px;">search</span>
+          <input id="rtSearch" type="search" placeholder="Risk, kategori veya sorumlu ara…">
+        </div>
+
+        <select id="rtGradeFilter" class="rt-filter">
+          <option value="">Tüm seviyeler</option>
+          <option value="critical">Kritik</option>
+          <option value="high">Yüksek</option>
+          <option value="medium">Orta</option>
+          <option value="acceptable">Kabul Edilebilir</option>
+        </select>
+      </div>
+
+      <div class="rt-table-wrap">
+        <table class="rt-table" id="rtRiskTable">
+          <thead>
+            <tr>
+              <th>Risk</th>
+              <th>Kategori</th>
+              <th>Sorumlu</th>
+              <th>Başlangıç</th>
+              <th>Bitiş</th>
+              <th style="text-align:center;">Aktif Ay</th>
+              <th>Seviye</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              {% set r = row.risk %}
+              <tr
+                data-grade="{{ row.grade }}"
+                data-filter="{{ (
+                  ((r.title if r else '') or '') ~ ' ' ~
+                  ((r.category if r else '') or '') ~ ' ' ~
+                  ((r.responsible if r else '') or '')
+                )|lower }}"
+              >
+                <td>
+                  {% if r %}
+                    <a class="rt-risk-link" href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
+                    <div class="rt-risk-meta">ID-{{ r.id }}</div>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>{{ (r.category if r else None) or '—' }}</td>
+                <td>{{ (r.responsible if r else None) or '—' }}</td>
+                <td>{{ row.startYM or '—' }}</td>
+                <td>{{ row.endYM or '—' }}</td>
+                <td style="text-align:center;">
+                  <span class="rt-num">{{ row.active_month_count }}</span>
+                </td>
+                <td>
+                  {% if row.grade == 'critical' %}
+                    <span class="rt-status bad">Kritik</span>
+                  {% elif row.grade == 'high' %}
+                    <span class="rt-status warn">Yüksek</span>
+                  {% elif row.grade == 'medium' %}
+                    <span class="rt-status warn">Orta</span>
+                  {% else %}
+                    <span class="rt-status ok">Kabul Edilebilir</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="7"><div class="rt-empty">Risk zaman kaydı bulunamadı.</div></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const search = document.getElementById("rtSearch");
+  const filter = document.getElementById("rtGradeFilter");
+  const rows = Array.from(document.querySelectorAll("#rtRiskTable tbody tr[data-filter]"));
+
+  function apply(){
+    const q = (search?.value || "").trim().toLowerCase();
+    const grade = filter?.value || "";
+
+    rows.forEach(row => {
+      const hay = (row.dataset.filter || "").toLowerCase();
+      const rowGrade = row.dataset.grade || "";
+
+      const matchesText = !q || hay.includes(q);
+      const matchesGrade = !grade || rowGrade === grade;
+
+      row.style.display = matchesText && matchesGrade ? "" : "none";
+    });
+  }
+
+  search?.addEventListener("input", apply);
+  filter?.addEventListener("change", apply);
+})();
+</script>
+
+{% endblock %}

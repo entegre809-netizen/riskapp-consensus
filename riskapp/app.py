@@ -3087,6 +3087,196 @@ def create_app():
         )
 
 
+    # -------------------------------------------------
+    #  Raporlar — Sorumluluk / İş Yükü Raporu
+    # -------------------------------------------------
+    @app.route("/reports/responsibility")
+    def report_responsibility():
+        """
+        Aktif projedeki riskleri sorumlu kişi / ekip bazında gruplayarak
+        Sorumluluk ve İş Yükü Raporu için özet veri hazırlar.
+
+        Çıktı:
+        - Sorumlu kişi / ekip
+        - Toplam atanan risk
+        - Değerlendirilmiş risk sayısı
+        - Ortalama risk skoru
+        - Kritik risk sayısı
+        - En kritik risk
+        - İş yükü payı (%)
+        """
+        pid = _get_active_project_id()
+
+        query = Risk.query
+        if pid:
+            query = query.filter(Risk.project_id == pid)
+
+        # Yalnızca sorumlusu atanmış riskler.
+        risks = (
+            query
+            .filter(Risk.responsible.isnot(None))
+            .filter(Risk.responsible != "")
+            .order_by(Risk.updated_at.desc())
+            .all()
+        )
+
+        # Uygulamadaki mevcut sorumlular ekranıyla aynı skor mantığını koru.
+        def _responsibility_risk_score(r):
+            sc = None
+
+            score_method = getattr(r, "score", None)
+            if callable(score_method):
+                try:
+                    sc = score_method()
+                except Exception:
+                    sc = None
+
+            if sc is None:
+                try:
+                    sc = r.avg_rpn()
+                except Exception:
+                    sc = None
+
+            try:
+                return float(sc) if sc is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        buckets = defaultdict(lambda: {
+            "responsible": "",
+            "count": 0,
+            "evaluated_count": 0,
+            "critical_count": 0,
+            "_sum_score": 0.0,
+            "_score_count": 0,
+            "critical_risk": None,
+            "critical_score": None,
+            "risks": [],
+        })
+
+        assigned_total = 0
+        evaluated_total = 0
+        critical_total = 0
+        all_score_sum = 0.0
+        all_score_count = 0
+
+        for r in risks:
+            name = (getattr(r, "responsible", None) or "").strip()
+            if not name:
+                continue
+
+            assigned_total += 1
+            score = _responsibility_risk_score(r)
+
+            row = buckets[name]
+            row["responsible"] = name
+            row["count"] += 1
+
+            risk_level = "Değerlendirilmedi"
+            level_key = "not_evaluated"
+
+            if score is not None:
+                row["evaluated_count"] += 1
+                row["_sum_score"] += score
+                row["_score_count"] += 1
+
+                evaluated_total += 1
+                all_score_sum += score
+                all_score_count += 1
+
+                # Uygulamanın 1–25 P×S eşikleriyle uyumlu.
+                if score <= 4:
+                    risk_level = "Düşük"
+                    level_key = "low"
+                elif score <= 10:
+                    risk_level = "Orta"
+                    level_key = "medium"
+                elif score <= 15:
+                    risk_level = "Yüksek"
+                    level_key = "high"
+                else:
+                    risk_level = "Çok Yüksek"
+                    level_key = "critical"
+                    row["critical_count"] += 1
+                    critical_total += 1
+
+                if (
+                    row["critical_score"] is None
+                    or score > row["critical_score"]
+                ):
+                    row["critical_score"] = score
+                    row["critical_risk"] = r
+
+            row["risks"].append({
+                "risk": r,
+                "score": score,
+                "level": risk_level,
+                "level_key": level_key,
+            })
+
+        rows = []
+
+        for data in buckets.values():
+            score_count = data.pop("_score_count")
+            score_sum = data.pop("_sum_score")
+
+            data["avg_score"] = (
+                score_sum / score_count
+                if score_count > 0
+                else None
+            )
+
+            data["workload_pct"] = (
+                (data["count"] / assigned_total) * 100.0
+                if assigned_total > 0
+                else 0.0
+            )
+
+            # Sorumlunun risklerini yüksek skordan düşüğe sırala.
+            data["risks"].sort(
+                key=lambda item: (
+                    item["score"] is None,
+                    -(item["score"] or 0.0),
+                    (item["risk"].title or "").lower(),
+                )
+            )
+
+            rows.append(data)
+
+        # Önce ortalama skor, sonra risk sayısı yüksek olan sorumlular.
+        rows.sort(
+            key=lambda x: (
+                x["avg_score"] is None,
+                -(x["avg_score"] or 0.0),
+                -x["count"],
+                x["responsible"].lower(),
+            )
+        )
+
+        stats = {
+            "responsible_count": len(rows),
+            "assigned_total": assigned_total,
+            "evaluated_total": evaluated_total,
+            "not_evaluated_total": max(assigned_total - evaluated_total, 0),
+            "critical_total": critical_total,
+            "average_score": (
+                all_score_sum / all_score_count
+                if all_score_count > 0
+                else None
+            ),
+            "max_workload": max(
+                (row["count"] for row in rows),
+                default=0
+            ),
+        }
+
+        return render_template(
+            "report_responsibility.html",
+            rows=rows,
+            stats=stats,
+        )
+
+
     @app.route("/reports/<int:risk_id>")
     def report_view(risk_id):
         r = Risk.query.get_or_404(risk_id)
@@ -3273,6 +3463,435 @@ def create_app():
     def schedule():
         ctx = build_schedule_context()
         return render_template("schedule.html", **ctx)
+
+
+    # -------------------------------------------------
+    #  Raporlar — Zaman Yönetimi Raporu
+    # -------------------------------------------------
+    @app.route("/reports/time")
+    def report_time():
+        """
+        Aktif projedeki zaman çizelgesi verilerini rapor formatında özetler.
+
+        Çıktı:
+        - Başlangıç / bitiş dönemi bulunan riskler
+        - Aylık risk yoğunluğu
+        - Kritik risk yoğunluğu ve çakışmalar
+        - En yoğun dönem
+        - Sorumlu bazında zamansal iş yükü
+        """
+        ctx = build_schedule_context()
+
+        months = ctx.get("months") or []
+        schedule_rows = ctx.get("rows") or []
+
+        month_stats = []
+        total_with_period = 0
+        total_without_period = 0
+        critical_with_period = 0
+
+        owner_month_load = defaultdict(lambda: defaultdict(int))
+
+        # Her ay için aktif ve kritik risk sayısını hesapla.
+        for ym in months:
+            active_count = 0
+            critical_count = 0
+
+            for item in schedule_rows:
+                active = item.get("active") or set()
+                if ym not in active:
+                    continue
+
+                active_count += 1
+
+                if item.get("grade") == "critical":
+                    critical_count += 1
+
+                risk = item.get("risk")
+                owner = (
+                    (getattr(risk, "responsible", None) or "").strip()
+                    if risk is not None
+                    else ""
+                )
+                if owner:
+                    owner_month_load[owner][ym] += 1
+
+            month_stats.append({
+                "ym": ym,
+                "active_count": active_count,
+                "critical_count": critical_count,
+                # Aynı ayda 2+ kritik risk varsa kritik çakışma kabul edilir.
+                "critical_overlap": critical_count >= 2,
+            })
+
+        # Risk bazında tarih kapsamı istatistikleri.
+        report_rows = []
+        for item in schedule_rows:
+            risk = item.get("risk")
+            active = item.get("active") or set()
+            start_ym = item.get("startYM") or ""
+            end_ym = item.get("endYM") or ""
+            grade = item.get("grade") or "acceptable"
+
+            has_period = bool(start_ym or end_ym)
+            if has_period:
+                total_with_period += 1
+                if grade == "critical":
+                    critical_with_period += 1
+            else:
+                total_without_period += 1
+
+            report_rows.append({
+                "risk": risk,
+                "startYM": start_ym,
+                "endYM": end_ym,
+                "active_month_count": len(active),
+                "grade": grade,
+            })
+
+        # En yoğun ay.
+        peak_month = None
+        if month_stats:
+            peak_month = max(
+                month_stats,
+                key=lambda x: (
+                    x["active_count"],
+                    x["critical_count"],
+                    x["ym"],
+                ),
+            )
+
+        # Kritik çakışma bulunan aylar.
+        overlap_months = [
+            item for item in month_stats
+            if item["critical_overlap"]
+        ]
+
+        # Sorumlu bazında zamansal iş yükü.
+        owner_rows = []
+        for owner, month_map in owner_month_load.items():
+            total_assignments = sum(month_map.values())
+            peak_load = max(month_map.values()) if month_map else 0
+
+            peak_months = sorted([
+                ym for ym, count in month_map.items()
+                if count == peak_load
+            ])
+
+            owner_rows.append({
+                "responsible": owner,
+                "temporal_load": total_assignments,
+                "peak_load": peak_load,
+                "peak_months": peak_months,
+                "month_map": dict(month_map),
+            })
+
+        owner_rows.sort(
+            key=lambda x: (
+                -x["peak_load"],
+                -x["temporal_load"],
+                x["responsible"].lower(),
+            )
+        )
+
+        stats = {
+            "total_risks": len(schedule_rows),
+            "with_period": total_with_period,
+            "without_period": total_without_period,
+            "critical_with_period": critical_with_period,
+            "overlap_month_count": len(overlap_months),
+            "peak_month": peak_month,
+            "month_count": len(months),
+        }
+
+        return render_template(
+            "report_time.html",
+            rows=report_rows,
+            month_stats=month_stats,
+            owner_rows=owner_rows,
+            overlap_months=overlap_months,
+            stats=stats,
+            months=months,
+            categories=ctx.get("categories") or [],
+            owners=ctx.get("owners") or [],
+            statuses=ctx.get("statuses") or [],
+            current_month=ctx.get("current_month"),
+            current_year=ctx.get("current_year"),
+        )
+
+
+    # -------------------------------------------------
+    #  Raporlar — Maliyet Raporu
+    # -------------------------------------------------
+    @app.route("/reports/cost")
+    def report_cost():
+        """
+        Aktif projedeki maliyet kayıtlarını rapor formatında özetler.
+
+        Çıktı:
+        - Toplam maliyet kayıtları
+        - Risk bağlantılı / bağlantısız maliyetler
+        - Para birimi bazında toplamlar
+        - Kategori bazında maliyet dağılımı
+        - Risk bazında maliyet dağılımı
+        - En yüksek maliyet kalemleri
+        - Tek sefer / aylık / yıllık maliyet görünümü
+
+        Not:
+        Farklı para birimleri birbirine çevrilmez; her para birimi
+        kendi toplamı içinde raporlanır.
+        """
+        project_id = _active_project_id()
+        if not project_id:
+            flash("Aktif proje bulunamadı. Önce proje seç.", "warning")
+            return redirect(url_for("dashboard"))
+
+        cost_items = (
+            CostItem.query
+            .filter(CostItem.project_id == project_id)
+            .order_by(CostItem.id.desc())
+            .all()
+        )
+
+        risks = (
+            Risk.query
+            .filter(Risk.project_id == project_id)
+            .order_by(Risk.id.desc())
+            .all()
+        )
+        risk_map = {r.id: r for r in risks}
+
+        def _dec(value):
+            try:
+                if isinstance(value, Decimal):
+                    return value
+                return Decimal(str(value if value is not None else 0))
+            except Exception:
+                return Decimal("0")
+
+        def _currency(value):
+            cur = (value or "TRY").strip().upper()
+            return cur or "TRY"
+
+        def _frequency(value):
+            return (value or "Tek Sefer").strip() or "Tek Sefer"
+
+        # -------------------------------------------------
+        # Temel toplamlar
+        # -------------------------------------------------
+        currency_totals = defaultdict(lambda: Decimal("0"))
+        annual_currency_totals = defaultdict(lambda: Decimal("0"))
+        category_currency_totals = defaultdict(
+            lambda: defaultdict(lambda: Decimal("0"))
+        )
+        risk_currency_totals = defaultdict(
+            lambda: defaultdict(lambda: Decimal("0"))
+        )
+        frequency_counts = defaultdict(int)
+        frequency_currency_totals = defaultdict(
+            lambda: defaultdict(lambda: Decimal("0"))
+        )
+
+        linked_count = 0
+        unlinked_count = 0
+        report_rows = []
+
+        for item in cost_items:
+            cur = _currency(getattr(item, "currency", None))
+            freq = _frequency(getattr(item, "frequency", None))
+            category = (getattr(item, "category", None) or "Diğer").strip() or "Diğer"
+
+            total = _dec(getattr(item, "total", None))
+
+            # total eski kayıtlarda boş ise qty * unit_price fallback
+            if total == 0:
+                qty = _dec(getattr(item, "qty", None))
+                unit_price = _dec(getattr(item, "unit_price", None))
+                try:
+                    total = qty * unit_price
+                except Exception:
+                    total = Decimal("0")
+
+            annual_total = total * _annual_factor(freq)
+
+            currency_totals[cur] += total
+            annual_currency_totals[cur] += annual_total
+            category_currency_totals[category][cur] += total
+            frequency_counts[freq] += 1
+            frequency_currency_totals[freq][cur] += total
+
+            risk = None
+            risk_id = getattr(item, "risk_id", None)
+            if risk_id:
+                risk = risk_map.get(risk_id)
+                if risk is not None:
+                    linked_count += 1
+                    risk_currency_totals[risk.id][cur] += total
+                else:
+                    # Proje dışı / silinmiş riske işaret eden kayıt güvenli şekilde
+                    # bağlantısız kabul edilir.
+                    unlinked_count += 1
+            else:
+                unlinked_count += 1
+
+            report_rows.append({
+                "item": item,
+                "risk": risk,
+                "currency": cur,
+                "frequency": freq,
+                "category": category,
+                "total": float(total),
+                "annual_total": float(annual_total),
+            })
+
+        # -------------------------------------------------
+        # Kategori dağılımı
+        # -------------------------------------------------
+        category_rows = []
+        for category, totals in category_currency_totals.items():
+            category_rows.append({
+                "category": category,
+                "count": sum(
+                    1 for row in report_rows
+                    if row["category"] == category
+                ),
+                "totals": [
+                    {
+                        "currency": cur,
+                        "total": float(total),
+                    }
+                    for cur, total in sorted(totals.items())
+                ],
+            })
+
+        category_rows.sort(
+            key=lambda row: (
+                -max(
+                    [x["total"] for x in row["totals"]] or [0]
+                ),
+                row["category"].lower(),
+            )
+        )
+
+        # -------------------------------------------------
+        # Risk bazında maliyet dağılımı
+        # -------------------------------------------------
+        risk_rows = []
+        for risk_id, totals in risk_currency_totals.items():
+            risk = risk_map.get(risk_id)
+            if risk is None:
+                continue
+
+            risk_rows.append({
+                "risk": risk,
+                "totals": [
+                    {
+                        "currency": cur,
+                        "total": float(total),
+                    }
+                    for cur, total in sorted(totals.items())
+                ],
+                "cost_item_count": sum(
+                    1 for row in report_rows
+                    if row["risk"] is not None
+                    and row["risk"].id == risk_id
+                ),
+            })
+
+        risk_rows.sort(
+            key=lambda row: (
+                -max(
+                    [x["total"] for x in row["totals"]] or [0]
+                ),
+                (getattr(row["risk"], "title", "") or "").lower(),
+            )
+        )
+
+        # -------------------------------------------------
+        # Para birimi özeti
+        # -------------------------------------------------
+        currency_rows = []
+        all_currencies = sorted(
+            set(currency_totals.keys()) | set(annual_currency_totals.keys())
+        )
+        for cur in all_currencies:
+            currency_rows.append({
+                "currency": cur,
+                "total": float(currency_totals[cur]),
+                "annual_total": float(annual_currency_totals[cur]),
+                "count": sum(
+                    1 for row in report_rows
+                    if row["currency"] == cur
+                ),
+            })
+
+        currency_rows.sort(key=lambda row: (-row["total"], row["currency"]))
+
+        # -------------------------------------------------
+        # Frekans özeti
+        # -------------------------------------------------
+        frequency_rows = []
+        for freq, count in frequency_counts.items():
+            totals = frequency_currency_totals[freq]
+            frequency_rows.append({
+                "frequency": freq,
+                "count": count,
+                "totals": [
+                    {
+                        "currency": cur,
+                        "total": float(total),
+                    }
+                    for cur, total in sorted(totals.items())
+                ],
+            })
+
+        frequency_order = {"Tek Sefer": 0, "Aylık": 1, "Yıllık": 2}
+        frequency_rows.sort(
+            key=lambda row: (
+                frequency_order.get(row["frequency"], 99),
+                row["frequency"].lower(),
+            )
+        )
+
+        # -------------------------------------------------
+        # En yüksek maliyet kalemleri
+        # Farklı para birimlerini tek parasal toplam gibi karşılaştırmak
+        # yanıltıcı olabileceği için para birimi içinde sıralıyoruz.
+        # -------------------------------------------------
+        top_items_by_currency = {}
+        for cur in all_currencies:
+            cur_rows = [
+                row for row in report_rows
+                if row["currency"] == cur
+            ]
+            cur_rows.sort(
+                key=lambda row: (
+                    -row["total"],
+                    (getattr(row["item"], "title", "") or "").lower(),
+                )
+            )
+            top_items_by_currency[cur] = cur_rows[:10]
+
+        stats = {
+            "total_items": len(cost_items),
+            "linked_count": linked_count,
+            "unlinked_count": unlinked_count,
+            "risk_count_with_cost": len(risk_rows),
+            "category_count": len(category_rows),
+            "currency_count": len(currency_rows),
+        }
+
+        return render_template(
+            "report_cost.html",
+            rows=report_rows,
+            currency_rows=currency_rows,
+            category_rows=category_rows,
+            risk_rows=risk_rows,
+            frequency_rows=frequency_rows,
+            top_items_by_currency=top_items_by_currency,
+            stats=stats,
+            cost_categories=COST_CATEGORIES,
+        )
 
 
     # -------------------------------------------------
