@@ -991,7 +991,52 @@
       </div>
     </section>
 
-    <section class="tl-flow" aria-label="Zamansal risk yönetimi ve zaman çizelgesi modülü bilgi akışı">
+    {# ============================================================
+       DİNAMİK GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 4. MODÜL
+       Bu alan, mevcut filtrelenmiş zaman çizelgesi verisini canlı özetler.
+       ============================================================ #}
+
+    {% set flow_ns = namespace(
+      total=0,
+      dated=0,
+      undated=0,
+      critical=0,
+      active_in_selected=0,
+      total_active_months=0,
+      owners=[]
+    ) %}
+
+    {% for row in rows_safe %}
+      {% set rr = row.risk %}
+      {% set flow_ns.total = flow_ns.total + 1 %}
+
+      {% if row.startYM or row.endYM or rr.start_month or rr.end_month %}
+        {% set flow_ns.dated = flow_ns.dated + 1 %}
+      {% else %}
+        {% set flow_ns.undated = flow_ns.undated + 1 %}
+      {% endif %}
+
+      {% if row.grade == 'critical' %}
+        {% set flow_ns.critical = flow_ns.critical + 1 %}
+      {% endif %}
+
+      {% set selected_ym = '%04d-%02d'|format(cur_y, cur_m) %}
+      {% if selected_ym in (row.active or []) %}
+        {% set flow_ns.active_in_selected = flow_ns.active_in_selected + 1 %}
+      {% endif %}
+
+      {% set flow_ns.total_active_months = flow_ns.total_active_months + ((row.active or [])|length) %}
+
+      {% set owner_name = rr.owner or rr.responsible or '' %}
+      {% if owner_name and owner_name not in flow_ns.owners %}
+        {% set flow_ns.owners = flow_ns.owners + [owner_name] %}
+      {% endif %}
+    {% endfor %}
+
+    {% set avg_duration = (flow_ns.total_active_months / flow_ns.dated) if flow_ns.dated > 0 else 0 %}
+    {% set selected_month_name = month_names[cur_m - 1] if cur_m >= 1 and cur_m <= 12 else cur_m %}
+
+    <section class="tl-flow" aria-label="Zamansal risk yönetimi ve zaman çizelgesi modülü canlı bilgi akışı">
       <article class="tl-flow-card">
         <div class="tl-flow-head">
           <div class="tl-flow-icon" aria-hidden="true">
@@ -999,15 +1044,37 @@
           </div>
           <div>
             <h3 class="tl-flow-title">Girdi</h3>
-            <div class="tl-flow-sub">Zaman verileri</div>
+            <div class="tl-flow-sub">Canlı zaman verileri</div>
           </div>
         </div>
 
         <ul class="tl-flow-list">
-          <li>Risk kayıtları ile proje / risk başlangıç ve bitiş tarihleri</li>
-          <li>Risk sorumlusu, kategori, durum ve risk seviyesi bilgileri</li>
-          <li>Olasılık / şiddet değerlendirmelerinden üretilen RPN değerleri</li>
-          <li>Ay ve yıl bazında izlenecek zaman aralığı</li>
+          <li>
+            <strong>Risk sayısı:</strong> {{ flow_ns.total }}
+            · <strong>Tarihli:</strong> {{ flow_ns.dated }}
+            · <strong>Tarihsiz:</strong> {{ flow_ns.undated }}
+          </li>
+
+          <li>
+            <strong>İzlenen dönem:</strong> {{ selected_month_name }} {{ cur_y }}
+            · <strong>Görünüm:</strong> {{ 'Takvim' if view == 'calendar' else 'Tablo' }}
+          </li>
+
+          <li>
+            <strong>Sorumlu sayısı:</strong> {{ flow_ns.owners|length }}
+            · <strong>Kritik risk:</strong> {{ flow_ns.critical }}
+          </li>
+
+          <li>
+            <strong>Aktif filtreler:</strong>
+            {% set active_filters = [] %}
+            {% if request.args.get('q') %}{% set active_filters = active_filters + ['Arama'] %}{% endif %}
+            {% if request.args.get('category') %}{% set active_filters = active_filters + ['Kategori'] %}{% endif %}
+            {% if request.args.get('owner') %}{% set active_filters = active_filters + ['Sahip'] %}{% endif %}
+            {% if request.args.get('grade') %}{% set active_filters = active_filters + ['Seviye'] %}{% endif %}
+            {% if request.args.get('status') %}{% set active_filters = active_filters + ['Durum'] %}{% endif %}
+            {{ active_filters|join(', ') if active_filters else 'Filtre uygulanmadı' }}
+          </li>
         </ul>
       </article>
 
@@ -1018,15 +1085,30 @@
           </div>
           <div>
             <h3 class="tl-flow-title">İşlem Süreci</h3>
-            <div class="tl-flow-sub">Zamansal analiz</div>
+            <div class="tl-flow-sub">Canlı zamansal analiz</div>
           </div>
         </div>
 
         <ul class="tl-flow-list">
-          <li>Risklerin başlangıç ve bitiş dönemlerine göre zaman çizelgesine yerleştirilmesi</li>
-          <li>Aylık dağılımın tablo ve takvim görünümünde izlenmesi</li>
-          <li>Kritik risklerin aynı dönemlerdeki çakışmalarının değerlendirilmesi</li>
-          <li>Risk yoğunluğu, zaman yükü ve sorumlu bazlı dönemsel dağılımın incelenmesi</li>
+          <li>
+            Tarihi olan <strong>{{ flow_ns.dated }}</strong> risk,
+            başlangıç / bitiş dönemlerine göre aylık zaman eksenine yerleştirildi.
+          </li>
+
+          <li>
+            Seçili <strong>{{ selected_month_name }} {{ cur_y }}</strong> döneminde
+            <strong>{{ flow_ns.active_in_selected }}</strong> risk aktif görünüyor.
+          </li>
+
+          <li>
+            Kritik seviyedeki <strong>{{ flow_ns.critical }}</strong> risk,
+            aynı dönemlerde oluşabilecek yoğunluk ve çakışma açısından izleniyor.
+          </li>
+
+          <li>
+            Tarihli risklerin ortalama zaman yayılımı
+            <strong>{{ '%.1f'|format(avg_duration) }} ay</strong> olarak hesaplandı.
+          </li>
         </ul>
       </article>
 
@@ -1037,15 +1119,37 @@
           </div>
           <div>
             <h3 class="tl-flow-title">Çıktı</h3>
-            <div class="tl-flow-sub">Zaman yönetimi sonuçları</div>
+            <div class="tl-flow-sub">Güncel zaman yönetimi sonucu</div>
           </div>
         </div>
 
         <ul class="tl-flow-list">
-          <li>Risklerin aylık ve dönemsel zaman çizelgesi</li>
-          <li>Kritik risk çakışmaları ve yoğun dönemlerin görünümü</li>
-          <li>Sorumlu / risk bazlı zamansal iş yükü özeti</li>
-          <li>PDF, takvim ve hatırlatıcı çıktılarıyla desteklenen zaman yönetimi raporu</li>
+          <li>
+            <strong>{{ flow_ns.active_in_selected }}</strong> risk
+            {{ selected_month_name }} {{ cur_y }} döneminde zaman çizelgesinde aktif.
+          </li>
+
+          <li>
+            <strong>Kritik yoğunluk:</strong>
+            {% if flow_ns.critical == 0 %}
+              Kritik risk bulunmuyor
+            {% elif flow_ns.critical == 1 %}
+              1 kritik risk izleniyor
+            {% else %}
+              {{ flow_ns.critical }} kritik risk izleniyor
+            {% endif %}
+          </li>
+
+          <li>
+            <strong>Zaman kapsamı:</strong>
+            {{ flow_ns.dated }} risk planlanmış,
+            {{ flow_ns.undated }} risk için tarih bilgisi eksik.
+          </li>
+
+          <li>
+            <strong>Rapor çıktısı:</strong>
+            mevcut filtrelerle tablo / takvim görünümü ve PDF çıktısı hazır.
+          </li>
         </ul>
       </article>
     </section>

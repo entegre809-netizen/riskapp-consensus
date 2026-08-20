@@ -584,7 +584,62 @@
       </div>
     </section>
 
-    <section class="cost-flow" aria-label="Risk maliyet yönetimi ve önceliklendirme modülü bilgi akışı">
+    {# ============================================================
+       DİNAMİK GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 5. MODÜL
+       Bu alan mevcut maliyet verisini canlı özetler.
+       ============================================================ #}
+
+    {% set flow_ns = namespace(
+      total_items=0,
+      linked_items=0,
+      unlinked_items=0,
+      try_total=0.0,
+      usd_total=0.0,
+      eur_total=0.0,
+      categories=[],
+      currencies=[],
+      frequencies=[],
+      risk_ids=[]
+    ) %}
+
+    {% for c in (costs or []) %}
+      {% set flow_ns.total_items = flow_ns.total_items + 1 %}
+
+      {% if c.risk_id %}
+        {% set flow_ns.linked_items = flow_ns.linked_items + 1 %}
+        {% if c.risk_id not in flow_ns.risk_ids %}
+          {% set flow_ns.risk_ids = flow_ns.risk_ids + [c.risk_id] %}
+        {% endif %}
+      {% else %}
+        {% set flow_ns.unlinked_items = flow_ns.unlinked_items + 1 %}
+      {% endif %}
+
+      {% set cur = (c.currency or 'TRY')|upper %}
+      {% set total_val = (c.total if c.total is not none else ((c.qty or 0) * (c.unit_price or 0)))|float %}
+
+      {% if cur == 'TRY' %}
+        {% set flow_ns.try_total = flow_ns.try_total + total_val %}
+      {% elif cur == 'USD' %}
+        {% set flow_ns.usd_total = flow_ns.usd_total + total_val %}
+      {% elif cur == 'EUR' %}
+        {% set flow_ns.eur_total = flow_ns.eur_total + total_val %}
+      {% endif %}
+
+      {% if c.category and c.category not in flow_ns.categories %}
+        {% set flow_ns.categories = flow_ns.categories + [c.category] %}
+      {% endif %}
+
+      {% if cur and cur not in flow_ns.currencies %}
+        {% set flow_ns.currencies = flow_ns.currencies + [cur] %}
+      {% endif %}
+
+      {% set freq = c.frequency or 'Tek Sefer' %}
+      {% if freq not in flow_ns.frequencies %}
+        {% set flow_ns.frequencies = flow_ns.frequencies + [freq] %}
+      {% endif %}
+    {% endfor %}
+
+    <section class="cost-flow" aria-label="Risk maliyet yönetimi ve önceliklendirme modülü canlı bilgi akışı">
       <article class="cost-flow-card">
         <div class="cost-flow-head">
           <div class="cost-flow-icon" aria-hidden="true">
@@ -592,15 +647,31 @@
           </div>
           <div>
             <h3 class="cost-flow-title">Girdi</h3>
-            <div class="cost-flow-sub">Maliyet ve risk verileri</div>
+            <div class="cost-flow-sub">Canlı maliyet verileri</div>
           </div>
         </div>
 
         <ul class="cost-flow-list">
-          <li>Maliyet kayıtları, miktar, birim fiyat, para birimi ve sıklık bilgileri</li>
-          <li>Risk kayıtları, risk skoru / RPN ve risk seviyesi</li>
-          <li>Önlem, etki ve aksiyonlarla ilişkili maliyet kalemleri</li>
-          <li>Kategori ve yıllıklaştırma / döviz dönüşüm parametreleri</li>
+          <li>
+            <strong>Maliyet kaydı:</strong> {{ flow_ns.total_items }}
+            · <strong>Riske bağlı:</strong> {{ flow_ns.linked_items }}
+            · <strong>Bağlantısız:</strong> {{ flow_ns.unlinked_items }}
+          </li>
+
+          <li>
+            <strong>Maliyetli risk:</strong> {{ flow_ns.risk_ids|length }}
+            · <strong>Kategori:</strong> {{ flow_ns.categories|length }}
+          </li>
+
+          <li>
+            <strong>Para birimleri:</strong>
+            {{ flow_ns.currencies|join(', ') if flow_ns.currencies else 'Kayıt yok' }}
+          </li>
+
+          <li>
+            <strong>Sıklık tipleri:</strong>
+            {{ flow_ns.frequencies|join(', ') if flow_ns.frequencies else 'Kayıt yok' }}
+          </li>
         </ul>
       </article>
 
@@ -611,15 +682,27 @@
           </div>
           <div>
             <h3 class="cost-flow-title">İşlem Süreci</h3>
-            <div class="cost-flow-sub">Maliyet ve öncelik analizi</div>
+            <div class="cost-flow-sub">Canlı maliyet analizi</div>
           </div>
         </div>
 
         <ul class="cost-flow-list">
-          <li>Risk bazlı maliyetlerin hesaplanması ve yıllıklaştırılması</li>
-          <li>Kategori ve para birimi bazında maliyet dağılımının değerlendirilmesi</li>
-          <li>Risk puanı × maliyet yaklaşımıyla öncelik skorunun oluşturulması</li>
-          <li>Pareto, kümülatif yüzde ve kritik maliyet/risk dengesinin analiz edilmesi</li>
+          <li>
+            Her kayıt için <strong>miktar × birim fiyat</strong> üzerinden toplam maliyet hesaplanıyor.
+          </li>
+
+          <li>
+            Tek sefer, aylık ve yıllık kayıtlar mevcut yıllıklaştırma politikasına göre değerlendiriliyor.
+          </li>
+
+          <li>
+            Risk bağlantısı bulunan <strong>{{ flow_ns.linked_items }}</strong> maliyet,
+            risk puanı ile eşleştirilerek Pareto öncelik analizinde kullanılabiliyor.
+          </li>
+
+          <li>
+            Para birimleri birbirine karıştırılmadan TRY / USD / EUR bazında ayrı izleniyor.
+          </li>
         </ul>
       </article>
 
@@ -630,15 +713,30 @@
           </div>
           <div>
             <h3 class="cost-flow-title">Çıktı</h3>
-            <div class="cost-flow-sub">Önceliklendirme sonuçları</div>
+            <div class="cost-flow-sub">Güncel maliyet sonucu</div>
           </div>
         </div>
 
         <ul class="cost-flow-list">
-          <li>Risk bazlı ve kategori bazlı maliyet özetleri</li>
-          <li>Pareto analizi, kümülatif yüzde ve öncelik sıralaması</li>
-          <li>Kritik maliyet oluşturan risklerin ve aksiyonların görünümü</li>
-          <li>Bütçe planlamasına ve yönetim kararlarına temel olacak maliyet önerileri</li>
+          <li>
+            <strong>TRY toplam:</strong> {{ '%.2f'|format(flow_ns.try_total) }}
+          </li>
+
+          <li>
+            <strong>USD toplam:</strong> {{ '%.2f'|format(flow_ns.usd_total) }}
+            · <strong>EUR toplam:</strong> {{ '%.2f'|format(flow_ns.eur_total) }}
+          </li>
+
+          <li>
+            <strong>Risk kapsamı:</strong>
+            {{ flow_ns.risk_ids|length }} risk maliyet verisine bağlı;
+            {{ flow_ns.unlinked_items }} kayıt henüz bir riske bağlanmamış.
+          </li>
+
+          <li>
+            <strong>Rapor çıktısı:</strong>
+            filtrelenebilir maliyet tablosu, CSV dışa aktarım ve Pareto / Pareto Front analizi hazır.
+          </li>
         </ul>
       </article>
     </section>

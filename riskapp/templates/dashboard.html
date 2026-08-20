@@ -1057,7 +1057,58 @@
       </div>
     </section>
 
-    <section class="dash-flow" aria-label="Gösterge paneli ve görselleştirme modülü bilgi akışı">
+    {# ============================================================
+       DİNAMİK GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 6. MODÜL
+       Bu bölüm mevcut dashboard verisini canlı özetler.
+       ============================================================ #}
+
+    {% set flow_ns = namespace(
+      evaluated=0,
+      unevaluated=0,
+      categories=[],
+      statuses=[],
+      responsibles=[],
+      top_title='—',
+      top_score=None,
+      active_count=0
+    ) %}
+
+    {% for r in (risks or []) %}
+      {% set sc_raw = r.score() %}
+      {% if sc_raw is not none %}
+        {% set flow_ns.evaluated = flow_ns.evaluated + 1 %}
+        {% set sc25 = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
+        {% if flow_ns.top_score is none or sc25 > flow_ns.top_score %}
+          {% set flow_ns.top_score = sc25 %}
+          {% set flow_ns.top_title = r.title %}
+        {% endif %}
+      {% else %}
+        {% set flow_ns.unevaluated = flow_ns.unevaluated + 1 %}
+      {% endif %}
+
+      {% if r.category and r.category not in flow_ns.categories %}
+        {% set flow_ns.categories = flow_ns.categories + [r.category] %}
+      {% endif %}
+
+      {% if r.status and r.status not in flow_ns.statuses %}
+        {% set flow_ns.statuses = flow_ns.statuses + [r.status] %}
+      {% endif %}
+
+      {% set resp_name = r.owner or r.responsible or '' %}
+      {% if resp_name and resp_name not in flow_ns.responsibles %}
+        {% set flow_ns.responsibles = flow_ns.responsibles + [resp_name] %}
+      {% endif %}
+
+      {% set st = (r.status or '')|lower %}
+      {% if 'active' in st or 'açık' in st or 'acik' in st %}
+        {% set flow_ns.active_count = flow_ns.active_count + 1 %}
+      {% endif %}
+    {% endfor %}
+
+    {% set critical_ratio = ((ns.crit / ns.total) * 100) if ns.total > 0 else 0 %}
+    {% set evaluated_ratio = ((flow_ns.evaluated / ns.total) * 100) if ns.total > 0 else 0 %}
+
+    <section class="dash-flow" aria-label="Gösterge paneli ve görselleştirme modülü canlı bilgi akışı">
       <article class="dash-flow-card">
         <div class="dash-flow-head">
           <div class="dash-flow-icon" aria-hidden="true">
@@ -1065,15 +1116,32 @@
           </div>
           <div>
             <h3 class="dash-flow-title">Girdi</h3>
-            <div class="dash-flow-sub">Toplanan risk verileri</div>
+            <div class="dash-flow-sub">Canlı yönetim verileri</div>
           </div>
         </div>
 
         <ul class="dash-flow-list">
-          <li>Tüm risk kayıtları, kategori, durum ve sorumlu bilgileri</li>
-          <li>Olasılık / şiddet değerleri, risk skorları ve RPN sonuçları</li>
-          <li>Zaman, maliyet ve sorumluluk modüllerinden gelen özet veriler</li>
-          <li>Kategori ve risk seviyesi dağılımlarına ait güncel kayıtlar</li>
+          <li>
+            <strong>Toplam risk:</strong> {{ ns.total }}
+            · <strong>Değerlendirilmiş:</strong> {{ flow_ns.evaluated }}
+            · <strong>Bekleyen:</strong> {{ flow_ns.unevaluated }}
+          </li>
+
+          <li>
+            <strong>Kategori:</strong> {{ flow_ns.categories|length }}
+            · <strong>Durum tipi:</strong> {{ flow_ns.statuses|length }}
+            · <strong>Sorumlu:</strong> {{ flow_ns.responsibles|length }}
+          </li>
+
+          <li>
+            <strong>Aktif risk:</strong> {{ flow_ns.active_count }}
+            · <strong>Kritik risk:</strong> {{ ns.crit }}
+          </li>
+
+          <li>
+            <strong>Veri kapsama oranı:</strong> {{ '%.1f'|format(evaluated_ratio) }}%
+            riskin skoru mevcut.
+          </li>
         </ul>
       </article>
 
@@ -1084,15 +1152,29 @@
           </div>
           <div>
             <h3 class="dash-flow-title">İşlem Süreci</h3>
-            <div class="dash-flow-sub">Gösterge ve görselleştirme</div>
+            <div class="dash-flow-sub">Canlı risk analizi</div>
           </div>
         </div>
 
         <ul class="dash-flow-list">
-          <li>Toplam risk, seviye dağılımı ve ortalama risk skorunun hesaplanması</li>
-          <li>Olasılık × şiddet verilerinin 5×5 risk matrisinde konumlandırılması</li>
-          <li>Kategori ve risk seviyesi dağılımlarının görselleştirilmesi</li>
-          <li>Kritik risk yoğunluğu ve yönetim göstergelerinin tek ekranda birleştirilmesi</li>
+          <li>
+            Değerlendirilmiş <strong>{{ flow_ns.evaluated }}</strong> riskin skorları
+            1–25 ölçeğine normalize edilerek seviye dağılımı oluşturuldu.
+          </li>
+
+          <li>
+            Riskler 1–4 Düşük, 5–10 Orta, 11–15 Yüksek ve 16–25 Kritik
+            eşiklerine göre sınıflandırıldı.
+          </li>
+
+          <li>
+            Son P / S değerlendirmeleri kullanılarak riskler 5×5 risk matrisine yerleştirildi.
+          </li>
+
+          <li>
+            Kategori, durum ve risk seviyesi verileri yönetici görünümünde
+            tek ekranda birleştirildi.
+          </li>
         </ul>
       </article>
 
@@ -1103,15 +1185,38 @@
           </div>
           <div>
             <h3 class="dash-flow-title">Çıktı</h3>
-            <div class="dash-flow-sub">Yönetici görünümü</div>
+            <div class="dash-flow-sub">Güncel yönetici özeti</div>
           </div>
         </div>
 
         <ul class="dash-flow-list">
-          <li>Toplam, kritik, yüksek, orta ve düşük risk KPI’ları</li>
-          <li>Ortalama risk skoru ve 5×5 risk matrisi</li>
-          <li>Kategori / seviye dağılımları ve risk yoğunluğu görünümü</li>
-          <li>Yönetim kararlarına temel olacak güncel risk ve ekonomik etki özeti</li>
+          <li>
+            <strong>Ortalama risk skoru:</strong>
+            {% if avg is not none %}
+              {{ '%.2f'|format(avg) }}
+            {% else %}
+              Henüz hesaplanamadı
+            {% endif %}
+          </li>
+
+          <li>
+            <strong>Kritik yoğunluk:</strong>
+            {{ ns.crit }} risk · {{ '%.1f'|format(critical_ratio) }}%
+          </li>
+
+          <li>
+            <strong>En kritik risk:</strong>
+            {% if flow_ns.top_score is not none %}
+              {{ flow_ns.top_title }} · {{ '%.2f'|format(flow_ns.top_score) }}
+            {% else %}
+              Henüz belirlenemedi
+            {% endif %}
+          </li>
+
+          <li>
+            <strong>Yönetici çıktısı:</strong>
+            KPI’lar, 5×5 matris, kategori / seviye dağılımları ve güncel risk listesi hazır.
+          </li>
         </ul>
       </article>
     </section>

@@ -707,7 +707,48 @@
     </div>
   </section>
 
-  <section class="rs-flow" aria-label="Risk izleme ve sorumluluk yönetimi modülü bilgi akışı">
+  {# ============================================================
+     DİNAMİK GİRDİ / İŞLEM SÜRECİ / ÇIKTI · 3. MODÜL
+     Bu bölüm mevcut sorumluluk verisini canlı özetler.
+     ============================================================ #}
+
+  {% set flow_ns = namespace(
+    busiest_name='—',
+    busiest_count=0,
+    critical_owners=0,
+    evaluated_owners=0,
+    total_avg_sum=0.0,
+    top_risk_title='—',
+    top_risk_score=None
+  ) %}
+
+  {% for row in rows_safe %}
+    {% if row.count is not none and row.count > flow_ns.busiest_count %}
+      {% set flow_ns.busiest_count = row.count %}
+      {% set flow_ns.busiest_name = row.responsible or '—' %}
+    {% endif %}
+
+    {% if row.critical %}
+      {% set flow_ns.critical_owners = flow_ns.critical_owners + 1 %}
+      {% set cr_score = row.critical.score() %}
+      {% if cr_score is not none %}
+        {% if flow_ns.top_risk_score is none or cr_score > flow_ns.top_risk_score %}
+          {% set flow_ns.top_risk_score = cr_score %}
+          {% set flow_ns.top_risk_title = row.critical.title %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {% if row.avg_rpn is not none %}
+      {% set flow_ns.evaluated_owners = flow_ns.evaluated_owners + 1 %}
+      {% set flow_ns.total_avg_sum = flow_ns.total_avg_sum + (row.avg_rpn|float) %}
+    {% endif %}
+  {% endfor %}
+
+  {% set live_avg_rpn = (flow_ns.total_avg_sum / flow_ns.evaluated_owners) if flow_ns.evaluated_owners > 0 else none %}
+  {% set avg_load = (total_risks / total_resp) if total_resp > 0 else 0 %}
+
+  <section class="rs-flow" aria-label="Risk izleme ve sorumluluk yönetimi modülü canlı bilgi akışı">
     <article class="rs-flow-card">
       <div class="rs-flow-head">
         <div class="rs-flow-icon" aria-hidden="true">
@@ -715,15 +756,33 @@
         </div>
         <div>
           <h3 class="rs-flow-title">Girdi</h3>
-          <div class="rs-flow-sub">Sorumluluk verileri</div>
+          <div class="rs-flow-sub">Canlı sorumluluk verileri</div>
         </div>
       </div>
 
       <ul class="rs-flow-list">
-        <li>Tanımlanmış risk kayıtları ve atanmış sorumlu kişi / ekip bilgileri</li>
-        <li>Risk puanları, RPN değerleri ve risk seviyeleri</li>
-        <li>Risklerin mevcut durum ve kategori bilgileri</li>
-        <li>Kişi bazlı mevcut risk yükü ve kritik risk kayıtları</li>
+        <li>
+          <strong>Sorumlu sayısı:</strong> {{ total_resp }}
+          · <strong>Atanmış risk:</strong> {{ total_risks }}
+        </li>
+
+        <li>
+          <strong>Değerlendirmesi bulunan sorumlu:</strong> {{ flow_ns.evaluated_owners }}
+          · <strong>Kritik riski bulunan:</strong> {{ flow_ns.critical_owners }}
+        </li>
+
+        <li>
+          <strong>Kişi / ekip başına ortalama yük:</strong>
+          {{ '%.2f'|format(avg_load) }} risk
+        </li>
+
+        <li>
+          <strong>En yoğun sorumlu:</strong>
+          {{ flow_ns.busiest_name }}
+          {% if flow_ns.busiest_count > 0 %}
+            · {{ flow_ns.busiest_count }} risk
+          {% endif %}
+        </li>
       </ul>
     </article>
 
@@ -734,15 +793,36 @@
         </div>
         <div>
           <h3 class="rs-flow-title">İşlem Süreci</h3>
-          <div class="rs-flow-sub">Sorumluluk yönetimi</div>
+          <div class="rs-flow-sub">Canlı iş yükü analizi</div>
         </div>
       </div>
 
       <ul class="rs-flow-list">
-        <li>Risk sahibi / sorumlu kişi veya ekibin belirlenmesi ve izlenmesi</li>
-        <li>Sorumlu bazında toplam risk sayısının ve iş yükünün hesaplanması</li>
-        <li>Ortalama RPN değerlerinin karşılaştırılması</li>
-        <li>Her sorumlunun en kritik riskinin ve risk yoğunluğunun belirlenmesi</li>
+        <li>
+          <strong>{{ total_risks }}</strong> atanmış risk,
+          sorumlu kişi / ekip bazında gruplanarak iş yükü dağılımı oluşturuldu.
+        </li>
+
+        <li>
+          Her sorumlunun risk sayısı ve mevcut RPN değerleri kullanılarak
+          ortalama risk yükü hesaplandı.
+        </li>
+
+        <li>
+          Genel sorumlu bazlı ortalama RPN:
+          <strong>
+            {% if live_avg_rpn is not none %}
+              {{ '%.2f'|format(live_avg_rpn) }}
+            {% else %}
+              Henüz hesaplanamadı
+            {% endif %}
+          </strong>
+        </li>
+
+        <li>
+          Her sorumlunun en yüksek skorlu riski belirlenerek
+          kritik sorumluluk noktaları karşılaştırıldı.
+        </li>
       </ul>
     </article>
 
@@ -753,15 +833,41 @@
         </div>
         <div>
           <h3 class="rs-flow-title">Çıktı</h3>
-          <div class="rs-flow-sub">İzleme sonuçları</div>
+          <div class="rs-flow-sub">Güncel sorumluluk sonucu</div>
         </div>
       </div>
 
       <ul class="rs-flow-list">
-        <li>Sorumlu bazlı risk listesi ve toplam atama sayıları</li>
-        <li>Kişi / ekip bazında ortalama risk skoru ve RPN seviyesi</li>
-        <li>Kritik riski bulunan sorumluların görünümü</li>
-        <li>İş yükü, sorumluluk dağılımı ve yönetim raporlamasına temel olacak özet</li>
+        <li>
+          <strong>En yüksek iş yükü:</strong>
+          {{ flow_ns.busiest_name }}
+          {% if flow_ns.busiest_count > 0 %}
+            · {{ flow_ns.busiest_count }} risk
+          {% endif %}
+        </li>
+
+        <li>
+          <strong>Kritik sorumluluk:</strong>
+          {% if flow_ns.critical_owners > 0 %}
+            {{ flow_ns.critical_owners }} sorumlu kritik risk taşıyor
+          {% else %}
+            Kritik risk taşıyan sorumlu bulunmuyor
+          {% endif %}
+        </li>
+
+        <li>
+          <strong>En kritik risk:</strong>
+          {% if flow_ns.top_risk_score is not none %}
+            {{ flow_ns.top_risk_title }} · RPN {{ '%.2f'|format(flow_ns.top_risk_score) }}
+          {% else %}
+            Henüz belirlenemedi
+          {% endif %}
+        </li>
+
+        <li>
+          <strong>Rapor çıktısı:</strong>
+          sorumlu bazlı risk yükü, ortalama RPN ve kritik risk özeti hazır.
+        </li>
       </ul>
     </article>
   </section>

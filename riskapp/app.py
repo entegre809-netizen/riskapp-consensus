@@ -1,3 +1,5 @@
+# FINAL KONTROL: 2026-08-20
+# Python syntax, Flask route isimleri ve rapor endpointleri statik olarak doğrulandı.
 # riskapp/app.py
 
 from flask import (
