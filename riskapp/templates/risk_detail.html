@@ -1346,9 +1346,54 @@
     }
   }
 
+  /* ============================================================
+     ADIM 1 · OTOMATİK AI DEĞİŞİKLİK İZLEME DURUMU
+     ============================================================ */
+  .ai-auto-state{
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:0 11px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.20);
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.02em;
+    backdrop-filter:blur(12px);
+    transition:background .16s ease, border-color .16s ease, opacity .16s ease;
+  }
+
+  .ai-auto-state .ai-auto-dot{
+    width:8px;
+    height:8px;
+    border-radius:999px;
+    background:#86efac;
+    box-shadow:0 0 0 3px rgba(134,239,172,.14);
+  }
+
+  .ai-auto-state.is-dirty .ai-auto-dot{
+    background:#fde047;
+    box-shadow:0 0 0 3px rgba(253,224,71,.15);
+  }
+
+  .ai-auto-state.is-ready .ai-auto-dot{
+    background:#67e8f9;
+    box-shadow:0 0 0 3px rgba(103,232,249,.15);
+  }
+
+  .ai-auto-state.is-saved .ai-auto-dot{
+    background:#86efac;
+  }
+
 </style>
 
-<div class="page">
+<div class="page"
+     id="riskDetailPage"
+     data-risk-id="{{ r.id }}"
+     data-auto-ai-url="{{ url_for('risk_auto_ai', risk_id=r.id) }}">
 
   {# ========= TÜM SAYFADA KULLANILACAK SON DEĞERLENDİRME ========= #}
   {% set evals = (r.evaluations or [])|sort(attribute='id') %}
@@ -1432,8 +1477,19 @@
       <a class="hero-btn primary" href="{{ url_for('risk_new') }}">➕ Yeni Risk</a>
 
       <form method="post" action="{{ url_for('add_comment', risk_id=r.id) }}" style="margin:0">
-        <button class="hero-btn yellow" type="submit">✨ AI Yorum</button>
+        <button class="hero-btn yellow" type="submit" title="Otomatik sonuç dışında AI yorumunu elle yeniden üret">
+          ✨ AI Yorumu Yenile
+        </button>
       </form>
+
+      <span class="ai-auto-state is-saved"
+            id="aiAutoState"
+            role="status"
+            aria-live="polite"
+            title="Kritik veriler değiştiğinde otomatik AI hazırlığı devreye girer.">
+        <span class="ai-auto-dot" aria-hidden="true"></span>
+        <span id="aiAutoStateText">AI otomatik izleme hazır</span>
+      </span>
 
       <a class="hero-btn" href="{{ url_for('index') }}">← Liste</a>
     </div>
@@ -1522,7 +1578,7 @@
         </div>
       </div>
 
-      <ul class="rd-flow-list">
+      <ul class="rd-flow-list" id="aiProcessList">
         {% if last_eval %}
           <li>
             Son değerlendirmedeki <strong>P={{ last_eval.probability }}</strong> ve
@@ -1564,7 +1620,12 @@
           Risk formundaki sorumlu, önleyici faaliyet ve zaman bilgileri
           nihai değerlendirme kaydıyla birlikte takip ediliyor.
         </li>
-      </ul>
+      
+        <li id="aiProcessLive" style="margin-top:8px;">
+          <strong>Otomatik AI:</strong>
+          <span id="aiProcessText">Veri değiştiğinde otomatik analiz burada güncellenecek.</span>
+        </li>
+</ul>
     </article>
 
     <article class="rd-flow-card">
@@ -1578,7 +1639,7 @@
         </div>
       </div>
 
-      <ul class="rd-flow-list">
+      <ul class="rd-flow-list" id="aiOutputList">
         {% if last_eval %}
           <li>
             <strong>Nihai P / S:</strong>
@@ -1618,7 +1679,16 @@
             · <strong>Bağlı maliyet kaydı:</strong> {{ risk_costs|length }}
           {% endif %}
         </li>
-      </ul>
+      
+        <li id="aiOutputLive" style="margin-top:8px;">
+          <strong>Otomatik AI Sonucu:</strong>
+          <span id="aiOutputText">Veri değiştiğinde karar özeti burada güncellenecek.</span>
+          <div id="aiRecommendationWrap" style="margin-top:6px; display:none;">
+            <strong>Öneriler:</strong>
+            <span id="aiRecommendations"></span>
+          </div>
+        </li>
+</ul>
     </article>
 
   </section>
@@ -2292,6 +2362,518 @@
       document.getElementById('saveBtn')?.click();
     }
   });
+
+  /* ============================================================
+     ADIM 1 · OTOMATİK AI DEĞİŞİKLİK İZLEME
+     ------------------------------------------------------------
+     BU AŞAMADA NETWORK / AI İSTEĞİ YOKTUR.
+     Kritik veri değişince 850 ms debounce uygulanır ve
+     "risk:auto-ai-ready" olayı yayınlanır.
+     ADIM 2'de bu olayı gerçek AI endpoint'ine bağlayacağız.
+     ============================================================ */
+  (function setupRiskAutoAIWatcher(){
+    const DEBOUNCE_MS = 850;
+    const pageRoot = document.getElementById('riskDetailPage');
+    const riskId = parseInt(pageRoot?.dataset.riskId || '0', 10) || 0;
+
+    const riskForm = document.getElementById('riskForm');
+    const stateEl = document.getElementById('aiAutoState');
+    const stateText = document.getElementById('aiAutoStateText');
+
+    let timer = null;
+    let revision = 0;
+    let dirty = false;
+    let lastPayloadSignature = '';
+    let changedFields = new Set();
+
+    const WATCHED_RISK_FIELDS = [
+      'status',
+      'risk_type',
+      'responsible',
+      'description',
+      'mitigation',
+      'start_month',
+      'end_month'
+    ];
+
+    function setState(mode, message){
+      if (!stateEl || !stateText) return;
+
+      stateEl.classList.remove('is-dirty', 'is-ready', 'is-saved');
+
+      if (mode === 'dirty') stateEl.classList.add('is-dirty');
+      else if (mode === 'ready') stateEl.classList.add('is-ready');
+      else stateEl.classList.add('is-saved');
+
+      stateText.textContent = message;
+    }
+
+    function getFieldValue(name){
+      const el = riskForm?.querySelector(`[name="${name}"]`);
+      return el ? String(el.value ?? '').trim() : '';
+    }
+
+    function getActiveEvaluationBlock(){
+      const blocks = Array.from(document.querySelectorAll('.eval-block'));
+      if (!blocks.length) return null;
+
+      // Sayfada tek uzman bloğu varsa doğrudan kullan.
+      // Birden fazla varsa görünür/ilk bloğu tercih et.
+      return blocks.find(block => {
+        const rect = block.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      }) || blocks[0];
+    }
+
+    function readEvaluation(){
+      const block = getActiveEvaluationBlock();
+      const pSel = block?.querySelector('.probSel');
+      const sSel = block?.querySelector('.sevSel');
+
+      const p = parseInt(pSel?.value || '0', 10) || null;
+      const s = parseInt(sSel?.value || '0', 10) || null;
+
+      return {
+        probability: p,
+        severity: s,
+        rpn: (p && s) ? (p * s) : null
+      };
+    }
+
+    function buildPayload(){
+      const evaluation = readEvaluation();
+
+      return {
+        risk_id: riskId,
+        revision,
+        changed_fields: Array.from(changedFields),
+        risk: {
+          title: getFieldValue('title'),
+          status: getFieldValue('status'),
+          risk_type: getFieldValue('risk_type'),
+          responsible: getFieldValue('responsible'),
+          description: getFieldValue('description'),
+          mitigation: getFieldValue('mitigation'),
+          start_month: getFieldValue('start_month'),
+          end_month: getFieldValue('end_month')
+        },
+        evaluation,
+        generated_at: new Date().toISOString()
+      };
+    }
+
+    function signatureOf(payload){
+      // revision / generated_at / changed_fields imzaya dahil değil.
+      // Aynı veri için gereksiz ikinci otomatik AI tetiklenmesini önler.
+      return JSON.stringify({
+        risk: payload.risk,
+        evaluation: payload.evaluation
+      });
+    }
+
+    function publishReady(){
+      timer = null;
+
+      const payload = buildPayload();
+      const signature = signatureOf(payload);
+
+      // Kullanıcı alanı değiştirip tekrar eski değerine döndürdüyse
+      // gereksiz AI hazırlığı üretme.
+      if (signature === lastPayloadSignature){
+        dirty = false;
+        changedFields.clear();
+        setState('saved', 'AI verisi güncel');
+        return;
+      }
+
+      lastPayloadSignature = signature;
+      dirty = false;
+
+      setState(
+        'ready',
+        `AI için hazır · ${payload.changed_fields.length || 1} değişiklik`
+      );
+
+      // ADIM 2 burada bu olayı dinleyip fetch() ile AI endpoint'ine gidecek.
+      window.dispatchEvent(new CustomEvent('risk:auto-ai-ready', {
+        detail: payload
+      }));
+
+      // Debug / sonraki adım için erişilebilir state.
+      window.RiskAutoAIState = {
+        ...(window.RiskAutoAIState || {}),
+        ready: true,
+        dirty: false,
+        revision,
+        payload
+      };
+
+      console.debug('[Risk Auto AI] Hazır:', payload);
+      changedFields.clear();
+    }
+
+    function schedule(fieldName){
+      revision += 1;
+      dirty = true;
+
+      if (fieldName) changedFields.add(fieldName);
+
+      window.RiskAutoAIState = {
+        ...(window.RiskAutoAIState || {}),
+        ready: false,
+        dirty: true,
+        revision
+      };
+
+      if (timer) clearTimeout(timer);
+
+      const count = changedFields.size || 1;
+      setState(
+        'dirty',
+        `Değişiklik algılandı · ${count} alan`
+      );
+
+      timer = setTimeout(publishReady, DEBOUNCE_MS);
+    }
+
+    function markInitialSignature(){
+      const payload = buildPayload();
+      lastPayloadSignature = signatureOf(payload);
+
+      window.RiskAutoAIState = {
+        ready: false,
+        dirty: false,
+        revision: 0,
+        payload
+      };
+    }
+
+    function bindRiskFormFields(){
+      if (!riskForm) return;
+
+      WATCHED_RISK_FIELDS.forEach(name => {
+        const el = riskForm.querySelector(`[name="${name}"]`);
+        if (!el) return;
+
+        const eventName =
+          (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')
+            ? 'input'
+            : 'change';
+
+        el.addEventListener(eventName, () => schedule(name));
+
+        // Select ve date gibi elemanlarda change'i de garanti et.
+        if (eventName !== 'change'){
+          el.addEventListener('change', () => schedule(name));
+        }
+      });
+    }
+
+    function bindDateMirrors(){
+      const startDate = document.getElementById('start_date');
+      const endDate = document.getElementById('end_date');
+
+      // Hidden YYYY-MM alanını değiştiren mevcut kod çalıştıktan sonra
+      // watcher güncel değeri okuyabilsin diye microtask ile işaretle.
+      startDate?.addEventListener('change', () => {
+        queueMicrotask(() => schedule('start_month'));
+      });
+
+      endDate?.addEventListener('change', () => {
+        queueMicrotask(() => schedule('end_month'));
+      });
+    }
+
+    function bindEvaluationButtons(){
+      document.querySelectorAll('.eval-block').forEach(block => {
+        const pSel = block.querySelector('.probSel');
+        const sSel = block.querySelector('.sevSel');
+
+        // Gizli select programatik değiştiği için doğrudan buton click'ini izle.
+        block.querySelectorAll('[data-setp]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            queueMicrotask(() => schedule('probability'));
+          });
+        });
+
+        block.querySelectorAll('[data-sets]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            queueMicrotask(() => schedule('severity'));
+          });
+        });
+
+        // İleride select görünür hale gelirse de çalışsın.
+        pSel?.addEventListener('change', () => schedule('probability'));
+        sSel?.addEventListener('change', () => schedule('severity'));
+      });
+    }
+
+    function bindConsensus(){
+      document.querySelectorAll('[onclick*="applyConsensus"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          queueMicrotask(() => {
+            schedule('probability');
+            schedule('severity');
+          });
+        });
+      });
+    }
+
+    function bindFormSubmit(){
+      riskForm?.addEventListener('submit', () => {
+        if (timer) clearTimeout(timer);
+        setState('saved', 'Kaydediliyor…');
+      });
+
+      document.querySelectorAll('form[action*="add_eval"]').forEach(form => {
+        form.addEventListener('submit', () => {
+          if (timer) clearTimeout(timer);
+          setState('saved', 'Değerlendirme kaydediliyor…');
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      bindRiskFormFields();
+      bindDateMirrors();
+      bindEvaluationButtons();
+      bindConsensus();
+      bindFormSubmit();
+
+      // Sayfanın ilk açılışını değişiklik sayma.
+      queueMicrotask(() => {
+        markInitialSignature();
+        setState('saved', 'AI otomatik izleme hazır');
+      });
+    });
+
+    // Sonraki adım / debug için küçük API.
+    window.RiskAutoAI = {
+      getState: () => window.RiskAutoAIState || null,
+      getPayload: () => buildPayload(),
+      schedule
+    };
+  })();
+
+  /* ============================================================
+     ADIM 2 · GERÇEK OTOMATİK AI İSTEĞİ
+     ============================================================ */
+  (function setupRiskAutoAIRequest(){
+    const pageRoot = document.getElementById('riskDetailPage');
+    if (!pageRoot) return;
+
+    const endpoint = pageRoot.dataset.autoAiUrl || '';
+    if (!endpoint) return;
+
+    const stateEl = document.getElementById('aiAutoState');
+    const stateText = document.getElementById('aiAutoStateText');
+    const processTextEl = document.getElementById('aiProcessText');
+    const outputTextEl = document.getElementById('aiOutputText');
+    const recommendationWrap = document.getElementById('aiRecommendationWrap');
+    const recommendationEl = document.getElementById('aiRecommendations');
+
+    let requestSerial = 0;
+    let activeController = null;
+    let newestRevision = 0;
+
+    function setStatus(mode, message){
+      if (!stateEl || !stateText) return;
+      stateEl.classList.remove('is-dirty', 'is-ready', 'is-saved');
+
+      if (mode === 'dirty') stateEl.classList.add('is-dirty');
+      else if (mode === 'ready') stateEl.classList.add('is-ready');
+      else stateEl.classList.add('is-saved');
+
+      stateText.textContent = message;
+    }
+
+    function escapeHtml(value){
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderRecommendations(items){
+      if (!recommendationWrap || !recommendationEl) return;
+
+      const rows = Array.isArray(items)
+        ? items.filter(Boolean).slice(0, 4)
+        : [];
+
+      if (!rows.length){
+        recommendationWrap.style.display = 'none';
+        recommendationEl.innerHTML = '';
+        return;
+      }
+
+      recommendationWrap.style.display = '';
+      recommendationEl.innerHTML =
+        '<br>' +
+        rows.map(item => `• ${escapeHtml(item)}`).join('<br>');
+    }
+
+    async function runAutoAI(payload){
+      if (!payload || !payload.risk_id) return;
+
+      const revision = Number(payload.revision || 0);
+      newestRevision = Math.max(newestRevision, revision);
+
+      // Eski istek hâlâ sürüyorsa iptal et.
+      if (activeController){
+        activeController.abort();
+      }
+
+      const controller = new AbortController();
+      activeController = controller;
+
+      const serial = ++requestSerial;
+
+      setStatus('ready', 'AI analiz ediyor…');
+
+      if (processTextEl){
+        processTextEl.textContent = 'Güncel veriler analiz ediliyor…';
+      }
+      if (outputTextEl){
+        outputTextEl.textContent = 'Yeni karar özeti hazırlanıyor…';
+      }
+
+      try{
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+
+        let data = null;
+        try{
+          data = await response.json();
+        }catch(_err){
+          data = null;
+        }
+
+        if (!response.ok || !data || !data.ok){
+          throw new Error(
+            (data && data.error) ||
+            `AI isteği başarısız (${response.status})`
+          );
+        }
+
+        // KRİTİK: Bu cevap gelirken kullanıcı yeniden veri değiştirmişse
+        // eski cevabı ekrana BASMA.
+        const responseRevision = Number(data.revision || revision || 0);
+
+        if (
+          serial !== requestSerial ||
+          responseRevision < newestRevision
+        ){
+          console.debug(
+            '[Risk Auto AI] Eski cevap yok sayıldı.',
+            { responseRevision, newestRevision }
+          );
+          return;
+        }
+
+        if (processTextEl){
+          processTextEl.textContent =
+            data.process || 'İşlem analizi üretilemedi.';
+        }
+
+        if (outputTextEl){
+          const snapshot = data.snapshot || {};
+          const prefix =
+            snapshot.score != null
+              ? `P=${snapshot.probability}, S=${snapshot.severity}, Skor=${snapshot.score}, ${snapshot.level}. `
+              : '';
+
+          outputTextEl.textContent =
+            prefix + (data.output || 'Karar özeti üretilemedi.');
+        }
+
+        renderRecommendations(data.recommendations || []);
+
+        const sourceLabel =
+          data.source === 'fallback'
+            ? 'yedek karar motoru'
+            : 'AI';
+
+        setStatus(
+          'saved',
+          `Otomatik ${sourceLabel} güncel`
+        );
+
+        window.RiskAutoAIState = {
+          ...(window.RiskAutoAIState || {}),
+          ready: false,
+          dirty: false,
+          loading: false,
+          lastResponse: data,
+          lastAppliedRevision: responseRevision
+        };
+
+        window.dispatchEvent(new CustomEvent('risk:auto-ai-updated', {
+          detail: data
+        }));
+
+      }catch(error){
+        if (error && error.name === 'AbortError'){
+          return;
+        }
+
+        console.error('[Risk Auto AI] Hata:', error);
+
+        // Mevcut statik/dinamik kart verisini silme; sadece canlı AI alanında hata göster.
+        if (processTextEl){
+          processTextEl.textContent =
+            'Otomatik AI analizi şu anda alınamadı; mevcut risk verileri korunuyor.';
+        }
+
+        if (outputTextEl){
+          outputTextEl.textContent =
+            'Yeni AI çıktısı alınamadı. Manuel “AI Yorumu Yenile” kullanılabilir.';
+        }
+
+        renderRecommendations([]);
+
+        setStatus('dirty', 'AI bağlantısı bekliyor');
+
+        window.RiskAutoAIState = {
+          ...(window.RiskAutoAIState || {}),
+          loading: false,
+          lastError: String(error?.message || error || 'Bilinmeyen hata')
+        };
+      }finally{
+        if (activeController === controller){
+          activeController = null;
+        }
+      }
+    }
+
+    // ADIM 1'in debounce sonrası yayınladığı tek olayı dinle.
+    window.addEventListener('risk:auto-ai-ready', event => {
+      const payload = event?.detail;
+      if (!payload) return;
+
+      newestRevision = Math.max(
+        newestRevision,
+        Number(payload.revision || 0)
+      );
+
+      runAutoAI(payload);
+    });
+
+    window.RiskAutoAIRequest = {
+      run: runAutoAI,
+      getNewestRevision: () => newestRevision
+    };
+  })();
 
   (function(){
     const tbody = document.getElementById('mitBody');

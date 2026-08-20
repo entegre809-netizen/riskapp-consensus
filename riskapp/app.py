@@ -2873,6 +2873,332 @@ def create_app():
 
 
     # -------------------------------------------------
+    #  ADIM 2 — OTOMATİK AI KARAR DESTEĞİ (JSON)
+    # -------------------------------------------------
+    @app.post("/api/risks/<int:risk_id>/auto-ai")
+    def risk_auto_ai(risk_id):
+        """
+        Risk detay ekranındaki kritik veriler değiştikten sonra debounce ile çağrılır.
+
+        ÖNEMLİ:
+        - Bu endpoint otomatik çağrıda DB'ye Comment/Evaluation EKLEMEZ.
+          Böylece her küçük değişiklik yorum geçmişini şişirmez.
+        - İstek içindeki güncel/henüz kaydedilmemiş form verisini kullanır.
+        - Kullanıcı daha sonra risk formunu/değerlendirmeyi kaydederse normal
+          mevcut route'lar veriyi kalıcılaştırır.
+        - Manuel "AI Yorumu Yenile" butonu mevcut add_comment route'unu kullanmaya devam eder.
+        """
+        project_id = _active_project_id()
+        if not project_id:
+            return jsonify({
+                "ok": False,
+                "error": "Aktif proje yok."
+            }), 400
+
+        r = Risk.query.filter_by(id=risk_id, project_id=project_id).first()
+        if not r:
+            return jsonify({
+                "ok": False,
+                "error": "Risk bulunamadı veya aktif projeye ait değil."
+            }), 404
+
+        payload = request.get_json(silent=True) or {}
+        incoming_risk = payload.get("risk") or {}
+        incoming_eval = payload.get("evaluation") or {}
+        changed_fields = payload.get("changed_fields") or []
+        revision = payload.get("revision")
+
+        def _clean_text(value, fallback=""):
+            if value is None:
+                return fallback
+            return str(value).strip()
+
+        def _int_1_5(value):
+            try:
+                value = int(value)
+            except (TypeError, ValueError):
+                return None
+            return min(max(value, 1), 5)
+
+        # --------------------------------------------------------
+        # Güncel form snapshot'ı — DB + henüz kaydedilmemiş browser verisi
+        # --------------------------------------------------------
+        title = _clean_text(incoming_risk.get("title"), r.title or "")
+        description = _clean_text(
+            incoming_risk.get("description"),
+            r.description or ""
+        )
+        status = _clean_text(incoming_risk.get("status"), r.status or "")
+        risk_type = _clean_text(
+            incoming_risk.get("risk_type"),
+            getattr(r, "risk_type", None) or ""
+        )
+        responsible = _clean_text(
+            incoming_risk.get("responsible"),
+            getattr(r, "responsible", None) or ""
+        )
+        mitigation = _clean_text(
+            incoming_risk.get("mitigation"),
+            getattr(r, "mitigation", None) or ""
+        )
+        start_month = _clean_text(
+            incoming_risk.get("start_month"),
+            getattr(r, "start_month", None) or ""
+        )
+        end_month = _clean_text(
+            incoming_risk.get("end_month"),
+            getattr(r, "end_month", None) or ""
+        )
+
+        p = _int_1_5(incoming_eval.get("probability"))
+        s = _int_1_5(incoming_eval.get("severity"))
+
+        # P/S browser snapshot'ında yoksa son kayıtlı değerlendirmeye dön.
+        if p is None or s is None:
+            try:
+                evals = sorted(
+                    list(r.evaluations or []),
+                    key=lambda e: (getattr(e, "id", 0) or 0)
+                )
+                last_eval = evals[-1] if evals else None
+            except Exception:
+                last_eval = None
+
+            if p is None and last_eval is not None:
+                p = _int_1_5(getattr(last_eval, "probability", None))
+            if s is None and last_eval is not None:
+                s = _int_1_5(getattr(last_eval, "severity", None))
+
+        score = (p * s) if (p is not None and s is not None) else None
+
+        if score is None:
+            level = "Değerlendirilmedi"
+            priority = "P/S değerlendirmesi tamamlanmalı"
+        elif score <= 4:
+            level = "Düşük"
+            priority = "Rutin izleme"
+        elif score <= 10:
+            level = "Orta"
+            priority = "Planlı aksiyon ve periyodik takip"
+        elif score <= 15:
+            level = "Yüksek"
+            priority = "Öncelikli aksiyon ve yakın takip"
+        else:
+            level = "Çok Yüksek"
+            priority = "Acil aksiyon ve yönetim eskalasyonu"
+
+        # --------------------------------------------------------
+        # AI prompt
+        # --------------------------------------------------------
+        changed_text = ", ".join(str(x) for x in changed_fields if x) or "genel veri güncellemesi"
+
+        prompt = f"""
+Sen deneyimli bir proje risk yönetimi danışmanısın.
+Aşağıdaki TEK risk kaydının güncel snapshot'ını analiz et.
+
+AMAÇ:
+1) "İşlem Süreci" için 2-4 cümlelik kısa bir analiz üret.
+2) "Çıktı" için 2-4 cümlelik karar/aksiyon özeti üret.
+3) Son olarak en fazla 4 maddelik uygulanabilir öneri üret.
+
+KURALLAR:
+- Sadece verilen güncel snapshot'a göre yorum yap.
+- Sorumlu kişi değiştiyse yeni sorumluya göre yaz.
+- P/S değiştiyse eski skoru değil yeni P×S skorunu esas al.
+- Durum, mitigation veya tarih değiştiyse bunu dikkate al.
+- Olmayan bilgiyi uydurma.
+- Türkçe, kısa, profesyonel ve doğrudan yaz.
+- JSON dışında hiçbir şey döndürme.
+
+GÜNCEL SNAPSHOT
+---------------
+Risk ID: {r.id}
+Başlık: {title or "(boş)"}
+Kategori: {r.category or "(boş)"}
+Risk Türü: {risk_type or "(boş)"}
+Açıklama: {description or "(boş)"}
+Sorumlu: {responsible or "Atanmamış"}
+Durum: {status or "Belirtilmemiş"}
+Mevcut Önlem: {mitigation or "Tanımlanmamış"}
+Başlangıç: {start_month or "Belirtilmemiş"}
+Bitiş: {end_month or "Belirtilmemiş"}
+P: {p if p is not None else "Yok"}
+S: {s if s is not None else "Yok"}
+Skor: {score if score is not None else "Yok"}
+Seviye: {level}
+Öncelik: {priority}
+Değişen alanlar: {changed_text}
+
+ŞU JSON ŞEMASINI DÖNDÜR:
+{{
+  "process": "İşlem Süreci metni",
+  "output": "Çıktı metni",
+  "recommendations": [
+    "öneri 1",
+    "öneri 2"
+  ]
+}}
+"""
+
+        ai_payload = None
+        ai_source = "ai"
+
+        # Önce yapısal JSON helper'ını dene.
+        try:
+            ai_payload = ai_json(prompt)
+        except Exception as exc:
+            current_app.logger.warning(
+                "risk_auto_ai ai_json başarısız (risk=%s): %s",
+                risk_id,
+                exc,
+            )
+            ai_payload = None
+
+        # ai_json sonuç vermediyse raw ai_complete + JSON parse dene.
+        if not isinstance(ai_payload, dict):
+            try:
+                raw = ai_complete(prompt)
+                raw = (raw or "").strip()
+
+                # ```json ... ``` sarmalamasını temizle.
+                raw = re.sub(r"^\s*```(?:json)?\s*", "", raw, flags=re.I)
+                raw = re.sub(r"\s*```\s*$", "", raw)
+
+                ai_payload = json.loads(raw) if raw else None
+            except Exception as exc:
+                current_app.logger.warning(
+                    "risk_auto_ai ai_complete/json parse başarısız (risk=%s): %s",
+                    risk_id,
+                    exc,
+                )
+                ai_payload = None
+
+        # --------------------------------------------------------
+        # Deterministik fallback — AI servisi kapalı olsa bile ekran çalışır.
+        # --------------------------------------------------------
+        if not isinstance(ai_payload, dict):
+            ai_source = "fallback"
+
+            process_parts = []
+            if p is not None and s is not None:
+                process_parts.append(
+                    f"Güncel P={p} ve S={s} değerlerinden risk skoru {score} olarak hesaplandı "
+                    f"ve seviye {level} olarak sınıflandırıldı."
+                )
+            else:
+                process_parts.append(
+                    "Güncel P/S değerlendirmesi tamamlanmadığı için sayısal risk seviyesi kesinleştirilemedi."
+                )
+
+            if responsible:
+                process_parts.append(
+                    f"Sorumluluk {responsible} üzerinde izleniyor."
+                )
+            else:
+                process_parts.append(
+                    "Risk için henüz bir sorumlu atanmamış."
+                )
+
+            if status:
+                process_parts.append(
+                    f"Mevcut risk durumu '{status}' olarak dikkate alındı."
+                )
+
+            output_parts = [
+                f"Önerilen yönetim önceliği: {priority}."
+            ]
+
+            if mitigation:
+                output_parts.append(
+                    "Tanımlı mevcut önlemler korunarak etkinlikleri takip edilmelidir."
+                )
+            else:
+                output_parts.append(
+                    "Risk için uygulanabilir bir mitigation/önlem planı tanımlanmalıdır."
+                )
+
+            if start_month or end_month:
+                output_parts.append(
+                    f"Zaman penceresi {start_month or '?'} – {end_month or '?'} olarak izlenmelidir."
+                )
+
+            recommendations = []
+            try:
+                base_actions = _propose_actions(r) or []
+                recommendations = [
+                    str(a.get("action") or "").strip()
+                    for a in base_actions[:4]
+                    if str(a.get("action") or "").strip()
+                ]
+            except Exception:
+                recommendations = []
+
+            if not recommendations:
+                recommendations = [
+                    "Risk sahibinin aksiyon ve takip sorumluluklarını netleştir.",
+                    "P/S değerlerini her önemli değişiklikten sonra yeniden doğrula.",
+                    "Mitigation etkinliğini kayıt altına al ve risk durumunu güncelle.",
+                ]
+
+            ai_payload = {
+                "process": " ".join(process_parts),
+                "output": " ".join(output_parts),
+                "recommendations": recommendations,
+            }
+
+        process_text = _clean_text(ai_payload.get("process"))
+        output_text = _clean_text(ai_payload.get("output"))
+        recommendations = ai_payload.get("recommendations") or []
+
+        if not isinstance(recommendations, list):
+            recommendations = [str(recommendations)]
+
+        recommendations = [
+            _clean_text(x)
+            for x in recommendations
+            if _clean_text(x)
+        ][:4]
+
+        # Boş alanlara fallback.
+        if not process_text:
+            process_text = (
+                f"Güncel risk verileri işlendi. "
+                f"Seviye: {level}; skor: {score if score is not None else 'hesaplanamadı'}."
+            )
+
+        if not output_text:
+            output_text = f"Önerilen yönetim önceliği: {priority}."
+
+        return jsonify({
+            "ok": True,
+            "risk_id": r.id,
+            "revision": revision,
+            "changed_fields": changed_fields,
+            "source": ai_source,
+            "snapshot": {
+                "title": title,
+                "category": r.category or "",
+                "risk_type": risk_type,
+                "description": description,
+                "responsible": responsible,
+                "status": status,
+                "mitigation": mitigation,
+                "start_month": start_month,
+                "end_month": end_month,
+                "probability": p,
+                "severity": s,
+                "score": score,
+                "level": level,
+                "priority": priority,
+            },
+            "process": process_text,
+            "output": output_text,
+            "recommendations": recommendations,
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        })
+
+
+    # -------------------------------------------------
     #  Yorum / Değerlendirme
     # -------------------------------------------------
     @app.route("/risk/<int:risk_id>/comment", methods=["POST"])
