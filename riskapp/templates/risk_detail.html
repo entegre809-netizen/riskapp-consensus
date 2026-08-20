@@ -1452,7 +1452,12 @@
     {% endif %}
   </div>
 
-  <section class="rd-flow" aria-label="Akıllı risk değerlendirme ve karar destek modülü bilgi akışı">
+  {# ============================================================
+     DİNAMİK GİRDİ / İŞLEM SÜRECİ / ÇIKTI
+     Bu bölüm sabit açıklama değil; ekrandaki gerçek risk verisini özetler.
+     ============================================================ #}
+  <section class="rd-flow" aria-label="Akıllı risk değerlendirme ve karar destek modülü canlı bilgi akışı">
+
     <article class="rd-flow-card">
       <div class="rd-flow-head">
         <div class="rd-flow-icon" aria-hidden="true">
@@ -1460,14 +1465,49 @@
         </div>
         <div>
           <h3 class="rd-flow-title">Girdi</h3>
-          <div class="rd-flow-sub">Değerlendirme verileri</div>
+          <div class="rd-flow-sub">Bu riske ait gerçek veriler</div>
         </div>
       </div>
+
       <ul class="rd-flow-list">
-        <li>Tanımlanmış risk kaydı, kategori, tür ve açıklama bilgileri</li>
-        <li>Mevcut olasılık ve şiddet değerleri ile geçmiş değerlendirmeler</li>
-        <li>Risk sorumlusu, önleyici faaliyetler ve tarih bilgileri</li>
-        <li>Uzman / kullanıcı değerlendirmeleri ve varsa konsensüs verisi</li>
+        <li>
+          <strong>Risk:</strong> {{ r.title }}
+        </li>
+
+        <li>
+          <strong>Kategori / Tür:</strong>
+          {% if __cats and __cats|length %}
+            {{ __cats[0] }}
+          {% else %}
+            Kategori belirtilmemiş
+          {% endif %}
+          /
+          {{ r.risk_type or 'Tür belirtilmemiş' }}
+        </li>
+
+        <li>
+          <strong>Sorumlu:</strong> {{ r.responsible or 'Atanmamış' }}
+          · <strong>Durum:</strong> {{ r.status or 'Belirtilmemiş' }}
+        </li>
+
+        <li>
+          <strong>Mevcut P / S:</strong>
+          {% if last_eval %}
+            {{ last_eval.probability }} / {{ last_eval.severity }}
+          {% else %}
+            Henüz değerlendirme yok
+          {% endif %}
+          · <strong>Geçmiş kayıt:</strong> {{ evals|length }}
+        </li>
+
+        <li>
+          <strong>Zaman:</strong>
+          {% if r.start_month or r.end_month %}
+            {{ r.start_month or 'Başlangıç yok' }} → {{ r.end_month or 'Bitiş yok' }}
+          {% else %}
+            Tarih aralığı tanımlanmamış
+          {% endif %}
+        </li>
       </ul>
     </article>
 
@@ -1478,14 +1518,52 @@
         </div>
         <div>
           <h3 class="rd-flow-title">İşlem Süreci</h3>
-          <div class="rd-flow-sub">Karar destek adımları</div>
+          <div class="rd-flow-sub">Bu risk için yapılan hesaplama</div>
         </div>
       </div>
+
       <ul class="rd-flow-list">
-        <li>Olasılık ve şiddet değerlerinin yeniden değerlendirilmesi</li>
-        <li>AI yorum ve karar destek çıktılarının değerlendirmeye katılması</li>
-        <li>Konsensüs sonucunun incelenmesi ve gerektiğinde forma uygulanması</li>
-        <li>Nihai P / S değerlerinin kullanıcı tarafından doğrulanıp kaydedilmesi</li>
+        {% if last_eval %}
+          <li>
+            Son değerlendirmedeki <strong>P={{ last_eval.probability }}</strong> ve
+            <strong>S={{ last_eval.severity }}</strong> değerleri birlikte değerlendirildi.
+          </li>
+
+          <li>
+            Risk skoru <strong>{{ last_eval.probability }} × {{ last_eval.severity }}</strong>
+            işlemiyle <strong>RPN={{ last_rpn_display }}</strong> olarak hesaplandı.
+          </li>
+
+          <li>
+            Hesaplanan RPN, 1–4 Düşük · 5–10 Orta · 11–15 Yüksek ·
+            16–25 Çok Yüksek eşiklerine göre sınıflandırıldı.
+          </li>
+        {% else %}
+          <li>
+            Bu risk için henüz P / S değerlendirmesi bulunmadığından RPN hesabı bekliyor.
+          </li>
+          <li>
+            Sağdaki “Değerlendirmeyi Ekle” alanından olasılık ve şiddet seçildiğinde
+            karar destek hesabı oluşturulacak.
+          </li>
+        {% endif %}
+
+        {% if consensus %}
+          <li>
+            <strong>Konsensüs mevcut:</strong>
+            P={{ consensus.p }}, S={{ consensus.s }},
+            {{ consensus.count }} oy; sonuç kullanıcı onayına sunuluyor.
+          </li>
+        {% else %}
+          <li>
+            <strong>Konsensüs:</strong> Bu risk için uygulanabilir bir konsensüs sonucu bulunmuyor.
+          </li>
+        {% endif %}
+
+        <li>
+          Risk formundaki sorumlu, önleyici faaliyet ve zaman bilgileri
+          nihai değerlendirme kaydıyla birlikte takip ediliyor.
+        </li>
       </ul>
     </article>
 
@@ -1496,17 +1574,55 @@
         </div>
         <div>
           <h3 class="rd-flow-title">Çıktı</h3>
-          <div class="rd-flow-sub">Karar sonuçları</div>
+          <div class="rd-flow-sub">Bu riskin güncel sonucu</div>
         </div>
       </div>
+
       <ul class="rd-flow-list">
-        <li>Nihai olasılık ve şiddet değerleri</li>
-        <li>Risk skoru / RPN ve buna bağlı risk seviyesi</li>
-        <li>Risk matrisindeki konum ve öncelik bilgisi</li>
-        <li>AI değerlendirmesi, karar destek önerileri ve sonraki aksiyonlara temel olacak kayıtlar</li>
+        {% if last_eval %}
+          <li>
+            <strong>Nihai P / S:</strong>
+            {{ last_eval.probability }} / {{ last_eval.severity }}
+          </li>
+
+          <li>
+            <strong>RPN:</strong> {{ last_rpn_display }}
+            · <strong>Seviye:</strong> {{ grade or 'Belirlenemedi' }}
+          </li>
+
+          <li>
+            <strong>Risk matrisi konumu:</strong>
+            P={{ last_eval.probability }},
+            S={{ last_eval.severity }},
+            hücre skoru={{ last_rpn }}
+          </li>
+        {% else %}
+          <li><strong>RPN:</strong> Henüz oluşmadı</li>
+          <li><strong>Seviye:</strong> Değerlendirme bekliyor</li>
+          <li><strong>Risk matrisi:</strong> Konum henüz belirlenmedi</li>
+        {% endif %}
+
+        <li>
+          <strong>Durum:</strong> {{ r.status or 'Belirtilmemiş' }}
+          · <strong>Sorumlu:</strong> {{ r.responsible or 'Atanmamış' }}
+        </li>
+
+        <li>
+          <strong>Önleyici faaliyet:</strong>
+          {% if r.mitigation %}
+            Tanımlı
+          {% else %}
+            Henüz tanımlanmamış
+          {% endif %}
+          {% if risk_costs is defined %}
+            · <strong>Bağlı maliyet kaydı:</strong> {{ risk_costs|length }}
+          {% endif %}
+        </li>
       </ul>
     </article>
+
   </section>
+
 
   <div class="cols">
     {# ========= SOL: RİSK FORMU (tasarım) ========= #}
