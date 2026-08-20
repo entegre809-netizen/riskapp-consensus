@@ -1023,18 +1023,21 @@
 
     {% set ns = namespace(total=0, low=0, mid=0, high=0, crit=0, sum=0.0, have=0) %}
     {% for r in risks or [] %}
-      {% set sc_raw = r.score() %}
-      {% if sc_raw is not none %}
-        {% set sc = (sc_raw / 4) if sc_raw > 25 else sc_raw %}
+      {% set sc = r.score() %}
+      {% set grade_code = r.grade() %}
+      {% if sc is not none %}
         {% set ns.sum  = ns.sum + sc %}
         {% set ns.have = ns.have + 1 %}
-        {% if sc <= 4 %}
+
+        {# Eski görsel değişkenler korunuyor:
+           low=Kabul Edilebilir, mid=Düşük, high=Orta, crit=Kritik #}
+        {% if grade_code == 'acceptable' %}
           {% set ns.low = ns.low + 1 %}
-        {% elif sc <= 10 %}
+        {% elif grade_code == 'low' %}
           {% set ns.mid = ns.mid + 1 %}
-        {% elif sc <= 15 %}
+        {% elif grade_code == 'moderate' %}
           {% set ns.high = ns.high + 1 %}
-        {% else %}
+        {% elif grade_code == 'critical' %}
           {% set ns.crit = ns.crit + 1 %}
         {% endif %}
       {% endif %}
@@ -1163,7 +1166,7 @@
           </li>
 
           <li>
-            Riskler 1–4 Düşük, 5–10 Orta, 11–15 Yüksek ve 16–25 Kritik
+            Riskler 0–5 Kabul Edilebilir, 6–11 Düşük, 12–19 Orta ve 20–25 Kritik
             eşiklerine göre sınıflandırıldı.
           </li>
 
@@ -1234,31 +1237,31 @@
         <div class="kpi-label"><span class="kpi-dot"></span>Kritik</div>
         <div>
           <div class="kpi-value">{{ ns.crit }}</div>
-          <div class="kpi-note">16–25</div>
+          <div class="kpi-note">20–25</div>
         </div>
       </div>
 
       <div class="kpi high" role="listitem">
-        <div class="kpi-label"><span class="kpi-dot"></span>Yüksek</div>
+        <div class="kpi-label"><span class="kpi-dot"></span>Orta</div>
         <div>
           <div class="kpi-value">{{ ns.high }}</div>
-          <div class="kpi-note">11–15</div>
+          <div class="kpi-note">12–19</div>
         </div>
       </div>
 
       <div class="kpi medium" role="listitem">
-        <div class="kpi-label"><span class="kpi-dot"></span>Orta</div>
+        <div class="kpi-label"><span class="kpi-dot"></span>Düşük</div>
         <div>
           <div class="kpi-value">{{ ns.mid }}</div>
-          <div class="kpi-note">5–10</div>
+          <div class="kpi-note">6–11</div>
         </div>
       </div>
 
       <div class="kpi low" role="listitem">
-        <div class="kpi-label"><span class="kpi-dot"></span>Düşük</div>
+        <div class="kpi-label"><span class="kpi-dot"></span>Kabul Edilebilir</div>
         <div>
           <div class="kpi-value">{{ ns.low }}</div>
-          <div class="kpi-note">1–4</div>
+          <div class="kpi-note">0–5</div>
         </div>
       </div>
 
@@ -1392,10 +1395,10 @@
             Risk Matrisi
           </h3>
           <div class="badge-row">
-            <span class="badge b-low">1–4</span>
-            <span class="badge b-mid">5–10</span>
-            <span class="badge b-hi">11–15</span>
-            <span class="badge b-crit">16–25</span>
+            <span class="badge b-low">0–5</span>
+            <span class="badge b-mid">6–11</span>
+            <span class="badge b-hi">12–19</span>
+            <span class="badge b-crit">20–25</span>
           </div>
         </div>
 
@@ -1420,7 +1423,7 @@
 
             {% for p in range(5,0,-1) %}
               {% set score = p * s %}
-              {% set lvl = 'low' if score<=4 else ('mid' if score<=10 else ('hi' if score<=15 else 'crit')) %}
+              {% set lvl = 'low' if score<=5 else ('mid' if score<=11 else ('hi' if score<=19 else 'crit')) %}
 
               {% set cell = namespace(cnt=0) %}
               {% for r in risks or [] %}
@@ -1522,7 +1525,7 @@
             });
 
             const sum = k => rows.reduce((a,r)=> a + (Number(r[k])||0), 0);
-            const lvlLabels = ['Düşük','Orta','Yüksek','Çok Yüksek'];
+            const lvlLabels = ['Kabul Edilebilir','Düşük','Orta','Kritik'];
             const lvlKeys   = ['low','mid','high','vhigh'];
             const lvlData   = lvlKeys.map(k => sum(k));
             const lvlColors = lvlKeys.map(k => LEVEL_COLORS[k]);

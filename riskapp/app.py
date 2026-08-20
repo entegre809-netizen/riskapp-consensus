@@ -93,7 +93,7 @@ from riskapp.models import (
      db, Risk, Evaluation, Comment, Suggestion,
      Account, ProjectInfo, RiskCategory, RiskCategoryRef,
      CostItem, AutoAIResult,
-     ps_grade_label, ps_priority_label
+     ps_grade_code, ps_grade_label, ps_priority_label
 )
 
 from riskapp.seeder import seed_if_empty
@@ -1483,25 +1483,17 @@ def create_app():
         matrix = dict(matrix)
 
         # --- Kategori bazlı dağılım ---
-        # Eşikler UI ile uyumlu:
-        # 1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek
+        # ADIM 4G: merkezi P×S standardı.
+        # Mevcut dashboard veri anahtarlarını bozmamak için:
+        # low=Kabul Edilebilir, mid=Düşük, high=Orta, vhigh=Kritik.
         def _score_bucket(sc):
-            if sc is None:
-                return None
-            try:
-                sc = float(sc)
-            except Exception:
-                return None
-
-            if sc >= 16:
-                return "vhigh"   # Çok Yüksek
-            if sc >= 11:
-                return "high"    # Yüksek
-            if sc >= 5:
-                return "mid"     # Orta
-            if sc >= 1:
-                return "low"     # Düşük
-            return None
+            code = ps_grade_code(sc)
+            return {
+                "acceptable": "low",
+                "low": "mid",
+                "moderate": "high",
+                "critical": "vhigh",
+            }.get(code)
 
         by_cat = defaultdict(
             lambda: {"cat": "", "total": 0, "low": 0, "mid": 0, "high": 0, "vhigh": 0}
@@ -1692,17 +1684,18 @@ def create_app():
         FILL_HEAD  = PatternFill("solid", fgColor="D9D9D9")  # tablo başlık
 
         def level_for_rpn(rpn: float | None):
-            """1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek."""
-            if rpn is None:
+            """ADIM 4G: merkezi P×S risk seviyesi ve Excel dolgu rengi."""
+            code = ps_grade_code(rpn)
+            if code is None:
                 return "", None
-            r = float(rpn)
-            if r <= 4:
-                return "Düşük", FILL_LOW
-            if r <= 10:
-                return "Orta", FILL_MED
-            if r <= 15:
-                return "Yüksek", FILL_HIGH
-            return "Çok Yüksek", FILL_VHIGH
+
+            fill_by_code = {
+                "acceptable": FILL_LOW,
+                "low": FILL_MED,
+                "moderate": FILL_HIGH,
+                "critical": FILL_VHIGH,
+            }
+            return ps_grade_label(rpn), fill_by_code.get(code)
 
         # ✅ HEAD’e maliyet kolonlarını ekledik
         HEAD = [
@@ -1734,10 +1727,10 @@ def create_app():
         ws.cell(row=1, column=base_col, value="Legend").font = H
 
         legend = [
-            ("Çok Yüksek Risk", FILL_VHIGH),
-            ("Yüksek Risk",     FILL_HIGH),
-            ("Orta Risk",       FILL_MED),
-            ("Düşük Risk",      FILL_LOW),
+            ("Kritik Risk",           FILL_VHIGH),
+            ("Orta Risk",             FILL_HIGH),
+            ("Düşük Risk",            FILL_MED),
+            ("Kabul Edilebilir Risk", FILL_LOW),
         ]
 
         row_legend = 2
@@ -3905,20 +3898,21 @@ KARAR KURALLARI
                 stats["evaluated"] += 1
                 stats["score_sum"] += score
 
-                if score <= 4:
-                    level = "Düşük"
-                    level_key = "low"
-                elif score <= 10:
-                    level = "Orta"
-                    level_key = "medium"
-                elif score <= 15:
-                    level = "Yüksek"
-                    level_key = "high"
-                else:
-                    level = "Çok Yüksek"
-                    level_key = "critical"
+                level = ps_grade_label(score)
+                grade_code = ps_grade_code(score)
 
-                stats[level_key] += 1
+                # Mevcut şablon anahtarlarını koruyoruz:
+                # low=Kabul Edilebilir, medium=Düşük,
+                # high=Orta, critical=Kritik.
+                level_key = {
+                    "acceptable": "low",
+                    "low": "medium",
+                    "moderate": "high",
+                    "critical": "critical",
+                }.get(grade_code, "not_evaluated")
+
+                if level_key in stats:
+                    stats[level_key] += 1
             else:
                 stats["not_evaluated"] += 1
 
@@ -4042,19 +4036,17 @@ KARAR KURALLARI
                 all_score_sum += score
                 all_score_count += 1
 
-                # Uygulamanın 1–25 P×S eşikleriyle uyumlu.
-                if score <= 4:
-                    risk_level = "Düşük"
-                    level_key = "low"
-                elif score <= 10:
-                    risk_level = "Orta"
-                    level_key = "medium"
-                elif score <= 15:
-                    risk_level = "Yüksek"
-                    level_key = "high"
-                else:
-                    risk_level = "Çok Yüksek"
-                    level_key = "critical"
+                # ADIM 4G: merkezi P×S standardı.
+                risk_level = ps_grade_label(score)
+                grade_code = ps_grade_code(score)
+                level_key = {
+                    "acceptable": "low",
+                    "low": "medium",
+                    "moderate": "high",
+                    "critical": "critical",
+                }.get(grade_code, "not_evaluated")
+
+                if grade_code == "critical":
                     row["critical_count"] += 1
                     critical_total += 1
 
@@ -6825,17 +6817,10 @@ KARAR KURALLARI
         ])
 
         def level_for_rpn(rpn: float | None) -> str:
-            """1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek."""
+            """ADIM 4G: merkezi P×S risk seviyesi."""
             if rpn is None:
                 return ""
-            r = float(rpn)
-            if r <= 4:
-                return "Düşük"
-            if r <= 10:
-                return "Orta"
-            if r <= 15:
-                return "Yüksek"
-            return "Çok Yüksek"
+            return ps_grade_label(rpn)
 
         from collections import defaultdict
         counters = defaultdict(int)
@@ -8248,16 +8233,7 @@ KARAR KURALLARI
                         p = s = None
 
                     score = (p * s) if (p is not None and s is not None) else None
-                    if score is None:
-                        level = "Değerlendirilmedi"
-                    elif score <= 4:
-                        level = "Düşük"
-                    elif score <= 10:
-                        level = "Orta"
-                    elif score <= 15:
-                        level = "Yüksek"
-                    else:
-                        level = "Çok Yüksek"
+                    level = ps_grade_label(score)
 
                     writer.writerow([
                         r.id, r.title or "", r.category or "",
@@ -8342,16 +8318,7 @@ KARAR KURALLARI
                 for row in (ctx.get("rows") or []):
                     r = row["risk"]
                     sc = _score_25(r)
-                    if sc is None:
-                        level = "Değerlendirilmedi"
-                    elif sc <= 4:
-                        level = "Düşük"
-                    elif sc <= 10:
-                        level = "Orta"
-                    elif sc <= 15:
-                        level = "Yüksek"
-                    else:
-                        level = "Çok Yüksek"
+                    level = ps_grade_label(sc)
 
                     writer.writerow([
                         r.id,
@@ -8484,16 +8451,7 @@ KARAR KURALLARI
                 ])
                 for r in risks:
                     sc = _score_25(r)
-                    if sc is None:
-                        level = "Değerlendirilmedi"
-                    elif sc <= 4:
-                        level = "Düşük"
-                    elif sc <= 10:
-                        level = "Orta"
-                    elif sc <= 15:
-                        level = "Yüksek"
-                    else:
-                        level = "Çok Yüksek"
+                    level = ps_grade_label(sc)
 
                     writer.writerow([
                         r.id,
