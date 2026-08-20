@@ -1,3 +1,6 @@
+
+
+
 # riskapp/models.py
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -115,6 +118,16 @@ class Risk(db.Model):
     )
     comments = db.relationship(
         "Comment", backref="risk", cascade="all, delete-orphan", lazy=True
+    )
+
+
+    # Son otomatik AI değerlendirmesi (tek kayıt / risk)
+    auto_ai_result = db.relationship(
+        "AutoAIResult",
+        backref="risk",
+        cascade="all, delete-orphan",
+        uselist=False,
+        lazy="selectin"
     )
 
     # Çoklu kategori ilişkisi
@@ -331,6 +344,73 @@ class Comment(db.Model):
 
     def __repr__(self):
         return f"<Comment risk={self.risk_id} system={self.is_system}>"
+
+
+# --------------------------------
+# Otomatik AI Sonucu (tek güncel kayıt / risk)
+# --------------------------------
+class AutoAIResult(db.Model):
+    """
+    Risk detay ekranındaki otomatik AI karar desteğinin SON sonucunu tutar.
+
+    Neden ayrı tablo?
+    - Comment geçmişini gereksiz kayıtlarla şişirmez.
+    - Her risk için yalnızca son otomatik AI sonucu saklanır.
+    - Sayfa yenilendiğinde İşlem Süreci / Çıktı tekrar gösterilebilir.
+    - Snapshot imzası sayesinde eski sonuçların güncelliği kontrol edilebilir.
+    """
+    __tablename__ = "auto_ai_results"
+
+    id = db.Column(db.Integer, primary_key=True)
+    risk_id = db.Column(
+        db.Integer,
+        db.ForeignKey("risks.id"),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    # AI'nın ürettiği ana içerikler
+    process_text = db.Column(db.Text, nullable=False, default="")
+    output_text = db.Column(db.Text, nullable=False, default="")
+    recommendations_json = db.Column(db.Text, nullable=True)
+
+    # Sonucun hangi risk snapshot'ına göre üretildiğini saklar
+    snapshot_json = db.Column(db.Text, nullable=True)
+    snapshot_signature = db.Column(db.String(64), nullable=True, index=True)
+
+    # İzlenebilirlik
+    source = db.Column(db.String(32), nullable=False, default="ai")
+    revision = db.Column(db.Integer, nullable=True)
+    changed_fields_json = db.Column(db.Text, nullable=True)
+    generated_by = db.Column(db.String(120), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    def recommendations(self):
+        import json
+        try:
+            data = json.loads(self.recommendations_json or "[]")
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
+    def snapshot(self):
+        import json
+        try:
+            data = json.loads(self.snapshot_json or "{}")
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def __repr__(self) -> str:
+        return f"<AutoAIResult risk_id={self.risk_id} source={self.source!r}>"
 
 
 # --------------------------------

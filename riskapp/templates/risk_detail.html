@@ -1393,7 +1393,8 @@
 <div class="page"
      id="riskDetailPage"
      data-risk-id="{{ r.id }}"
-     data-auto-ai-url="{{ url_for('risk_auto_ai', risk_id=r.id) }}">
+     data-auto-ai-url="{{ url_for('risk_auto_ai', risk_id=r.id) }}"
+     data-has-saved-ai="{{ '1' if auto_ai_result else '0' }}">
 
   {# ========= TÜM SAYFADA KULLANILACAK SON DEĞERLENDİRME ========= #}
   {% set evals = (r.evaluations or [])|sort(attribute='id') %}
@@ -1623,7 +1624,7 @@
       
         <li id="aiProcessLive" style="margin-top:8px;">
           <strong>Otomatik AI:</strong>
-          <span id="aiProcessText">Veri değiştiğinde otomatik analiz burada güncellenecek.</span>
+          <span id="aiProcessText">{% if auto_ai_result and auto_ai_result.process_text %}{{ auto_ai_result.process_text }}{% else %}Veri değiştiğinde otomatik analiz burada güncellenecek.{% endif %}</span>
         </li>
 </ul>
     </article>
@@ -1682,11 +1683,20 @@
       
         <li id="aiOutputLive" style="margin-top:8px;">
           <strong>Otomatik AI Sonucu:</strong>
-          <span id="aiOutputText">Veri değiştiğinde karar özeti burada güncellenecek.</span>
-          <div id="aiRecommendationWrap" style="margin-top:6px; display:none;">
+          <span id="aiOutputText">{% if auto_ai_result and auto_ai_result.output_text %}{{ auto_ai_result.output_text }}{% else %}Veri değiştiğinde karar özeti burada güncellenecek.{% endif %}</span>
+          {% set _saved_recos = auto_ai_result.recommendations() if auto_ai_result else [] %}
+          <div id="aiRecommendationWrap" style="margin-top:6px;" {% if not _saved_recos %}hidden{% endif %}>
             <strong>Öneriler:</strong>
-            <span id="aiRecommendations"></span>
+            <span id="aiRecommendations">{% if _saved_recos %}<br>{% for rec in _saved_recos %}• {{ rec }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}</span>
           </div>
+          {% if auto_ai_result %}
+          <div class="muted" id="aiPersistMeta" style="margin-top:7px; font-size:11px;">
+            Son otomatik AI:
+            {{ auto_ai_result.updated_at.strftime('%d.%m.%Y %H:%M') if auto_ai_result.updated_at else '-' }}
+            · {{ auto_ai_result.generated_by or 'System' }}
+            · {{ 'AI' if auto_ai_result.source == 'ai' else 'Yedek karar motoru' }}
+          </div>
+          {% endif %}
         </li>
 </ul>
     </article>
@@ -2704,12 +2714,12 @@
         : [];
 
       if (!rows.length){
-        recommendationWrap.style.display = 'none';
+        recommendationWrap.hidden = true;
         recommendationEl.innerHTML = '';
         return;
       }
 
-      recommendationWrap.style.display = '';
+      recommendationWrap.hidden = false;
       recommendationEl.innerHTML =
         '<br>' +
         rows.map(item => `• ${escapeHtml(item)}`).join('<br>');
@@ -2798,6 +2808,17 @@
         }
 
         renderRecommendations(data.recommendations || []);
+
+        const metaEl = document.getElementById('aiPersistMeta');
+        if (metaEl){
+          const now = new Date();
+          const who = 'aktif kullanıcı';
+          const sourceText = data.source === 'fallback'
+            ? 'Yedek karar motoru'
+            : 'AI';
+          metaEl.textContent =
+            `Son otomatik AI: ${now.toLocaleString('tr-TR')} · ${who} · ${sourceText}`;
+        }
 
         const sourceLabel =
           data.source === 'fallback'

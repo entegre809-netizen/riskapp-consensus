@@ -92,7 +92,7 @@ from flask import Blueprint
 from riskapp.models import (
      db, Risk, Evaluation, Comment, Suggestion,
      Account, ProjectInfo, RiskCategory, RiskCategoryRef,
-     CostItem
+     CostItem, AutoAIResult
 )
 
 from riskapp.seeder import seed_if_empty
@@ -129,6 +129,7 @@ _REF_PATTERN = _re.compile(r"^R-[A-Z0-9]{2,10}-\d{4}-\d{3,6}$")
 
 from random import choices
 import string
+import hashlib
 COST_CATEGORIES = ["İş Gücü", "Ekipman", "Yazılım", "Eğitim", "Hizmet", "Operasyon"]
 
 
@@ -2869,6 +2870,9 @@ def create_app():
             # ✅ maliyet blokları (risk detail’de göstermek için)
             risk_costs=risk_costs,
             cost_totals=cost_totals,
+
+            # ✅ ADIM 3: son kalıcı otomatik AI sonucu
+            auto_ai_result=r.auto_ai_result,
         )
 
 
@@ -2970,6 +2974,30 @@ def create_app():
                 s = _int_1_5(getattr(last_eval, "severity", None))
 
         score = (p * s) if (p is not None and s is not None) else None
+
+        # ADIM 3: Bu AI sonucunun hangi güncel veriye göre üretildiğini imzala.
+        signature_payload = {
+            "title": title,
+            "category": r.category or "",
+            "risk_type": risk_type,
+            "description": description,
+            "responsible": responsible,
+            "status": status,
+            "mitigation": mitigation,
+            "start_month": start_month,
+            "end_month": end_month,
+            "probability": p,
+            "severity": s,
+        }
+        signature_raw = json.dumps(
+            signature_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        snapshot_signature = hashlib.sha256(
+            signature_raw.encode("utf-8")
+        ).hexdigest()
 
         if score is None:
             level = "Değerlendirilmedi"
@@ -3169,12 +3197,58 @@ Değişen alanlar: {changed_text}
         if not output_text:
             output_text = f"Önerilen yönetim önceliği: {priority}."
 
+        # --------------------------------------------------------
+        # ADIM 3 — Son otomatik AI sonucunu TEK kayıt olarak kalıcılaştır
+        # --------------------------------------------------------
+        try:
+            saved = AutoAIResult.query.filter_by(risk_id=r.id).first()
+            if saved is None:
+                saved = AutoAIResult(risk_id=r.id)
+                db.session.add(saved)
+
+            saved.process_text = process_text
+            saved.output_text = output_text
+            saved.recommendations_json = json.dumps(
+                recommendations,
+                ensure_ascii=False
+            )
+            saved.snapshot_json = json.dumps(
+                signature_payload,
+                ensure_ascii=False
+            )
+            saved.snapshot_signature = snapshot_signature
+            saved.source = ai_source
+            saved.revision = revision if isinstance(revision, int) else None
+            saved.changed_fields_json = json.dumps(
+                changed_fields,
+                ensure_ascii=False
+            )
+            saved.generated_by = (
+                session.get("username")
+                or session.get("email")
+                or "System"
+            )
+            saved.updated_at = datetime.utcnow()
+
+            db.session.commit()
+
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.exception(
+                "AutoAIResult kaydedilemedi (risk=%s): %s",
+                r.id,
+                exc,
+            )
+            # AI sonucu ekrana yine döner; persistence hatası ekranı bozmaz.
+
         return jsonify({
             "ok": True,
             "risk_id": r.id,
             "revision": revision,
             "changed_fields": changed_fields,
             "source": ai_source,
+            "persisted": True,
+            "snapshot_signature": snapshot_signature,
             "snapshot": {
                 "title": title,
                 "category": r.category or "",
