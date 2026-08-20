@@ -92,7 +92,8 @@ from flask import Blueprint
 from riskapp.models import (
      db, Risk, Evaluation, Comment, Suggestion,
      Account, ProjectInfo, RiskCategory, RiskCategoryRef,
-     CostItem, AutoAIResult
+     CostItem, AutoAIResult,
+     ps_grade_label, ps_priority_label
 )
 
 from riskapp.seeder import seed_if_empty
@@ -2851,6 +2852,58 @@ def create_app():
             prev = cost_totals.get(cur, Decimal("0"))
             cost_totals[cur] = prev + val_dec
 
+        # ========= ADIM 4E: Kayıtlı AI sonucunun güncellik kontrolü =========
+        def _ai_sig_text(value):
+            return str(value or "").strip()
+
+        current_ai_eval = eval_history[-1] if eval_history else None
+
+        current_ai_signature_payload = {
+            "title": _ai_sig_text(r.title),
+            "category": _ai_sig_text(r.category),
+            "risk_type": _ai_sig_text(getattr(r, "risk_type", None)),
+            "description": _ai_sig_text(r.description),
+            "responsible": _ai_sig_text(getattr(r, "responsible", None)),
+            "status": _ai_sig_text(r.status),
+            "mitigation": _ai_sig_text(getattr(r, "mitigation", None)),
+            "start_month": _ai_sig_text(getattr(r, "start_month", None)),
+            "end_month": _ai_sig_text(getattr(r, "end_month", None)),
+            "probability": (
+                int(current_ai_eval.probability)
+                if current_ai_eval is not None and current_ai_eval.probability is not None
+                else None
+            ),
+            "severity": (
+                int(current_ai_eval.severity)
+                if current_ai_eval is not None and current_ai_eval.severity is not None
+                else None
+            ),
+        }
+
+        current_ai_signature_raw = json.dumps(
+            current_ai_signature_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        current_ai_snapshot_signature = hashlib.sha256(
+            current_ai_signature_raw.encode("utf-8")
+        ).hexdigest()
+
+        saved_auto_ai = r.auto_ai_result
+        saved_auto_ai_signature = (
+            (saved_auto_ai.snapshot_signature or "").strip()
+            if saved_auto_ai else ""
+        )
+
+        auto_ai_is_stale = bool(
+            saved_auto_ai
+            and (
+                not saved_auto_ai_signature
+                or saved_auto_ai_signature != current_ai_snapshot_signature
+            )
+        )
+
         return render_template(
             "risk_detail.html",
             r=r,
@@ -2872,7 +2925,11 @@ def create_app():
             cost_totals=cost_totals,
 
             # ✅ ADIM 3: son kalıcı otomatik AI sonucu
-            auto_ai_result=r.auto_ai_result,
+            auto_ai_result=saved_auto_ai,
+
+            # ✅ ADIM 4E: kayıtlı AI sonucu güncel mi?
+            auto_ai_is_stale=auto_ai_is_stale,
+            current_ai_snapshot_signature=current_ai_snapshot_signature,
         )
 
 
@@ -2999,21 +3056,176 @@ def create_app():
             signature_raw.encode("utf-8")
         ).hexdigest()
 
-        if score is None:
-            level = "Değerlendirilmedi"
-            priority = "P/S değerlendirmesi tamamlanmalı"
-        elif score <= 4:
-            level = "Düşük"
-            priority = "Rutin izleme"
-        elif score <= 10:
-            level = "Orta"
-            priority = "Planlı aksiyon ve periyodik takip"
-        elif score <= 15:
-            level = "Yüksek"
-            priority = "Öncelikli aksiyon ve yakın takip"
-        else:
-            level = "Çok Yüksek"
-            priority = "Acil aksiyon ve yönetim eskalasyonu"
+        # ADIM 4F — tek merkezi P×S risk sınıflandırması.
+        # models.py:
+        # 0–5   = Kabul Edilebilir
+        # 6–11  = Düşük
+        # 12–19 = Orta
+        # 20–25 = Kritik
+        level = ps_grade_label(score)
+        priority = ps_priority_label(score)
+
+        # --------------------------------------------------------
+        # ADIM 4B — Güçlü karar destek bağlamını hazırla
+        # --------------------------------------------------------
+
+        # 1) PSEstimator: kategoriye göre veri-tabanlı P/S ipucu
+        ps_hint = None
+        ps_hint_text = "PSEstimator önerisi üretilemedi."
+        try:
+            ps_model = PSEstimator(alpha=5.0)
+            ps_model.fit(db.session)
+            ps_hint = ps_model.suggest(r.category or None)
+            if isinstance(ps_hint, dict):
+                hp = ps_hint.get("p")
+                hs = ps_hint.get("s")
+                if hp and hs:
+                    ps_hint_text = (
+                        f"PSEstimator kategori geçmişine göre "
+                        f"P={hp}, S={hs}, skor={int(hp) * int(hs)} öneriyor."
+                    )
+        except Exception as exc:
+            current_app.logger.warning(
+                "risk_auto_ai PSEstimator bağlamı alınamadı (risk=%s): %s",
+                risk_id,
+                exc,
+            )
+
+        # 2) RAG / bilgi tabanı: aynı kategorideki en güncel şablon ve öneriler
+        rag_rows = []
+        rag_context_lines = []
+        try:
+            rag_rows = (
+                Suggestion.query
+                .filter(Suggestion.category == (r.category or ""))
+                .order_by(Suggestion.id.desc())
+                .limit(12)
+                .all()
+            )
+
+            for item in rag_rows:
+                row_text = (
+                    getattr(item, "mitigation_hint", None)
+                    or getattr(item, "risk_desc", None)
+                    or getattr(item, "text", None)
+                    or ""
+                ).strip()
+
+                if not row_text:
+                    continue
+
+                dp = getattr(item, "default_prob", None)
+                ds = getattr(item, "default_sev", None)
+
+                suffix = ""
+                if dp or ds:
+                    suffix = f" [Varsayılan P:{dp or '-'} / S:{ds or '-'}]"
+
+                rag_context_lines.append(f"- {row_text}{suffix}")
+
+        except Exception as exc:
+            current_app.logger.warning(
+                "risk_auto_ai RAG bağlamı alınamadı (risk=%s): %s",
+                risk_id,
+                exc,
+            )
+
+        rag_context = (
+            "\n".join(rag_context_lines[:10])
+            if rag_context_lines
+            else "- Aynı kategoride kullanılabilir bilgi tabanı kaydı bulunamadı."
+        )
+
+        # 3) Deterministik aksiyon motoru
+        deterministic_actions = []
+        try:
+            deterministic_actions = _propose_actions(r) or []
+        except Exception as exc:
+            current_app.logger.warning(
+                "risk_auto_ai _propose_actions çalışmadı (risk=%s): %s",
+                risk_id,
+                exc,
+            )
+            deterministic_actions = []
+
+        action_context_lines = []
+        for a in deterministic_actions[:8]:
+            action = str(a.get("action") or "").strip()
+            due = str(a.get("due") or "").strip()
+            dept = str(a.get("dept") or "").strip()
+            if not action:
+                continue
+
+            meta = []
+            if dept:
+                meta.append(f"Birim: {dept}")
+            if due:
+                meta.append(f"Termin: {due}")
+
+            suffix = f" ({' · '.join(meta)})" if meta else ""
+            action_context_lines.append(f"- {action}{suffix}")
+
+        deterministic_action_context = (
+            "\n".join(action_context_lines)
+            if action_context_lines
+            else "- Hazır aksiyon motoru bu risk için ek aksiyon üretmedi."
+        )
+
+        # 4) RACI motoru
+        try:
+            raci_default = _dept_raci_defaults(
+                _normalize(
+                    " ".join([
+                        r.category or "",
+                        risk_type or "",
+                        title or "",
+                        description or "",
+                    ])
+                )
+            )
+        except Exception:
+            raci_default = {
+                "dept": "Proje Yönetimi",
+                "R": responsible or "Risk Sahibi",
+                "A": "Proje Müdürü",
+                "C": ["Kalite", "Planlama"],
+                "I": ["İSG", "Satınalma"],
+            }
+
+        # Kullanıcı güncel sorumlu seçtiyse, otomatik R rolünü onunla hizala.
+        if responsible:
+            raci_default = {
+                **raci_default,
+                "R": responsible,
+            }
+
+        # 5) KPI motoru
+        try:
+            deterministic_kpis = _kpis_default(
+                " ".join([
+                    r.category or "",
+                    risk_type or "",
+                    title or "",
+                    description or "",
+                ])
+            )[:6]
+        except Exception:
+            deterministic_kpis = []
+
+        kpi_context = (
+            "\n".join(f"- {k}" for k in deterministic_kpis)
+            if deterministic_kpis
+            else "- Kategoriye özel hazır KPI üretilemedi."
+        )
+
+        # 6) Sayısal karar bağlamı
+        numeric_context = (
+            f"Kullanıcı güncel değerlendirmesi: "
+            f"P={p if p is not None else '-'}, "
+            f"S={s if s is not None else '-'}, "
+            f"skor={score if score is not None else '-'}, "
+            f"seviye={level}, yönetim önceliği={priority}."
+        )
 
         # --------------------------------------------------------
         # AI prompt
@@ -3057,14 +3269,64 @@ Seviye: {level}
 Öncelik: {priority}
 Değişen alanlar: {changed_text}
 
+SAYISAL KARAR BAĞLAMI
+---------------------
+{numeric_context}
+
+P/S MODEL İPUCU
+---------------
+{ps_hint_text}
+
+RAG / BİLGİ TABANI BAĞLAMI
+--------------------------
+{rag_context}
+
+HAZIR AKSİYON MOTORU
+--------------------
+{deterministic_action_context}
+
+RACI MOTORU
+-----------
+Departman: {raci_default.get("dept") or "Proje Yönetimi"}
+R: {raci_default.get("R") or responsible or "Risk Sahibi"}
+A: {raci_default.get("A") or "Proje Müdürü"}
+C: {", ".join(raci_default.get("C") or []) or "-"}
+I: {", ".join(raci_default.get("I") or []) or "-"}
+
+KPI MOTORU
+----------
+{kpi_context}
+
+KARAR KURALLARI
+---------------
+- Kullanıcının güncel P/S değeri varsa onu nihai sayısal değerlendirmede esas al.
+- PSEstimator yalnızca karar destek ipucudur; kullanıcı P/S değerini sessizce değiştirme.
+- RAG kayıtlarını bağlam olarak kullan; metni kopyalamak yerine risk özelinde sentezle.
+- Hazır aksiyon motorundaki uygulanabilir maddeleri değerlendir ve gerekiyorsa geliştir.
+- Güncel sorumlu kişi varsa RACI içindeki R rolüyle çelişme.
+- KPI'lar ölçülebilir, takip edilebilir ve riskle ilişkili olsun.
+- Nihai kararda mevcut mitigation, zaman penceresi, sorumluluk ve risk seviyesini birlikte değerlendir.
+
 ŞU JSON ŞEMASINI DÖNDÜR:
 {{
-  "process": "İşlem Süreci metni",
-  "output": "Çıktı metni",
-  "recommendations": [
-    "öneri 1",
-    "öneri 2"
-  ]
+  "risk_analysis": "Riskin niteliği, nedenleri ve proje üzerindeki temel etkisine ilişkin uzman analizi",
+  "ps_analysis": "Güncel P/S ve skorun kısa teknik yorumu",
+  "mitigation_analysis": "Mevcut önlemlerin yeterliliği ve varsa açıklar",
+  "responsibility_analysis": "Mevcut sorumlu/rol açısından sorumluluk değerlendirmesi",
+  "time_analysis": "Başlangıç-bitiş ve zaman etkisine ilişkin değerlendirme",
+  "actions": ["uygulanabilir aksiyon 1", "uygulanabilir aksiyon 2"],
+  "raci": {{
+    "R": "Responsible rol/kişi",
+    "A": "Accountable rol/kişi",
+    "C": ["Consulted 1"],
+    "I": ["Informed 1"]
+  }},
+  "kpis": ["takip KPI 1", "takip KPI 2"],
+  "priority": "Rutin / Planlı / Öncelikli / Acil",
+  "final_decision": "Nihai karar destek özeti",
+  "process": "İşlem Süreci için birleşik kısa özet",
+  "output": "Çıktı için birleşik kısa özet",
+  "recommendations": ["öneri 1", "öneri 2"]
 }}
 """
 
@@ -3168,11 +3430,117 @@ Değişen alanlar: {changed_text}
                     "Mitigation etkinliğini kayıt altına al ve risk durumunu güncelle.",
                 ]
 
+            try:
+                raci_default = _dept_raci_defaults(
+                    _normalize((r.category or "") + " " + (risk_type or ""))
+                )
+            except Exception:
+                raci_default = {
+                    "R": responsible or "Risk Sahibi",
+                    "A": "Proje Müdürü",
+                    "C": ["Kalite", "Planlama"],
+                    "I": ["İSG", "Satınalma"],
+                }
+
+            try:
+                kpi_default = _kpis_default(
+                    (r.category or "") + " " + (risk_type or "")
+                )[:4]
+            except Exception:
+                kpi_default = []
+
             ai_payload = {
+                "risk_analysis": (
+                    f"'{title or 'Başlıksız risk'}' riski "
+                    f"{r.category or 'kategori belirtilmemiş'} bağlamında değerlendirildi."
+                ),
+                "ps_analysis": (
+                    f"P={p if p is not None else '-'}, "
+                    f"S={s if s is not None else '-'}, "
+                    f"skor={score if score is not None else '-'}, seviye={level}."
+                ),
+                "mitigation_analysis": (
+                    "Mevcut mitigation tanımlıdır; etkinliği izlenmelidir."
+                    if mitigation else
+                    "Mitigation tanımlı değildir; somut önlem planı oluşturulmalıdır."
+                ),
+                "responsibility_analysis": (
+                    f"Sorumlu: {responsible}."
+                    if responsible else
+                    "Sorumlu ataması eksiktir."
+                ),
+                "time_analysis": (
+                    f"Zaman penceresi {start_month or '?'} – {end_month or '?'}."
+                    if (start_month or end_month) else
+                    "Zaman bilgisi tanımlı değildir."
+                ),
+                "actions": recommendations,
+                "raci": {
+                    "R": raci_default.get("R") or responsible or "Risk Sahibi",
+                    "A": raci_default.get("A") or "Proje Müdürü",
+                    "C": raci_default.get("C") or [],
+                    "I": raci_default.get("I") or [],
+                },
+                "kpis": kpi_default,
+                "priority": priority,
+                "final_decision": " ".join(output_parts),
                 "process": " ".join(process_parts),
                 "output": " ".join(output_parts),
                 "recommendations": recommendations,
             }
+
+        # ADIM 4A — kapsamlı AI alanlarını normalize et
+        risk_analysis = _clean_text(ai_payload.get("risk_analysis"))
+        ps_analysis = _clean_text(ai_payload.get("ps_analysis"))
+        mitigation_analysis = _clean_text(ai_payload.get("mitigation_analysis"))
+        responsibility_analysis = _clean_text(ai_payload.get("responsibility_analysis"))
+        time_analysis = _clean_text(ai_payload.get("time_analysis"))
+        priority_text = _clean_text(ai_payload.get("priority"), priority)
+        final_decision = _clean_text(ai_payload.get("final_decision"))
+
+        actions = ai_payload.get("actions") or []
+        if not isinstance(actions, list):
+            actions = [str(actions)]
+        actions = [_clean_text(x) for x in actions if _clean_text(x)][:7]
+
+        raci = ai_payload.get("raci") or {}
+        if not isinstance(raci, dict):
+            raci = {}
+
+        def _listify(value):
+            if value is None:
+                return []
+            if isinstance(value, list):
+                return [_clean_text(x) for x in value if _clean_text(x)]
+            return [_clean_text(value)] if _clean_text(value) else []
+
+        raci_norm = {
+            "R": _clean_text(
+                raci.get("R"),
+                responsible or raci_default.get("R") or "Risk Sahibi"
+            ),
+            "A": _clean_text(
+                raci.get("A"),
+                raci_default.get("A") or "Proje Müdürü"
+            ),
+            "C": (
+                _listify(raci.get("C"))
+                or _listify(raci_default.get("C"))
+            )[:4],
+            "I": (
+                _listify(raci.get("I"))
+                or _listify(raci_default.get("I"))
+            )[:4],
+        }
+
+        # Güncel sorumlu kullanıcı tarafından değiştirildiyse R rolü kesinlikle onunla hizalı kalsın.
+        if responsible:
+            raci_norm["R"] = responsible
+
+        kpis = ai_payload.get("kpis") or []
+        if not isinstance(kpis, list):
+            kpis = [str(kpis)]
+        kpis = [_clean_text(x) for x in kpis if _clean_text(x)][:6]
 
         process_text = _clean_text(ai_payload.get("process"))
         output_text = _clean_text(ai_payload.get("output"))
@@ -3185,7 +3553,50 @@ Değişen alanlar: {changed_text}
             _clean_text(x)
             for x in recommendations
             if _clean_text(x)
-        ][:4]
+        ][:7]
+
+        if not risk_analysis:
+            risk_analysis = f"Risk '{title or 'Başlıksız risk'}' güncel verilerle değerlendirildi."
+        if not ps_analysis:
+            ps_analysis = (
+                f"P={p if p is not None else '-'}, "
+                f"S={s if s is not None else '-'}, "
+                f"Skor={score if score is not None else '-'}, Seviye={level}."
+            )
+        if not mitigation_analysis:
+            mitigation_analysis = (
+                "Mevcut mitigation tanımlı ve etkinliği izlenmelidir."
+                if mitigation else
+                "Mitigation tanımlı değildir; aksiyon planı oluşturulmalıdır."
+            )
+        if not responsibility_analysis:
+            responsibility_analysis = (
+                f"Sorumlu: {responsible}."
+                if responsible else
+                "Sorumlu ataması yapılmalıdır."
+            )
+        if not time_analysis:
+            time_analysis = (
+                f"Zaman aralığı {start_month or '?'} – {end_month or '?'}."
+                if (start_month or end_month) else
+                "Zaman bilgisi tanımlı değildir."
+            )
+        if not actions:
+            actions = [
+                _clean_text(a.get("action"))
+                for a in deterministic_actions
+                if _clean_text(a.get("action"))
+            ][:7]
+
+        if not actions:
+            actions = recommendations[:]
+        if not kpis:
+            kpis = list(deterministic_kpis[:6])
+        if not recommendations:
+            recommendations = actions[:7]
+
+        if not final_decision:
+            final_decision = output_text or f"Önerilen yönetim önceliği: {priority_text}."
 
         # Boş alanlara fallback.
         if not process_text:
@@ -3198,8 +3609,11 @@ Değişen alanlar: {changed_text}
             output_text = f"Önerilen yönetim önceliği: {priority}."
 
         # --------------------------------------------------------
-        # ADIM 3 — Son otomatik AI sonucunu TEK kayıt olarak kalıcılaştır
+        # ADIM 3/4E — Son otomatik AI sonucunu TEK kayıt olarak kalıcılaştır
         # --------------------------------------------------------
+        persisted = False
+        persisted_generated_by = None
+
         try:
             saved = AutoAIResult.query.filter_by(risk_id=r.id).first()
             if saved is None:
@@ -3212,8 +3626,24 @@ Değişen alanlar: {changed_text}
                 recommendations,
                 ensure_ascii=False
             )
+            comprehensive_snapshot = {
+                **signature_payload,
+                "analysis": {
+                    "risk_analysis": risk_analysis,
+                    "ps_analysis": ps_analysis,
+                    "mitigation_analysis": mitigation_analysis,
+                    "responsibility_analysis": responsibility_analysis,
+                    "time_analysis": time_analysis,
+                    "actions": actions,
+                    "raci": raci_norm,
+                    "kpis": kpis,
+                    "priority": priority_text,
+                    "final_decision": final_decision,
+                }
+            }
+
             saved.snapshot_json = json.dumps(
-                signature_payload,
+                comprehensive_snapshot,
                 ensure_ascii=False
             )
             saved.snapshot_signature = snapshot_signature
@@ -3223,14 +3653,16 @@ Değişen alanlar: {changed_text}
                 changed_fields,
                 ensure_ascii=False
             )
-            saved.generated_by = (
+            persisted_generated_by = (
                 session.get("username")
                 or session.get("email")
                 or "System"
             )
+            saved.generated_by = persisted_generated_by
             saved.updated_at = datetime.utcnow()
 
             db.session.commit()
+            persisted = True
 
         except Exception as exc:
             db.session.rollback()
@@ -3247,7 +3679,8 @@ Değişen alanlar: {changed_text}
             "revision": revision,
             "changed_fields": changed_fields,
             "source": ai_source,
-            "persisted": True,
+            "persisted": persisted,
+            "generated_by": persisted_generated_by,
             "snapshot_signature": snapshot_signature,
             "snapshot": {
                 "title": title,
@@ -3265,6 +3698,29 @@ Değişen alanlar: {changed_text}
                 "level": level,
                 "priority": priority,
             },
+            "analysis": {
+                "risk_analysis": risk_analysis,
+                "ps_analysis": ps_analysis,
+                "mitigation_analysis": mitigation_analysis,
+                "responsibility_analysis": responsibility_analysis,
+                "time_analysis": time_analysis,
+            },
+            "actions": actions,
+            "raci": raci_norm,
+            "kpis": kpis,
+            "priority": priority_text,
+            "final_decision": final_decision,
+
+            # Karar motorunun kullandığı yardımcı bağlamların kısa özeti
+            "decision_context": {
+                "ps_estimator": ps_hint if isinstance(ps_hint, dict) else None,
+                "rag_item_count": len(rag_context_lines),
+                "deterministic_action_count": len(deterministic_actions),
+                "raci_department": raci_default.get("dept"),
+                "deterministic_kpis": deterministic_kpis,
+            },
+
+            # Geriye uyumluluk: ADIM 2/3 frontend'i bozulmaz
             "process": process_text,
             "output": output_text,
             "recommendations": recommendations,

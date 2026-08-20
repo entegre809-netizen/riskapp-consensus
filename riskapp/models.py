@@ -1,6 +1,3 @@
-
-
-
 # riskapp/models.py
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -21,6 +18,56 @@ db = SQLAlchemy()
 PS_CRITICAL_MIN  = 20
 PS_MODERATE_MIN  = 12
 PS_LOW_MIN       = 6
+
+
+def ps_grade_code(score):
+    """
+    Merkezi P×S risk seviye kodu.
+    0–5   : acceptable
+    6–11  : low
+    12–19 : moderate
+    20–25 : critical
+    """
+    if score is None:
+        return None
+
+    try:
+        value = float(score)
+    except (TypeError, ValueError):
+        return None
+
+    if value >= PS_CRITICAL_MIN:
+        return "critical"
+    if value >= PS_MODERATE_MIN:
+        return "moderate"
+    if value >= PS_LOW_MIN:
+        return "low"
+    return "acceptable"
+
+
+def ps_grade_label(score):
+    """Merkezi P×S risk seviyesinin Türkçe görünen etiketi."""
+    code = ps_grade_code(score)
+    return {
+        None: "Değerlendirilmedi",
+        "acceptable": "Kabul Edilebilir",
+        "low": "Düşük",
+        "moderate": "Orta",
+        "critical": "Kritik",
+    }[code]
+
+
+def ps_priority_label(score):
+    """Risk seviyesine karşılık gelen merkezi yönetim önceliği."""
+    code = ps_grade_code(score)
+    return {
+        None: "P/S değerlendirmesi tamamlanmalı",
+        "acceptable": "Rutin izleme",
+        "low": "Planlı aksiyon ve periyodik takip",
+        "moderate": "Öncelikli aksiyon ve yakın takip",
+        "critical": "Acil aksiyon ve yönetim eskalasyonu",
+    }[code]
+
 
 
 # -------------------------------------------------
@@ -239,33 +286,24 @@ class Risk(db.Model):
 
     def score_band(self):
         """
-        UI'da renk/şiddet bandı: low / mid / high (P×S skoruna göre)
-        (Bu proje içinde /schedule görünümünde kullanılabilir)
+        UI için geriye uyumlu 3 bantlı görünüm.
+        Eşik kaynağı merkezi P×S sınıflandırmasıdır.
         """
-        s = self.score()
-        if s is None:
+        code = ps_grade_code(self.score())
+        if code is None:
             return None
-        if s <= 6:
+        if code in ("acceptable", "low"):
             return "low"
-        if s <= 15:
+        if code == "moderate":
             return "mid"
         return "high"
 
     def grade(self):
         """
-        Eski 'grade' çağrılarını da P×S eşiklerine uyarladık.
-        Dönüş: 'critical' / 'moderate' / 'low' / 'acceptable'
+        Geriye uyumlu merkezi risk seviye kodu.
+        Dönüş: critical / moderate / low / acceptable
         """
-        ps = self.avg_rpn()  # artık P×S
-        if ps is None:
-            return None
-        if ps >= PS_CRITICAL_MIN:
-            return "critical"
-        if ps >= PS_MODERATE_MIN:
-            return "moderate"
-        if ps >= PS_LOW_MIN:
-            return "low"
-        return "acceptable"
+        return ps_grade_code(self.avg_rpn())
 
     def __repr__(self):
         return f"<Risk id={self.id} title={self.title!r} status={self.status}>"

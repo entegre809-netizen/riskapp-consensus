@@ -1347,6 +1347,187 @@
   }
 
   /* ============================================================
+     ADIM 4C · KAPSAMLI AI İŞLEM SÜRECİ
+     ============================================================ */
+  .ai-process-suite{
+    display:grid;
+    gap:8px;
+    margin-top:10px;
+  }
+
+  .ai-process-item{
+    padding:10px 11px;
+    border-radius:14px;
+    border:1px solid var(--rd-line, rgba(15,23,42,.09));
+    background:var(--rd-bg, #f8fafc);
+  }
+
+  .ai-process-item-head{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin-bottom:5px;
+    color:var(--rd-text,#0f172a);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+
+  .ai-process-item-head .material-icons-outlined{
+    font-size:16px;
+    color:var(--rd-primary,#2457e6);
+  }
+
+  .ai-process-item-text{
+    color:var(--rd-muted,#64748b);
+    font-size:12px;
+    line-height:1.5;
+    font-weight:700;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+
+  .ai-process-summary{
+    margin-top:9px;
+    padding-top:9px;
+    border-top:1px dashed var(--rd-line, rgba(15,23,42,.12));
+  }
+
+  .ai-process-summary strong{
+    color:var(--rd-text,#0f172a);
+  }
+
+  [data-theme="dark"] .ai-process-item{
+    background:rgba(255,255,255,.035);
+    border-color:rgba(255,255,255,.10);
+  }
+
+  /* ============================================================
+     ADIM 4D · KAPSAMLI AI ÇIKTI
+     ============================================================ */
+  .ai-output-suite{
+    display:grid;
+    gap:8px;
+    margin-top:10px;
+  }
+
+  .ai-output-item{
+    padding:10px 11px;
+    border-radius:14px;
+    border:1px solid var(--rd-line, rgba(15,23,42,.09));
+    background:var(--rd-bg, #f8fafc);
+  }
+
+  .ai-output-item-head{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin-bottom:5px;
+    color:var(--rd-text,#0f172a);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+
+  .ai-output-item-head .material-icons-outlined{
+    font-size:16px;
+    color:var(--rd-primary,#2457e6);
+  }
+
+  .ai-output-item-text{
+    color:var(--rd-muted,#64748b);
+    font-size:12px;
+    line-height:1.5;
+    font-weight:700;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+
+  .ai-output-badge{
+    display:inline-flex;
+    align-items:center;
+    min-height:28px;
+    padding:0 9px;
+    border-radius:999px;
+    color:var(--rd-primary,#2457e6);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.18);
+    font-size:11px;
+    font-weight:950;
+  }
+
+  .ai-output-list{
+    margin:0;
+    padding-left:18px;
+    color:var(--rd-muted,#64748b);
+    font-size:12px;
+    line-height:1.55;
+    font-weight:700;
+  }
+
+  .ai-output-list li + li{
+    margin-top:4px;
+  }
+
+  .ai-raci-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+
+  .ai-raci-cell{
+    padding:8px 9px;
+    border-radius:11px;
+    background:color-mix(in oklab, var(--rd-card,#fff) 72%, transparent);
+    border:1px solid var(--rd-line, rgba(15,23,42,.08));
+  }
+
+  .ai-raci-key{
+    display:block;
+    color:var(--rd-primary,#2457e6);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.08em;
+  }
+
+  .ai-raci-val{
+    display:block;
+    margin-top:3px;
+    color:var(--rd-muted,#64748b);
+    font-size:12px;
+    line-height:1.4;
+    font-weight:750;
+  }
+
+  .ai-output-summary{
+    margin-top:9px;
+    padding-top:9px;
+    border-top:1px dashed var(--rd-line, rgba(15,23,42,.12));
+  }
+
+  .ai-output-summary strong{
+    color:var(--rd-text,#0f172a);
+  }
+
+  [data-theme="dark"] .ai-output-item{
+    background:rgba(255,255,255,.035);
+    border-color:rgba(255,255,255,.10);
+  }
+
+  [data-theme="dark"] .ai-raci-cell{
+    background:rgba(255,255,255,.03);
+    border-color:rgba(255,255,255,.08);
+  }
+
+  @media (max-width:640px){
+    .ai-raci-grid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  /* ============================================================
      ADIM 1 · OTOMATİK AI DEĞİŞİKLİK İZLEME DURUMU
      ============================================================ */
   .ai-auto-state{
@@ -1394,7 +1575,13 @@
      id="riskDetailPage"
      data-risk-id="{{ r.id }}"
      data-auto-ai-url="{{ url_for('risk_auto_ai', risk_id=r.id) }}"
-     data-has-saved-ai="{{ '1' if auto_ai_result else '0' }}">
+     data-has-saved-ai="{{ '1' if auto_ai_result else '0' }}"
+     data-auto-ai-stale="{{ '1' if auto_ai_is_stale else '0' }}"
+     data-current-ai-signature="{{ current_ai_snapshot_signature or '' }}">
+
+  {# ADIM 4C: Kalıcı AutoAIResult snapshot'ındaki kapsamlı analiz #}
+  {% set _saved_ai_snapshot = auto_ai_result.snapshot() if auto_ai_result else {} %}
+  {% set _saved_ai_analysis = _saved_ai_snapshot.get('analysis', {}) if _saved_ai_snapshot else {} %}
 
   {# ========= TÜM SAYFADA KULLANILACAK SON DEĞERLENDİRME ========= #}
   {% set evals = (r.evaluations or [])|sort(attribute='id') %}
@@ -1413,20 +1600,15 @@
     {% set last_rpn_display = None %}
   {% endif %}
 
-  {# RPN seviyesini Excel ölçeğine göre üret:
-     1–4 Düşük, 5–10 Orta, 11–15 Yüksek, 16–25 Çok Yüksek #}
-  {% set grade = '' %}
-  {% if last_rpn is not none and last_rpn > 0 %}
-    {% if last_rpn <= 4 %}
-      {% set grade = 'Düşük' %}
-    {% elif last_rpn <= 10 %}
-      {% set grade = 'Orta' %}
-    {% elif last_rpn <= 15 %}
-      {% set grade = 'Yüksek' %}
-    {% else %}
-      {% set grade = 'Çok Yüksek' %}
-    {% endif %}
-  {% endif %}
+  {# ADIM 4F — merkezi P×S standardı: 0–5 Kabul Edilebilir, 6–11 Düşük,
+     12–19 Orta, 20–25 Kritik #}
+  {% set grade_code = r.grade() if last_rpn is not none else none %}
+  {% set grade = {
+    'acceptable': 'Kabul Edilebilir',
+    'low': 'Düşük',
+    'moderate': 'Orta',
+    'critical': 'Kritik'
+  }.get(grade_code, '') %}
 
   {# ========= ÜST HERO (tasarım) ========= #}
   <div class="card sticky-top hero">
@@ -1483,13 +1665,13 @@
         </button>
       </form>
 
-      <span class="ai-auto-state is-saved"
+      <span class="ai-auto-state {% if auto_ai_is_stale %}is-dirty{% else %}is-saved{% endif %}"
             id="aiAutoState"
             role="status"
             aria-live="polite"
             title="Kritik veriler değiştiğinde otomatik AI hazırlığı devreye girer.">
         <span class="ai-auto-dot" aria-hidden="true"></span>
-        <span id="aiAutoStateText">AI otomatik izleme hazır</span>
+        <span id="aiAutoStateText">{% if auto_ai_is_stale %}AI sonucu güncel değil{% elif auto_ai_result %}AI verisi güncel{% else %}AI otomatik izleme hazır{% endif %}</span>
       </span>
 
       <a class="hero-btn" href="{{ url_for('index') }}">← Liste</a>
@@ -1623,8 +1805,84 @@
         </li>
       
         <li id="aiProcessLive" style="margin-top:8px;">
-          <strong>Otomatik AI:</strong>
-          <span id="aiProcessText">{% if auto_ai_result and auto_ai_result.process_text %}{{ auto_ai_result.process_text }}{% else %}Veri değiştiğinde otomatik analiz burada güncellenecek.{% endif %}</span>
+          <strong>Otomatik AI Karar Süreci</strong>
+
+          <div class="ai-process-suite" id="aiProcessSuite">
+            <div class="ai-process-item">
+              <div class="ai-process-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">analytics</span>
+                Risk Analizi
+              </div>
+              <div class="ai-process-item-text" id="aiRiskAnalysis">
+                {% if _saved_ai_analysis.get('risk_analysis') %}
+                  {{ _saved_ai_analysis.get('risk_analysis') }}
+                {% else %}
+                  Veri değiştiğinde riskin niteliği ve temel etkisi burada analiz edilecek.
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="ai-process-item">
+              <div class="ai-process-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">calculate</span>
+                P / S Analizi
+              </div>
+              <div class="ai-process-item-text" id="aiPsAnalysis">
+                {% if _saved_ai_analysis.get('ps_analysis') %}
+                  {{ _saved_ai_analysis.get('ps_analysis') }}
+                {% else %}
+                  Güncel olasılık, şiddet ve risk skoru burada değerlendirilecek.
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="ai-process-item">
+              <div class="ai-process-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">shield</span>
+                Mitigation Analizi
+              </div>
+              <div class="ai-process-item-text" id="aiMitigationAnalysis">
+                {% if _saved_ai_analysis.get('mitigation_analysis') %}
+                  {{ _saved_ai_analysis.get('mitigation_analysis') }}
+                {% else %}
+                  Mevcut önlemlerin yeterliliği ve açıkları burada değerlendirilecek.
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="ai-process-item">
+              <div class="ai-process-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">manage_accounts</span>
+                Sorumluluk Analizi
+              </div>
+              <div class="ai-process-item-text" id="aiResponsibilityAnalysis">
+                {% if _saved_ai_analysis.get('responsibility_analysis') %}
+                  {{ _saved_ai_analysis.get('responsibility_analysis') }}
+                {% else %}
+                  Risk sahibi ve sorumluluk uygunluğu burada değerlendirilecek.
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="ai-process-item">
+              <div class="ai-process-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">schedule</span>
+                Zaman Analizi
+              </div>
+              <div class="ai-process-item-text" id="aiTimeAnalysis">
+                {% if _saved_ai_analysis.get('time_analysis') %}
+                  {{ _saved_ai_analysis.get('time_analysis') }}
+                {% else %}
+                  Riskin başlangıç, bitiş ve zaman etkisi burada değerlendirilecek.
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-process-summary">
+            <strong>AI Süreç Özeti:</strong>
+            <span id="aiProcessText">{% if auto_ai_result and auto_ai_result.process_text %}{{ auto_ai_result.process_text }}{% else %}Veri değiştiğinde otomatik analiz burada güncellenecek.{% endif %}</span>
+          </div>
         </li>
 </ul>
     </article>
@@ -1682,13 +1940,116 @@
         </li>
       
         <li id="aiOutputLive" style="margin-top:8px;">
-          <strong>Otomatik AI Sonucu:</strong>
-          <span id="aiOutputText">{% if auto_ai_result and auto_ai_result.output_text %}{{ auto_ai_result.output_text }}{% else %}Veri değiştiğinde karar özeti burada güncellenecek.{% endif %}</span>
-          {% set _saved_recos = auto_ai_result.recommendations() if auto_ai_result else [] %}
+          <strong>Otomatik AI Çıktısı</strong>
+
+          <div class="ai-output-suite" id="aiOutputSuite">
+            <div class="ai-output-item">
+              <div class="ai-output-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">priority_high</span>
+                Öncelik
+              </div>
+              <div class="ai-output-item-text">
+                <span class="ai-output-badge" id="aiPriority">
+                  {% if _saved_ai_analysis.get('priority') %}
+                    {{ _saved_ai_analysis.get('priority') }}
+                  {% else %}
+                    Veri değiştiğinde yönetim önceliği burada gösterilecek.
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+
+            <div class="ai-output-item">
+              <div class="ai-output-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">task_alt</span>
+                Aksiyonlar
+              </div>
+              <ul class="ai-output-list" id="aiActions">
+                {% set _saved_actions = _saved_ai_analysis.get('actions', []) %}
+                {% if _saved_actions %}
+                  {% for action in _saved_actions %}
+                    <li>{{ action }}</li>
+                  {% endfor %}
+                {% else %}
+                  <li>AI aksiyonları veri değiştiğinde burada oluşturulacak.</li>
+                {% endif %}
+              </ul>
+            </div>
+
+            <div class="ai-output-item">
+              <div class="ai-output-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">account_tree</span>
+                RACI
+              </div>
+              {% set _saved_raci = _saved_ai_analysis.get('raci', {}) %}
+              <div class="ai-raci-grid" id="aiRaciGrid">
+                <div class="ai-raci-cell">
+                  <span class="ai-raci-key">R · RESPONSIBLE</span>
+                  <span class="ai-raci-val" id="aiRaciR">{{ _saved_raci.get('R', 'Henüz üretilmedi') }}</span>
+                </div>
+                <div class="ai-raci-cell">
+                  <span class="ai-raci-key">A · ACCOUNTABLE</span>
+                  <span class="ai-raci-val" id="aiRaciA">{{ _saved_raci.get('A', 'Henüz üretilmedi') }}</span>
+                </div>
+                <div class="ai-raci-cell">
+                  <span class="ai-raci-key">C · CONSULTED</span>
+                  <span class="ai-raci-val" id="aiRaciC">
+                    {% set _c = _saved_raci.get('C', []) %}
+                    {{ _c|join(', ') if _c else 'Henüz üretilmedi' }}
+                  </span>
+                </div>
+                <div class="ai-raci-cell">
+                  <span class="ai-raci-key">I · INFORMED</span>
+                  <span class="ai-raci-val" id="aiRaciI">
+                    {% set _i = _saved_raci.get('I', []) %}
+                    {{ _i|join(', ') if _i else 'Henüz üretilmedi' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ai-output-item">
+              <div class="ai-output-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">monitoring</span>
+                KPI
+              </div>
+              <ul class="ai-output-list" id="aiKpis">
+                {% set _saved_kpis = _saved_ai_analysis.get('kpis', []) %}
+                {% if _saved_kpis %}
+                  {% for kpi in _saved_kpis %}
+                    <li>{{ kpi }}</li>
+                  {% endfor %}
+                {% else %}
+                  <li>Takip KPI'ları veri değiştiğinde burada oluşturulacak.</li>
+                {% endif %}
+              </ul>
+            </div>
+
+            <div class="ai-output-item">
+              <div class="ai-output-item-head">
+                <span class="material-icons-outlined" aria-hidden="true">gavel</span>
+                Nihai Karar
+              </div>
+              <div class="ai-output-item-text" id="aiFinalDecision">
+                {% if _saved_ai_analysis.get('final_decision') %}
+                  {{ _saved_ai_analysis.get('final_decision') }}
+                {% else %}
+                  Kapsamlı AI karar destek özeti burada gösterilecek.
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-output-summary">
+            <strong>AI Çıktı Özeti:</strong>
+            <span id="aiOutputText">{% if auto_ai_result and auto_ai_result.output_text %}{{ auto_ai_result.output_text }}{% else %}Veri değiştiğinde karar özeti burada güncellenecek.{% endif %}</span>
+          </div>
+
           <div id="aiRecommendationWrap" style="margin-top:6px;" {% if not _saved_recos %}hidden{% endif %}>
             <strong>Öneriler:</strong>
             <span id="aiRecommendations">{% if _saved_recos %}<br>{% for rec in _saved_recos %}• {{ rec }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}</span>
           </div>
+
           {% if auto_ai_result %}
           <div class="muted" id="aiPersistMeta" style="margin-top:7px; font-size:11px;">
             Son otomatik AI:
@@ -2397,6 +2758,7 @@
     let changedFields = new Set();
 
     const WATCHED_RISK_FIELDS = [
+      'title',
       'status',
       'risk_type',
       'responsible',
@@ -2650,10 +3012,27 @@
       bindConsensus();
       bindFormSubmit();
 
-      // Sayfanın ilk açılışını değişiklik sayma.
+      // Sayfanın ilk açılışını normalde değişiklik sayma.
+      // Backend kayıtlı AI sonucunun eski olduğunu tespit ettiyse,
+      // sayfa açılışında yalnızca bir kez otomatik yenile.
       queueMicrotask(() => {
         markInitialSignature();
-        setState('saved', 'AI otomatik izleme hazır');
+
+        const savedAIIsStale =
+          pageRoot?.dataset.autoAiStale === '1';
+
+        if (savedAIIsStale){
+          lastPayloadSignature = '';
+          setState('dirty', 'AI sonucu güncel değil · yenileniyor…');
+          schedule('saved_ai_stale');
+          return;
+        }
+
+        if (pageRoot?.dataset.hasSavedAi === '1'){
+          setState('saved', 'AI verisi güncel');
+        }else{
+          setState('saved', 'AI otomatik izleme hazır');
+        }
       });
     });
 
@@ -2678,7 +3057,22 @@
     const stateEl = document.getElementById('aiAutoState');
     const stateText = document.getElementById('aiAutoStateText');
     const processTextEl = document.getElementById('aiProcessText');
+    const riskAnalysisEl = document.getElementById('aiRiskAnalysis');
+    const psAnalysisEl = document.getElementById('aiPsAnalysis');
+    const mitigationAnalysisEl = document.getElementById('aiMitigationAnalysis');
+    const responsibilityAnalysisEl = document.getElementById('aiResponsibilityAnalysis');
+    const timeAnalysisEl = document.getElementById('aiTimeAnalysis');
+
     const outputTextEl = document.getElementById('aiOutputText');
+    const priorityEl = document.getElementById('aiPriority');
+    const actionsEl = document.getElementById('aiActions');
+    const raciREl = document.getElementById('aiRaciR');
+    const raciAEl = document.getElementById('aiRaciA');
+    const raciCEl = document.getElementById('aiRaciC');
+    const raciIEl = document.getElementById('aiRaciI');
+    const kpisEl = document.getElementById('aiKpis');
+    const finalDecisionEl = document.getElementById('aiFinalDecision');
+
     const recommendationWrap = document.getElementById('aiRecommendationWrap');
     const recommendationEl = document.getElementById('aiRecommendations');
 
@@ -2704,6 +3098,23 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    function renderSimpleList(target, items, emptyText){
+      if (!target) return;
+
+      const rows = Array.isArray(items)
+        ? items.filter(Boolean).slice(0, 8)
+        : [];
+
+      if (!rows.length){
+        target.innerHTML = `<li>${escapeHtml(emptyText)}</li>`;
+        return;
+      }
+
+      target.innerHTML = rows
+        .map(item => `<li>${escapeHtml(item)}</li>`)
+        .join('');
     }
 
     function renderRecommendations(items){
@@ -2746,8 +3157,36 @@
       if (processTextEl){
         processTextEl.textContent = 'Güncel veriler analiz ediliyor…';
       }
+
+      const processLoadingText = 'Güncel veriler analiz ediliyor…';
+      [
+        riskAnalysisEl,
+        psAnalysisEl,
+        mitigationAnalysisEl,
+        responsibilityAnalysisEl,
+        timeAnalysisEl
+      ].forEach(el => {
+        if (el) el.textContent = processLoadingText;
+      });
+
       if (outputTextEl){
         outputTextEl.textContent = 'Yeni karar özeti hazırlanıyor…';
+      }
+
+      if (priorityEl){
+        priorityEl.textContent = 'Hesaplanıyor…';
+      }
+
+      renderSimpleList(actionsEl, [], 'Aksiyonlar hazırlanıyor…');
+      renderSimpleList(kpisEl, [], 'KPI’lar hazırlanıyor…');
+
+      if (raciREl) raciREl.textContent = 'Hesaplanıyor…';
+      if (raciAEl) raciAEl.textContent = 'Hesaplanıyor…';
+      if (raciCEl) raciCEl.textContent = 'Hesaplanıyor…';
+      if (raciIEl) raciIEl.textContent = 'Hesaplanıyor…';
+
+      if (finalDecisionEl){
+        finalDecisionEl.textContent = 'Nihai karar hazırlanıyor…';
       }
 
       try{
@@ -2791,9 +3230,76 @@
           return;
         }
 
+        const analysis = data.analysis || {};
+
+        if (riskAnalysisEl){
+          riskAnalysisEl.textContent =
+            analysis.risk_analysis || 'Risk analizi üretilemedi.';
+        }
+
+        if (psAnalysisEl){
+          psAnalysisEl.textContent =
+            analysis.ps_analysis || 'P/S analizi üretilemedi.';
+        }
+
+        if (mitigationAnalysisEl){
+          mitigationAnalysisEl.textContent =
+            analysis.mitigation_analysis || 'Mitigation analizi üretilemedi.';
+        }
+
+        if (responsibilityAnalysisEl){
+          responsibilityAnalysisEl.textContent =
+            analysis.responsibility_analysis || 'Sorumluluk analizi üretilemedi.';
+        }
+
+        if (timeAnalysisEl){
+          timeAnalysisEl.textContent =
+            analysis.time_analysis || 'Zaman analizi üretilemedi.';
+        }
+
         if (processTextEl){
           processTextEl.textContent =
             data.process || 'İşlem analizi üretilemedi.';
+        }
+
+        if (priorityEl){
+          priorityEl.textContent =
+            data.priority || 'Öncelik üretilemedi.';
+        }
+
+        renderSimpleList(
+          actionsEl,
+          data.actions || [],
+          'Aksiyon üretilemedi.'
+        );
+
+        const raciData = data.raci || {};
+        if (raciREl){
+          raciREl.textContent = raciData.R || 'Belirlenmedi';
+        }
+        if (raciAEl){
+          raciAEl.textContent = raciData.A || 'Belirlenmedi';
+        }
+        if (raciCEl){
+          raciCEl.textContent = Array.isArray(raciData.C) && raciData.C.length
+            ? raciData.C.join(', ')
+            : 'Belirlenmedi';
+        }
+        if (raciIEl){
+          raciIEl.textContent = Array.isArray(raciData.I) && raciData.I.length
+            ? raciData.I.join(', ')
+            : 'Belirlenmedi';
+        }
+
+        renderSimpleList(
+          kpisEl,
+          data.kpis || [],
+          'KPI üretilemedi.'
+        );
+
+        if (finalDecisionEl){
+          finalDecisionEl.textContent =
+            data.final_decision || 'Nihai karar üretilemedi.';
         }
 
         if (outputTextEl){
@@ -2812,12 +3318,15 @@
         const metaEl = document.getElementById('aiPersistMeta');
         if (metaEl){
           const now = new Date();
-          const who = 'aktif kullanıcı';
+          const who = data.generated_by || 'System';
           const sourceText = data.source === 'fallback'
             ? 'Yedek karar motoru'
             : 'AI';
+          const persistenceText = data.persisted === false
+            ? ' · kayıt başarısız'
+            : '';
           metaEl.textContent =
-            `Son otomatik AI: ${now.toLocaleString('tr-TR')} · ${who} · ${sourceText}`;
+            `Son otomatik AI: ${now.toLocaleString('tr-TR')} · ${who} · ${sourceText}${persistenceText}`;
         }
 
         const sourceLabel =
@@ -2825,10 +3334,21 @@
             ? 'yedek karar motoru'
             : 'AI';
 
-        setStatus(
-          'saved',
-          `Otomatik ${sourceLabel} güncel`
-        );
+        if (data.persisted === false){
+          setStatus(
+            'dirty',
+            `Otomatik ${sourceLabel} üretildi · kayıt başarısız`
+          );
+        }else{
+          setStatus(
+            'saved',
+            `Otomatik ${sourceLabel} güncel`
+          );
+          pageRoot.dataset.autoAiStale = '0';
+          if (data.snapshot_signature){
+            pageRoot.dataset.currentAiSignature = data.snapshot_signature;
+          }
+        }
 
         window.RiskAutoAIState = {
           ...(window.RiskAutoAIState || {}),
@@ -2856,9 +3376,47 @@
             'Otomatik AI analizi şu anda alınamadı; mevcut risk verileri korunuyor.';
         }
 
+        const processErrorText =
+          'Yeni otomatik analiz alınamadı; son kaydedilmiş değerlendirme korunuyor.';
+        [
+          riskAnalysisEl,
+          psAnalysisEl,
+          mitigationAnalysisEl,
+          responsibilityAnalysisEl,
+          timeAnalysisEl
+        ].forEach(el => {
+          if (el) el.textContent = processErrorText;
+        });
+
         if (outputTextEl){
           outputTextEl.textContent =
             'Yeni AI çıktısı alınamadı. Manuel “AI Yorumu Yenile” kullanılabilir.';
+        }
+
+        if (priorityEl){
+          priorityEl.textContent = 'Son kayıt korunuyor';
+        }
+
+        renderSimpleList(
+          actionsEl,
+          [],
+          'Yeni aksiyon alınamadı; son kayıt korunuyor.'
+        );
+
+        if (raciREl) raciREl.textContent = 'Son kayıt korunuyor';
+        if (raciAEl) raciAEl.textContent = 'Son kayıt korunuyor';
+        if (raciCEl) raciCEl.textContent = 'Son kayıt korunuyor';
+        if (raciIEl) raciIEl.textContent = 'Son kayıt korunuyor';
+
+        renderSimpleList(
+          kpisEl,
+          [],
+          'Yeni KPI alınamadı; son kayıt korunuyor.'
+        );
+
+        if (finalDecisionEl){
+          finalDecisionEl.textContent =
+            'Yeni nihai karar alınamadı; son kayıt korunuyor.';
         }
 
         renderRecommendations([]);
