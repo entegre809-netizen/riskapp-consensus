@@ -1151,6 +1151,14 @@
               Risk Seç
               <span class="material-icons-outlined" style="font-size:17px;">south</span>
             </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='risk_detail', fmt='csv') }}">
+              CSV
+              <span class="material-icons-outlined" style="font-size:16px;">table_view</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='risk_detail', fmt='pdf') }}" target="_blank" rel="noopener">
+              PDF
+              <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
+            </a>
           </div>
         </article>
 
@@ -1169,6 +1177,14 @@
             <a class="rp-report-link primary" href="{{ url_for('report_evaluation') }}">
               Görüntüle
               <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='evaluation', fmt='csv') }}">
+              CSV
+              <span class="material-icons-outlined" style="font-size:16px;">table_view</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='evaluation', fmt='pdf') }}" target="_blank" rel="noopener">
+              PDF
+              <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
             </a>
           </div>
         </article>
@@ -1189,6 +1205,14 @@
               Görüntüle
               <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
             </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='responsibility', fmt='csv') }}">
+              CSV
+              <span class="material-icons-outlined" style="font-size:16px;">table_view</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='responsibility', fmt='pdf') }}" target="_blank" rel="noopener">
+              PDF
+              <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
+            </a>
           </div>
         </article>
 
@@ -1208,7 +1232,11 @@
               Görüntüle
               <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
             </a>
-            <a class="rp-report-link" href="{{ url_for('schedule_pdf') }}">
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='time', fmt='csv') }}">
+              CSV
+              <span class="material-icons-outlined" style="font-size:16px;">table_view</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='time', fmt='pdf') }}" target="_blank" rel="noopener">
               PDF
               <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
             </a>
@@ -1231,6 +1259,14 @@
               Görüntüle
               <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
             </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='cost', fmt='csv') }}">
+              CSV
+              <span class="material-icons-outlined" style="font-size:16px;">table_view</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='cost', fmt='pdf') }}" target="_blank" rel="noopener">
+              PDF
+              <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
+            </a>
           </div>
         </article>
 
@@ -1250,6 +1286,14 @@
               Görüntüle
               <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
             </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='pareto', fmt='csv') }}">
+              CSV
+              <span class="material-icons-outlined" style="font-size:16px;">table_view</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='pareto', fmt='pdf') }}" target="_blank" rel="noopener">
+              PDF
+              <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
+            </a>
           </div>
         </article>
 
@@ -1268,6 +1312,14 @@
             <a class="rp-report-link primary" href="{{ url_for('dashboard') }}">
               Görüntüle
               <span class="material-icons-outlined" style="font-size:17px;">arrow_forward</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='dashboard', fmt='csv') }}">
+              CSV
+              <span class="material-icons-outlined" style="font-size:16px;">table_view</span>
+            </a>
+            <a class="rp-report-link" href="{{ url_for('report_export', report_key='dashboard', fmt='pdf') }}" target="_blank" rel="noopener">
+              PDF
+              <span class="material-icons-outlined" style="font-size:16px;">picture_as_pdf</span>
             </a>
           </div>
         </article>

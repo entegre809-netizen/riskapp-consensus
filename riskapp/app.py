@@ -7249,6 +7249,512 @@ def create_app():
 
 
 
+
+    # ============================================================
+    # RAPOR MERKEZİ — ORTAK CSV / PDF DIŞA AKTARIM
+    # ============================================================
+    @app.get("/reports/export/<report_key>/<fmt>")
+    def report_export(report_key, fmt):
+        """
+        Rapor Merkezi'ndeki 7 rapor türü için ortak çıktı endpoint'i.
+
+        Desteklenen report_key:
+          risk_detail, evaluation, responsibility, time,
+          cost, pareto, dashboard
+
+        Desteklenen fmt:
+          csv, pdf
+        """
+        report_key = (report_key or "").strip().lower()
+        fmt = (fmt or "").strip().lower()
+
+        allowed = {
+            "risk_detail",
+            "evaluation",
+            "responsibility",
+            "time",
+            "cost",
+            "pareto",
+            "dashboard",
+        }
+
+        if report_key not in allowed or fmt not in {"csv", "pdf"}:
+            abort(404)
+
+        safe_names = {
+            "risk_detail": "risk_detay_raporu",
+            "evaluation": "risk_degerlendirme_raporu",
+            "responsibility": "sorumluluk_is_yuku_raporu",
+            "time": "zaman_yonetimi_raporu",
+            "cost": "maliyet_raporu",
+            "pareto": "pareto_onceliklendirme_raporu",
+            "dashboard": "yonetici_ozet_raporu",
+        }
+
+        stamp = datetime.now().strftime("%Y%m%d_%H%M")
+        filename_base = f"{safe_names[report_key]}_{stamp}"
+
+        # --------------------------------------------------------
+        # CSV
+        # --------------------------------------------------------
+        if fmt == "csv":
+            sio = StringIO()
+            writer = csv.writer(
+                sio,
+                delimiter=";",
+                quotechar='"',
+                quoting=csv.QUOTE_MINIMAL,
+                lineterminator="\r\n",
+            )
+
+            pid = _get_active_project_id()
+
+            def _risk_query():
+                q = Risk.query
+                if pid:
+                    q = q.filter(Risk.project_id == pid)
+                return q
+
+            def _score_25(r):
+                try:
+                    sc = r.score()
+                    if sc is None:
+                        return None
+                    sc = float(sc)
+                    return (sc / 4.0) if sc > 25 else sc
+                except Exception:
+                    return None
+
+            def _latest_eval(r):
+                try:
+                    evals = sorted(
+                        (r.evaluations or []),
+                        key=lambda e: (getattr(e, "id", 0) or 0)
+                    )
+                    return evals[-1] if evals else None
+                except Exception:
+                    return None
+
+            # 01 — Risk Detay
+            if report_key == "risk_detail":
+                risks = _risk_query().order_by(Risk.updated_at.desc()).all()
+
+                cost_map = defaultdict(lambda: defaultdict(float))
+                if risks:
+                    risk_ids = [r.id for r in risks]
+                    rows = (
+                        db.session.query(
+                            CostItem.risk_id,
+                            func.coalesce(CostItem.currency, "TRY"),
+                            func.coalesce(func.sum(CostItem.total), 0),
+                        )
+                        .filter(CostItem.risk_id.in_(risk_ids))
+                        .group_by(CostItem.risk_id, CostItem.currency)
+                        .all()
+                    )
+                    for rid, cur, total in rows:
+                        cost_map[rid][(cur or "TRY").upper()] += float(total or 0)
+
+                writer.writerow([
+                    "Risk ID", "Referans No", "Risk Başlığı", "Kategori",
+                    "Sorumlu", "Durum", "Risk Skoru",
+                    "TRY Maliyet", "USD Maliyet", "EUR Maliyet"
+                ])
+                for r in risks:
+                    writer.writerow([
+                        r.id,
+                        getattr(r, "ref_code", None) or "",
+                        r.title or "",
+                        r.category or "",
+                        getattr(r, "responsible", None) or "",
+                        r.status or "",
+                        "" if _score_25(r) is None else f"{_score_25(r):.2f}",
+                        f"{cost_map[r.id]['TRY']:.2f}",
+                        f"{cost_map[r.id]['USD']:.2f}",
+                        f"{cost_map[r.id]['EUR']:.2f}",
+                    ])
+
+            # 02 — Risk Değerlendirme
+            elif report_key == "evaluation":
+                risks = _risk_query().order_by(Risk.updated_at.desc()).all()
+                writer.writerow([
+                    "Risk ID", "Risk Başlığı", "Kategori", "Sorumlu",
+                    "Olasılık (P)", "Şiddet (S)", "Skor", "Seviye", "Durum"
+                ])
+                for r in risks:
+                    ev = _latest_eval(r)
+                    p = getattr(ev, "probability", None) if ev else None
+                    s = getattr(ev, "severity", None) if ev else None
+                    try:
+                        p = int(p) if p is not None else None
+                        s = int(s) if s is not None else None
+                    except Exception:
+                        p = s = None
+
+                    score = (p * s) if (p is not None and s is not None) else None
+                    if score is None:
+                        level = "Değerlendirilmedi"
+                    elif score <= 4:
+                        level = "Düşük"
+                    elif score <= 10:
+                        level = "Orta"
+                    elif score <= 15:
+                        level = "Yüksek"
+                    else:
+                        level = "Çok Yüksek"
+
+                    writer.writerow([
+                        r.id, r.title or "", r.category or "",
+                        getattr(r, "responsible", None) or "",
+                        "" if p is None else p,
+                        "" if s is None else s,
+                        "" if score is None else score,
+                        level,
+                        r.status or "",
+                    ])
+
+            # 03 — Sorumluluk / İş Yükü
+            elif report_key == "responsibility":
+                risks = (
+                    _risk_query()
+                    .filter(Risk.responsible.isnot(None))
+                    .filter(Risk.responsible != "")
+                    .all()
+                )
+
+                buckets = defaultdict(lambda: {
+                    "count": 0,
+                    "scores": [],
+                    "critical_count": 0,
+                    "top_title": "",
+                    "top_score": None,
+                })
+
+                for r in risks:
+                    name = (getattr(r, "responsible", None) or "").strip()
+                    if not name:
+                        continue
+                    b = buckets[name]
+                    b["count"] += 1
+
+                    sc = _score_25(r)
+                    if sc is not None:
+                        b["scores"].append(sc)
+                        if sc > 15:
+                            b["critical_count"] += 1
+                        if b["top_score"] is None or sc > b["top_score"]:
+                            b["top_score"] = sc
+                            b["top_title"] = r.title or ""
+
+                total_assigned = sum(v["count"] for v in buckets.values())
+                writer.writerow([
+                    "Sorumlu", "Risk Sayısı", "Değerlendirilen Risk",
+                    "Ortalama Skor", "Kritik Risk Sayısı",
+                    "En Kritik Risk", "En Kritik Skor", "İş Yükü %"
+                ])
+
+                for name, b in sorted(
+                    buckets.items(),
+                    key=lambda kv: (-kv[1]["count"], kv[0].lower())
+                ):
+                    avg_sc = (
+                        sum(b["scores"]) / len(b["scores"])
+                        if b["scores"] else None
+                    )
+                    workload = (
+                        (b["count"] / total_assigned) * 100
+                        if total_assigned else 0
+                    )
+                    writer.writerow([
+                        name,
+                        b["count"],
+                        len(b["scores"]),
+                        "" if avg_sc is None else f"{avg_sc:.2f}",
+                        b["critical_count"],
+                        b["top_title"],
+                        "" if b["top_score"] is None else f"{b['top_score']:.2f}",
+                        f"{workload:.2f}",
+                    ])
+
+            # 04 — Zaman Yönetimi
+            elif report_key == "time":
+                ctx = build_schedule_context()
+                writer.writerow([
+                    "Risk ID", "Risk Başlığı", "Kategori", "Sorumlu", "Durum",
+                    "Başlangıç", "Bitiş", "Aktif Ay Sayısı", "Risk Skoru", "Seviye"
+                ])
+                for row in (ctx.get("rows") or []):
+                    r = row["risk"]
+                    sc = _score_25(r)
+                    if sc is None:
+                        level = "Değerlendirilmedi"
+                    elif sc <= 4:
+                        level = "Düşük"
+                    elif sc <= 10:
+                        level = "Orta"
+                    elif sc <= 15:
+                        level = "Yüksek"
+                    else:
+                        level = "Çok Yüksek"
+
+                    writer.writerow([
+                        r.id,
+                        r.title or "",
+                        r.category or "",
+                        getattr(r, "responsible", None) or "",
+                        r.status or "",
+                        row.get("startYM") or getattr(r, "start_month", None) or "",
+                        row.get("endYM") or getattr(r, "end_month", None) or "",
+                        len(row.get("active") or []),
+                        "" if sc is None else f"{sc:.2f}",
+                        level,
+                    ])
+
+            # 05 — Maliyet
+            elif report_key == "cost":
+                project_id = _active_project_id()
+                q = CostItem.query
+                if project_id:
+                    q = q.filter(CostItem.project_id == project_id)
+                items = q.order_by(CostItem.id.desc()).all()
+
+                writer.writerow([
+                    "Maliyet ID", "Başlık", "Kategori", "Risk ID",
+                    "Miktar", "Birim Fiyat", "Para Birimi", "Sıklık",
+                    "Anlık Toplam", "Yıllık Toplam", "Açıklama"
+                ])
+
+                for item in items:
+                    try:
+                        total = float(
+                            item.total
+                            if item.total is not None
+                            else (item.qty or 0) * (item.unit_price or 0)
+                        )
+                    except Exception:
+                        total = 0.0
+
+                    freq = (item.frequency or "Tek Sefer").strip()
+                    try:
+                        annual = float(Decimal(str(total)) * _annual_factor(freq))
+                    except Exception:
+                        annual = total
+
+                    writer.writerow([
+                        item.id,
+                        item.title or "",
+                        item.category or "",
+                        item.risk_id or "",
+                        item.qty or 0,
+                        item.unit_price or 0,
+                        (item.currency or "TRY").upper(),
+                        freq,
+                        f"{total:.2f}",
+                        f"{annual:.2f}",
+                        item.description or "",
+                    ])
+
+            # 06 — Pareto / Önceliklendirme
+            elif report_key == "pareto":
+                currency = (request.args.get("currency") or "TRY").upper()
+                risks = _risk_query().all()
+                risk_map = {r.id: r for r in risks}
+                risk_ids = list(risk_map)
+
+                writer.writerow([
+                    "Sıra", "Risk ID", "Risk Başlığı", "Kategori", "Sorumlu",
+                    "Para Birimi", "Maliyet", "Risk Skoru",
+                    "Öncelik Skoru", "Pay %", "Kümülatif %", "Top 80"
+                ])
+
+                if risk_ids:
+                    sums = (
+                        db.session.query(
+                            CostItem.risk_id,
+                            func.coalesce(func.sum(CostItem.total), 0)
+                        )
+                        .filter(CostItem.risk_id.in_(risk_ids))
+                        .filter(func.coalesce(CostItem.currency, "TRY") == currency)
+                        .group_by(CostItem.risk_id)
+                        .all()
+                    )
+
+                    items = []
+                    for rid, total in sums:
+                        r = risk_map.get(rid)
+                        cost_val = float(total or 0)
+                        sc = _score_25(r) or 0.0
+                        priority = cost_val * sc
+                        if priority <= 0:
+                            continue
+                        items.append({
+                            "rid": rid,
+                            "risk": r,
+                            "cost": cost_val,
+                            "score": sc,
+                            "priority": priority,
+                        })
+
+                    items.sort(key=lambda x: x["priority"], reverse=True)
+                    grand = sum(i["priority"] for i in items)
+                    running = 0.0
+
+                    for idx2, it in enumerate(items, start=1):
+                        running += it["priority"]
+                        pct = (it["priority"] / grand * 100) if grand else 0
+                        cum = (running / grand * 100) if grand else 0
+                        r = it["risk"]
+                        writer.writerow([
+                            idx2,
+                            it["rid"],
+                            r.title if r else "",
+                            r.category if r else "",
+                            getattr(r, "responsible", None) if r else "",
+                            currency,
+                            f"{it['cost']:.2f}",
+                            f"{it['score']:.2f}",
+                            f"{it['priority']:.2f}",
+                            f"{pct:.2f}",
+                            f"{cum:.2f}",
+                            "Evet" if cum <= 80 or idx2 == 1 else "Hayır",
+                        ])
+
+            # 07 — Yönetici Özeti
+            elif report_key == "dashboard":
+                risks = _risk_query().order_by(Risk.updated_at.desc()).all()
+                writer.writerow([
+                    "Risk ID", "Risk Başlığı", "Kategori", "Sorumlu",
+                    "Durum", "Risk Skoru", "Seviye"
+                ])
+                for r in risks:
+                    sc = _score_25(r)
+                    if sc is None:
+                        level = "Değerlendirilmedi"
+                    elif sc <= 4:
+                        level = "Düşük"
+                    elif sc <= 10:
+                        level = "Orta"
+                    elif sc <= 15:
+                        level = "Yüksek"
+                    else:
+                        level = "Çok Yüksek"
+
+                    writer.writerow([
+                        r.id,
+                        r.title or "",
+                        r.category or "",
+                        getattr(r, "responsible", None) or "",
+                        r.status or "",
+                        "" if sc is None else f"{sc:.2f}",
+                        level,
+                    ])
+
+            csv_bytes = ("\ufeff" + sio.getvalue()).encode("utf-8")
+            return Response(
+                csv_bytes,
+                mimetype="text/csv; charset=utf-8",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename_base}.csv"'
+                },
+            )
+
+        # --------------------------------------------------------
+        # PDF
+        # --------------------------------------------------------
+        view_map = {
+            "risk_detail": reports,
+            "evaluation": report_evaluation,
+            "responsibility": report_responsibility,
+            "time": report_time,
+            "cost": report_cost,
+            "pareto": pareto_view,
+            "dashboard": dashboard,
+        }
+
+        view_fn = view_map[report_key]
+        rendered = view_fn()
+        resp = current_app.make_response(rendered)
+
+        # Örn. aktif proje yoksa yönlendirme cevabını aynen koru.
+        if 300 <= resp.status_code < 400:
+            return resp
+
+        html_text = resp.get_data(as_text=True)
+
+        # PDF çıktısında buton / navigasyon gibi öğeleri mümkün olduğunca gizle.
+        print_css = """
+        <style>
+          @page { size: A4; margin: 12mm; }
+          .noprint, nav, aside, .sidebar, .hero-actions,
+          .rp-report-actions, .quick-actions, .fold-toggle {
+            display:none !important;
+          }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        </style>
+        """
+        if "</head>" in html_text:
+            html_text = html_text.replace("</head>", print_css + "</head>", 1)
+        else:
+            html_text = print_css + html_text
+
+        pdf_bytes = None
+
+        if HTML is not None:
+            try:
+                pdf_bytes = HTML(
+                    string=html_text,
+                    base_url=request.url_root
+                ).write_pdf()
+            except Exception as exc:
+                current_app.logger.warning(
+                    "Rapor PDF WeasyPrint hatası (%s): %s",
+                    report_key,
+                    exc,
+                )
+
+        if pdf_bytes is None and pdfkit is not None:
+            try:
+                config = None
+                wk_path = _guess_wkhtmltopdf_path()
+                if wk_path and wk_path != "wkhtmltopdf":
+                    config = pdfkit.configuration(wkhtmltopdf=wk_path)
+
+                pdf_bytes = pdfkit.from_string(
+                    html_text,
+                    False,
+                    configuration=config,
+                    options={
+                        "encoding": "UTF-8",
+                        "page-size": "A4",
+                        "margin-top": "10mm",
+                        "margin-right": "10mm",
+                        "margin-bottom": "10mm",
+                        "margin-left": "10mm",
+                        "enable-local-file-access": "",
+                    },
+                )
+            except Exception as exc:
+                current_app.logger.warning(
+                    "Rapor PDF pdfkit hatası (%s): %s",
+                    report_key,
+                    exc,
+                )
+
+        if pdf_bytes is None:
+            return (
+                "PDF oluşturulamadı. WeasyPrint veya wkhtmltopdf/pdfkit "
+                "kurulumunu kontrol et.",
+                503,
+            )
+
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"{filename_base}.pdf",
+        )
+
+
     @app.get("/analytics/pareto/ai")
     def pareto_cost_ai():
         # ----------------------------
