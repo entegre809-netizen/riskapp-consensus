@@ -548,6 +548,184 @@
     }
   }
 
+  /* ============================================================
+     SAYFA DÜZENİ — daha net bölüm hiyerarşisi
+     ============================================================ */
+  .cost-section-kicker{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin:22px 0 10px;
+    color:var(--cp-muted);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .cost-section-kicker::before{
+    content:"";
+    width:28px;
+    height:3px;
+    border-radius:999px;
+    background:linear-gradient(90deg, var(--cp-primary), var(--cp-teal));
+  }
+
+  .cost-workspace{
+    align-items:start;
+  }
+
+  .cost-template-column{
+    position:sticky;
+    top:96px;
+  }
+
+  .cost-template-column .cost-card{
+    max-height:calc(100vh - 120px);
+    display:flex;
+    flex-direction:column;
+  }
+
+  .cost-template-column .card-body{
+    min-height:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .cost-template-column .template-toolbar{
+    flex:0 0 auto;
+  }
+
+  #tplGrid{
+    min-height:0;
+    max-height:calc(100vh - 330px);
+    overflow:auto;
+    padding-right:4px;
+    scrollbar-width:thin;
+  }
+
+  .cost-main-column{
+    min-width:0;
+  }
+
+  .cost-main-column > .cost-card + .cost-card{
+    margin-top:16px !important;
+  }
+
+  .fx-panel{
+    padding:16px 18px;
+  }
+
+  .fx-panel .form-select,
+  .fx-panel .form-control{
+    background:var(--cp-card);
+  }
+
+  .cost-flow{
+    margin-top:0;
+  }
+
+  .cost-flow-card{
+    min-height:176px;
+  }
+
+  .cost-flow-list{
+    padding-left:17px;
+  }
+
+  .cost-flow-list strong{
+    color:var(--cp-text);
+  }
+
+  .costs-page .card-header{
+    position:relative;
+  }
+
+  .costs-page .card-header::after{
+    content:"";
+    position:absolute;
+    left:18px;
+    bottom:-1px;
+    width:58px;
+    height:2px;
+    border-radius:999px;
+    background:linear-gradient(90deg, var(--cp-primary), var(--cp-teal));
+    opacity:.75;
+  }
+
+  .cost-add-card .card-body{
+    padding:18px;
+  }
+
+  .cost-table-card .card-header{
+    gap:14px;
+  }
+
+  .cost-table-card .table-responsive{
+    max-height:560px;
+    overflow:auto;
+  }
+
+  .cost-table-card .table thead th{
+    position:sticky;
+    top:0;
+    z-index:4;
+  }
+
+  .cost-analysis-row{
+    align-items:stretch;
+  }
+
+  .cost-analysis-row > [class*="col-"]{
+    display:flex;
+  }
+
+  .cost-analysis-row .cost-card{
+    width:100%;
+  }
+
+  .template-card{
+    cursor:pointer;
+  }
+
+  @media (max-width:991.98px){
+    .cost-template-column{
+      position:static;
+    }
+
+    .cost-template-column .cost-card{
+      max-height:none;
+    }
+
+    #tplGrid{
+      max-height:520px;
+    }
+  }
+
+  @media (max-width:767.98px){
+    .cost-section-kicker{
+      margin-top:18px;
+    }
+
+    .fx-panel{
+      padding:14px;
+    }
+
+    #tplGrid{
+      max-height:420px;
+    }
+
+    .cost-table-card .card-header > .d-flex{
+      width:100%;
+    }
+
+    .cost-table-card .card-header .input-group{
+      max-width:none !important;
+      width:100%;
+    }
+  }
+
 </style>
 
 <div class="costs-page"
@@ -639,6 +817,7 @@
       {% endif %}
     {% endfor %}
 
+    <div class="cost-section-kicker">Genel Bakış</div>
     <section class="cost-flow" aria-label="Risk maliyet yönetimi ve önceliklendirme modülü canlı bilgi akışı">
       <article class="cost-flow-card">
         <div class="cost-flow-head">
@@ -751,6 +930,7 @@
       </div>
     {% endif %}
 
+    <div class="cost-section-kicker">Hesaplama Ayarları</div>
     <div class="fx-panel">
       <div class="fx-title">Dönüşüm & Yıllıklaştırma</div>
 
@@ -791,9 +971,10 @@
       </div>
     </div>
 
-    <div class="row g-3">
+    <div class="cost-section-kicker">Maliyet Girişi ve Kayıtlar</div>
+    <div class="row g-3 cost-workspace">
 
-      <div class="col-12 col-lg-5">
+      <div class="col-12 col-lg-5 cost-template-column">
         <div class="card cost-card">
           <div class="card-header d-flex align-items-center justify-content-between gap-2">
             <div>
@@ -1013,8 +1194,8 @@
         </div>
       </div>
 
-      <div class="col-12 col-lg-7">
-        <div class="card cost-card">
+      <div class="col-12 col-lg-7 cost-main-column">
+        <div class="card cost-card cost-add-card">
           <div class="card-header">
             <div class="cost-section-title">Maliyet Ekle</div>
             <div class="cost-section-sub">Şablondan doldur veya manuel gir</div>
@@ -1102,8 +1283,14 @@
                 </div>
 
                 <div class="col-12 d-flex flex-wrap gap-2">
-                  <button type="submit" class="btn btn-primary">Kaydet</button>
-                  <button type="button" class="btn btn-outline-secondary" id="clearForm">Temizle</button>
+                  <button type="submit" class="btn btn-primary">
+                    <span class="material-icons-outlined" style="font-size:18px;">save</span>
+                    Kaydet
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" id="clearForm">
+                    <span class="material-icons-outlined" style="font-size:18px;">restart_alt</span>
+                    Temizle
+                  </button>
 
                   <div class="ms-auto text-muted small d-flex align-items-center gap-2">
                     <span>Anlık: <span class="fw-semibold" id="liveTotalInline">0</span></span>
@@ -1117,7 +1304,7 @@
           </div>
         </div>
 
-        <div class="card cost-card mt-3">
+        <div class="card cost-card cost-table-card mt-3">
           <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
               <div class="cost-section-title">Mevcut Maliyetler</div>
@@ -1294,7 +1481,8 @@
       </div>
     </div>
 
-    <div class="row g-3 mt-2">
+    <div class="cost-section-kicker">Öncelik ve Pareto Analizi</div>
+    <div class="row g-3 cost-analysis-row">
       <div class="col-12 col-lg-6">
         <div class="card cost-card">
           <div class="card-header">
