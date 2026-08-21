@@ -1406,6 +1406,88 @@
   /* ============================================================
      ADIM 4D · KAPSAMLI AI ÇIKTI
      ============================================================ */
+  /* =========================================================
+     SYSTEM BOT · DETAYLI UZMAN ANALİZİ
+     ========================================================= */
+  .system-bot-output{
+    margin-top:12px;
+  }
+
+  .system-bot-card{
+    border:1px solid var(--line, #e2e8f0);
+    border-radius:14px;
+    background:rgba(248,250,252,.78);
+    overflow:hidden;
+  }
+
+  .system-bot-card summary{
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 14px;
+    font-weight:800;
+    font-size:12px;
+    letter-spacing:.01em;
+  }
+
+  .system-bot-card summary::-webkit-details-marker{
+    display:none;
+  }
+
+  .system-bot-card summary .material-icons-outlined{
+    font-size:18px;
+    color:#4f46e5;
+  }
+
+  .system-bot-title-wrap{
+    min-width:0;
+    flex:1;
+  }
+
+  .system-bot-title{
+    display:block;
+    color:var(--text, #172033);
+  }
+
+  .system-bot-meta{
+    display:block;
+    margin-top:2px;
+    font-size:10px;
+    font-weight:600;
+    color:var(--muted, #6b7280);
+  }
+
+  .system-bot-chevron{
+    font-size:18px;
+    transition:transform .18s ease;
+    color:var(--muted, #6b7280);
+  }
+
+  .system-bot-card[open] .system-bot-chevron{
+    transform:rotate(180deg);
+  }
+
+  .system-bot-body{
+    border-top:1px solid var(--line, #e2e8f0);
+    padding:14px;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    font-size:12px;
+    line-height:1.62;
+    color:var(--text, #1f2937);
+  }
+
+  .system-bot-empty{
+    color:var(--muted, #6b7280);
+    font-style:italic;
+  }
+
+  [data-theme="dark"] .system-bot-card{
+    background:rgba(15,23,42,.68);
+  }
+
   .ai-output-suite{
     display:grid;
     gap:8px;
@@ -1695,6 +1777,10 @@
      DİNAMİK GİRDİ / İŞLEM SÜRECİ / ÇIKTI
      Bu bölüm sabit açıklama değil; ekrandaki gerçek risk verisini özetler.
      ============================================================ #}
+  {# ADIM SYSTEM BOT 1 — Son System Bot yorumunu Çıktı sütununda göster #}
+  {% set _system_comments = (r.comments or [])|selectattr('is_system')|list|sort(attribute='id', reverse=True) %}
+  {% set _latest_system_comment = _system_comments[0] if _system_comments else none %}
+
   <section class="rd-flow" aria-label="Akıllı risk değerlendirme ve karar destek modülü canlı bilgi akışı">
 
     <article class="rd-flow-card">
@@ -2050,14 +2136,49 @@
             <span id="aiRecommendations">{% if _saved_recos %}<br>{% for rec in _saved_recos %}• {{ rec }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}</span>
           </div>
 
-          {% if auto_ai_result %}
-          <div class="muted" id="aiPersistMeta" style="margin-top:7px; font-size:11px;">
-            Son otomatik AI:
-            {{ auto_ai_result.updated_at.strftime('%d.%m.%Y %H:%M') if auto_ai_result.updated_at else '-' }}
-            · {{ auto_ai_result.generated_by or 'System' }}
-            · {{ 'AI' if auto_ai_result.source == 'ai' else 'Yedek karar motoru' }}
+          <div class="muted"
+               id="aiPersistMeta"
+               style="margin-top:7px; font-size:11px;"
+               {% if not auto_ai_result %}hidden{% endif %}>
+            {% if auto_ai_result %}
+              Son otomatik AI:
+              {{ auto_ai_result.updated_at.strftime('%d.%m.%Y %H:%M') if auto_ai_result.updated_at else '-' }}
+              · {{ auto_ai_result.generated_by or 'System' }}
+              · {{ 'AI' if auto_ai_result.source == 'ai' else 'Yedek karar motoru' }}
+            {% endif %}
           </div>
-          {% endif %}
+        </li>
+
+        <li class="system-bot-output">
+          <details class="system-bot-card">
+            <summary>
+              <span class="material-icons-outlined" aria-hidden="true">smart_toy</span>
+              <span class="system-bot-title-wrap">
+                <span class="system-bot-title">System Bot · Detaylı Uzman Analizi</span>
+                <span class="system-bot-meta">
+                  {% if _latest_system_comment %}
+                    Son üretim:
+                    {{ _latest_system_comment.created_at.strftime('%d.%m.%Y %H:%M') if _latest_system_comment.created_at else '-' }}
+                    · “AI Yorumu Yenile” ile yeniden üretilebilir
+                  {% else %}
+                    Henüz System Bot analizi oluşturulmadı · “AI Yorumu Yenile” ile oluştur
+                  {% endif %}
+                </span>
+              </span>
+              <span class="material-icons-outlined system-bot-chevron" aria-hidden="true">expand_more</span>
+            </summary>
+
+            <div class="system-bot-body">
+              {% if _latest_system_comment %}
+{{ _latest_system_comment.text or '' }}
+              {% else %}
+                <span class="system-bot-empty">
+                  Bu risk için henüz detaylı System Bot analizi bulunmuyor.
+                  Üstteki “AI Yorumu Yenile” butonuna basınca kapsamlı uzman analizi burada gösterilecek.
+                </span>
+              {% endif %}
+            </div>
+          </details>
         </li>
 </ul>
     </article>
@@ -2522,7 +2643,7 @@
 
       <div class="yh-wrap">
         <div class="yh-list">
-          {% for c in (r.comments or [])|sort(attribute='id', reverse=True) %}
+          {% for c in (r.comments or [])|rejectattr('is_system')|list|sort(attribute='id', reverse=True) %}
             {% set who = 'System Bot' if c.is_system else (c.author or c.evaluator or 'Kullanıcı') %}
             {% set date_str = (c.created_at.strftime('%d.%m.%Y') if c.created_at else '') %}
             {% set time_str = (c.created_at.strftime('%H:%M') if c.created_at else '') %}
@@ -3264,16 +3385,18 @@
 
         if (priorityEl){
           priorityEl.textContent =
-            data.priority || 'Öncelik üretilemedi.';
+            analysis.priority ||
+            data.priority ||
+            'Öncelik üretilemedi.';
         }
 
         renderSimpleList(
           actionsEl,
-          data.actions || [],
+          analysis.actions || data.actions || [],
           'Aksiyon üretilemedi.'
         );
 
-        const raciData = data.raci || {};
+        const raciData = analysis.raci || data.raci || {};
         if (raciREl){
           raciREl.textContent = raciData.R || 'Belirlenmedi';
         }
@@ -3293,13 +3416,15 @@
 
         renderSimpleList(
           kpisEl,
-          data.kpis || [],
+          analysis.kpis || data.kpis || [],
           'KPI üretilemedi.'
         );
 
         if (finalDecisionEl){
           finalDecisionEl.textContent =
-            data.final_decision || 'Nihai karar üretilemedi.';
+            analysis.final_decision ||
+            data.final_decision ||
+            'Nihai karar üretilemedi.';
         }
 
         if (outputTextEl){
@@ -3325,6 +3450,7 @@
           const persistenceText = data.persisted === false
             ? ' · kayıt başarısız'
             : '';
+          metaEl.hidden = false;
           metaEl.textContent =
             `Son otomatik AI: ${now.toLocaleString('tr-TR')} · ${who} · ${sourceText}${persistenceText}`;
         }

@@ -478,6 +478,9 @@ class Suggestion(db.Model):
     default_prob = db.Column(db.Integer)                 # 1..5 (opsiyonel)
     default_sev  = db.Column(db.Integer)                 # 1..5 (opsiyonel)
 
+    # ADIM 4H.3 — app.py öneri sorguları bu alanı kullanıyor.
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

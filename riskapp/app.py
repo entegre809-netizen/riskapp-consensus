@@ -348,6 +348,9 @@ def ensure_schema():
     db.session.execute(text(
         "CREATE INDEX IF NOT EXISTS ix_accounts_ref_code ON accounts(ref_code)"
     ))
+    db.session.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_suggestions_is_active ON suggestions(is_active)"
+    ))
 
     # evaluations.detection (eski RPN alanı için geriye uyum)
     if not has_col("evaluations", "detection"):
@@ -368,6 +371,17 @@ def ensure_schema():
         changed = True
     if not has_col("suggestions", "default_sev"):
         db.session.execute(text("ALTER TABLE suggestions ADD COLUMN default_sev INTEGER"))
+        changed = True
+
+    # ADIM 4H.3 — Suggestion.is_active model/app uyumluluğu.
+    # Eski SQLite veritabanlarında kolon yoksa ekle ve mevcut kayıtları aktif say.
+    if not has_col("suggestions", "is_active"):
+        db.session.execute(
+            text("ALTER TABLE suggestions ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1")
+        )
+        db.session.execute(
+            text("UPDATE suggestions SET is_active = 1 WHERE is_active IS NULL")
+        )
         changed = True
 
     # ✅ YENİ: Excel'den gelecek kısa risk adı, açıklama ve önlem alanları
@@ -1155,10 +1169,10 @@ def create_app():
 
             m = Mitigation(
                 risk_id=risk.id,
-                text=text_val,
-                owner=owner_val,      # model alan adın farklıysa burayı değiştir
-                status=status_val,    # model alan adın farklıysa burayı değiştir
-                due_date=due_date,    # model alan adın farklıysa burayı değiştir
+                title=text_val,
+                owner=owner_val,
+                status=status_val or "planned",
+                due_date=due_date,
             )
             db.session.add(m)
 
@@ -2772,9 +2786,11 @@ def create_app():
                 consensus = {"p": p_val, "s": s_val, "count": cnt}
 
         # ========= Geçmiş değerlendirmeler / ortalama =========
+        # ADIM 4H.5 — risk_detail ve Auto-AI aynı "son değerlendirme"
+        # kuralını kullanır. ID ile sıralama deterministiktir.
         eval_history = sorted(
             list(r.evaluations or []),
-            key=lambda ev: ev.created_at
+            key=lambda ev: (getattr(ev, "id", 0) or 0)
         )
 
         avg_p = avg_s = None
@@ -2862,12 +2878,12 @@ def create_app():
             "start_month": _ai_sig_text(getattr(r, "start_month", None)),
             "end_month": _ai_sig_text(getattr(r, "end_month", None)),
             "probability": (
-                int(current_ai_eval.probability)
+                max(1, min(5, int(current_ai_eval.probability)))
                 if current_ai_eval is not None and current_ai_eval.probability is not None
                 else None
             ),
             "severity": (
-                int(current_ai_eval.severity)
+                max(1, min(5, int(current_ai_eval.severity)))
                 if current_ai_eval is not None and current_ai_eval.severity is not None
                 else None
             ),
@@ -3028,7 +3044,7 @@ def create_app():
         # ADIM 3: Bu AI sonucunun hangi güncel veriye göre üretildiğini imzala.
         signature_payload = {
             "title": title,
-            "category": r.category or "",
+            "category": _clean_text(r.category, ""),
             "risk_type": risk_type,
             "description": description,
             "responsible": responsible,
@@ -3677,7 +3693,7 @@ KARAR KURALLARI
             "snapshot_signature": snapshot_signature,
             "snapshot": {
                 "title": title,
-                "category": r.category or "",
+                "category": _clean_text(r.category, ""),
                 "risk_type": risk_type,
                 "description": description,
                 "responsible": responsible,
@@ -3691,12 +3707,19 @@ KARAR KURALLARI
                 "level": level,
                 "priority": priority,
             },
+            # ADIM 4H.4 — canlı response ile kalıcı snapshot aynı şemayı taşır.
+            # Üst seviye alanlar geriye uyumluluk için korunur.
             "analysis": {
                 "risk_analysis": risk_analysis,
                 "ps_analysis": ps_analysis,
                 "mitigation_analysis": mitigation_analysis,
                 "responsibility_analysis": responsibility_analysis,
                 "time_analysis": time_analysis,
+                "actions": actions,
+                "raci": raci_norm,
+                "kpis": kpis,
+                "priority": priority_text,
+                "final_decision": final_decision,
             },
             "actions": actions,
             "raci": raci_norm,
@@ -7019,11 +7042,14 @@ KARAR KURALLARI
             m_rows = Mitigation.query.filter_by(risk_id=r.id).all()
             for m in m_rows:
                 db.session.add(Mitigation(
-                    risk_id  = new_risk.id,
-                    text     = f"[Eski #{r.id}] {m.text}",
-                    owner    = m.owner,
-                    status   = m.status,
-                    due_date = m.due_date,
+                    risk_id       = new_risk.id,
+                    title         = f"[Eski #{r.id}] {m.title}",
+                    owner         = m.owner,
+                    status        = m.status or "planned",
+                    due_date      = m.due_date,
+                    cost          = m.cost,
+                    effectiveness = m.effectiveness,
+                    notes         = m.notes,
                 ))
 
         # Eski risklere sistem notu + status güncelle
