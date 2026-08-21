@@ -739,6 +739,383 @@
       box-shadow:none !important;
     }
   }
+
+  /* =========================================================
+     YENİ RİSK — PREMIUM WORKSPACE V2
+     ========================================================= */
+  .page-wrap{
+    max-width:1240px;
+    gap:18px;
+    padding:6px 0 34px;
+  }
+
+  .hero{
+    min-height:190px;
+    padding:30px 32px;
+    border-radius:32px;
+    border:1px solid rgba(255,255,255,.16);
+    background:
+      radial-gradient(circle at 8% 8%, rgba(255,255,255,.22), transparent 27%),
+      radial-gradient(circle at 94% 90%, rgba(45,212,191,.28), transparent 30%),
+      linear-gradient(135deg, #0f172a 0%, #1e3a8a 42%, #2563eb 70%, #0f766e 100%);
+    box-shadow:
+      0 32px 84px rgba(15,23,42,.14),
+      inset 0 1px 0 rgba(255,255,255,.10);
+  }
+
+  .hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      linear-gradient(120deg, transparent 0 58%, rgba(255,255,255,.05) 58% 59%, transparent 59% 100%);
+  }
+
+  .hero h1{
+    font-size:clamp(34px, 4vw, 54px);
+    letter-spacing:-.06em;
+  }
+
+  .hero p{
+    max-width:650px;
+    font-size:15px;
+    color:rgba(255,255,255,.80);
+  }
+
+  .hero-kicker{
+    height:34px;
+    padding:0 13px;
+    background:rgba(255,255,255,.11);
+    border-color:rgba(255,255,255,.16);
+  }
+
+  .hero .btn{
+    min-height:44px;
+    border-radius:16px;
+  }
+
+  .hero .btn-primary{
+    box-shadow:0 14px 34px rgba(15,23,42,.16);
+  }
+
+  .rn-progress{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .rn-step{
+    position:relative;
+    min-height:108px;
+    padding:16px 17px;
+    border-radius:24px;
+    background:var(--rn-card);
+    border:1px solid var(--rn-line);
+    box-shadow:var(--rn-shadow-sm);
+    overflow:hidden;
+  }
+
+  .rn-step::after{
+    content:"";
+    position:absolute;
+    width:90px;
+    height:90px;
+    right:-35px;
+    top:-35px;
+    border-radius:999px;
+    background:var(--step-soft, rgba(36,87,230,.08));
+  }
+
+  .rn-step-top{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .rn-step-num{
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+    display:grid;
+    place-items:center;
+    border-radius:13px;
+    color:var(--rn-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .rn-step h4{
+    margin:0;
+    color:var(--rn-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .rn-step p{
+    position:relative;
+    z-index:1;
+    margin:8px 0 0;
+    color:var(--rn-muted);
+    font-size:12px;
+    line-height:1.45;
+    font-weight:700;
+  }
+
+  .panel-card{
+    border-radius:30px;
+    padding:20px;
+    box-shadow:0 16px 44px rgba(15,23,42,.065);
+  }
+
+  .empty-card{
+    position:relative;
+    overflow:hidden;
+    min-height:360px;
+    padding:0;
+    text-align:left;
+    border:1px solid var(--rn-line);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(36,87,230,.08), transparent 34%),
+      radial-gradient(circle at 100% 100%, rgba(15,118,110,.07), transparent 30%),
+      var(--rn-card);
+  }
+
+  .rn-empty-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);
+    min-height:360px;
+  }
+
+  .rn-empty-main{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:flex-start;
+    padding:42px 44px;
+  }
+
+  .rn-empty-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:32px;
+    padding:0 11px;
+    margin-bottom:14px;
+    border-radius:999px;
+    color:var(--rn-primary);
+    background:rgba(36,87,230,.08);
+    border:1px solid rgba(36,87,230,.14);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .rn-empty-icon{
+    width:62px;
+    height:62px;
+    display:grid;
+    place-items:center;
+    margin-bottom:16px;
+    border-radius:20px;
+    color:#fff;
+    background:linear-gradient(135deg,var(--rn-primary),#3264ff);
+    box-shadow:0 16px 34px rgba(36,87,230,.22);
+  }
+
+  .rn-empty-main h3{
+    margin:0;
+    max-width:620px;
+    color:var(--rn-text);
+    font-size:clamp(25px,3vw,36px);
+    line-height:1.05;
+    letter-spacing:-.045em;
+    font-weight:950;
+  }
+
+  .rn-empty-main p{
+    max-width:620px;
+    margin:12px 0 0;
+    color:var(--rn-muted);
+    font-size:14px;
+    line-height:1.6;
+    font-weight:700;
+  }
+
+  .rn-empty-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:20px;
+  }
+
+  .rn-empty-actions .btn{
+    min-height:46px;
+  }
+
+  .rn-empty-side{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:28px;
+    border-left:1px solid var(--rn-line);
+    background:color-mix(in oklab,var(--rn-soft) 76%, transparent);
+  }
+
+  .rn-side-title{
+    margin:0 0 14px;
+    color:var(--rn-text);
+    font-size:13px;
+    font-weight:950;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+
+  .rn-side-list{
+    display:grid;
+    gap:10px;
+  }
+
+  .rn-side-item{
+    display:flex;
+    align-items:flex-start;
+    gap:11px;
+    padding:12px;
+    border-radius:17px;
+    background:var(--rn-card);
+    border:1px solid var(--rn-line);
+  }
+
+  .rn-side-ico{
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+    display:grid;
+    place-items:center;
+    border-radius:12px;
+    color:var(--rn-primary);
+    background:rgba(36,87,230,.09);
+    border:1px solid rgba(36,87,230,.14);
+  }
+
+  .rn-side-item strong{
+    display:block;
+    color:var(--rn-text);
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .rn-side-item span{
+    display:block;
+    margin-top:3px;
+    color:var(--rn-muted);
+    font-size:11px;
+    line-height:1.4;
+    font-weight:700;
+  }
+
+  .section-title{
+    margin-top:4px;
+  }
+
+  .section-title::before{
+    content:"";
+    width:4px;
+    height:28px;
+    border-radius:999px;
+    background:linear-gradient(180deg,var(--rn-primary),var(--rn-teal));
+  }
+
+  .basket{
+    border-radius:30px;
+    padding:20px;
+  }
+
+  .tpl-card{
+    border-radius:20px;
+    padding:16px;
+  }
+
+  .form-card{
+    border-radius:30px;
+    padding:22px;
+  }
+
+  .form-grid{
+    gap:17px;
+  }
+
+  .input{
+    min-height:54px;
+    border-radius:16px;
+    box-shadow:none;
+  }
+
+  textarea.input{
+    min-height:112px;
+  }
+
+  .actionbar{
+    max-width:1240px;
+  }
+
+  .actionbar-inner{
+    border-radius:24px;
+    border:1px solid var(--rn-line);
+    background:color-mix(in oklab,var(--rn-card) 92%, transparent);
+    box-shadow:0 18px 48px rgba(15,23,42,.09);
+  }
+
+  @media (max-width:900px){
+    .rn-progress{
+      grid-template-columns:1fr;
+    }
+
+    .rn-empty-layout{
+      grid-template-columns:1fr;
+    }
+
+    .rn-empty-side{
+      border-left:0;
+      border-top:1px solid var(--rn-line);
+    }
+  }
+
+  @media (max-width:680px){
+    .page-wrap{
+      padding:0 10px 28px;
+    }
+
+    .hero{
+      min-height:auto;
+      padding:22px 18px;
+      border-radius:26px;
+    }
+
+    .rn-empty-main{
+      padding:28px 20px;
+    }
+
+    .rn-empty-side{
+      padding:20px;
+    }
+
+    .rn-empty-actions{
+      width:100%;
+    }
+
+    .rn-empty-actions .btn{
+      flex:1;
+    }
+  }
+
 </style>
 
 <div class="risk-new">
@@ -769,7 +1146,10 @@
         </div>
 
         <div class="hero-actions">
-          <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">Şablon Seç</a>
+          <a class="btn btn-secondary" href="{{ url_for('risk_identify') }}">
+            <span class="material-icons-outlined" style="font-size:18px;">library_books</span>
+            Şablon Seç
+          </a>
 
           {% if _picked and _picked|length > 0 %}
             <form method="post" id="bulk-create-form" style="margin:0;">
@@ -785,6 +1165,32 @@
           {% endif %}
         </div>
       </div>
+    </section>
+
+    <section class="rn-progress" aria-label="Yeni risk oluşturma adımları">
+      <article class="rn-step" style="--step-soft:rgba(36,87,230,.10);">
+        <div class="rn-step-top">
+          <div class="rn-step-num">01</div>
+          <h4>Şablonunu seç</h4>
+        </div>
+        <p>Risk Kütüphanesi'nden tek veya birden fazla hazır risk şablonu seç.</p>
+      </article>
+
+      <article class="rn-step" style="--step-soft:rgba(15,118,110,.10);">
+        <div class="rn-step-top">
+          <div class="rn-step-num">02</div>
+          <h4>Ortak bilgileri tamamla</h4>
+        </div>
+        <p>Sorumlu, tarih, açıklama ve önlem bilgilerini tek noktadan gir.</p>
+      </article>
+
+      <article class="rn-step" style="--step-soft:rgba(245,158,11,.11);">
+        <div class="rn-step-top">
+          <div class="rn-step-num">03</div>
+          <h4>Kaydı oluştur</h4>
+        </div>
+        <p>Şablonları ayrı riskler halinde veya tek bir riskte birleştirerek kaydet.</p>
+      </article>
     </section>
 
     {% if _picked and _picked|length > 0 %}
@@ -886,12 +1292,72 @@
       </section>
 
     {% else %}
-      <section class="panel-card empty-card" aria-label="Boş sepet">
-        <div class="empty-inner">
-          <div class="icon" style="width:58px;height:58px;border-radius:20px;">🧺</div>
-          <h3>Önce şablon seç</h3>
-          <p>Yeni risk oluşturmak için risk kütüphanesinden şablon seç.</p>
-          <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">Şablon seç →</a>
+      <section class="panel-card empty-card" aria-label="Yeni risk başlangıç alanı">
+        <div class="rn-empty-layout">
+          <div class="rn-empty-main">
+            <div class="rn-empty-badge">
+              <span class="material-icons-outlined" style="font-size:16px;">auto_awesome</span>
+              Hazır risk kütüphanesi
+            </div>
+
+            <div class="rn-empty-icon" aria-hidden="true">
+              <span class="material-icons-outlined" style="font-size:30px;">library_add</span>
+            </div>
+
+            <h3>Risk kaydını sıfırdan yazmak yerine hazır şablonla başla.</h3>
+            <p>
+              Risk Kütüphanesi'nden ilgili şablonları seç. Seçtiklerin bu ekrana gelir;
+              ardından ortak alanları doldurup tek riskte birleştirebilir veya ayrı kayıtlar oluşturabilirsin.
+            </p>
+
+            <div class="rn-empty-actions">
+              <a class="btn btn-primary" href="{{ url_for('risk_identify', next='identify') }}">
+                <span class="material-icons-outlined" style="font-size:18px;">view_list</span>
+                Risk Kütüphanesini Aç
+              </a>
+
+              <a class="btn btn-secondary" href="{{ url_for('risk_select') }}">
+                <span class="material-icons-outlined" style="font-size:18px;">inventory_2</span>
+                Mevcut Riskleri Gör
+              </a>
+            </div>
+          </div>
+
+          <aside class="rn-empty-side">
+            <h4 class="rn-side-title">Bu ekranda ne yapabilirsin?</h4>
+
+            <div class="rn-side-list">
+              <div class="rn-side-item">
+                <div class="rn-side-ico">
+                  <span class="material-icons-outlined" style="font-size:18px;">checklist</span>
+                </div>
+                <div>
+                  <strong>Birden fazla şablon seç</strong>
+                  <span>İlgili riskleri tek seferde çalışma sepetine ekle.</span>
+                </div>
+              </div>
+
+              <div class="rn-side-item">
+                <div class="rn-side-ico">
+                  <span class="material-icons-outlined" style="font-size:18px;">merge_type</span>
+                </div>
+                <div>
+                  <strong>Birleştir veya ayrı oluştur</strong>
+                  <span>Seçili şablonları ihtiyacına göre tek ya da çoklu kayıt yap.</span>
+                </div>
+              </div>
+
+              <div class="rn-side-item">
+                <div class="rn-side-ico">
+                  <span class="material-icons-outlined" style="font-size:18px;">event</span>
+                </div>
+                <div>
+                  <strong>Sorumlu ve tarih ekle</strong>
+                  <span>Yeni risk doğrudan sorumluluk ve zaman çizelgesi modüllerine hazır olur.</span>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
     {% endif %}
