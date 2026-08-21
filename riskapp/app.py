@@ -348,10 +348,6 @@ def ensure_schema():
     db.session.execute(text(
         "CREATE INDEX IF NOT EXISTS ix_accounts_ref_code ON accounts(ref_code)"
     ))
-    db.session.execute(text(
-        "CREATE INDEX IF NOT EXISTS ix_suggestions_is_active ON suggestions(is_active)"
-    ))
-
     # evaluations.detection (eski RPN alanı için geriye uyum)
     if not has_col("evaluations", "detection"):
         db.session.execute(text("ALTER TABLE evaluations ADD COLUMN detection INTEGER"))
@@ -383,6 +379,11 @@ def ensure_schema():
             text("UPDATE suggestions SET is_active = 1 WHERE is_active IS NULL")
         )
         changed = True
+
+    # ADIM DEPLOY FIX — index yalnızca kolon garanti edildikten sonra oluşturulur.
+    db.session.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_suggestions_is_active ON suggestions(is_active)"
+    ))
 
     # ✅ YENİ: Excel'den gelecek kısa risk adı, açıklama ve önlem alanları
     if not has_col("suggestions", "risk_title"):
