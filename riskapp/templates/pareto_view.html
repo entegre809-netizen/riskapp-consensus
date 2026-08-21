@@ -747,6 +747,144 @@
     }
   }
 
+  /* ============================================================
+     SAYFA DÜZENİ — daha net ve dengeli görünüm
+     ============================================================ */
+  .pt-section-kicker{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin:22px 0 10px;
+    color:var(--pt-muted);
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .pt-section-kicker::before{
+    content:"";
+    width:28px;
+    height:3px;
+    border-radius:999px;
+    background:linear-gradient(90deg, var(--pt-primary), var(--pt-teal));
+  }
+
+  .pt-toolbar{
+    top:86px;
+  }
+
+  .pt-main-grid{
+    align-items:start;
+  }
+
+  .pt-main-card{
+    min-width:0;
+  }
+
+  .pt-ai-card{
+    position:sticky;
+    top:176px;
+    max-height:calc(100vh - 196px);
+    display:flex;
+    flex-direction:column;
+  }
+
+  .pt-ai-card .ai-body{
+    min-height:0;
+    overflow:auto;
+    scrollbar-width:thin;
+  }
+
+  .pt-chart-box{
+    overflow:hidden;
+  }
+
+  .pt-chart-wrap{
+    padding-bottom:12px;
+  }
+
+  .pt-table-wrap{
+    max-height:560px;
+    overflow:auto;
+  }
+
+  .pt-table thead th{
+    top:0;
+  }
+
+  .pt-flow-card{
+    min-height:176px;
+  }
+
+  .pt-flow-list strong{
+    color:var(--pt-text);
+  }
+
+  .pt-card-head{
+    position:relative;
+  }
+
+  .pt-card-head::after{
+    content:"";
+    position:absolute;
+    left:18px;
+    bottom:-1px;
+    width:58px;
+    height:2px;
+    border-radius:999px;
+    background:linear-gradient(90deg, var(--pt-primary), var(--pt-teal));
+    opacity:.75;
+  }
+
+  .pt-toolbar-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .pt-analysis-hint{
+    margin:0 0 12px;
+    padding:12px 14px;
+    border-radius:18px;
+    color:var(--pt-muted);
+    background:rgba(36,87,230,.06);
+    border:1px solid rgba(36,87,230,.13);
+    font-size:12px;
+    line-height:1.45;
+    font-weight:750;
+  }
+
+  @media (max-width:1080px){
+    .pt-ai-card{
+      position:static;
+      max-height:none;
+    }
+
+    .pt-ai-card .ai-body{
+      overflow:visible;
+    }
+  }
+
+  @media (max-width:760px){
+    .pt-section-kicker{
+      margin-top:18px;
+    }
+
+    .pt-toolbar-actions{
+      width:100%;
+    }
+
+    .pt-toolbar-actions .pt-btn{
+      flex:1;
+    }
+
+    .pt-table-wrap{
+      max-height:480px;
+    }
+  }
+
 </style>
 
 <div class="pareto-page">
@@ -775,6 +913,7 @@
     </div>
   </section>
 
+  <div class="pt-section-kicker">Analiz Akışı</div>
   <section class="pt-flow" aria-label="Pareto önceliklendirme modülü bilgi akışı">
     <article class="pt-flow-card">
       <div class="pt-flow-head">
@@ -834,6 +973,7 @@
     </article>
   </section>
 
+  <div class="pt-section-kicker">Filtreler ve Senaryo</div>
   <div class="pt-toolbar noprint">
     <form method="get" action="{{ url_for('pareto_view') }}" class="pt-field" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0;">
       <div>
@@ -886,13 +1026,29 @@
 
     <div class="pt-spacer"></div>
 
-    <button id="btnCsv" class="pt-btn" type="button">CSV</button>
-    <button id="btnCopyAI" class="pt-btn" type="button">AI Kopyala</button>
-    <a class="pt-btn primary" href="{{ url_for('pareto_view') }}?currency={{ currency }}">Yenile</a>
+    <div class="pt-toolbar-actions">
+      <button id="btnCsv" class="pt-btn" type="button">
+        <span class="material-icons-outlined" style="font-size:18px;">download</span>
+        CSV
+      </button>
+      <button id="btnCopyAI" class="pt-btn" type="button">
+        <span class="material-icons-outlined" style="font-size:18px;">content_copy</span>
+        AI Kopyala
+      </button>
+      <a class="pt-btn primary" href="{{ url_for('pareto_view') }}?currency={{ currency }}">
+        <span class="material-icons-outlined" style="font-size:18px;">refresh</span>
+        Yenile
+      </a>
+    </div>
   </div>
 
-  <div class="pt-grid">
-    <section class="pt-card">
+  <div class="pt-section-kicker">Pareto Sonuçları</div>
+  <div class="pt-analysis-hint">
+    Grafikte ilk 25 risk gösterilir. Tabloyu arama, sıralama ve Top 80 filtresiyle daraltabilir; bir satıra tıklayarak sağdaki AI özetinde aynı riski vurgulayabilirsin.
+  </div>
+
+  <div class="pt-grid pt-main-grid">
+    <section class="pt-card pt-main-card">
       <div class="pt-card-head">
         <div>
           <h3 class="pt-card-title">Top Riskler</h3>
@@ -931,7 +1087,7 @@
       <div id="err" class="pt-error" style="display:none;"></div>
     </section>
 
-    <aside class="pt-card">
+    <aside class="pt-card pt-ai-card">
       <div class="pt-card-head">
         <div>
           <h3 class="pt-card-title">AI Özet</h3>
