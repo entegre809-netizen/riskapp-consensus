@@ -731,11 +731,747 @@
     }
   }
 
+
+  /* ============================================================
+     RISK LIST — PREMIUM CONTROL CENTER V3
+     ============================================================ */
+  .rs-wrap{
+    --rx-card:#ffffff;
+    --rx-bg:#f7f9fc;
+    --rx-text:#0f172a;
+    --rx-muted:#64748b;
+    --rx-soft:#94a3b8;
+    --rx-line:rgba(15,23,42,.085);
+    --rx-line-2:rgba(15,23,42,.14);
+    --rx-primary:#2457e6;
+    --rx-primary-2:#1d4ed8;
+    --rx-teal:#0f766e;
+    --rx-green:#16a34a;
+    --rx-amber:#d97706;
+    --rx-red:#dc2626;
+    --rx-shadow:0 28px 80px rgba(15,23,42,.09);
+    --rx-shadow-sm:0 12px 34px rgba(15,23,42,.055);
+    color:var(--rx-text);
+    max-width:1680px;
+    margin:0 auto;
+    padding:14px 18px 38px;
+  }
+
+  [data-theme="dark"] .rs-wrap,
+  html.dark .rs-wrap{
+    --rx-card:rgba(15,23,42,.80);
+    --rx-bg:rgba(15,23,42,.55);
+    --rx-text:#e5e7eb;
+    --rx-muted:#94a3b8;
+    --rx-soft:#64748b;
+    --rx-line:rgba(255,255,255,.085);
+    --rx-line-2:rgba(255,255,255,.14);
+    --rx-primary:#60a5fa;
+    --rx-primary-2:#93c5fd;
+    --rx-shadow:0 28px 80px rgba(0,0,0,.26);
+    --rx-shadow-sm:0 12px 34px rgba(0,0,0,.20);
+  }
+
+  .rs-wrap > .card{
+    padding:0 !important;
+    overflow:hidden;
+    border:1px solid var(--rx-line);
+    border-radius:32px;
+    background:var(--rx-card);
+    box-shadow:var(--rx-shadow);
+  }
+
+  /* Eski H2 pseudo hero yapısını kapatıyoruz */
+  .rs-wrap > .card > h2{
+    display:none !important;
+  }
+
+  .rs-hero{
+    position:relative;
+    overflow:hidden;
+    min-height:190px;
+    padding:28px 30px;
+    color:#fff;
+    background:
+      radial-gradient(circle at 7% 0%, rgba(255,255,255,.22), transparent 27%),
+      radial-gradient(circle at 94% 92%, rgba(45,212,191,.28), transparent 31%),
+      linear-gradient(135deg,#0f172a 0%,#1e3a8a 42%,#2563eb 70%,#0f766e 100%);
+  }
+
+  .rs-hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      linear-gradient(120deg,transparent 0 58%,rgba(255,255,255,.05) 58% 59%,transparent 59%);
+  }
+
+  .rs-hero::after{
+    content:"";
+    position:absolute;
+    width:300px;
+    height:300px;
+    right:-125px;
+    bottom:-180px;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+  }
+
+  .rs-hero-inner{
+    position:relative;
+    z-index:2;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+
+  .rs-hero-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:34px;
+    padding:0 12px;
+    margin-bottom:11px;
+    border-radius:999px;
+    background:rgba(255,255,255,.11);
+    border:1px solid rgba(255,255,255,.17);
+    color:rgba(255,255,255,.85);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .rs-hero-title{
+    margin:0;
+    color:#fff;
+    font-size:clamp(34px,3.9vw,54px);
+    line-height:.98;
+    font-weight:950;
+    letter-spacing:-.06em;
+  }
+
+  .rs-hero-sub{
+    max-width:680px;
+    margin:10px 0 0;
+    color:rgba(255,255,255,.77);
+    font-size:14px;
+    line-height:1.55;
+    font-weight:650;
+  }
+
+  .rs-hero-actions{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    flex-wrap:wrap;
+  }
+
+  .rs-hero .rs-btn{
+    min-height:44px;
+    color:#fff;
+    background:rgba(255,255,255,.11);
+    border-color:rgba(255,255,255,.17);
+    box-shadow:none;
+    backdrop-filter:blur(12px);
+  }
+
+  .rs-hero .rs-btn-primary{
+    background:#fff;
+    color:#1d4ed8;
+    border-color:#fff;
+    box-shadow:0 14px 32px rgba(15,23,42,.15);
+  }
+
+  .rs-content{
+    padding:16px;
+  }
+
+  .rs-kpis{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px;
+    margin-bottom:14px;
+  }
+
+  .rs-kpi{
+    position:relative;
+    overflow:hidden;
+    min-height:108px;
+    padding:16px 17px;
+    border-radius:24px;
+    border:1px solid var(--rx-line);
+    background:var(--rx-card);
+    box-shadow:var(--rx-shadow-sm);
+  }
+
+  .rs-kpi::after{
+    content:"";
+    position:absolute;
+    width:92px;
+    height:92px;
+    right:-36px;
+    top:-36px;
+    border-radius:999px;
+    background:var(--kpi-soft,rgba(36,87,230,.09));
+  }
+
+  .rs-kpi-head{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .rs-kpi-icon{
+    width:36px;
+    height:36px;
+    display:grid;
+    place-items:center;
+    border-radius:13px;
+    color:var(--kpi-color,var(--rx-primary));
+    background:var(--kpi-soft,rgba(36,87,230,.09));
+    border:1px solid color-mix(in oklab,var(--kpi-color,var(--rx-primary)) 20%,transparent);
+  }
+
+  .rs-kpi-label{
+    color:var(--rx-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .rs-kpi-value{
+    position:relative;
+    z-index:1;
+    margin-top:8px;
+    color:var(--rx-text);
+    font-size:28px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.05em;
+  }
+
+  .rs-kpi-note{
+    position:relative;
+    z-index:1;
+    margin-top:7px;
+    color:var(--rx-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rs-section-label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:20px 2px 9px;
+    color:var(--rx-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .rs-section-label::before{
+    content:"";
+    width:25px;
+    height:3px;
+    border-radius:999px;
+    background:linear-gradient(90deg,var(--rx-primary),var(--rx-teal));
+  }
+
+  .rs-toolbar{
+    position:sticky;
+    top:82px;
+    z-index:30;
+    display:grid;
+    grid-template-columns:minmax(280px,1.35fr) minmax(170px,.7fr) repeat(4,minmax(125px,.55fr)) minmax(195px,.8fr) auto;
+    gap:10px;
+    align-items:end;
+    margin:0 !important;
+    padding:12px;
+    border-radius:25px;
+    border:1px solid var(--rx-line);
+    background:color-mix(in oklab,var(--rx-card) 93%,transparent);
+    box-shadow:0 18px 48px rgba(15,23,42,.075);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+  }
+
+  .rs-toolbar .rs-group{
+    display:contents;
+  }
+
+  .rs-toolbar .rs-fill{
+    display:none;
+  }
+
+  .rs-toolbar > .rs-group:last-child{
+    display:flex;
+    align-items:flex-end;
+    gap:7px;
+  }
+
+  .rs-toolbar > .rs-group:first-child{
+    display:contents;
+  }
+
+  .rs-search-wrap{
+    min-width:0;
+  }
+
+  .rs-search{
+    min-width:0;
+    width:100%;
+  }
+
+  .rs-input{
+    width:100%;
+    min-width:0 !important;
+    min-height:48px;
+    height:48px;
+    border-radius:15px;
+    border:1px solid var(--rx-line);
+    background:var(--rx-bg);
+    color:var(--rx-text);
+    font:inherit;
+    font-size:13px;
+    font-weight:750;
+    box-shadow:none;
+  }
+
+  .rs-input:focus{
+    background:var(--rx-card);
+    border-color:rgba(36,87,230,.38);
+    box-shadow:0 0 0 4px rgba(36,87,230,.09);
+  }
+
+  .rs-label{
+    margin-bottom:6px;
+    color:var(--rx-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  .rs-btn{
+    min-height:44px;
+    height:auto;
+    padding:0 13px;
+    border-radius:14px;
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .rs-btn-primary{
+    background:linear-gradient(135deg,#2457e6,#3264ff);
+    color:#fff;
+    box-shadow:0 13px 28px rgba(36,87,230,.18);
+  }
+
+  .rs-btn-soft{
+    color:var(--rx-primary);
+    background:rgba(36,87,230,.08);
+    border-color:rgba(36,87,230,.16);
+    box-shadow:none;
+  }
+
+  .rs-btn-ghost{
+    color:var(--rx-text);
+    background:var(--rx-card);
+    border-color:var(--rx-line);
+    box-shadow:none;
+  }
+
+  .rs-btn-danger{
+    color:#b91c1c;
+    background:rgba(239,68,68,.08);
+    border-color:rgba(239,68,68,.17);
+    box-shadow:none;
+  }
+
+  [data-theme="dark"] .rs-btn-danger,
+  html.dark .rs-btn-danger{
+    color:#fecaca;
+  }
+
+  .rs-adminbar{
+    margin:0 !important;
+    padding:12px 14px;
+    border-radius:22px;
+    border:1px solid var(--rx-line);
+    background:var(--rx-bg);
+    box-shadow:none;
+  }
+
+  .rs-adminbar form:first-child{
+    flex:1;
+  }
+
+  .rs-adminhint{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:var(--rx-muted);
+    font-size:12px;
+    font-weight:800;
+  }
+
+  .rs-adminhint::before{
+    content:"";
+    width:8px;
+    height:8px;
+    border-radius:999px;
+    background:var(--rx-primary);
+    box-shadow:0 0 0 4px rgba(36,87,230,.09);
+  }
+
+  .rs-selection-count{
+    display:inline-flex;
+    align-items:center;
+    min-height:28px;
+    padding:0 9px;
+    border-radius:999px;
+    color:var(--rx-primary);
+    background:rgba(36,87,230,.08);
+    border:1px solid rgba(36,87,230,.14);
+    font-size:11px;
+    font-weight:950;
+  }
+
+  .rs-tablewrap{
+    margin:0 !important;
+    overflow:auto;
+    max-height:650px;
+    border-radius:25px;
+    border:1px solid var(--rx-line);
+    background:var(--rx-card);
+    box-shadow:none;
+  }
+
+  .rs-table{
+    min-width:1080px;
+  }
+
+  .rs-table thead th{
+    top:0;
+    z-index:5;
+    height:48px;
+    padding:11px 13px;
+    background:var(--rx-bg);
+    border-bottom:1px solid var(--rx-line);
+    color:var(--rx-muted);
+    font-size:9px;
+    letter-spacing:.12em;
+  }
+
+  .rs-table td{
+    padding:13px;
+    border-bottom:1px solid var(--rx-line);
+  }
+
+  .rs-row{
+    transition:background .13s ease,box-shadow .13s ease;
+  }
+
+  .rs-row:hover{
+    background:rgba(36,87,230,.035);
+  }
+
+  .rs-title{
+    color:var(--rx-text);
+    font-size:13px;
+    font-weight:950;
+    letter-spacing:-.01em;
+  }
+
+  .rs-title:hover{
+    color:var(--rx-primary);
+  }
+
+  .rs-desc{
+    margin-top:5px;
+    max-width:76ch;
+    color:var(--rx-muted);
+    font-size:11px;
+    line-height:1.4;
+    font-weight:700;
+  }
+
+  .rs-chip{
+    min-height:28px;
+    padding:0 9px;
+    color:var(--rx-primary);
+    background:rgba(36,87,230,.07);
+    border-color:rgba(36,87,230,.15);
+    font-size:10px;
+    letter-spacing:.02em;
+  }
+
+  .rs-score{
+    width:38px;
+    height:38px;
+    border-width:1px;
+    font-size:12px;
+    box-shadow:0 7px 16px rgba(15,23,42,.04);
+  }
+
+  .rs-cost{
+    min-height:29px;
+    padding:0 9px;
+    font-size:10px;
+    background:rgba(34,197,94,.08);
+    border-color:rgba(34,197,94,.17);
+  }
+
+  .rs-actions{
+    opacity:1 !important;
+    transform:none !important;
+    gap:5px;
+  }
+
+  .rs-iconbtn{
+    width:34px;
+    height:34px;
+    border-radius:11px;
+    border:1px solid var(--rx-line);
+    background:var(--rx-card);
+  }
+
+  .rs-iconbtn:hover{
+    border-color:rgba(36,87,230,.22);
+    background:rgba(36,87,230,.07);
+  }
+
+  .rs-pager{
+    position:sticky;
+    bottom:0;
+    z-index:5;
+    border-top:1px solid var(--rx-line);
+    background:color-mix(in oklab,var(--rx-card) 94%,transparent);
+    backdrop-filter:blur(15px);
+  }
+
+  .rs-empty{
+    margin:0 !important;
+    min-height:300px;
+    display:grid;
+    place-items:center;
+    border-radius:25px;
+    border:1px dashed var(--rx-line-2);
+    background:
+      radial-gradient(circle at 10% 0%,rgba(36,87,230,.06),transparent 35%),
+      var(--rx-bg);
+  }
+
+  .flash{
+    margin:12px 0;
+    border-radius:17px;
+    border:1px solid var(--rx-line);
+    box-shadow:none;
+  }
+
+  @media (max-width:1450px){
+    .rs-toolbar{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+
+    .rs-toolbar > .rs-group:last-child{
+      grid-column:1/-1;
+      justify-content:flex-end;
+    }
+  }
+
+  @media (max-width:1050px){
+    .rs-kpis{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .rs-toolbar{
+      position:static;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+  }
+
+  @media (max-width:700px){
+    .rs-wrap{
+      padding:8px 10px 28px;
+    }
+
+    .rs-wrap > .card{
+      border-radius:25px;
+    }
+
+    .rs-hero{
+      min-height:auto;
+      padding:22px 18px;
+    }
+
+    .rs-hero-actions{
+      width:100%;
+    }
+
+    .rs-hero-actions .rs-btn{
+      flex:1;
+    }
+
+    .rs-content{
+      padding:12px;
+    }
+
+    .rs-kpis{
+      grid-template-columns:1fr;
+    }
+
+    .rs-toolbar{
+      grid-template-columns:1fr;
+    }
+
+    .rs-toolbar > .rs-group:last-child{
+      grid-column:auto;
+      width:100%;
+    }
+
+    .rs-toolbar > .rs-group:last-child > div{
+      flex:1;
+    }
+
+    .rs-toolbar > .rs-group:last-child .rs-btn{
+      width:100%;
+    }
+
+    .rs-adminbar{
+      align-items:stretch;
+    }
+
+    .rs-adminbar form{
+      width:100%;
+    }
+  }
+
 </style>
 
 <div class="rs-wrap">
   <div class="card">
-    <h2 style="margin:.2rem 0 .6rem; font-weight:950;">Riskler</h2>
+
+    <section class="rs-hero" aria-label="Risk kayıtları başlığı">
+      <div class="rs-hero-inner">
+        <div>
+          <div class="rs-hero-kicker">
+            <span class="material-symbols-outlined" style="font-size:17px;">shield</span>
+            Risk Yönetimi / Kayıtlar
+          </div>
+          <h1 class="rs-hero-title">Riskler</h1>
+          <p class="rs-hero-sub">
+            Kayıtlı riskleri kategori, skor, maliyet ve güncellik bilgileriyle izle;
+            filtrele, karşılaştır ve gerekli aksiyona doğrudan geç.
+          </p>
+        </div>
+
+        <div class="rs-hero-actions">
+          <a class="rs-btn" href="{{ url_for('risk_identify') }}">
+            <span class="material-symbols-outlined" style="font-size:18px;">library_books</span>
+            Risk Kütüphanesi
+          </a>
+          <a class="rs-btn rs-btn-primary" href="{{ url_for('risk_new') }}">
+            <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+            Yeni Risk
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="rs-content">
+
+    {# ============================================================
+       PREMIUM KPI ÖZETİ
+       ============================================================ #}
+    {% set kpi = namespace(
+      evaluated=0,
+      costed=0,
+      total_cost=0,
+      categories=[]
+    ) %}
+
+    {% for risk in (risks or []) %}
+      {% set risk_score = risk.score() %}
+      {% if risk_score is not none %}
+        {% set kpi.evaluated = kpi.evaluated + 1 %}
+      {% endif %}
+
+      {% set risk_cost = (cost_map.get(risk.id) if cost_map is defined else 0) or 0 %}
+      {% if risk_cost > 0 %}
+        {% set kpi.costed = kpi.costed + 1 %}
+        {% set kpi.total_cost = kpi.total_cost + risk_cost %}
+      {% endif %}
+
+      {% set cname = (risk.category or 'Kategorisiz') %}
+      {% if cname not in kpi.categories %}
+        {% set kpi.categories = kpi.categories + [cname] %}
+      {% endif %}
+    {% endfor %}
+
+    <section class="rs-kpis" aria-label="Risk listesi özet göstergeleri">
+      <article class="rs-kpi"
+               style="--kpi-color:#2457e6;--kpi-soft:rgba(36,87,230,.09);">
+        <div class="rs-kpi-head">
+          <div class="rs-kpi-label">Görüntülenen Risk</div>
+          <div class="rs-kpi-icon">
+            <span class="material-symbols-outlined" style="font-size:19px;">warning</span>
+          </div>
+        </div>
+        <div class="rs-kpi-value">{{ risks|length if risks else 0 }}</div>
+        <div class="rs-kpi-note">Mevcut filtre sonucundaki kayıt</div>
+      </article>
+
+      <article class="rs-kpi"
+               style="--kpi-color:#0f766e;--kpi-soft:rgba(15,118,110,.09);">
+        <div class="rs-kpi-head">
+          <div class="rs-kpi-label">Değerlendirilen</div>
+          <div class="rs-kpi-icon">
+            <span class="material-symbols-outlined" style="font-size:19px;">analytics</span>
+          </div>
+        </div>
+        <div class="rs-kpi-value">{{ kpi.evaluated }}</div>
+        <div class="rs-kpi-note">Skoru bulunan risk kaydı</div>
+      </article>
+
+      <article class="rs-kpi"
+               style="--kpi-color:#d97706;--kpi-soft:rgba(245,158,11,.10);">
+        <div class="rs-kpi-head">
+          <div class="rs-kpi-label">Kategori</div>
+          <div class="rs-kpi-icon">
+            <span class="material-symbols-outlined" style="font-size:19px;">category</span>
+          </div>
+        </div>
+        <div class="rs-kpi-value">{{ kpi.categories|length }}</div>
+        <div class="rs-kpi-note">Listede temsil edilen kategori</div>
+      </article>
+
+      <article class="rs-kpi"
+               style="--kpi-color:#16a34a;--kpi-soft:rgba(34,197,94,.09);">
+        <div class="rs-kpi-head">
+          <div class="rs-kpi-label">Bağlı Maliyet</div>
+          <div class="rs-kpi-icon">
+            <span class="material-symbols-outlined" style="font-size:19px;">payments</span>
+          </div>
+        </div>
+        <div class="rs-kpi-value">{{ kpi.costed }}</div>
+        <div class="rs-kpi-note">
+          {{ "{:,.0f}".format(kpi.total_cost).replace(",", ".") }} ₺ toplam TRY
+        </div>
+      </article>
+    </section>
+
+    <div class="rs-section-label">Filtreler ve Görünüm</div>
 
     <!-- Sticky filtre/aksiyon çubuğu -->
     <form class="rs-toolbar" method="get" action="{{ request.path }}" id="filterForm">
@@ -828,6 +1564,7 @@
 
     {# Birleştirme + Tüm riskleri sil (sadece admin) #}
     {% if session.get('role') == 'admin' and risks and risks|length > 0 %}
+      <div class="rs-section-label">Toplu İşlemler</div>
       <div class="rs-adminbar">
         <form method="post"
               action="{{ url_for('risks_merge') }}"
@@ -835,6 +1572,7 @@
               style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
           <input type="hidden" name="risk_ids" id="merge-ids">
           <span class="rs-adminhint">Seçili riskleri tek bir raporda birleştir.</span>
+          <span class="rs-selection-count" id="selected-count">0 seçili</span>
           <button type="submit" class="rs-btn rs-btn-soft" id="merge-submit" disabled>
             <span class="material-symbols-outlined" style="font-size:20px;">stacks</span>
             Seçilenleri Birleştir
@@ -852,6 +1590,8 @@
         </form>
       </div>
     {% endif %}
+
+    <div class="rs-section-label">Risk Kayıtları</div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for c,m in messages %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}
@@ -1034,6 +1774,7 @@
         </div>
       </div>
     {% endif %}
+    </div>
   </div>
 </div>
 
@@ -1044,8 +1785,10 @@
     const ids = Array.from(checks).map(el => el.value).join(',');
     const hidden = document.getElementById('merge-ids');
     const btn = document.getElementById('merge-submit');
+    const count = document.getElementById('selected-count');
     if (hidden) hidden.value = ids;
     if (btn) btn.disabled = !ids;
+    if (count) count.textContent = `${checks.length} seçili`;
   }
 
   // Tümünü seç / bırak
