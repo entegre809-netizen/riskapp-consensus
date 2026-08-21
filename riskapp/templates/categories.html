@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Kategori Yönetimi · Risk Yönetim{% endblock %}
 {% block content %}
+{# FINAL CATEGORY ICON LINK — icon alanı backend/DB ile kalıcı olarak bağlıdır. #}
 
 <style>
   /* ==========================================================
@@ -1537,6 +1538,36 @@ $("#clearSearch").addEventListener("click", async ()=>{
   });
 })();
 
+/* ---- Yeni kategori adı -> otomatik ikon önerisi ---- */
+(function bindCreateNameAutoIcon(){
+  const nameInput = document.querySelector('#createForm input[name="name"]');
+  const hidden = $("#createIcon");
+  const preview = $("#createIconPreview");
+  const textEl = $("#createIconText");
+  const picker = document.querySelector('[data-icon-picker][data-target="#createIcon"]');
+  if(!nameInput || !hidden || !picker) return;
+
+  let userPickedIcon = false;
+
+  picker.querySelectorAll(".icon-choice").forEach(btn => {
+    btn.addEventListener("click", ()=>{ userPickedIcon = true; });
+  });
+
+  nameInput.addEventListener("input", ()=>{
+    if(userPickedIcon) return;
+
+    const suggested = autoIconForCategory(nameInput.value);
+    hidden.value = suggested;
+
+    picker.querySelectorAll(".icon-choice").forEach(btn => {
+      btn.classList.toggle("is-selected", btn.dataset.icon === suggested);
+    });
+
+    if(preview) preview.textContent = suggested;
+    if(textEl) textEl.textContent = suggested;
+  });
+})();
+
 /* ---- Create renk senkronu ---- */
 (function bindCreateColorSync(){
   const colorPicker = document.querySelector('#createForm input[type="color"][name="color"]');
@@ -1552,6 +1583,11 @@ $("#clearSearch").addEventListener("click", async ()=>{
   $("#createForm").addEventListener("submit", ()=>{
     const v = normalize(hexInput.value);
     if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) colorPicker.value = v;
+
+    const iconInput = $("#createIcon");
+    if(iconInput){
+      iconInput.value = safeIconName(iconInput.value, document.querySelector('#createForm input[name="name"]')?.value || "");
+    }
   });
 })();
 
@@ -1569,6 +1605,12 @@ document.addEventListener("submit", async (e)=>{
     }
 
     if(!fd.get("is_active")) fd.set("is_active","");
+
+    const editIconInput = editForm.querySelector('input[name="icon"]');
+    const editNameInput = editForm.querySelector('input[name="name"]');
+    if(editIconInput){
+      fd.set("icon", safeIconName(editIconInput.value, editNameInput?.value || ""));
+    }
 
     const hex = editForm.querySelector('input[type="text"]');
     if (hex && normalize(hex.value)) fd.set("color", hex.value);
