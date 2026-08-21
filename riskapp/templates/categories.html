@@ -190,9 +190,14 @@
 
   .cat-grid{
     display:grid;
-    grid-template-columns:380px minmax(0,1fr);
+    grid-template-columns:340px minmax(0,1fr);
     gap:16px;
     align-items:start;
+  }
+
+  .cat-create-side{
+    position:sticky;
+    top:96px;
   }
 
   @media (max-width:1020px){
@@ -642,6 +647,248 @@
     font-weight:800;
   }
 
+
+  /* ================= KATEGORİ KART LİSTESİ ================= */
+  .cat-list{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:12px;
+  }
+
+  .cat-item{
+    min-width:0;
+    border-radius:22px;
+    border:1px solid var(--cat-line);
+    background:var(--cat-card);
+    box-shadow:0 10px 26px rgba(15,23,42,.045);
+    overflow:hidden;
+    transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+  }
+
+  .cat-item:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.22);
+    box-shadow:var(--cat-shadow-sm);
+  }
+
+  .cat-item-main{
+    padding:16px;
+  }
+
+  .cat-item-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .cat-item-title-wrap{
+    min-width:0;
+    display:flex;
+    align-items:flex-start;
+    gap:11px;
+  }
+
+  .cat-item-color{
+    width:13px;
+    height:42px;
+    flex:0 0 13px;
+    border-radius:999px;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+  }
+
+  .cat-item-name{
+    margin:0;
+    color:var(--cat-text);
+    font-size:16px;
+    line-height:1.25;
+    font-weight:950;
+    letter-spacing:-.025em;
+    word-break:break-word;
+  }
+
+  .cat-item-code{
+    margin-top:5px;
+    color:var(--cat-muted);
+    font-size:12px;
+    font-weight:850;
+  }
+
+  .cat-item-desc{
+    margin:13px 0 0;
+    min-height:38px;
+    color:var(--cat-muted);
+    font-size:13px;
+    line-height:1.5;
+    font-weight:650;
+  }
+
+  .cat-item-actions{
+    margin-top:14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .cat-item-actions-left,
+  .cat-item-actions-right{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .cat-view-link{
+    min-height:36px;
+    padding:0 11px;
+    box-shadow:none;
+  }
+
+  .cat-edit-details{
+    width:100%;
+    border-top:1px solid var(--cat-line);
+    background:var(--cat-soft);
+  }
+
+  .cat-edit-details > summary{
+    margin:0;
+    width:100%;
+    min-height:44px;
+    justify-content:flex-start;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+    background:transparent;
+    padding:0 16px;
+  }
+
+  .cat-edit-details[open] > summary{
+    margin-bottom:0;
+    border-bottom:1px solid var(--cat-line);
+  }
+
+  .cat-edit-details .inner-card{
+    width:100%;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+    background:transparent;
+    padding:16px;
+  }
+
+  .cat-empty{
+    grid-column:1 / -1;
+    padding:30px 18px;
+    text-align:center;
+    border-radius:22px;
+    border:1px dashed var(--cat-line-2);
+    color:var(--cat-muted);
+    background:var(--cat-soft);
+    font-weight:800;
+  }
+
+  @media (max-width:1120px){
+    .cat-list{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:1020px){
+    .cat-create-side{
+      position:static;
+    }
+  }
+
+
+  /* ================= İKON SEÇİCİ ================= */
+  .icon-picker{
+    display:grid;
+    grid-template-columns:repeat(6, minmax(0,1fr));
+    gap:8px;
+  }
+
+  .icon-choice{
+    min-height:46px;
+    display:grid;
+    place-items:center;
+    border-radius:14px;
+    border:1px solid var(--cat-line);
+    background:var(--cat-card);
+    color:var(--cat-muted);
+    cursor:pointer;
+    transition:transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease;
+  }
+
+  .icon-choice:hover{
+    transform:translateY(-1px);
+    border-color:rgba(36,87,230,.25);
+    color:var(--cat-primary);
+  }
+
+  .icon-choice.is-selected{
+    color:var(--cat-primary);
+    border-color:rgba(36,87,230,.30);
+    background:rgba(36,87,230,.10);
+    box-shadow:0 0 0 3px rgba(36,87,230,.07);
+  }
+
+  .icon-choice .material-icons-outlined{
+    font-size:21px;
+  }
+
+  .icon-picker-meta{
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:var(--cat-muted);
+    font-size:12px;
+    font-weight:750;
+  }
+
+  .icon-preview{
+    width:34px;
+    height:34px;
+    display:grid;
+    place-items:center;
+    flex:0 0 34px;
+    border-radius:12px;
+    color:var(--cat-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+  }
+
+  .cat-item-icon{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--cat-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+  }
+
+  .cat-item-icon .material-icons-outlined{
+    font-size:21px;
+  }
+
+  [data-theme="dark"] .cat-item-icon,
+  [data-theme="dark"] .icon-preview{
+    color:#93c5fd;
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.18);
+  }
+
+  @media (max-width:460px){
+    .icon-picker{
+      grid-template-columns:repeat(4, minmax(0,1fr));
+    }
+  }
+
   @media (max-width:700px){
     .cat-hero{
       padding:18px;
@@ -698,7 +945,7 @@
     <div id="flash" role="status" aria-live="polite"></div>
 
     <div class="cat-grid">
-      <aside>
+      <aside class="cat-create-side">
         <section class="panel">
           <div class="panel-head">
             <h3 class="panel-title">
@@ -728,6 +975,57 @@
                   <input class="input" type="color" name="color" value="#0ea371">
                   <input class="input" type="text" id="colorHex" value="#0ea371" maxlength="9" title="Hex renk kodu (#RRGGBB)">
                 </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>İkon</label>
+              <input type="hidden" name="icon" id="createIcon" value="category">
+
+              <div class="icon-picker" data-icon-picker data-target="#createIcon">
+                <button type="button" class="icon-choice is-selected" data-icon="category" title="Kategori">
+                  <span class="material-icons-outlined">category</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="architecture" title="Tasarım">
+                  <span class="material-icons-outlined">architecture</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="payments" title="Finans">
+                  <span class="material-icons-outlined">payments</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="engineering" title="Uygulama / Teknik">
+                  <span class="material-icons-outlined">engineering</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="terrain" title="Geoteknik">
+                  <span class="material-icons-outlined">terrain</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="health_and_safety" title="İş Güvenliği">
+                  <span class="material-icons-outlined">health_and_safety</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="eco" title="Çevre">
+                  <span class="material-icons-outlined">eco</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="schedule" title="Zaman">
+                  <span class="material-icons-outlined">schedule</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="groups" title="Paydaş">
+                  <span class="material-icons-outlined">groups</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="gavel" title="Hukuk">
+                  <span class="material-icons-outlined">gavel</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="inventory_2" title="Tedarik">
+                  <span class="material-icons-outlined">inventory_2</span>
+                </button>
+                <button type="button" class="icon-choice" data-icon="warning_amber" title="Genel Risk">
+                  <span class="material-icons-outlined">warning_amber</span>
+                </button>
+              </div>
+
+              <div class="icon-picker-meta">
+                <span class="icon-preview">
+                  <span class="material-icons-outlined" id="createIconPreview">category</span>
+                </span>
+                <span>Seçili ikon: <strong id="createIconText">category</strong></span>
               </div>
             </div>
 
@@ -763,22 +1061,7 @@
             <span class="badge" id="catCount">0 kayıt</span>
           </div>
 
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th style="width:64px">#</th>
-                  <th>Ad</th>
-                  <th style="width:120px">Kod</th>
-                  <th style="width:160px">Renk</th>
-                  <th>Açıklama</th>
-                  <th style="width:120px">Durum</th>
-                  <th style="width:230px">İşlem</th>
-                </tr>
-              </thead>
-              <tbody id="tbodyCats"></tbody>
-            </table>
-          </div>
+          <div class="cat-list" id="catList"></div>
         </section>
       </main>
     </div>
@@ -849,6 +1132,58 @@ function makeColorBadge(color){
   return wrap;
 }
 
+const ICON_OPTIONS = [
+  "category","architecture","payments","engineering","terrain","health_and_safety",
+  "eco","schedule","groups","gavel","inventory_2","warning_amber"
+];
+
+function autoIconForCategory(name=""){
+  const n = (name || "").toLocaleLowerCase("tr");
+  if(n.includes("tasarım") || n.includes("dizayn")) return "architecture";
+  if(n.includes("finans") || n.includes("mali")) return "payments";
+  if(n.includes("geoteknik") || n.includes("zemin")) return "terrain";
+  if(n.includes("güven") || n.includes("iş sağ") || n.includes("isg")) return "health_and_safety";
+  if(n.includes("çevre") || n.includes("eko")) return "eco";
+  if(n.includes("zaman") || n.includes("program") || n.includes("takvim")) return "schedule";
+  if(n.includes("paydaş") || n.includes("insan") || n.includes("personel")) return "groups";
+  if(n.includes("hukuk") || n.includes("sözleş") || n.includes("mevzuat")) return "gavel";
+  if(n.includes("tedarik") || n.includes("malzeme") || n.includes("lojistik")) return "inventory_2";
+  if(n.includes("uygulama") || n.includes("teknik") || n.includes("inşaat")) return "engineering";
+  return "category";
+}
+
+function safeIconName(icon, name=""){
+  const val = normalize(icon);
+  return ICON_OPTIONS.includes(val) ? val : autoIconForCategory(name);
+}
+
+function buildIconPicker(currentIcon, inputEl){
+  const icon = safeIconName(currentIcon);
+  const picker = document.createElement("div");
+  picker.className = "icon-picker";
+
+  ICON_OPTIONS.forEach(iconName => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "icon-choice" + (iconName === icon ? " is-selected" : "");
+    btn.dataset.icon = iconName;
+    btn.title = iconName;
+    btn.innerHTML = `<span class="material-icons-outlined">${iconName}</span>`;
+
+    btn.addEventListener("click", ()=>{
+      inputEl.value = iconName;
+      picker.querySelectorAll(".icon-choice").forEach(x => {
+        x.classList.toggle("is-selected", x === btn);
+      });
+    });
+
+    picker.appendChild(btn);
+  });
+
+  return picker;
+}
+
+
 /* ==========================================================
    API: sadece listeyi JSON'dan çekiyoruz (GET)
    ========================================================== */
@@ -896,8 +1231,8 @@ async function postForm(url, fd){
    ========================================================== */
 function renderTable(){
   const q = normalize($("#q").value);
-  const tbody = $("#tbodyCats");
-  tbody.innerHTML = "";
+  const listEl = $("#catList");
+  listEl.innerHTML = "";
 
   const list = CATS.slice()
     .sort((a,b)=>{
@@ -911,55 +1246,100 @@ function renderTable(){
   }
 
   if(!list.length){
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-    td.colSpan = 7;
-    td.className = "empty-row";
-    td.textContent = "Kategori bulunamadı.";
-    tr.appendChild(td);
-    tbody.appendChild(tr);
+    const empty = document.createElement("div");
+    empty.className = "cat-empty";
+    empty.textContent = "Kategori bulunamadı.";
+    listEl.appendChild(empty);
     return;
   }
 
   for (const c of list){
-    const tr = document.createElement("tr");
+    const item = document.createElement("article");
+    item.className = "cat-item";
 
-    const tdId = document.createElement("td");
-    tdId.style.fontWeight="900";
-    tdId.textContent = String(c.id);
-    tr.appendChild(tdId);
+    const main = document.createElement("div");
+    main.className = "cat-item-main";
 
-    const tdName = document.createElement("td");
-    tdName.innerHTML = `<div class="cat-name">${escHtml(c.name || "")}</div>`;
-    tr.appendChild(tdName);
+    const top = document.createElement("div");
+    top.className = "cat-item-top";
 
-    const tdCode = document.createElement("td");
-    const badgeCode = document.createElement("span");
-    badgeCode.className = "badge";
-    badgeCode.textContent = c.code || "—";
-    tdCode.appendChild(badgeCode);
-    tr.appendChild(tdCode);
+    const titleWrap = document.createElement("div");
+    titleWrap.className = "cat-item-title-wrap";
 
-    const tdColor = document.createElement("td");
-    tdColor.appendChild(makeColorBadge(c.color));
-    tr.appendChild(tdColor);
+    const colorBar = document.createElement("span");
+    colorBar.className = "cat-item-color";
+    colorBar.style.background = c.color || "#cbd5e1";
 
-    const tdDesc = document.createElement("td");
-    tdDesc.className = "small";
-    tdDesc.textContent = c.description || "—";
-    tr.appendChild(tdDesc);
+    const iconBox = document.createElement("span");
+    iconBox.className = "cat-item-icon";
+    iconBox.innerHTML = `<span class="material-icons-outlined">${safeIconName(c.icon, c.name)}</span>`;
 
-    const tdStatus = document.createElement("td");
-    const statusSpan = document.createElement("span");
-    statusSpan.className = "badge " + (c.is_active ? "active" : "passive");
-    statusSpan.textContent = c.is_active ? "Aktif" : "Pasif";
-    tdStatus.appendChild(statusSpan);
-    tr.appendChild(tdStatus);
+    const textWrap = document.createElement("div");
+    textWrap.style.minWidth = "0";
 
-    const tdActions = document.createElement("td");
+    const h3 = document.createElement("h3");
+    h3.className = "cat-item-name";
+    h3.textContent = c.name || "İsimsiz kategori";
+
+    const code = document.createElement("div");
+    code.className = "cat-item-code";
+    code.textContent = c.code ? ("Kod: " + c.code) : "Kod belirtilmemiş";
+
+    textWrap.appendChild(h3);
+    textWrap.appendChild(code);
+
+    titleWrap.appendChild(colorBar);
+    titleWrap.appendChild(iconBox);
+    titleWrap.appendChild(textWrap);
+
+    const status = document.createElement("span");
+    status.className = "badge " + (c.is_active ? "active" : "passive");
+    status.textContent = c.is_active ? "Aktif" : "Pasif";
+
+    top.appendChild(titleWrap);
+    top.appendChild(status);
+
+    const desc = document.createElement("p");
+    desc.className = "cat-item-desc";
+    desc.textContent = c.description || "Açıklama eklenmemiş.";
+
+    const actions = document.createElement("div");
+    actions.className = "cat-item-actions";
+
+    const actionsLeft = document.createElement("div");
+    actionsLeft.className = "cat-item-actions-left";
+
+    const idBadge = document.createElement("span");
+    idBadge.className = "badge";
+    idBadge.textContent = "#" + c.id;
+
+    const colorBadge = makeColorBadge(c.color);
+
+    actionsLeft.appendChild(idBadge);
+    actionsLeft.appendChild(colorBadge);
+
+    const actionsRight = document.createElement("div");
+    actionsRight.className = "cat-item-actions-right";
+
+    const viewLink = document.createElement("a");
+    viewLink.className = "btn cat-view-link";
+    viewLink.textContent = "Riskleri Gör →";
+    viewLink.href = "{{ url_for('risk_identify') }}?cat=" + encodeURIComponent(c.name || "");
+
+    actionsRight.appendChild(viewLink);
+
+    actions.appendChild(actionsLeft);
+    actions.appendChild(actionsRight);
+
+    main.appendChild(top);
+    main.appendChild(desc);
+    main.appendChild(actions);
+
     const details = document.createElement("details");
+    details.className = "cat-edit-details";
+
     const summary = document.createElement("summary");
-    summary.textContent = "Düzenle";
+    summary.textContent = "Düzenle / Sil";
     details.appendChild(summary);
 
     const inner = document.createElement("div");
@@ -1009,6 +1389,21 @@ function renderTable(){
       if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) inpColor.value = v;
     });
 
+    const gIcon = document.createElement("div");
+    gIcon.className = "full";
+
+    const iconLabel = document.createElement("label");
+    iconLabel.textContent = "İkon";
+
+    const iconInput = document.createElement("input");
+    iconInput.type = "hidden";
+    iconInput.name = "icon";
+    iconInput.value = safeIconName(c.icon, c.name);
+
+    gIcon.appendChild(iconLabel);
+    gIcon.appendChild(iconInput);
+    gIcon.appendChild(buildIconPicker(iconInput.value, iconInput));
+
     const g4 = document.createElement("div");
     g4.className = "full";
     const label4 = document.createElement("label");
@@ -1049,6 +1444,7 @@ function renderTable(){
     form.appendChild(g1);
     form.appendChild(g2);
     form.appendChild(g3);
+    form.appendChild(gIcon);
     form.appendChild(g4);
     form.appendChild(g5);
     form.appendChild(g6);
@@ -1057,6 +1453,7 @@ function renderTable(){
     delForm.className="js-delete actions";
     delForm.dataset.id=String(c.id);
     delForm.style.marginTop="10px";
+
     const btnDel = document.createElement("button");
     btnDel.className="btn btn-danger";
     btnDel.type="submit";
@@ -1066,10 +1463,10 @@ function renderTable(){
     inner.appendChild(form);
     inner.appendChild(delForm);
     details.appendChild(inner);
-    tdActions.appendChild(details);
-    tr.appendChild(tdActions);
 
-    tbody.appendChild(tr);
+    item.appendChild(main);
+    item.appendChild(details);
+    listEl.appendChild(item);
   }
 }
 
@@ -1115,6 +1512,30 @@ $("#clearSearch").addEventListener("click", async ()=>{
     flash(err.message || "Kategoriler alınamadı","danger");
   }
 });
+
+
+/* ---- Create ikon seçici ---- */
+(function bindCreateIconPicker(){
+  const hidden = $("#createIcon");
+  const preview = $("#createIconPreview");
+  const textEl = $("#createIconText");
+  const picker = document.querySelector('[data-icon-picker][data-target="#createIcon"]');
+  if(!hidden || !picker) return;
+
+  picker.querySelectorAll(".icon-choice").forEach(btn => {
+    btn.addEventListener("click", ()=>{
+      const icon = btn.dataset.icon || "category";
+      hidden.value = icon;
+
+      picker.querySelectorAll(".icon-choice").forEach(x => {
+        x.classList.toggle("is-selected", x === btn);
+      });
+
+      if(preview) preview.textContent = icon;
+      if(textEl) textEl.textContent = icon;
+    });
+  });
+})();
 
 /* ---- Create renk senkronu ---- */
 (function bindCreateColorSync(){
