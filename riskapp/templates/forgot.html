@@ -5,6 +5,11 @@
 
 {% block content %}
 <style>
+  .reset-shell,
+  .reset-shell *{
+    box-sizing:border-box;
+  }
+
   :root{
     --pr-bg:#f6f8fc;
     --pr-card:#ffffff;
@@ -40,6 +45,57 @@
     display:none !important;
   }
 
+  /* ============================================================
+     FORGOT / RESET · BASE.HTML LAYOUT OVERRIDE
+     Bu sayfa uygulama içi sidebar/grid kurallarından tamamen bağımsızdır.
+     ============================================================ */
+  body.reset{
+    overflow-x:hidden !important;
+  }
+
+  body.reset .sidebar,
+  body.reset .app-sidebar,
+  body.reset aside.sidebar,
+  body.reset nav.sidebar,
+  body.reset .side-nav{
+    display:none !important;
+  }
+
+  body.reset .app-shell,
+  body.reset .layout,
+  body.reset .shell,
+  body.reset .workspace,
+  body.reset .main-shell{
+    display:block !important;
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+
+  body.reset main,
+  body.reset .main,
+  body.reset .main-content,
+  body.reset .content,
+  body.reset .content-wrap,
+  body.reset .page-content{
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+    grid-column:1 / -1 !important;
+  }
+
+  body.reset .container,
+  body.reset .container-fluid{
+    width:100% !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+
   .wizard{
     display:block;
   }
@@ -69,12 +125,15 @@
   }
 
   .reset-shell{
+    width:100vw;
     min-height:100vh;
     display:grid;
     place-items:center;
-    padding:28px 16px;
+    padding:32px 24px;
+    margin:0;
     position:relative;
     overflow:hidden;
+    box-sizing:border-box;
   }
 
   .reset-shell::before{
@@ -96,12 +155,14 @@
   .reset-wrap{
     position:relative;
     z-index:1;
-    width:100%;
-    max-width:1040px;
+    width:min(1080px, 100%);
+    max-width:1080px;
+    margin:0 auto;
     display:grid;
-    grid-template-columns:minmax(0, .95fr) minmax(380px, 440px);
+    grid-template-columns:minmax(0, 1.08fr) minmax(390px, 440px);
     gap:24px;
     align-items:stretch;
+    box-sizing:border-box;
   }
 
   .reset-visual{
