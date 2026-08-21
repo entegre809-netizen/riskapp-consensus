@@ -958,6 +958,381 @@
     }
   }
 
+
+  /* ============================================================
+     PREMIUM UI V2 — Takvim / Zaman Çizelgesi
+     ============================================================ */
+  .tl-shell{
+    max-width:1680px;
+    margin:0 auto;
+    padding:18px 22px 42px;
+    gap:18px;
+  }
+
+  .tl-hero{
+    min-height:178px;
+    padding:28px 30px;
+    border-radius:32px;
+    border:1px solid rgba(255,255,255,.16);
+    background:
+      radial-gradient(circle at 8% 0%, rgba(255,255,255,.22), transparent 25%),
+      radial-gradient(circle at 93% 86%, rgba(45,212,191,.26), transparent 28%),
+      linear-gradient(135deg, #0f172a 0%, #1e3a8a 42%, #2563eb 70%, #0f766e 100%);
+    box-shadow:0 30px 80px rgba(15,23,42,.15), inset 0 1px 0 rgba(255,255,255,.10);
+  }
+
+  .tl-hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(120deg, transparent 0 58%, rgba(255,255,255,.05) 58% 59%, transparent 59% 100%);
+  }
+
+  .tl-kicker{
+    height:34px;
+    padding:0 13px;
+    background:rgba(255,255,255,.11);
+    border-color:rgba(255,255,255,.16);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  .tl-title{
+    font-size:clamp(34px, 3.8vw, 52px);
+    letter-spacing:-.06em;
+  }
+
+  .tl-sub{
+    max-width:680px;
+    font-size:15px;
+    color:rgba(255,255,255,.78);
+  }
+
+  .tl-hero .btn{
+    min-height:44px;
+    border-radius:16px;
+    background:rgba(255,255,255,.10);
+    border-color:rgba(255,255,255,.16);
+  }
+
+  .tl-hero .btn:hover{ background:rgba(255,255,255,.17); }
+
+  .tl-hero .btn-primary{
+    background:#fff;
+    color:#1d4ed8;
+    box-shadow:0 14px 34px rgba(15,23,42,.16);
+  }
+
+  .tl-premium-stats{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .tl-premium-stat{
+    position:relative;
+    overflow:hidden;
+    min-height:104px;
+    padding:16px 17px;
+    border-radius:24px;
+    background:var(--tl-card);
+    border:1px solid var(--tl-line);
+    box-shadow:var(--tl-shadow-sm);
+  }
+
+  .tl-premium-stat::after{
+    content:"";
+    position:absolute;
+    width:90px;
+    height:90px;
+    right:-35px;
+    top:-35px;
+    border-radius:999px;
+    background:var(--stat-soft, rgba(36,87,230,.08));
+  }
+
+  .tl-premium-stat .stat-label{
+    position:relative; z-index:1;
+    color:var(--tl-muted);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  .tl-premium-stat .stat-value{
+    position:relative; z-index:1;
+    margin-top:8px;
+    color:var(--tl-text);
+    font-size:28px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.05em;
+  }
+
+  .tl-premium-stat .stat-note{
+    position:relative; z-index:1;
+    margin-top:8px;
+    color:var(--tl-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .tl-filterbar{
+    top:82px;
+    padding:10px;
+    border-radius:26px;
+    background:color-mix(in oklab, var(--tl-card) 92%, transparent);
+    border:1px solid var(--tl-line);
+    box-shadow:0 18px 48px rgba(15,23,42,.09);
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+  }
+
+  .tl-chip{
+    min-height:54px;
+    border-radius:17px;
+    background:color-mix(in oklab, var(--tl-soft) 92%, transparent);
+    transition:border-color .14s ease, box-shadow .14s ease, background .14s ease;
+  }
+
+  .tl-chip:focus-within{
+    border-color:rgba(36,87,230,.35);
+    background:var(--tl-card);
+    box-shadow:0 0 0 4px rgba(36,87,230,.08);
+  }
+
+  .tl-card{
+    border-radius:30px;
+    padding:18px;
+    border-color:var(--tl-line);
+    box-shadow:0 16px 44px rgba(15,23,42,.065);
+  }
+
+  .tl-section-head{ margin-bottom:16px; }
+  .tl-section-title{ font-size:18px; }
+
+  .tl-section-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:5px;
+    color:var(--tl-primary);
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+  }
+
+  .tl-section-kicker::before{
+    content:"";
+    width:22px;
+    height:3px;
+    border-radius:999px;
+    background:linear-gradient(90deg,var(--tl-primary),var(--tl-teal));
+  }
+
+  .tl-calendar-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+    padding:12px 14px;
+    border-radius:22px;
+    background:var(--tl-soft);
+    border:1px solid var(--tl-line);
+  }
+
+  .tl-calendar-month{
+    display:flex;
+    align-items:center;
+    gap:11px;
+  }
+
+  .tl-calendar-month-icon{
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    border-radius:15px;
+    color:var(--tl-primary);
+    background:rgba(36,87,230,.10);
+    border:1px solid rgba(36,87,230,.16);
+  }
+
+  .tl-calendar-month strong{
+    display:block;
+    color:var(--tl-text);
+    font-size:17px;
+    font-weight:950;
+    letter-spacing:-.025em;
+  }
+
+  .tl-calendar-month span{
+    display:block;
+    margin-top:2px;
+    color:var(--tl-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .tl-month-nav{
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+
+  .tl-month-nav .btn{
+    min-height:38px;
+    padding:0 11px;
+    box-shadow:none;
+    border-radius:13px;
+  }
+
+  .tl-legend{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    flex-wrap:wrap;
+  }
+
+  .tl-legend-item{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 9px;
+    border-radius:999px;
+    background:var(--tl-card);
+    border:1px solid var(--tl-line);
+    color:var(--tl-muted);
+    font-size:10px;
+    font-weight:850;
+  }
+
+  .tl-legend-dot{ width:8px; height:8px; border-radius:999px; }
+  .tl-legend-dot.critical{ background:#dc2626; }
+  .tl-legend-dot.moderate{ background:#ea580c; }
+  .tl-legend-dot.low{ background:#d97706; }
+  .tl-legend-dot.acceptable{ background:#16a34a; }
+
+  .calendar-wrap{
+    border-radius:28px;
+    border-color:var(--tl-line);
+    box-shadow:none;
+    overflow:hidden;
+  }
+
+  .cal-header{ background:color-mix(in oklab,var(--tl-soft) 88%, transparent); }
+
+  .cal-header div{
+    padding:14px 8px;
+    font-size:10px;
+    color:var(--tl-muted);
+  }
+
+  .cal-cell{
+    min-height:154px;
+    padding:11px;
+    transition:background .14s ease, box-shadow .14s ease;
+  }
+
+  .cal-cell:nth-child(7n),
+  .cal-cell:nth-child(7n-1){
+    background:color-mix(in oklab,var(--tl-soft) 42%, var(--tl-card));
+  }
+
+  .cal-cell.is-today{
+    background:rgba(36,87,230,.045) !important;
+    box-shadow:inset 0 0 0 2px rgba(36,87,230,.22);
+  }
+
+  .cal-cell.is-today .cal-date{
+    min-width:28px;
+    height:28px;
+    display:grid;
+    place-items:center;
+    border-radius:10px;
+    color:#fff;
+    background:var(--tl-primary);
+    box-shadow:0 8px 18px rgba(36,87,230,.22);
+  }
+
+  .cal-date{
+    top:9px;
+    right:9px;
+    font-size:12px;
+    font-weight:950;
+  }
+
+  .cal-badge{
+    margin-top:27px;
+    padding:9px 10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.22);
+    box-shadow:0 8px 20px rgba(15,23,42,.06), inset 0 1px 0 rgba(255,255,255,.20);
+    transition:transform .14s ease, box-shadow .14s ease, filter .14s ease;
+  }
+
+  .cal-badge:hover{
+    transform:translateY(-2px);
+    box-shadow:0 12px 24px rgba(15,23,42,.10);
+  }
+
+  .cal-more{
+    bottom:9px;
+    left:9px;
+    right:9px;
+    padding:6px 9px;
+    border-radius:10px;
+    color:var(--tl-primary);
+    background:rgba(36,87,230,.07);
+    border:1px solid rgba(36,87,230,.12);
+  }
+
+  .gantt-shell{
+    border-radius:28px;
+    box-shadow:none;
+  }
+
+  .gantt-left thead th,
+  .gantt-right thead th{
+    height:50px;
+    background:var(--tl-soft);
+  }
+
+  .gantt-left tbody tr,
+  .gantt-right tbody tr{ height:100px; }
+
+  .tl-bar{
+    height:27px;
+    border-radius:10px;
+    box-shadow:0 8px 18px rgba(15,23,42,.08);
+  }
+
+  .tl-flow-card{
+    border-radius:24px;
+    min-height:184px;
+    box-shadow:0 12px 32px rgba(15,23,42,.055);
+  }
+
+  @media (max-width:1100px){
+    .tl-premium-stats{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+
+  @media (max-width:760px){
+    .tl-shell{ padding:10px 12px 28px; }
+    .tl-hero{ min-height:auto; padding:22px 18px; border-radius:26px; }
+    .tl-premium-stats{ grid-template-columns:1fr; }
+    .tl-card{ border-radius:24px; padding:13px; }
+    .tl-calendar-toolbar{ align-items:flex-start; }
+    .tl-month-nav,.tl-legend{ width:100%; }
+    .tl-month-nav .btn{ flex:1; }
+    .cal-cell{ min-height:120px; padding:7px; }
+    .cal-date{ top:7px; right:7px; }
+  }
+
 </style>
 
 <div class="tl-scope">
@@ -1035,6 +1410,29 @@
 
     {% set avg_duration = (flow_ns.total_active_months / flow_ns.dated) if flow_ns.dated > 0 else 0 %}
     {% set selected_month_name = month_names[cur_m - 1] if cur_m >= 1 and cur_m <= 12 else cur_m %}
+
+    <section class="tl-premium-stats" aria-label="Zaman çizelgesi özet göstergeleri">
+      <article class="tl-premium-stat" style="--stat-soft:rgba(36,87,230,.10);">
+        <div class="stat-label">Toplam Risk</div>
+        <div class="stat-value">{{ flow_ns.total }}</div>
+        <div class="stat-note">{{ flow_ns.dated }} tarihli · {{ flow_ns.undated }} tarihsiz</div>
+      </article>
+      <article class="tl-premium-stat" style="--stat-soft:rgba(15,118,110,.10);">
+        <div class="stat-label">{{ selected_month_name }} {{ cur_y }}</div>
+        <div class="stat-value">{{ flow_ns.active_in_selected }}</div>
+        <div class="stat-note">Bu dönemde aktif risk</div>
+      </article>
+      <article class="tl-premium-stat" style="--stat-soft:rgba(239,68,68,.10);">
+        <div class="stat-label">Kritik Risk</div>
+        <div class="stat-value">{{ flow_ns.critical }}</div>
+        <div class="stat-note">Yakın takip gerektiren kayıt</div>
+      </article>
+      <article class="tl-premium-stat" style="--stat-soft:rgba(245,158,11,.11);">
+        <div class="stat-label">Ortalama Yayılım</div>
+        <div class="stat-value">{{ '%.1f'|format(avg_duration) }}</div>
+        <div class="stat-note">Ay / tarihli risk</div>
+      </article>
+    </section>
 
     <section class="tl-flow" aria-label="Zamansal risk yönetimi ve zaman çizelgesi modülü canlı bilgi akışı">
       <article class="tl-flow-card">
@@ -1246,7 +1644,8 @@
       <section class="tl-card">
         <div class="tl-section-head">
           <div>
-            <div class="tl-section-title">Risk Zaman Planı</div>
+            <div class="tl-section-kicker">Gantt Görünümü</div>
+             <div class="tl-section-title">Risk Zaman Planı</div>
             <div class="tl-section-sub">Sol taraf risk bilgisi, sağ taraf ay bazlı çizelgedir. Sağ bölümü yatay kaydırabilirsin.</div>
           </div>
           <div class="tl-scroll-hint">⇄ Yatay kaydır</div>
@@ -1408,6 +1807,44 @@
         </div>
       {% else %}
         <section class="tl-card">
+          <div class="tl-section-head">
+            <div>
+              <div class="tl-section-kicker">Aylık Takvim</div>
+              <div class="tl-section-title">{{ selected_month_name }} {{ cur_y }}</div>
+              <div class="tl-section-sub">Riskleri ay içinde gör, karta tıkla veya sürükleyerek dönemi güncelle.</div>
+            </div>
+            <div class="tl-scroll-hint">Sürükle & bırak aktif</div>
+          </div>
+
+          <div class="tl-calendar-toolbar noprint">
+            <div class="tl-calendar-month">
+              <div class="tl-calendar-month-icon">
+                <span class="material-icons-outlined">calendar_month</span>
+              </div>
+              <div>
+                <strong>{{ selected_month_name }} {{ cur_y }}</strong>
+                <span>{{ flow_ns.active_in_selected }} aktif risk · {{ flow_ns.critical }} kritik</span>
+              </div>
+            </div>
+
+            <div class="tl-month-nav">
+              <button type="button" class="btn" id="prevMonthBtn">
+                <span class="material-icons-outlined" style="font-size:18px;">chevron_left</span> Önceki
+              </button>
+              <button type="button" class="btn" id="todayMonthBtn">Bu Ay</button>
+              <button type="button" class="btn" id="nextMonthBtn">
+                Sonraki <span class="material-icons-outlined" style="font-size:18px;">chevron_right</span>
+              </button>
+            </div>
+
+            <div class="tl-legend">
+              <span class="tl-legend-item"><i class="tl-legend-dot critical"></i>Çok yüksek</span>
+              <span class="tl-legend-item"><i class="tl-legend-dot moderate"></i>Yüksek</span>
+              <span class="tl-legend-item"><i class="tl-legend-dot low"></i>Orta</span>
+              <span class="tl-legend-item"><i class="tl-legend-dot acceptable"></i>Düşük</span>
+            </div>
+          </div>
+
           <div class="cal-zoom-shell">
             <div class="calendar-wrap" id="calendarRoot"
                  data-month="{{ cur_m }}" data-year="{{ cur_y }}"
@@ -1499,6 +1936,32 @@
           const endOfMonth   = new Date(year, month, 0);
           const dow = (d) => (d.getDay() + 6) % 7;
 
+          const filtersForm = document.getElementById('filtersForm');
+          const monthSelect = filtersForm?.querySelector('[name="month"]');
+          const yearInput = filtersForm?.querySelector('[name="year"]');
+
+          function goMonth(delta){
+            if(!filtersForm || !monthSelect || !yearInput) return;
+            const d = new Date(year, month - 1 + delta, 1);
+            monthSelect.value = String(d.getMonth() + 1);
+            yearInput.value = String(d.getFullYear());
+            const vf = document.getElementById('viewField');
+            if(vf) vf.value = 'calendar';
+            filtersForm.submit();
+          }
+
+          document.getElementById('prevMonthBtn')?.addEventListener('click', () => goMonth(-1));
+          document.getElementById('nextMonthBtn')?.addEventListener('click', () => goMonth(1));
+          document.getElementById('todayMonthBtn')?.addEventListener('click', () => {
+            if(!filtersForm || !monthSelect || !yearInput) return;
+            const now = new Date();
+            monthSelect.value = String(now.getMonth() + 1);
+            yearInput.value = String(now.getFullYear());
+            const vf = document.getElementById('viewField');
+            if(vf) vf.value = 'calendar';
+            filtersForm.submit();
+          });
+
           const firstPad = dow(startOfMonth);
           const totalDays = endOfMonth.getDate();
           const totalCells = Math.ceil((firstPad + totalDays) / 7) * 7;
@@ -1537,6 +2000,17 @@
             const dayNum = i - firstPad + 1;
             const inMonth = (dayNum >= 1 && dayNum <= totalDays);
             if(!inMonth) cell.classList.add('muted-day');
+
+            if(inMonth){
+              const now = new Date();
+              if(
+                now.getFullYear() === year &&
+                now.getMonth() + 1 === month &&
+                now.getDate() === dayNum
+              ){
+                cell.classList.add('is-today');
+              }
+            }
 
             const dateEl = document.createElement('div');
             dateEl.className = 'cal-date';
