@@ -321,6 +321,22 @@ def ensure_schema():
         db.session.execute(text("ALTER TABLE risks ADD COLUMN ref_code TEXT"))
         changed = True
 
+    # ✅ risk_categories.icon
+    # Kategori Yönetimi ekranında seçilen Material Icon adını kalıcı tutar.
+    # Eski SQLite veritabanlarında kolon yoksa otomatik eklenir.
+    if not has_col("risk_categories", "icon"):
+        db.session.execute(
+            text("ALTER TABLE risk_categories ADD COLUMN icon TEXT DEFAULT 'category'")
+        )
+        db.session.execute(
+            text(
+                "UPDATE risk_categories "
+                "SET icon='category' "
+                "WHERE icon IS NULL OR TRIM(icon)=''"
+            )
+        )
+        changed = True
+
     # --- accounts.role ---
     if not has_col("accounts", "role"):
         db.session.execute(text("ALTER TABLE accounts ADD COLUMN role TEXT DEFAULT 'uzman'"))
@@ -1943,6 +1959,20 @@ def create_app():
         categories = dict(sorted(categories.items(), key=lambda kv: kv[0].lower()))
 
         # -----------------------------
+        # Kategori ikonları
+        # -----------------------------
+        # Kategori Yönetimi ekranında seçilen Material Icon adı,
+        # Risk Kütüphanesi'ne burada aktarılır.
+        category_icons = {
+            _disp_name(rc.name): ((getattr(rc, "icon", None) or "category").strip() or "category")
+            for rc in rcats
+        }
+
+        # Suggestion kaydı var ama RiskCategory kaydı yoksa sayfa kırılmasın.
+        for category_name in categories.keys():
+            category_icons.setdefault(category_name, "category")
+
+        # -----------------------------
         # Yardımcı: seçili id'leri topla
         # -----------------------------
         def _collect_selected_ids():
@@ -1971,7 +2001,8 @@ def create_app():
                         "risk_identify.html",
                         categories=categories,
                         q=q, cat=cat, page=page, pages=pages, total=total,
-                        per_page=per_page, filter_cat_names=filter_cat_names
+                        per_page=per_page, filter_cat_names=filter_cat_names,
+                        category_icons=category_icons
                     )
 
                 owner = session.get("username")
@@ -2011,7 +2042,8 @@ def create_app():
                         "risk_identify.html",
                         categories=categories,
                         q=q, cat=cat, page=page, pages=pages, total=total,
-                        per_page=per_page, filter_cat_names=filter_cat_names
+                        per_page=per_page, filter_cat_names=filter_cat_names,
+                        category_icons=category_icons
                     )
 
                 # Örn: [12, 14, 27] -> "12,14,27"
@@ -2035,7 +2067,8 @@ def create_app():
             "risk_identify.html",
             categories=categories,
             q=q, cat=cat, page=page, pages=pages, total=total,
-            per_page=per_page, filter_cat_names=filter_cat_names
+            per_page=per_page, filter_cat_names=filter_cat_names,
+            category_icons=category_icons
         )
 
 
@@ -6038,6 +6071,7 @@ KARAR KURALLARI
 
             code = (request.form.get("code") or "").strip() or None
             color = (request.form.get("color") or "").strip() or None
+            icon = (request.form.get("icon") or "").strip() or "category"
             description = (request.form.get("description") or "").strip() or None
 
             # İstersen name unique değilse bunu kaldırabilirsin; senin mevcut davranışın aynı kalsın diye bıraktım:
@@ -6045,7 +6079,14 @@ KARAR KURALLARI
                 flash("Bu isimde kategori zaten var.", "danger")
                 return redirect(url_for("categories_index", next=request.args.get("next")))
 
-            cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
+            cat = RiskCategory(
+                name=name,
+                code=code,
+                color=color,
+                icon=icon,
+                description=description,
+                is_active=True
+            )
             db.session.add(cat)
 
             try:
@@ -6081,6 +6122,7 @@ KARAR KURALLARI
         cat.name = name
         cat.code = (request.form.get("code") or "").strip() or None
         cat.color = (request.form.get("color") or "").strip() or None
+        cat.icon = (request.form.get("icon") or "").strip() or "category"
         cat.description = (request.form.get("description") or "").strip() or None
         cat.is_active = _truthy(request.form.get("is_active"))
 
@@ -6158,6 +6200,7 @@ KARAR KURALLARI
                 "name": r.name,
                 "code": r.code,
                 "color": r.color,
+                "icon": (getattr(r, "icon", None) or "category"),
                 "description": r.description,
                 "is_active": bool(r.is_active),
             }
@@ -6173,13 +6216,21 @@ KARAR KURALLARI
 
         code = (request.form.get("code") or "").strip() or None
         color = (request.form.get("color") or "").strip() or None
+        icon = (request.form.get("icon") or "").strip() or "category"
         description = (request.form.get("description") or "").strip() or None
 
         # Senin eski davranışın: name duplicate ise 409
         if RiskCategory.query.filter_by(name=name).first():
             return jsonify({"error": "duplicate name"}), 409
 
-        cat = RiskCategory(name=name, code=code, color=color, description=description, is_active=True)
+        cat = RiskCategory(
+            name=name,
+            code=code,
+            color=color,
+            icon=icon,
+            description=description,
+            is_active=True
+        )
         db.session.add(cat)
 
         try:
@@ -6206,6 +6257,7 @@ KARAR KURALLARI
         cat.name = nm
         cat.code = norm(data.get("code")) or None
         cat.color = norm(data.get("color")) or None
+        cat.icon = norm(data.get("icon")) or "category"
         cat.description = norm(data.get("description")) or None
 
         # checkbox unchecked ise JS "" gönderiyor -> False
@@ -6293,6 +6345,7 @@ KARAR KURALLARI
         cat.name = nm
         cat.code = norm(request.form.get("code")) or None
         cat.color = norm(request.form.get("color")) or None
+        cat.icon = norm(request.form.get("icon")) or "category"
         cat.description = norm(request.form.get("description")) or None
 
         # checkbox gelmezse False say

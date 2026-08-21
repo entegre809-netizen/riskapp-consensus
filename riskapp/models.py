@@ -103,6 +103,15 @@ class RiskCategory(db.Model):
     name        = db.Column(db.String(120), unique=True, nullable=False, index=True)  # görünen ad
     code        = db.Column(db.String(32), unique=True)                                # kısa kod (opsiyonel)
     color       = db.Column(db.String(16))                                             # #RRGGBB (opsiyonel)
+
+    # Material Icons adı (örn: category, payments, architecture, engineering)
+    # Kategori Yönetimi ekranında seçilen ikon burada kalıcı tutulur.
+    icon        = db.Column(
+        db.String(64),
+        nullable=True,
+        default="category"
+    )
+
     description = db.Column(db.Text)                                                   # açıklama (opsiyonel)
     is_active   = db.Column(db.Boolean, default=True, nullable=False)
 
