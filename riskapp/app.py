@@ -5005,6 +5005,7 @@ KARAR KURALLARI
             "_sum_rpn": 0.0,
             "_n_rpn": 0,
             "critical": None,   # en yüksek skorlu risk
+            "risks": [],        # bu sorumluya atanmış tüm riskler
         })
 
         # Uygulamanın geri kalanıyla tutarlı skor hesabı
@@ -5040,6 +5041,10 @@ KARAR KURALLARI
             row = buckets[name]
             row["responsible"] = name
             row["count"] += 1
+            row["risks"].append({
+                "risk": r,
+                "score": score,
+            })
 
             if score is not None:
                 row["_sum_rpn"] += score
@@ -5061,6 +5066,16 @@ KARAR KURALLARI
             n     = data.pop("_n_rpn")
             data["avg_rpn"] = (total / n) if n else None
             rows.append(data)
+
+        # Her sorumlunun risklerini en yüksek skordan düşüğe sırala.
+        for row in rows:
+            row["risks"].sort(
+                key=lambda item: (
+                    item.get("score") is None,
+                    -(item.get("score") or 0.0),
+                    (getattr(item.get("risk"), "title", "") or "").lower(),
+                )
+            )
 
         # Ortalama RPN'e göre azalan sırala
         rows.sort(

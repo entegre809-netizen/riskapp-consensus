@@ -410,6 +410,7 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
+    gap:6px;
     min-width:38px;
     height:32px;
     padding:0 10px;
@@ -418,6 +419,165 @@
     border:1px solid var(--rs-line);
     color:var(--rs-text);
     font-weight:950;
+  }
+
+  button.rs-count{
+    cursor:pointer;
+    transition:background .14s ease, border-color .14s ease, color .14s ease, transform .14s ease;
+  }
+
+  button.rs-count:hover{
+    color:var(--rs-primary);
+    border-color:rgba(36,87,230,.24);
+    background:rgba(36,87,230,.08);
+    transform:translateY(-1px);
+  }
+
+  .rs-count-chevron{
+    font-size:16px;
+    line-height:1;
+    transition:transform .16s ease;
+  }
+
+  button.rs-count[aria-expanded="true"] .rs-count-chevron{
+    transform:rotate(180deg);
+  }
+
+  .rs-detail-row[hidden]{
+    display:none !important;
+  }
+
+  .rs-detail-row td{
+    padding:0 !important;
+    background:var(--rs-bg) !important;
+  }
+
+  .rs-risk-list-panel{
+    margin:0;
+    padding:14px 16px 16px 70px;
+    border-bottom:1px solid var(--rs-line);
+    box-shadow:inset 0 1px 0 rgba(36,87,230,.06);
+  }
+
+  .rs-risk-list-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+  }
+
+  .rs-risk-list-title{
+    margin:0;
+    color:var(--rs-text);
+    font-size:13px;
+    font-weight:950;
+  }
+
+  .rs-risk-list{
+    display:grid;
+    gap:8px;
+  }
+
+  .rs-risk-item{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto auto;
+    gap:10px;
+    align-items:center;
+    padding:11px 12px;
+    border-radius:16px;
+    border:1px solid var(--rs-line);
+    background:var(--rs-card);
+  }
+
+  .rs-risk-item-main{
+    min-width:0;
+  }
+
+  .rs-risk-item-title{
+    color:var(--rs-text);
+    font-size:13px;
+    line-height:1.35;
+    font-weight:900;
+    text-decoration:none;
+  }
+
+  .rs-risk-item-title:hover{
+    color:var(--rs-primary);
+  }
+
+  .rs-risk-item-meta{
+    margin-top:3px;
+    color:var(--rs-muted);
+    font-size:11px;
+    font-weight:750;
+  }
+
+  .rs-risk-item-score{
+    min-width:78px;
+    text-align:center;
+  }
+
+  .rs-risk-item-link{
+    min-height:34px;
+    padding:0 10px;
+    box-shadow:none;
+  }
+
+  .rs-risk-item-actions{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:7px;
+    flex-wrap:wrap;
+  }
+
+  .rs-risk-item-actions .rs-btn{
+    min-height:34px;
+    padding:0 10px;
+    box-shadow:none;
+    font-size:12px;
+  }
+
+  .rs-risk-item-actions .material-icons-outlined{
+    font-size:16px;
+  }
+
+  .rs-risk-item-actions .rs-btn.is-edit{
+    color:var(--rs-primary);
+    border-color:rgba(36,87,230,.20);
+    background:rgba(36,87,230,.07);
+  }
+
+  .rs-risk-item-actions .rs-btn.is-cost{
+    color:var(--rs-teal);
+    border-color:rgba(15,118,110,.20);
+    background:rgba(15,118,110,.07);
+  }
+
+  @media (max-width:760px){
+    .rs-risk-list-panel{
+      padding-left:16px;
+    }
+
+    .rs-risk-item{
+      grid-template-columns:1fr;
+      align-items:start;
+    }
+
+    .rs-risk-item-score{
+      text-align:left;
+    }
+
+    .rs-risk-item-link{
+      width:max-content;
+    }
+
+    .rs-risk-item-actions{
+      justify-content:flex-start;
+      width:100%;
+    }
   }
 
   .rs-pill{
@@ -951,7 +1111,10 @@
                 {% endif %}
               {% endif %}
 
-              <tr data-search="{{ (row.responsible or '')|lower }} {{ (row.critical and row.critical.title or '')|lower }} {{ (row.critical and row.critical.category or '')|lower }} {{ (row.critical and row.critical.status or '')|lower }}">
+              {% set row_idx = loop.index0 %}
+              <tr class="rs-main-row"
+                  data-row-index="{{ row_idx }}"
+                  data-search="{{ (row.responsible or '')|lower }} {{ (row.critical and row.critical.title or '')|lower }} {{ (row.critical and row.critical.category or '')|lower }} {{ (row.critical and row.critical.status or '')|lower }} {% for item in (row.risks or []) %}{{ (item.risk.title or '')|lower }} {{ (item.risk.category or '')|lower }} {{ (item.risk.status or '')|lower }} {% endfor %}">
                 <td>
                   <div class="rs-person">
                     {% set initials = (row.responsible or '?')[:2]|upper %}
@@ -964,7 +1127,15 @@
                 </td>
 
                 <td>
-                  <span class="rs-count">{{ row.count }}</span>
+                  <button type="button"
+                          class="rs-count js-risk-toggle"
+                          data-target="risklist-{{ row_idx }}"
+                          aria-expanded="false"
+                          aria-controls="risklist-{{ row_idx }}"
+                          title="{{ row.count }} riski göster">
+                    <span>{{ row.count }}</span>
+                    <span class="material-icons-outlined rs-count-chevron" aria-hidden="true">expand_more</span>
+                  </button>
                 </td>
 
                 <td style="text-align:center;">
@@ -998,7 +1169,99 @@
                 </td>
 
                 <td style="text-align:right;">
-                  <span class="rs-arrow">→</span>
+                  <button type="button"
+                          class="rs-btn js-risk-toggle"
+                          data-target="risklist-{{ row_idx }}"
+                          aria-expanded="false"
+                          aria-controls="risklist-{{ row_idx }}"
+                          style="min-height:34px; padding:0 10px; box-shadow:none;"
+                          title="Riskleri göster">
+                    Riskler
+                    <span class="material-icons-outlined" style="font-size:17px;">expand_more</span>
+                  </button>
+                </td>
+              </tr>
+
+              <tr id="risklist-{{ row_idx }}" class="rs-detail-row" data-parent-index="{{ row_idx }}" hidden>
+                <td colspan="5">
+                  <div class="rs-risk-list-panel">
+                    <div class="rs-risk-list-head">
+                      <h4 class="rs-risk-list-title">
+                        {{ row.responsible or '—' }} · {{ row.count }} risk
+                      </h4>
+                      <span class="rs-chip">{{ row.count }} kayıt</span>
+                    </div>
+
+                    <div class="rs-risk-list">
+                      {% for item in (row.risks or []) %}
+                        {% set risk = item.risk %}
+                        {% set risk_score = item.score %}
+                        <div class="rs-risk-item">
+                          <div class="rs-risk-item-main">
+                            <a class="rs-risk-item-title"
+                               href="{{ url_for('risk_detail', risk_id=risk.id) }}">
+                              {{ risk.title or ('Risk #' ~ risk.id) }}
+                            </a>
+                            <div class="rs-risk-item-meta">
+                              #{{ risk.id }}
+                              · {{ risk.category or 'Kategorisiz' }}
+                              · {{ risk.status or 'Durum yok' }}
+                            </div>
+                          </div>
+
+                          <div>
+                            {% if risk_score is not none %}
+                              {% set detail_cls = 'green' %}
+                              {% set detail_txt = 'Düşük' %}
+                              {% if risk_score >= 80 %}
+                                {% set detail_cls = 'red' %}
+                                {% set detail_txt = 'Kritik' %}
+                              {% elif risk_score >= 40 %}
+                                {% set detail_cls = 'amber' %}
+                                {% set detail_txt = 'Orta' %}
+                              {% endif %}
+                              <span class="rs-pill {{ detail_cls }}">{{ detail_txt }}</span>
+                            {% else %}
+                              <span class="rs-pill">Değerlendirilmedi</span>
+                            {% endif %}
+                          </div>
+
+                          <div class="rs-risk-item-score">
+                            {% if risk_score is not none %}
+                              <span class="rs-rpn">RPN {{ '%.2f'|format(risk_score) }}</span>
+                            {% else %}
+                              <span class="rs-role">RPN —</span>
+                            {% endif %}
+                          </div>
+
+                          <div class="rs-risk-item-actions">
+                            <a class="rs-btn rs-risk-item-link"
+                               href="{{ url_for('risk_detail', risk_id=risk.id) }}"
+                               title="Risk detayını aç">
+                              <span class="material-icons-outlined" aria-hidden="true">visibility</span>
+                              Detay
+                            </a>
+
+                            <a class="rs-btn rs-risk-item-link is-edit"
+                               href="{{ url_for('risk_detail', risk_id=risk.id) }}#riskForm"
+                               title="Riski düzenle">
+                              <span class="material-icons-outlined" aria-hidden="true">edit</span>
+                              Düzenle
+                            </a>
+
+                            <a class="rs-btn rs-risk-item-link is-cost"
+                               href="{{ url_for('costs') }}?risk_id={{ risk.id }}"
+                               title="Bu riskin maliyetlerini aç / bağla">
+                              <span class="material-icons-outlined" aria-hidden="true">payments</span>
+                              Maliyetler
+                            </a>
+                          </div>
+                        </div>
+                      {% else %}
+                        <div class="rs-role">Bu sorumlu için risk kaydı bulunamadı.</div>
+                      {% endfor %}
+                    </div>
+                  </div>
                 </td>
               </tr>
             {% endfor %}
@@ -1039,6 +1302,16 @@
       const hay = (row.getAttribute('data-search') || '');
       const show = !q || hay.includes(q);
       row.style.display = show ? '' : 'none';
+
+      const idx = row.getAttribute('data-row-index');
+      const detail = idx !== null ? document.getElementById('risklist-' + idx) : null;
+      if(!show && detail){
+        detail.hidden = true;
+        document.querySelectorAll('.js-risk-toggle[data-target="risklist-' + idx + '"]').forEach(btn => {
+          btn.setAttribute('aria-expanded', 'false');
+        });
+      }
+
       if (show) count++;
     });
 
@@ -1054,6 +1327,31 @@
       input.focus();
     });
   }
+
+  function setExpanded(targetId, expanded){
+    const detail = document.getElementById(targetId);
+    if(!detail) return;
+
+    detail.hidden = !expanded;
+
+    document.querySelectorAll('.js-risk-toggle[data-target="' + targetId + '"]').forEach(btn => {
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
+      const icon = btn.querySelector('.material-icons-outlined');
+      if(icon && !icon.classList.contains('rs-count-chevron')){
+        icon.textContent = expanded ? 'expand_less' : 'expand_more';
+      }
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.js-risk-toggle');
+    if(!btn) return;
+
+    const targetId = btn.getAttribute('data-target');
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    setExpanded(targetId, !expanded);
+  });
 })();
 </script>
 
