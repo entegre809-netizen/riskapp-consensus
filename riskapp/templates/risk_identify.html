@@ -264,14 +264,197 @@
     border-color:rgba(59,130,246,.18);
   }
 
-  .ri-grid{
+  /* ================= KATEGORİ ÇALIŞMA ALANI ================= */
+  .ri-workspace{
     display:grid;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
+    grid-template-columns:280px minmax(0, 1fr);
     gap:16px;
+    align-items:start;
+  }
+
+  .ri-category-panel{
+    position:sticky;
+    top:176px;
+    min-width:0;
+    max-height:calc(100vh - 196px);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    border-radius:24px;
+    background:var(--ri-card);
+    border:1px solid var(--ri-line);
+    box-shadow:var(--ri-shadow-sm);
+  }
+
+  .ri-category-panel-head{
+    padding:16px;
+    border-bottom:1px solid var(--ri-line);
+    background:
+      radial-gradient(circle at 0% 0%, rgba(36,87,230,.10), transparent 42%),
+      var(--ri-card);
+  }
+
+  .ri-category-panel-title{
+    margin:0;
+    color:var(--ri-text);
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:-.02em;
+  }
+
+  .ri-category-panel-sub{
+    margin:4px 0 0;
+    color:var(--ri-muted);
+    font-size:12px;
+    line-height:1.4;
+    font-weight:700;
+  }
+
+  .ri-category-list{
+    min-height:0;
+    overflow:auto;
+    padding:8px;
+  }
+
+  .ri-category-nav{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:11px 12px;
+    border:1px solid transparent;
+    border-radius:15px;
+    background:transparent;
+    color:var(--ri-text);
+    text-align:left;
+    cursor:pointer;
+    transition:background .14s ease, border-color .14s ease, transform .14s ease;
+  }
+
+  .ri-category-nav + .ri-category-nav{
+    margin-top:4px;
+  }
+
+  .ri-category-nav:hover{
+    background:var(--ri-bg);
+    border-color:var(--ri-line);
+  }
+
+  .ri-category-nav.is-active{
+    background:rgba(36,87,230,.10);
+    border-color:rgba(36,87,230,.20);
+    color:var(--ri-primary);
+  }
+
+  [data-theme="dark"] .ri-category-nav.is-active{
+    background:rgba(96,165,250,.12);
+    border-color:rgba(96,165,250,.22);
+  }
+
+  .ri-category-nav-main{
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+
+  .ri-category-dot{
+    width:9px;
+    height:9px;
+    flex:0 0 9px;
+    border-radius:999px;
+    background:currentColor;
+    opacity:.75;
+  }
+
+  .ri-category-nav-text{
+    min-width:0;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:13px;
+    font-weight:900;
+  }
+
+  .ri-category-nav-meta{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    flex:0 0 auto;
+  }
+
+  .ri-category-nav-count,
+  .ri-category-nav-selected{
+    min-width:28px;
+    min-height:24px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 7px;
+    border-radius:999px;
+    border:1px solid var(--ri-line);
+    background:var(--ri-bg);
+    color:var(--ri-muted);
+    font-size:11px;
+    font-weight:900;
+  }
+
+  .ri-category-nav-selected{
+    display:none;
+    color:var(--ri-primary);
+    background:rgba(36,87,230,.10);
+    border-color:rgba(36,87,230,.18);
+  }
+
+  .ri-category-nav-selected.has-selection{
+    display:inline-flex;
+  }
+
+  .ri-content{
+    min-width:0;
+  }
+
+  .ri-grid{
+    display:block;
+  }
+
+  .ri-cat-card{
+    width:100%;
+  }
+
+  .ri-cat-card[hidden]{
+    display:none !important;
   }
 
   @media (max-width:1080px){
-    .ri-grid{ grid-template-columns:1fr; }
+    .ri-workspace{
+      grid-template-columns:230px minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width:860px){
+    .ri-workspace{
+      grid-template-columns:1fr;
+    }
+
+    .ri-category-panel{
+      position:static;
+      max-height:none;
+    }
+
+    .ri-category-list{
+      display:flex;
+      gap:7px;
+      overflow-x:auto;
+      padding:9px;
+    }
+
+    .ri-category-nav{
+      width:auto;
+      flex:0 0 auto;
+      min-width:180px;
+    }
   }
 
   .ri-cat-card{
@@ -987,14 +1170,53 @@
     {# CSRF varsa aç: {{ csrf_token() }} #}
   </form>
 
-  <div class="ri-grid">
+  <div class="ri-workspace">
+    <aside class="ri-category-panel noprint" aria-label="Risk kategorileri">
+      <div class="ri-category-panel-head">
+        <h3 class="ri-category-panel-title">Risk Kategorileri</h3>
+        <p class="ri-category-panel-sub">Bir kategori seç; sağ tarafta yalnızca o kategorinin riskleri gösterilsin.</p>
+      </div>
+
+      <div class="ri-category-list" id="category-list">
+        {% for nav_cat, nav_risks in categories.items() %}
+          {% set nav_idx = loop.index0 %}
+          {% set nav_name = nav_cat or 'Genel / Kategorisiz' %}
+          <button
+            type="button"
+            class="ri-category-nav{% if loop.first %} is-active{% endif %}"
+            data-category-index="{{ nav_idx }}"
+            aria-pressed="{{ 'true' if loop.first else 'false' }}"
+            title="{{ nav_name }}"
+          >
+            <span class="ri-category-nav-main">
+              <span class="ri-category-dot" aria-hidden="true"></span>
+              <span class="ri-category-nav-text">{{ nav_name }}</span>
+            </span>
+
+            <span class="ri-category-nav-meta">
+              <span class="ri-category-nav-count">{{ nav_risks|length }}</span>
+              <span class="ri-category-nav-selected" id="nav-count-{{ nav_idx }}">0</span>
+            </span>
+          </button>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <main class="ri-content">
+      <div class="ri-grid" id="risk-category-content">
     {% for cat, risks in categories.items() %}
       {% set cat_idx = loop.index0 %}
       {% set cat_name = cat or 'Genel / Kategorisiz' %}
       {% set slug = (cat_name|lower|replace(' ', '-')|replace('/', '-')|replace('.', '-') ) %}
       {% set cn = (cat_name|lower) %}
 
-      <section class="ri-cat-card" id="cat-{{ slug }}" aria-label="{{ cat_name }}">
+      <section
+        class="ri-cat-card"
+        id="cat-{{ slug }}"
+        data-category-index="{{ cat_idx }}"
+        aria-label="{{ cat_name }}"
+        {% if not loop.first %}hidden{% endif %}
+      >
         <div class="ri-cat-head">
           <div class="ri-cat-left">
             <span class="ri-cat-icon" aria-hidden="true">
@@ -1261,6 +1483,8 @@
         </div>
       </section>
     {% endfor %}
+      </div>
+    </main>
   </div>
 
   <div class="ri-total">
@@ -1307,8 +1531,23 @@
 
   function updateCount(groupIdx){
     const sel = $$('.chk-' + groupIdx).filter(b => b.checked).length;
+
     const el = $('#count-' + groupIdx);
     if (el) el.textContent = sel + ' seçili';
+
+    const navEl = $('#nav-count-' + groupIdx);
+    if (navEl){
+      navEl.textContent = String(sel);
+      navEl.classList.toggle('has-selection', sel > 0);
+    }
+
+    const toggle = $('.toggle-all[data-group="' + groupIdx + '"]');
+    const groupBoxes = $$('.chk-' + groupIdx);
+    if (toggle && groupBoxes.length){
+      const checked = groupBoxes.filter(b => b.checked).length;
+      toggle.checked = checked === groupBoxes.length;
+      toggle.indeterminate = checked > 0 && checked < groupBoxes.length;
+    }
   }
 
   const bar = $('#actionbar');
@@ -1345,7 +1584,6 @@
       $$('.toggle-all').forEach(tg => tg.checked = false);
       $$('.toggle-all').forEach(tg => updateCount(tg.getAttribute('data-group')));
       updateGlobalCount();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 
@@ -1402,6 +1640,51 @@
     });
     setLabel();
   });
+
+  // Sol kategori paneli: yalnızca seçilen kategoriyi göster.
+  (function(){
+    const navButtons = $$('.ri-category-nav');
+    const cards = $$('.ri-cat-card[data-category-index]');
+    if (!navButtons.length || !cards.length) return;
+
+    function activateCategory(index, options = {}){
+      const idx = String(index);
+
+      cards.forEach(card => {
+        const active = card.getAttribute('data-category-index') === idx;
+        card.hidden = !active;
+      });
+
+      navButtons.forEach(btn => {
+        const active = btn.getAttribute('data-category-index') === idx;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      // Düzenleme satırları başka kategoriye geçerken açık kalıp kafa karıştırmasın.
+      $$('.ri-edit-row').forEach(row => row.setAttribute('hidden', ''));
+
+      if (options.scrollIntoView){
+        const workspace = $('.ri-workspace');
+        if (workspace){
+          const y = workspace.getBoundingClientRect().top + window.scrollY - 104;
+          window.scrollTo({ top: Math.max(0, y), behavior:'smooth' });
+        }
+      }
+    }
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        activateCategory(btn.getAttribute('data-category-index'), { scrollIntoView:false });
+      });
+    });
+
+    // İlk kategoriyi başlangıçta aktif et.
+    const initial = $('.ri-category-nav.is-active') || navButtons[0];
+    if (initial){
+      activateCategory(initial.getAttribute('data-category-index'));
+    }
+  })();
 
   document.addEventListener('keydown', (e) => {
     const isMac = navigator.platform.toUpperCase().includes('MAC');
