@@ -590,6 +590,7 @@
     transition:transform .12s ease, filter .12s ease;
   }
 
+  .gantt-selected-risk td { background:rgba(36,87,230,.12) !important; }
   .tl-bar:hover{
     transform:translateY(-1px);
     filter:brightness(1.02);
@@ -1695,7 +1696,7 @@
                     {% endif %}
                   {% endif %}
 
-                  <tr>
+                  <tr data-risk-id="{{ r.id }}" data-risk-start="{{ r.start_month or r.end_month or '' }}">
                     <td style="text-align:left;">
                       <div class="risk-title">
                         <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
@@ -1707,6 +1708,9 @@
                         <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
                         {% if r.start_month or r.end_month %}
                           <span class="risk-meta">{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
+                        {% endif %}
+                        {% if r.start_month or r.end_month %}
+                        <button class="icon-btn" type="button" data-gantt-jump="{{ r.start_month or r.end_month }}" title="Bu riskin başlangıç ayına git">📅 Döneme git</button>
                         {% endif %}
                         <button class="icon-btn"
                                 style="margin-left:auto"
@@ -1740,7 +1744,7 @@
                 <thead>
                   <tr>
                     {% for m in months_safe %}
-                      <th class="month">{{ m }}</th>
+                      <th class="month" data-gantt-month="{{ m }}">{{ m }}</th>
                     {% endfor %}
                   </tr>
                 </thead>
@@ -1774,7 +1778,7 @@
                       {% endif %}
                     {% endif %}
 
-                    <tr>
+                    <tr data-risk-id="{{ r.id }}">
                       {% for m in months_safe %}
                         {% set active = (m in (row.active or [])) %}
                         <td>
@@ -1796,6 +1800,70 @@
           </div>
         </div>
       </section>
+    {% endif %}
+
+    {% if view == 'table' %}
+    <script>
+    (function () {
+      const leftTable = document.querySelector('.gantt-left table');
+      const rightTable = document.querySelector('.gantt-right table');
+      const scroller = document.querySelector('.gantt-right');
+      if (!leftTable || !rightTable || !scroller) return;
+
+      const leftRows = Array.from(leftTable.querySelectorAll('tbody tr[data-risk-id]'));
+      const rightRows = Array.from(rightTable.querySelectorAll('tbody tr[data-risk-id]'));
+      const rightById = new Map(rightRows.map(row => [row.dataset.riskId, row]));
+      const matched = leftRows.map(left => [left, rightById.get(left.dataset.riskId)])
+        .filter(([, right]) => Boolean(right));
+      if (!matched.length) return;
+
+      // Ayni riske ait iki tablonun satirlari tam olarak hizalansin.
+      function syncRowHeights() {
+        matched.forEach(([left, right]) => {
+          left.style.height = '';
+          right.style.height = '';
+        });
+        matched.forEach(([left, right]) => {
+          const height = Math.ceil(Math.max(left.getBoundingClientRect().height,
+                                             right.getBoundingClientRect().height));
+          left.style.height = height + 'px';
+          right.style.height = height + 'px';
+        });
+      }
+
+      const monthHeaders = Array.from(rightTable.querySelectorAll('thead th[data-gantt-month]'));
+      const monthMap = new Map(monthHeaders.map(th => [th.dataset.ganttMonth, th]));
+      function gotoMonth(month, riskId) {
+        const header = monthMap.get(month);
+        if (!header) return;
+        scroller.scrollTo({left: Math.max(0, header.offsetLeft - 24), behavior: 'smooth'});
+        if (riskId) {
+          matched.forEach(([left, right]) => {
+            const current = left.dataset.riskId === riskId;
+            left.classList.toggle('gantt-selected-risk', current);
+            right.classList.toggle('gantt-selected-risk', current);
+          });
+        }
+      }
+      leftTable.querySelectorAll('[data-gantt-jump]').forEach(button => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr[data-risk-id]');
+          gotoMonth(button.dataset.ganttJump.slice(0, 7), row?.dataset.riskId);
+        });
+      });
+      // Ilk acilista tumuyle bos bir zaman penceresi yerine aktif riskin oldugu ilk ay.
+      const firstActiveMonth = monthHeaders.find((th, i) =>
+        rightRows.some(row => row.cells[i]?.querySelector('.tl-bar')))?.dataset.ganttMonth;
+      if (firstActiveMonth) gotoMonth(firstActiveMonth);
+
+      if (document.fonts?.ready) document.fonts.ready.then(syncRowHeights);
+      syncRowHeights();
+      window.addEventListener('resize', syncRowHeights);
+      console.info('[RiskApp Gantt]', {riskRows: matched.length,
+        monthCount: monthHeaders.length,
+        coloredBars: rightTable.querySelectorAll('.tl-bar').length});
+    })();
+    </script>
     {% endif %}
 
     {% if view == 'calendar' %}
