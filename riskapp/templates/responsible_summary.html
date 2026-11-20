@@ -593,6 +593,12 @@
     white-space:nowrap;
   }
 
+  .rs-pill.neutral{
+    background:rgba(148,163,184,.13);
+    color:#475569;
+    border-color:rgba(148,163,184,.25);
+  }
+
   .rs-pill.red{
     background:rgba(239,68,68,.12);
     color:#b91c1c;
@@ -1099,15 +1105,18 @@
               {% set pill_cls = 'green' %}
               {% set pill_txt = 'Düşük' %}
               {% if avg is not none %}
-                {% if avg >= 80 %}
+                {% if avg >= 20 %}
                   {% set pill_cls = 'red' %}
                   {% set pill_txt = 'Kritik' %}
-                {% elif avg >= 40 %}
+                {% elif avg >= 12 %}
                   {% set pill_cls = 'amber' %}
                   {% set pill_txt = 'Orta' %}
-                {% else %}
+                {% elif avg > 5 %}
                   {% set pill_cls = 'green' %}
                   {% set pill_txt = 'Düşük' %}
+                {% else %}
+                  {% set pill_cls = 'neutral' %}
+                  {% set pill_txt = 'Kabul Edilebilir' %}
                 {% endif %}
               {% endif %}
 
@@ -1213,12 +1222,18 @@
                             {% if risk_score is not none %}
                               {% set detail_cls = 'green' %}
                               {% set detail_txt = 'Düşük' %}
-                              {% if risk_score >= 80 %}
+                              {% if risk_score >= 20 %}
                                 {% set detail_cls = 'red' %}
                                 {% set detail_txt = 'Kritik' %}
-                              {% elif risk_score >= 40 %}
+                              {% elif risk_score >= 12 %}
                                 {% set detail_cls = 'amber' %}
                                 {% set detail_txt = 'Orta' %}
+                              {% elif risk_score > 5 %}
+                                {% set detail_cls = 'green' %}
+                                {% set detail_txt = 'Düşük' %}
+                              {% else %}
+                                {% set detail_cls = 'neutral' %}
+                                {% set detail_txt = 'Kabul Edilebilir' %}
                               {% endif %}
                               <span class="rs-pill {{ detail_cls }}">{{ detail_txt }}</span>
                             {% else %}
