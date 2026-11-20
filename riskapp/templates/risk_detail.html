@@ -2234,6 +2234,21 @@
         </div>
 
         <div class="rf-field rf-wide">
+          <label for="risk-category-select">Kategori</label>
+          {% set selected_categories = r.categories_list or ([r.category] if r.category else []) %}
+          <select class="input" id="risk-category-select" name="categories" aria-label="Risk kategorisi">
+            <option value="">— Kategori seçin —</option>
+            {% for current_cat in selected_categories if current_cat not in categories %}
+              <option value="{{ current_cat }}" selected>{{ current_cat }} (mevcut)</option>
+            {% endfor %}
+            {% for c in categories %}
+              <option value="{{ c }}" {% if c in selected_categories %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+          <small style="display:block;margin-top:5px;opacity:.75">Değiştirmek için kategori seçip Kaydet ve Güncelle'ye basın.</small>
+        </div>
+
+        <div class="rf-field rf-wide">
           <label>Sorumlu Kişi</label>
           <input class="input" name="responsible" value="{{ r.responsible or '' }}">
         </div>

@@ -2780,8 +2780,17 @@ def create_app():
             # Listede "__custom__" sentineli seçilmişse onu at; custom listesini ekle
             cats_final = [c for c in selected if c != "__custom__"] + custom
 
-            # Risk objesine set et (ilkini geri uyumluluk için r.category'ye de yazar)
-            r.set_categories(cats_final)
+            # Kategori formu olmayan eski istemcilerde mevcut kategoriyi koru.
+            # Form açıkça gönderildiğinde seçilen kategorileri kaydet.
+            if "categories" in request.form or "category_custom" in request.form:
+                # Kullanıcının seçtiği geçerli adları temizle; bilinen eski adları da destekle.
+                r.set_categories(cats_final)
+            # Eski sürümlerde kategori tekil 'category' alanıyla gönderilebiliyor.
+            elif "category" in request.form:
+                submitted_category = (request.form.get("category") or "").strip()
+                if submitted_category:
+                    r.set_categories([submitted_category])
+            # Hiç kategori alanı gönderilmediyse r.category ve categories_m korunur.
 
             # ✅ Mitigation satırlarını senkronize et
             # (_sync_mitigations fonksiyonun create_app içinde tanımlı olmalı)

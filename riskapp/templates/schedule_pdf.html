@@ -130,6 +130,8 @@
       font-size: 9.5px;
     }
 
+    .pdf-timeline { width: 100%; max-width: 100%; }
+    .schedule-page { width: 100%; }
     th, td {
       border: 1px solid #e5e7eb;
       padding: 4px 5px;
@@ -283,6 +285,9 @@
   </div>
 
   {% if rows and months %}
+    {% for month_group in months|batch(6) %}
+    {% set visible_months = month_group|list %}
+    <div class="schedule-page" {% if not loop.first %}style="page-break-before:always"{% endif %}>
     <div class="summary-row">
       <div>
         <span class="meta-label">Dönem</span>
@@ -293,12 +298,12 @@
       <div>
         <span class="meta-label">Ay Sütunları</span>
         <span class="meta-value">
-          {{ months|join(" · ") }}
+          {{ visible_months|join(" · ") }}
         </span>
       </div>
     </div>
 
-    <table>
+    <table class="pdf-timeline">
       <thead>
         <tr>
           <th style="width: 30%">Risk</th>
@@ -306,9 +311,9 @@
           <th style="width: 10%">Durum</th>
           <th style="width: 10%">RPN (P×S)</th>
           <th style="width: 14%">Dönem (Başlangıç → Bitiş)</th>
-           {% for m in months %}
-      <th class="month-col"></th>
-    {% endfor %}
+          {% for m in visible_months %}
+            <th class="month-col" style="width:{{ (22 / visible_months|length)|round(2) }}%">{{ m[5:7] }}</th>
+          {% endfor %}
         </tr>
       </thead>
 
@@ -402,7 +407,7 @@
             </td>
 
             {# Ay sütunları: row.active set'indeki aylar için bar çiz #}
-            {% for m in months %}
+            {% for m in visible_months %}
               {% set active = (m in (row.active or [])) %}
               <td class="bar-cell">
                 {% if active %}
@@ -414,6 +419,8 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
+    {% endfor %}
   {% else %}
     <div class="no-data">
       Seçilen kriterlerde gösterilecek risk bulunamadı.
