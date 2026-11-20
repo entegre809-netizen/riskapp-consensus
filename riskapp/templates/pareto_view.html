@@ -1062,7 +1062,7 @@
       <div class="pt-chart-wrap">
         <div class="pt-chart-box">
           <canvas id="paretoChart" width="1100" height="330"></canvas>
-          <div class="pt-chart-note">Grafik, risk puanı × maliyet ile hesaplanan Pareto öncelik skoruna göre ilk 25 kalemi çizer. Kırmızı çizgi %80 eşiğidir.</div>
+          <div class="pt-chart-note" id="paretoModeNote">Grafik, risk puanı × maliyet ile hesaplanan Pareto öncelik skoruna göre ilk 25 kalemi çizer. Kırmızı çizgi %80 eşiğidir.</div>
         </div>
       </div>
 
@@ -1343,12 +1343,18 @@
     const total = Number(state.raw?.total || 0);
     const top80Count = Number(state.raw?.top80Count || 0);
 
-    els.metricTotal.textContent = `${fmt(total)} ${currency}`;
+    const rpnOnly = state.raw?.mode === "rpn_only";
+    const unit = rpnOnly ? "RPN puanı" : `${currency} × RPN`;
+    els.metricTotal.textContent = `${fmt(total)} ${unit}`;
+    const modeNote = document.getElementById("paretoModeNote");
+    if (modeNote) modeNote.textContent = rpnOnly
+      ? "Bu para biriminde riske bağlanmış pozitif maliyet × RPN sonucu yok. Grafik yalnızca RPN puanlarıyla hesaplanıyor; parasal analiz değildir."
+      : "Grafik, bağlı maliyet × risk puanına göre hesaplanır. Kırmızı çizgi %80 eşiğidir.";
     els.metricTop80.textContent = `${top80Count} risk`;
     els.allCount.textContent = String(state.baseItems.length);
     els.shownCount.textContent = String(state.viewItems.length);
 
-    els.meta.textContent = `Toplam ${fmt(total)} ${currency} · Top 80 kapsamı ${top80Count} risk · Güncellendi ${new Date().toLocaleTimeString("tr-TR")}`;
+    els.meta.textContent = `Analiz: ${rpnOnly ? "Yalnızca RPN" : "Maliyet × RPN"} · Toplam ${fmt(total)} ${unit} · Top 80 kapsamı ${top80Count} risk · Güncellendi ${new Date().toLocaleTimeString("tr-TR")}`;
   }
 
   function renderTopCategories(){
@@ -1370,7 +1376,7 @@
     }
 
     els.topCats.textContent = top
-      .map(([cat, val]) => `${cat}: ${fmt(val)} ${currency}`)
+      .map(([cat, val]) => `${cat}: ${fmt(val)} ${state.raw?.mode === "rpn_only" ? "RPN" : "öncelik puanı"}`)
       .join(" · ");
   }
 
@@ -1413,7 +1419,7 @@
         <td>${escapeHtml(it.category || "-")}</td>
         <td class="mono" style="text-align:right;">${fmt(it.cost_value ?? it.cost_total ?? it.total ?? 0)} ${currency}</td>
         <td class="mono" style="text-align:right;">${fmt(it.risk_score ?? 0, 1)}</td>
-        <td class="mono" style="text-align:right;">${fmt(it.value)} ${currency}</td>
+        <td class="mono" style="text-align:right;">${fmt(it.value)} ${state.raw?.mode === "rpn_only" ? "RPN" : "öncelik puanı"}</td>
         <td class="mono" style="text-align:right;">%${fmt(it.pct)}</td>
         <td class="mono" style="text-align:right;">%${fmt(it.cum_pct)}</td>
       `;
@@ -1663,6 +1669,11 @@
   }
 
   async function loadAi(){
+    if (state.raw?.mode === "rpn_only") {
+      els.aiStatus.textContent = "Maliyet bekleniyor";
+      els.aiSummary.textContent = "Risklere bağlı pozitif maliyet olmadığından maliyet temelli AI analizi yapılamıyor.";
+      return;
+    }
     renderAiLoading();
 
     const cutValue = Number(els.cut.value || 10);
@@ -1865,7 +1876,17 @@ ${risks || "-"}`;
       els.topCats.textContent = "Kategori yok";
     }
 
-    await loadAi();
+    if (state.raw?.mode === "rpn_only") {
+      els.aiStatus.textContent = "Maliyet bekleniyor";
+      els.aiSummary.textContent = "Riske bağlı pozitif maliyet × RPN sonucu bulunmadı. Analiz yalnızca risk puanlarını kullanıyor; maliyet temelli tasarruf senaryosu gösterilmiyor.";
+      els.aiInsights.innerHTML = "";
+      els.aiActions.innerHTML = "";
+      els.aiBadges.innerHTML = "";
+      els.aiTopRisks.innerHTML = "";
+      hideError(els.aiErr);
+    } else if (state.raw?.mode === "cost_x_risk_score") {
+      await loadAi();
+    }
   }
 
   init();

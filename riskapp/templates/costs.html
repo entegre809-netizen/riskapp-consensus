@@ -1400,7 +1400,21 @@
                           </td>
                         {% endif %}
 
-                        <td class="fw-semibold">{{ c.title }}</td>
+                        <td class="fw-semibold">
+                          <div>{{ c.title }}</div>
+                          {% set linked_risk = risk_map.get(c.risk_id) if c.risk_id else none %}
+                          {% if linked_risk %}
+                            <a class="small d-block text-primary mt-1"
+                               href="{{ url_for('risk_detail', risk_id=linked_risk.id) }}"
+                               title="Bağlı riskin ayrıntılarına git">
+                              Bağlı risk: R-{{ linked_risk.id }} · {{ linked_risk.title }}
+                            </a>
+                          {% elif c.risk_id %}
+                            <span class="small d-block text-danger mt-1">Bağlı risk bulunamadı (R-{{ c.risk_id }})</span>
+                          {% else %}
+                            <span class="small d-block text-warning mt-1">Riske bağlanmadı · Düzenle ile risk seç</span>
+                          {% endif %}
+                        </td>
                         <td>{{ c.category }}</td>
                         <td class="text-end">{{ c.qty }}</td>
                         <td class="text-end">{{ c.unit_price }} {{ cur }}</td>

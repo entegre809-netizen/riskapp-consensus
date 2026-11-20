@@ -7320,17 +7320,16 @@ KARAR KURALLARI
             # risk_id: hem sayı mı, hem bu projeye mi ait?
             risk_id = None
             risk_id_raw = (request.form.get("risk_id") or "").strip()
-            if risk_id_raw.isdigit():
+            if risk_id_raw:
+                if not risk_id_raw.isdigit():
+                    flash("Geçersiz risk seçimi. Maliyet kaydedilmedi.", "danger")
+                    return redirect(url_for("costs"))
                 cand = int(risk_id_raw)
-                exists = (
-                    Risk.query
-                    .filter(Risk.id == cand, Risk.project_id == project_id)
-                    .first()
-                )
-                if exists:
-                    risk_id = cand
-                else:
-                    flash("Seçilen risk bu projeye ait değil. Risk bağlanmadı.", "warning")
+                exists = Risk.query.filter_by(id=cand, project_id=project_id).first()
+                if not exists:
+                    flash("Seçilen risk bu projeye ait değil. Maliyet kaydedilmedi.", "danger")
+                    return redirect(url_for("costs"))
+                risk_id = cand
 
             item = CostItem(
                 project_id=project_id,
@@ -7436,6 +7435,7 @@ KARAR KURALLARI
             costs=costs,
             cost_templates=cost_templates,
             risks=risks,                      # ✅ eklendi
+            risk_map={r.id: r for r in risks},
             cost_categories=COST_CATEGORIES,  # ✅ eklendi (kategori dropdown için)
             pareto_json=pareto,
             front_json=front,
@@ -7561,17 +7561,16 @@ KARAR KURALLARI
         # ✅ EKLENDİ: risk_id güncelle (bu projeye ait mi kontrol et)
         risk_id = None
         risk_id_raw = (request.form.get("risk_id") or "").strip()
-        if risk_id_raw.isdigit():
+        if risk_id_raw:
+            if not risk_id_raw.isdigit():
+                flash("Geçersiz risk seçimi. Mevcut bağlantı korundu.", "danger")
+                return redirect(url_for("cost_edit", cost_id=cost_id))
             cand = int(risk_id_raw)
-            exists = (
-                Risk.query
-                .filter(Risk.id == cand, Risk.project_id == project_id)
-                .first()
-            )
-            if exists:
-                risk_id = cand
-            else:
-                flash("Seçilen risk bu projeye ait değil. Risk bağlanmadı.", "warning")
+            exists = Risk.query.filter_by(id=cand, project_id=project_id).first()
+            if not exists:
+                flash("Seçilen risk bu projeye ait değil. Mevcut bağlantı korundu.", "danger")
+                return redirect(url_for("cost_edit", cost_id=cost_id))
+            risk_id = cand
 
         # Alanları güncelle
         c.title = title
@@ -7743,159 +7742,112 @@ KARAR KURALLARI
 
     @app.get("/analytics/pareto")
     def pareto_cost():
+        """Riske bağlı maliyet × RPN Pareto; maliyet yoksa açıkça RPN modu.
+
+        Geriye dönük JSON biçimi korunur. Bu endpoint veri değiştirmez.
+        """
         pid = _get_active_project_id()
-        currency = (request.args.get("currency") or "TRY").upper()
-        limit = int(request.args.get("limit") or 50)
+        currency = (request.args.get("currency") or "TRY").strip().upper()
+        try:
+            limit = max(1, min(int(request.args.get("limit") or 50), 500))
+        except (TypeError, ValueError):
+            limit = 50
 
-        # Risk filtresi (aktif proje)
-        rq = Risk.query
+        q = Risk.query
         if pid:
-            rq = rq.filter(Risk.project_id == pid)
-
-        # Riskleri tek seferde alıyoruz; hem id hem skor bilgisi lazım.
-        risks = rq.all()
-        risk_ids = [r.id for r in risks]
-        if not risk_ids:
-            return jsonify({
-                "currency": currency,
-                "items": [],
-                "total": 0,
-                "note": "No risks in scope"
-            })
-
+            q = q.filter(Risk.project_id == pid)
+        risks = q.all()
         risk_map = {r.id: r for r in risks}
+        ids = list(risk_map)
 
-        # Risk bazlı toplam maliyet
-        # ESKİ MANTIK: sadece CostItem.total toplamına göre sıralıyordu.
-        # YENİ MANTIK: maliyet alınıyor, aşağıda risk puanı ile çarpılıp sıralanıyor.
-        rows = (
-            db.session.query(
-                CostItem.risk_id,
-                func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
-            )
-            .filter(CostItem.risk_id.in_(risk_ids))
-            .filter(func.coalesce(CostItem.currency, "TRY") == currency)
-            .group_by(CostItem.risk_id)
-            .all()
-        )
-
-        if not rows:
-            return jsonify({
-                "currency": currency,
-                "items": [],
-                "total": 0,
-                "note": "No cost items for this currency"
-            })
-
-        def _risk_score_for_pareto(r):
-            """
-            Pareto için risk puanı.
-            Öncelik sırası:
-            1) Risk.score() varsa onu kullan.
-            2) Yoksa son Evaluation kaydından probability x severity hesapla.
-            3) O da yoksa avg_prob x avg_sev dene.
-            """
-            if not r:
+        def risk_score(r):
+            if r is None:
                 return 0.0
-
-            # 1) Modelde score metodu varsa
+            for name in ("score", "avg_rpn"):
+                fn = getattr(r, name, None)
+                if callable(fn):
+                    try:
+                        sc = fn()
+                        if sc is not None:
+                            return max(0.0, float(sc))
+                    except (TypeError, ValueError, AttributeError):
+                        pass
             try:
-                score_fn = getattr(r, "score", None)
-                if callable(score_fn):
-                    sc = score_fn()
-                    if sc is not None:
-                        return float(sc or 0)
-            except Exception:
+                p, sv = r.avg_prob(), r.avg_sev()
+                if p is not None and sv is not None:
+                    return max(0.0, float(p) * float(sv))
+            except (TypeError, ValueError, AttributeError):
                 pass
-
-            # 2) Son evaluation üzerinden P x S
-            try:
-                evals = sorted(r.evaluations or [], key=lambda e: e.id)
-                if evals:
-                    last_eval = evals[-1]
-                    p = float(last_eval.probability or 0)
-                    s = float(last_eval.severity or 0)
-                    if p and s:
-                        return p * s
-            except Exception:
-                pass
-
-            # 3) Ortalama P x S fallback
-            try:
-                p = float(r.avg_prob() or 0)
-                s = float(r.avg_sev() or 0)
-                if p and s:
-                    return p * s
-            except Exception:
-                pass
-
             return 0.0
 
-        # -------------------------------------------------
-        # Yeni Pareto mantığı:
-        # Öncelik Skoru = Toplam Maliyet x Risk Değerlendirme Puanı
-        # Böylece aynı maliyette yüksek risk puanı olan kayıt üste çıkar.
-        # -------------------------------------------------
-        raw_items = []
-        for rid, cost_total in rows:
-            r = risk_map.get(rid)
-            cost_value = float(cost_total or 0)
-            risk_score = _risk_score_for_pareto(r)
-            priority_score = cost_value * risk_score
+        totals = defaultdict(float)
+        if ids:
+            cost_rows = (
+                CostItem.query
+                .filter(CostItem.risk_id.in_(ids))
+                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
+                .all()
+            )
+            for c in cost_rows:
+                try:
+                    amount = c.total
+                    if amount is None:
+                        amount = (c.qty or 0) * (c.unit_price or 0)
+                    amount = float(amount or 0)
+                except (TypeError, ValueError):
+                    amount = 0.0
+                if amount > 0:
+                    totals[c.risk_id] += amount
 
-            # Maliyeti olmayan veya skoru olmayan kayıt Pareto etkisi üretmez.
-            if priority_score <= 0:
+        items = []
+        for rid, amount in totals.items():
+            r = risk_map[rid]
+            score = risk_score(r)
+            value = amount * score
+            if value <= 0:
                 continue
-
-            raw_items.append({
-                "risk_id": rid,
-                "title": (r.title if r else f"Risk #{rid}"),
-                "category": (r.category if r else None),
-                "owner": (r.responsible if r else None),
-
-                # UI eski alanı beklediği için value korunuyor.
-                # Ancak artık value sadece maliyet değil, birleşik öncelik skorudur.
-                "value": round(priority_score, 2),
-
-                # Şeffaflık için ayrı ayrı değerleri de döndürüyoruz.
-                "cost_value": round(cost_value, 2),
-                "risk_score": round(risk_score, 2),
-                "priority_score": round(priority_score, 2),
+            items.append({
+                "risk_id": rid, "title": r.title or f"Risk #{rid}",
+                "category": r.category or "GENEL", "owner": r.responsible,
+                "value": round(value, 2), "cost_value": round(amount, 2),
+                "risk_score": round(score, 2), "priority_score": round(value, 2),
             })
 
-        raw_items.sort(key=lambda x: x["priority_score"], reverse=True)
-        items = raw_items[:limit]
+        fallback = not items
+        if fallback:
+            for r in risks:
+                score = risk_score(r)
+                if score <= 0:
+                    continue
+                items.append({
+                    "risk_id": r.id, "title": r.title or f"Risk #{r.id}",
+                    "category": r.category or "GENEL", "owner": r.responsible,
+                    "value": round(score, 2), "cost_value": 0.0,
+                    "risk_score": round(score, 2), "priority_score": round(score, 2),
+                })
 
-        if not items:
-            return jsonify({
-                "currency": currency,
-                "items": [],
-                "total": 0,
-                "note": "No positive cost x risk score items for this currency",
-                "mode": "cost_x_risk_score"
-            })
+        items.sort(key=lambda x: x["value"], reverse=True)
+        items = items[:limit]
+        total = sum(x["value"] for x in items)
+        cumulative = 0.0
+        for item in items:
+            cumulative += item["value"]
+            item["pct"] = round(100 * item["value"] / total, 2) if total else 0
+            item["cum_pct"] = round(100 * cumulative / total, 2) if total else 0
 
-        total = sum(float(it.get("priority_score") or 0) for it in items) or 0.0
-        running = 0.0
-
-        for it in items:
-            v = float(it.get("priority_score") or 0)
-            running += v
-            pct = (v / total) * 100 if total else 0
-            cum = (running / total) * 100 if total else 0
-            it["pct"] = round(pct, 2)
-            it["cum_pct"] = round(cum, 2)
-
-        # 80% cutoff
-        cutoff_index = next((i for i, it in enumerate(items) if it["cum_pct"] >= 80), len(items)-1)
-        top_80 = items[:cutoff_index+1]
-
+        top_80_count = next(
+            (i for i, x in enumerate(items, start=1) if x["cum_pct"] >= 80),
+            len(items),
+        ) if items else 0
         return jsonify({
             "currency": currency,
-            "total": round(total, 2),
-            "top_80_count": len(top_80),
+            "mode": "rpn_only" if fallback else "cost_x_risk_score",
+            "note": (
+                "Riske bağlı pozitif maliyet × RPN sonucu yok; yalnızca RPN puanları gösteriliyor."
+                if fallback else "Bağlı maliyet × RPN öncelik analizi"
+            ),
+            "total": round(total, 2), "top_80_count": top_80_count,
             "items": items,
-            "mode": "cost_x_risk_score"
         })
 
 
