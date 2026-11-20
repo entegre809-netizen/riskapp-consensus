@@ -215,8 +215,17 @@ class Risk(db.Model):
     # ---------- Yardımcılar: Çoklu kategori ----------
     @property
     def categories_list(self):
-        """Riskin tüm kategorilerini liste olarak döner."""
-        return [rc.name for rc in (self.categories_m or [])]
+        """Çoklu kategori kayıtları; yoksa eski tekil kategori alanı."""
+        names = [rc.name.strip() for rc in (self.categories_m or [])
+                 if rc.name and rc.name.strip()]
+        if not names and self.category and self.category.strip():
+            names = [self.category.strip()]
+        return names
+
+    @property
+    def category_display(self):
+        """Liste/rapor için her iki veri kaynağını dikkate alan kategori etiketi."""
+        return ", ".join(self.categories_list) or "-"
 
     def set_categories(self, names):
         """

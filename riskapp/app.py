@@ -2730,13 +2730,20 @@ def create_app():
             flash("Risk bulunamadı (ya da bu projeye ait değil).", "warning")
             return redirect(url_for("index"))
 
-        # Formda göstermek için aktif kategori adları (liste)
-        cats = [
+        # Kategori seçeneklerini yalnızca yönetim tablosuyla sınırlama:
+        # eski risk ve şablon kategorileri de seçilebilir olmalı.
+        defined_categories = [
             x.name for x in RiskCategory.query
             .filter(RiskCategory.is_active.is_(True))
             .order_by(RiskCategory.name.asc())
             .all()
         ]
+        suggestion_categories = [row[0] for row in db.session.query(Suggestion.category).distinct().all()]
+        legacy_categories = [row[0] for row in db.session.query(Risk.category).distinct().all()]
+        ref_categories = [row[0] for row in db.session.query(RiskCategoryRef.name).distinct().all()]
+        cats = sorted({name.strip() for name in
+                       (defined_categories + suggestion_categories + legacy_categories + ref_categories)
+                       if isinstance(name, str) and name.strip()}, key=str.casefold)
 
         # ========= TOPLU DEĞERLENDİRME (bulk) =========
         # /risks/3?bulk=3,4,5 gibi bir URL'den geliyorsa
@@ -2783,8 +2790,11 @@ def create_app():
             # Kategori formu olmayan eski istemcilerde mevcut kategoriyi koru.
             # Form açıkça gönderildiğinde seçilen kategorileri kaydet.
             if "categories" in request.form or "category_custom" in request.form:
-                # Kullanıcının seçtiği geçerli adları temizle; bilinen eski adları da destekle.
-                r.set_categories(cats_final)
+                # Boş seçimi, önceki kategori bilgisini yanlışlıkla silmek için kullanma.
+                # Açıkça yeni kategori seçilmişse çoklu ve eski tekil alanları eşitle.
+                if cats_final:
+                    r.set_categories(cats_final)
+                # Kategori silme ayrı ve onaylı bir işlem olmalı.
             # Eski sürümlerde kategori tekil 'category' alanıyla gönderilebiliyor.
             elif "category" in request.form:
                 submitted_category = (request.form.get("category") or "").strip()

@@ -2235,9 +2235,9 @@
 
         <div class="rf-field rf-wide">
           <label for="risk-category-select">Kategori</label>
-          {% set selected_categories = r.categories_list or ([r.category] if r.category else []) %}
+          {% set selected_categories = r.categories_list %}
           <select class="input" id="risk-category-select" name="categories" aria-label="Risk kategorisi">
-            <option value="">— Kategori seçin —</option>
+            <option value="">— Kategori seçin / mevcut kategoriyi koruyun —</option>
             {% for current_cat in selected_categories if current_cat not in categories %}
               <option value="{{ current_cat }}" selected>{{ current_cat }} (mevcut)</option>
             {% endfor %}

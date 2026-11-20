@@ -1105,9 +1105,11 @@
         {% set flow_ns.unevaluated = flow_ns.unevaluated + 1 %}
       {% endif %}
 
-      {% if r.category and r.category not in flow_ns.categories %}
-        {% set flow_ns.categories = flow_ns.categories + [r.category] %}
-      {% endif %}
+      {% for cat in r.categories_list %}
+        {% if cat not in flow_ns.categories %}
+          {% set flow_ns.categories = flow_ns.categories + [cat] %}
+        {% endif %}
+      {% endfor %}
 
       {% if r.status and r.status not in flow_ns.statuses %}
         {% set flow_ns.statuses = flow_ns.statuses + [r.status] %}
@@ -1358,7 +1360,7 @@
                       </div>
                     </td>
 
-                    <td><span class="chip">{{ r.category or "-" }}</span></td>
+                    <td><span class="chip">{{ r.category_display }}</span></td>
 
                     <td>
                       {% if sc_raw is not none %}
