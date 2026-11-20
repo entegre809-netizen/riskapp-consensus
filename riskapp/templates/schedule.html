@@ -456,8 +456,8 @@
   }
 
   .gantt-left{
-    width:520px;
-    flex:0 0 520px;
+    width:620px;
+    flex:0 0 620px;
     border-right:1px solid var(--tl-line);
     background:var(--tl-card);
   }
@@ -487,8 +487,8 @@
 
   @media (min-width:981px) and (max-width:1320px){
     .gantt-left{
-      width:480px;
-      flex-basis:480px;
+      width:560px;
+      flex-basis:560px;
     }
   }
 
@@ -1334,6 +1334,30 @@
     .cal-date{ top:7px; right:7px; }
   }
 
+
+  /* Gantt sol panel: temiz, tutarli risk satiri */
+  .gantt-left .gantt-risk-cell {padding:10px 12px!important; text-align:left; vertical-align:middle;}
+  .gantt-risk-entry {display:flex; flex-direction:column; gap:5px; min-width:0;}
+  .gantt-risk-main {display:flex; align-items:baseline; gap:8px; min-width:0;}
+  .gantt-risk-id {flex:none; font-size:10px; font-weight:900; color:var(--tl-primary); background:rgba(36,87,230,.09); padding:3px 6px; border-radius:6px;}
+  .gantt-risk-name {color:var(--tl-text); text-decoration:none; font-size:12px; line-height:1.3; font-weight:850; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+  .gantt-risk-name:hover {color:var(--tl-primary); text-decoration:underline;}
+  .gantt-risk-category {font-size:10px; line-height:1.25; font-weight:750; color:var(--tl-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .gantt-risk-foot {display:flex; align-items:center; gap:7px; min-width:0; flex-wrap:wrap;}
+  .gantt-risk-dates {font-size:10px; font-weight:800; color:var(--tl-text); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .gantt-risk-status {font-size:9px; font-weight:800; border:1px solid var(--tl-line); border-radius:7px; padding:3px 6px; color:var(--tl-muted); white-space:nowrap;}
+  .gantt-risk-actions {display:flex; align-items:center; gap:5px; margin-left:auto;}
+  .gantt-mini-btn {font:inherit; font-size:10px; font-weight:850; line-height:1.2; white-space:nowrap; padding:6px 8px; border-radius:8px; border:1px solid var(--tl-line-2); background:var(--tl-card); color:var(--tl-text); cursor:pointer;}
+  .gantt-mini-btn:hover {border-color:var(--tl-primary); color:var(--tl-primary);}
+  .gantt-mini-btn-primary {color:var(--tl-primary); border-color:rgba(36,87,230,.22); background:rgba(36,87,230,.08);}
+  .gantt-left tbody td:nth-child(2), .gantt-left tbody td:nth-child(3) {text-align:center; vertical-align:middle; padding:8px 3px;}
+  .gantt-left tbody td:nth-child(3) .risk-chip {font-size:9px; padding:5px 7px; white-space:nowrap; min-height:auto;}
+  .gantt-left tbody tr, .gantt-right tbody tr {height:104px;}
+  @media (max-width:1100px) {
+    .gantt-risk-foot {align-items:flex-start;}
+    .gantt-risk-actions {margin-left:0; width:100%;}
+  }
+
 </style>
 
 <div class="tl-scope">
@@ -1658,8 +1682,8 @@
               <thead>
                 <tr>
                   <th style="text-align:left;">Risk</th>
-                  <th style="width:92px">RPN</th>
-                  <th style="width:116px">Seviye</th>
+                  <th style="width:75px">RPN</th>
+                  <th style="width:100px">Seviye</th>
                 </tr>
               </thead>
               <tbody>
@@ -1697,26 +1721,27 @@
                   {% endif %}
 
                   <tr data-risk-id="{{ r.id }}" data-risk-start="{{ r.start_month or r.end_month or '' }}">
-                    <td style="text-align:left;">
-                      <div class="risk-title">
-                        <a href="{{ url_for('risk_detail', risk_id=r.id) }}">{{ r.title }}</a>
-                      </div>
-                      <div class="risk-meta">
-                        {{ r.category or '-' }} · {{ r.owner or '-' }} · {{ r.status or '—' }}
-                      </div>
-                      <div class="small" style="margin-top:7px; display:flex; gap:7px; flex-wrap:wrap; align-items:center">
-                        <span class="risk-chip {{ lvl_class }}">{{ lvl_label }}</span>
-                        {% if r.start_month or r.end_month %}
-                          <span class="risk-meta">{{ r.start_month or '—' }} → {{ r.end_month or '—' }}</span>
-                        {% endif %}
-                        {% if r.start_month or r.end_month %}
-                        <button class="icon-btn" type="button" data-gantt-jump="{{ r.start_month or r.end_month }}" title="Bu riskin başlangıç ayına git">📅 Döneme git</button>
-                        {% endif %}
-                        <button class="icon-btn"
-                                style="margin-left:auto"
-                                data-open-reminder
-                                data-risk-id="{{ r.id }}"
-                                data-risk-title="{{ r.title }}">🔔 Hatırlat</button>
+                    <td class="gantt-risk-cell">
+                      <div class="gantt-risk-entry">
+                        <div class="gantt-risk-main">
+                          <span class="gantt-risk-id">R-{{ r.id }}</span>
+                          <a class="gantt-risk-name" href="{{ url_for('risk_detail', risk_id=r.id) }}" title="{{ r.title }}">{{ r.title }}</a>
+                        </div>
+                        <div class="gantt-risk-category" title="{{ r.category or 'Kategori belirtilmedi' }}">{{ r.category or 'Kategori belirtilmedi' }}</div>
+                        <div class="gantt-risk-foot">
+                          <span class="gantt-risk-dates">{{ r.start_month or '—' }} <span aria-hidden="true">→</span> {{ r.end_month or '—' }}</span>
+                          <span class="gantt-risk-status">{{ r.status or '—' }}</span>
+                          <div class="gantt-risk-actions">
+                            {% if r.start_month or r.end_month %}
+                              <button class="gantt-mini-btn gantt-mini-btn-primary" type="button"
+                                      data-gantt-jump="{{ r.start_month or r.end_month }}"
+                                      title="Başlangıç ayına kaydır">Döneme git</button>
+                            {% endif %}
+                            <button class="gantt-mini-btn" type="button" data-open-reminder
+                                    data-risk-id="{{ r.id }}" data-risk-title="{{ r.title }}"
+                                    title="Risk hatırlatıcısı oluştur">Hatırlat</button>
+                          </div>
+                        </div>
                       </div>
                     </td>
 
