@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Zaman Yönetimi Raporu</title>
+<style>
+@page { size: A4 landscape; margin: 12mm 13mm; @bottom-right { content: "Sayfa " counter(page) " / " counter(pages); font-size: 8pt; color: #64748b; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; color: #18243a; font-family: "DejaVu Sans", sans-serif; font-size: 8pt; }
+h1 { font-size: 17pt; margin: 0 0 3mm; color:#1e40af; }
+h2 { font-size: 11pt; color:#1e40af; margin: 6mm 0 2mm; }
+.sub { color:#64748b; font-size:8pt; margin:0 0 4mm; }
+.stats { width:100%; border-collapse: collapse; margin-bottom: 5mm; table-layout:fixed; }
+.stats td { background:#eff6ff; border:1px solid #dbeafe; padding:3mm; font-size:9pt; }
+table.data { width:100%; border-collapse:collapse; table-layout:fixed; }
+table.data th, table.data td { border:1px solid #d9e1ec; padding:2mm; vertical-align:top; overflow-wrap:anywhere; word-wrap:break-word; }
+table.data th { background:#eaf1ff; color:#1e3a8a; text-align:left; }
+table.data tr:nth-child(even) td { background:#f8fafc; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; page-break-inside: avoid; }
+.no-break { break-inside:avoid; }
+.note { font-size:7.5pt; color:#64748b; margin:3mm 0; }
+</style>
+</head>
+<body>
+<h1>Zaman Yönetimi Raporu</h1>
+<p class="sub">Oluşturulma: {{ generated_at }} · Kayıtlı başlangıç ve bitiş tarihleri değiştirilmemiştir.</p>
+<table class="stats"><tr>
+<td><strong>Toplam risk:</strong> {{ rows|length }}</td>
+<td><strong>Dönemi tanımlı:</strong> {{ with_period }}</td>
+<td><strong>Dönemi tanımsız:</strong> {{ (rows|length) - with_period }}</td>
+<td><strong>Çizelgedeki ay:</strong> {{ months|length }}</td>
+</tr></table>
+<h2>Risklerin Zaman Aralıkları</h2>
+<table class="data">
+<colgroup><col style="width:7%"><col style="width:27%"><col style="width:19%"><col style="width:17%"><col style="width:10%"><col style="width:10%"><col style="width:10%"></colgroup>
+<thead><tr><th>Risk No</th><th>Risk Başlığı</th><th>Kategori</th><th>Sorumlu</th><th>Başlangıç</th><th>Bitiş</th><th>Aktif Ay</th></tr></thead>
+<tbody>
+{% for r in rows %}
+<tr><td>R-{{ r.id }}</td><td>{{ r.title }}</td><td>{{ r.category }}</td><td>{{ r.responsible }}</td><td>{{ r.start }}</td><td>{{ r.end }}</td><td>{{ r.active_months }}</td></tr>
+{% else %}<tr><td colspan="7">Gösterilecek risk bulunmuyor.</td></tr>{% endfor %}
+</tbody></table>
+<h2>Aylık Risk Yoğunluğu</h2>
+<p class="note">Geniş yatay zaman çizelgesi yerine aylık özet verilir; böylece sütunlar PDF'den taşmaz.</p>
+<table class="data">
+<colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+<thead><tr><th>Ay</th><th>Aktif Risk Sayısı</th><th>Kritik Risk Sayısı</th></tr></thead>
+<tbody>
+{% for m in months %}<tr><td>{{ m.ym }}</td><td>{{ m.active }}</td><td>{{ m.critical }}</td></tr>
+{% else %}<tr><td colspan="3">Aylık veri bulunmuyor.</td></tr>{% endfor %}
+</tbody></table>
+</body>
+</html>

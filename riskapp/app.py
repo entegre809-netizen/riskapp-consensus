@@ -8651,94 +8651,65 @@ KARAR KURALLARI
             )
 
         # --------------------------------------------------------
-        # PDF: Diğer raporlar mevcut yöntemle devam ediyor
+        # PDF: Rapor 01,02,03,05,06,07 için sade tablo şablonu.
+        # CSV ile aynı filtreli veri kümesini kullanır; web sayfasının ağır
+        # flex/grid bileşenleri PDF motoruna gönderilmez.
         # --------------------------------------------------------
-        view_map = {
-            "risk_detail": reports,
-            "evaluation": report_evaluation,
-            "responsibility": report_responsibility,
-            "time": report_time,
-            "cost": report_cost,
-            "pareto": pareto_view,
-            "dashboard": dashboard,
-        }
+        if HTML is None:
+            return "PDF oluşturma kütüphanesi (WeasyPrint) bulunamadı.", 503
 
-        view_fn = view_map[report_key]
-        rendered = view_fn()
-        resp = current_app.make_response(rendered)
+        csv_response = report_export(report_key, "csv")
+        if not isinstance(csv_response, Response):
+            csv_response = current_app.make_response(csv_response)
+        if csv_response.status_code != 200:
+            return csv_response
 
-        # Örn. aktif proje yoksa yönlendirme cevabını aynen koru.
-        if 300 <= resp.status_code < 400:
-            return resp
+        csv_text = csv_response.get_data(as_text=True).lstrip("\ufeff")
+        data_rows = list(csv.reader(StringIO(csv_text), delimiter=";"))
+        headings = data_rows[0] if data_rows else ["Bilgi"]
+        records = data_rows[1:] if data_rows else []
+        ncols = len(headings)
 
-        html_text = resp.get_data(as_text=True)
-
-        # PDF çıktısında buton / navigasyon gibi öğeleri mümkün olduğunca gizle.
-        print_css = """
-        <style>
-          @page { size: A4; margin: 12mm; }
-          .noprint, nav, aside, .sidebar, .hero-actions,
-          .rp-report-actions, .quick-actions, .fold-toggle {
-            display:none !important;
-          }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        </style>
-        """
-        if "</head>" in html_text:
-            html_text = html_text.replace("</head>", print_css + "</head>", 1)
+        # Çok sütunlu tabloları yatayda parçalara böl; ilk sütun (kimlik)
+        # her parçada tekrar eder. 6 sütun A4 yatay sayfaya sığar.
+        column_groups = []
+        if ncols <= 6:
+            column_groups.append(list(range(ncols)))
         else:
-            html_text = print_css + html_text
+            for offset in range(1, ncols, 6):
+                column_groups.append([0] + list(range(offset, min(offset + 6, ncols))))
 
-        pdf_bytes = None
+        # Çok satırlı raporları kontrollü sayfalara böl.
+        page_groups = []
+        chunk_size = 24
+        all_chunks = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)] or [[]]
+        for col_idx, cols in enumerate(column_groups, start=1):
+            for row_idx, chunk in enumerate(all_chunks, start=1):
+                page_groups.append({
+                    "headers": [headings[i] for i in cols],
+                    "rows": [[row[i] if i < len(row) else "" for i in cols] for row in chunk],
+                    "column_part": col_idx,
+                    "column_parts": len(column_groups),
+                    "row_part": row_idx,
+                    "row_parts": len(all_chunks),
+                })
 
-        if HTML is not None:
-            try:
-                pdf_bytes = HTML(
-                    string=html_text,
-                    base_url=request.url_root
-                ).write_pdf()
-            except Exception as exc:
-                current_app.logger.warning(
-                    "Rapor PDF WeasyPrint hatası (%s): %s",
-                    report_key,
-                    exc,
-                )
-
-        if pdf_bytes is None and pdfkit is not None:
-            try:
-                config = None
-                wk_path = _guess_wkhtmltopdf_path()
-                if wk_path and wk_path != "wkhtmltopdf":
-                    config = pdfkit.configuration(wkhtmltopdf=wk_path)
-
-                pdf_bytes = pdfkit.from_string(
-                    html_text,
-                    False,
-                    configuration=config,
-                    options={
-                        "encoding": "UTF-8",
-                        "page-size": "A4",
-                        "margin-top": "10mm",
-                        "margin-right": "10mm",
-                        "margin-bottom": "10mm",
-                        "margin-left": "10mm",
-                        "enable-local-file-access": "",
-                    },
-                )
-            except Exception as exc:
-                current_app.logger.warning(
-                    "Rapor PDF pdfkit hatası (%s): %s",
-                    report_key,
-                    exc,
-                )
-
-        if pdf_bytes is None:
-            return (
-                "PDF oluşturulamadı. WeasyPrint veya wkhtmltopdf/pdfkit "
-                "kurulumunu kontrol et.",
-                503,
-            )
-
+        report_titles = {
+            "risk_detail": "Risk Detay Raporu",
+            "evaluation": "Risk Değerlendirme Raporu",
+            "responsibility": "Sorumluluk / İş Yükü Raporu",
+            "cost": "Maliyet Raporu",
+            "pareto": "Pareto / Önceliklendirme Raporu",
+            "dashboard": "Yönetici Özet Raporu",
+        }
+        html_text = render_template(
+            "report_table_pdf.html",
+            title=report_titles[report_key],
+            generated_at=datetime.now().strftime("%d.%m.%Y %H:%M"),
+            record_count=len(records),
+            pages=page_groups,
+        )
+        pdf_bytes = HTML(string=html_text, base_url=request.url_root).write_pdf()
         return send_file(
             BytesIO(pdf_bytes),
             mimetype="application/pdf",

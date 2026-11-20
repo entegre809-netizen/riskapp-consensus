@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+@page { size: A4 landscape; margin: 11mm 12mm;
+  @bottom-right {content:"Sayfa " counter(page) " / " counter(pages); font-size:8pt; color:#64748b;} }
+* {box-sizing:border-box;}
+html,body { margin:0; color:#17243b; font-family:"DejaVu Sans", sans-serif; font-size:8pt; }
+.report-page {page-break-after:always; break-after:page;}
+.report-page:last-child {page-break-after:auto; break-after:auto;}
+h1 {font-size:16pt; color:#1d4ed8; margin:0 0 3mm;}
+.meta {font-size:8pt; color:#64748b; margin:0 0 5mm;}
+.table {width:100%; table-layout:fixed; border-collapse:collapse;}
+th,td {border:1px solid #d7e0ec; padding:2.2mm 1.7mm; text-align:left; vertical-align:top;
+  overflow-wrap:anywhere; word-wrap:break-word; white-space:normal;}
+th {color:#1e3a8a; background:#eaf1ff; font-weight:700;}
+tr:nth-child(even) td {background:#f8fafc;}
+thead {display:table-header-group;}
+tr {break-inside:avoid; page-break-inside:avoid;}
+.empty {color:#64748b;}
+</style></head><body>
+{% for page in pages %}
+<section class="report-page">
+  <h1>{{ title }}</h1>
+  <p class="meta">Oluşturulma: {{ generated_at }} · Toplam kayıt: {{ record_count }} · Sütun grubu {{ page.column_part }}/{{ page.column_parts }} · Kayıt sayfası {{ page.row_part }}/{{ page.row_parts }}</p>
+  <table class="table"><thead><tr>
+  {% for heading in page.headers %}<th>{{ heading }}</th>{% endfor %}
+  </tr></thead><tbody>
+  {% for row in page.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+  {% else %}<tr><td class="empty" colspan="{{ page.headers|length }}">Bu raporda kayıt bulunmuyor.</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endfor %}
+</body></html>
