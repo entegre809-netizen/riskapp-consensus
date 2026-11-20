@@ -8587,7 +8587,71 @@ KARAR KURALLARI
             )
 
         # --------------------------------------------------------
-        # PDF
+        # PDF: Zaman Yönetimi özel, hafif ve yazdırmaya uygun şablon
+        # --------------------------------------------------------
+        # Tam web sayfasındaki flex/grid ve geniş çizelgeyi WeasyPrint'e
+        # göndermek worker timeout/kill sorununa yol açabiliyor.
+        if report_key == "time":
+            ctx = build_schedule_context()
+            schedule_rows = ctx.get("rows") or []
+            months = ctx.get("months") or []
+
+            risk_rows = []
+            for item in schedule_rows:
+                risk = item.get("risk")
+                if risk is None:
+                    continue
+                risk_rows.append({
+                    "id": risk.id,
+                    "title": risk.title or "",
+                    "category": risk.category_display,
+                    "responsible": getattr(risk, "responsible", None) or "-",
+                    "start": item.get("startYM") or "-",
+                    "end": item.get("endYM") or "-",
+                    "grade": item.get("grade") or "acceptable",
+                    "active_months": len(item.get("active") or ()),
+                })
+
+            monthly_rows = []
+            for ym in months:
+                active_rows = [
+                    item for item in schedule_rows
+                    if ym in (item.get("active") or ())
+                ]
+                monthly_rows.append({
+                    "ym": ym,
+                    "active": len(active_rows),
+                    "critical": sum(
+                        item.get("grade") == "critical"
+                        for item in active_rows
+                    ),
+                })
+
+            html_text = render_template(
+                "report_time_pdf.html",
+                rows=risk_rows,
+                months=monthly_rows,
+                with_period=sum(
+                    x["start"] != "-" or x["end"] != "-"
+                    for x in risk_rows
+                ),
+                generated_at=datetime.now().strftime("%d.%m.%Y %H:%M"),
+            )
+
+            if HTML is None:
+                return "PDF oluşturma kütüphanesi (WeasyPrint) bulunamadı.", 503
+
+            # Burada web sayfasını değil yalnızca sade PDF HTML'ini işliyoruz.
+            pdf_bytes = HTML(string=html_text, base_url=request.url_root).write_pdf()
+            return send_file(
+                BytesIO(pdf_bytes),
+                mimetype="application/pdf",
+                as_attachment=True,
+                download_name=f"{filename_base}.pdf",
+            )
+
+        # --------------------------------------------------------
+        # PDF: Diğer raporlar mevcut yöntemle devam ediyor
         # --------------------------------------------------------
         view_map = {
             "risk_detail": reports,
