@@ -1977,7 +1977,8 @@
     <div class="pt-field">
       <label for="paretoMode">Analiz türü</label>
       <select class="pt-input" id="paretoMode">
-        <option value="cost_x_risk_score">Maliyet × RPN</option>
+        <option value="cost_x_probability" selected>Maliyet × Olasılık (P)</option>
+        <option value="cost_x_risk_score">Eski yöntem: Maliyet × RPN</option>
         <option value="cost">Yalnızca Maliyet</option>
         <option value="rpn">Yalnızca RPN</option>
       </select>
@@ -2689,8 +2690,8 @@
 
 
 
-    const mode = state.raw?.mode || "cost_x_risk_score";
-    const labels = {cost:"Yalnızca Maliyet",rpn:"Yalnızca RPN",cost_x_risk_score:"Maliyet × RPN"};
+    const mode = state.raw?.mode || "cost_x_probability";
+    const labels = {cost:"Yalnızca Maliyet",rpn:"Yalnızca RPN",cost_x_risk_score:"Eski: Maliyet × RPN",cost_x_probability:"Maliyet × Olasılık (P)"};
     const unit = mode === "cost" ? currency : (mode === "rpn" ? "RPN puanı" : "öncelik puanı");
     els.metricTotal.textContent = `${fmt(total)} ${unit}`;
     const modeNote = document.getElementById("paretoModeNote");
@@ -3341,7 +3342,7 @@
 
     const scope = els.scope.value || "top3";
 
-    const mode = state.raw?.mode || els.mode.value || "cost_x_risk_score";
+    const mode = state.raw?.mode || els.mode.value || "cost_x_probability";
     const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&mode=${encodeURIComponent(mode)}&top_n=3&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
 
 

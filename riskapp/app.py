@@ -7752,9 +7752,9 @@ KARAR KURALLARI
         currency = (currency_override or request.args.get("currency") or "TRY").strip().upper()
         if currency not in {"TRY", "USD", "EUR"}:
             currency = "TRY"
-        mode = (mode_override or request.args.get("mode") or "cost_x_risk_score").lower()
-        if mode not in {"cost", "rpn", "cost_x_risk_score"}:
-            mode = "cost_x_risk_score"
+        mode = (mode_override or request.args.get("mode") or "cost_x_probability").lower()
+        if mode not in {"cost", "rpn", "cost_x_risk_score", "cost_x_probability"}:
+            mode = "cost_x_probability"
         try:
             limit = max(1, min(int(request.args.get("limit", 100)), 500))
         except (TypeError, ValueError):
@@ -7808,14 +7808,27 @@ KARAR KURALLARI
                 pass
             return 0.0
 
+        def risk_probability(r):
+            """P (1–5) derecesini değerlendirmelerden al; para olasılığı değil."""
+            try:
+                p = r.avg_prob()
+                if p is not None:
+                    return max(0.0, min(5.0, float(p)))
+            except (AttributeError, TypeError, ValueError):
+                pass
+            return 0.0
+
         items = []
         for risk in risks:
             amount = totals.get(risk.id, 0.0)
             score = risk_score(risk)
+            probability = risk_probability(risk)
             if mode == "cost":
                 val = amount
             elif mode == "rpn":
                 val = score
+            elif mode == "cost_x_probability":
+                val = amount * probability
             else:
                 val = amount * score
             if val <= 0:
@@ -7828,7 +7841,8 @@ KARAR KURALLARI
                 "value": round(val, 2),
                 "cost_value": round(amount, 2),
                 "risk_score": round(score, 2),
-                "priority_score": round(amount * score, 2),
+                "probability_grade": round(probability, 2),
+                "priority_score": round(val, 2),
             })
         items.sort(key=lambda x: x["value"], reverse=True)
         items = items[:limit]
@@ -7843,7 +7857,8 @@ KARAR KURALLARI
         messages = {
             "cost": "Yalnızca riske bağlanmış pozitif maliyetler (%s)." % currency,
             "rpn": "Yalnızca risk puanı; para birimi veya maliyet değildir.",
-            "cost_x_risk_score": "Maliyet × RPN, parasal tutar değil öncelik puanıdır."
+            "cost_x_risk_score": "Eski yöntem: Maliyet × P × S; parasal tutar değil öncelik puanıdır.",
+            "cost_x_probability": "Maliyet × P derecesi (1–5), parasal tutar değil olasılık ağırlıklı öncelik puanıdır."
         }
         return jsonify({
             "currency": currency, "mode": mode,
@@ -8779,9 +8794,9 @@ KARAR KURALLARI
         # params
         # ----------------------------
         currency = norm_currency(request.args.get("currency"))
-        mode = (request.args.get("mode") or "cost_x_risk_score").strip().lower()
-        if mode not in ("cost", "rpn", "cost_x_risk_score"):
-            mode = "cost_x_risk_score"
+        mode = (request.args.get("mode") or "cost_x_probability").strip().lower()
+        if mode not in ("cost", "rpn", "cost_x_risk_score", "cost_x_probability"):
+            mode = "cost_x_probability"
         top_n = clamp_int(request.args.get("top_n"), 3, 50, 3)                # UI için sade varsayılan
         scenario_cut = clamp_float(request.args.get("cut"), 0.0, 0.9, 0.10)   # 0.10 = %10
         scenario_scope = (request.args.get("scope") or "top3").strip().lower()  # top3 | top80 | topcat
@@ -8827,7 +8842,7 @@ KARAR KURALLARI
             top_count = top_80_count or compute_top80_count(ordered, total)
             top_items = ordered[:max(1, top_count)]
             leaders = ordered[:min(top_n, len(ordered))]
-            unit = "RPN puanı" if mode == "rpn" else "ağırlıklı öncelik puanı"
+            unit = "RPN puanı" if mode == "rpn" else ("olasılık ağırlıklı maliyet puanı" if mode == "cost_x_probability" else "ağırlıklı öncelik puanı")
             categories = defaultdict(float)
             for item in ordered:
                 categories[stext(item.get("category")) or "GENEL"] += as_float(item.get("value"))
@@ -8848,9 +8863,14 @@ KARAR KURALLARI
                 {"type": "risk", "title": "En Yüksek Öncelik",
                  "text": (f"{leaders[0].get('title') or 'Risk'} toplam {unit} içinde %{leader_share:.1f} paya sahip." if leaders else "Değerlendirilecek risk yok.")},
             ]
-            if mode == "cost_x_risk_score":
-                insights.append({"type": "context", "title": "Maliyet Etkisi",
-                                 "text": "Maliyet × RPN bir öncelik indeksidir; para birimiyle ifade edilemez. Maliyet kalemleri ayrıca incelenmelidir."})
+            if mode in ("cost_x_probability", "cost_x_risk_score"):
+                explanation = (
+                    "Maliyet × P derecesi (1–5) kullanıldı; şiddet ikinci kez çarpılmadı. "
+                    "P gerçek olasılık yüzdesi olmadığından sonuç TL/USD/EUR tutarı veya beklenen parasal kayıp değildir."
+                    if mode == "cost_x_probability" else
+                    "Eski Maliyet × RPN (P×S) yöntemi kullanıldı; aynı finansal etki şiddette de varsa iki kez sayılmış olabilir."
+                )
+                insights.append({"type": "context", "title": "Hesaplama Yöntemi", "text": explanation})
             actions = [
                 {"type": "review", "priority": "high", "title": "İlk riskler için önlem planını gözden geçir",
                  "details": f"Pareto ilk {top_count} riskinin mevcut önlemlerini ve sorumlularını inceleyin; yüksek puanlı kayıtları önceliklendirin.",
@@ -8874,6 +8894,7 @@ KARAR KURALLARI
                     "category": item.get("category") or "GENEL", "value": as_float(item.get("value")),
                     "pct": as_float(item.get("pct")), "risk_score": as_float(item.get("risk_score")),
                     "cost_value": as_float(item.get("cost_value")),
+                    "probability_grade": as_float(item.get("probability_grade")),
                     "url": f"/risks/{rid}" if rid is not None else None,
                 })
             payload = {"currency": currency, "mode": mode, "summary": summary,
