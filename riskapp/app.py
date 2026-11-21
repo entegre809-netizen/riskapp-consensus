@@ -7741,7 +7741,7 @@ KARAR KURALLARI
 # -------------------------------------------------
 
     @app.get("/analytics/pareto")
-    def pareto_cost():
+    def pareto_cost(mode_override=None, currency_override=None):
         """Riske bağlı maliyet, RPN veya maliyet×RPN Pareto analizi.
 
         Yalnızca mevcut projeye ait risklerin maliyetlerini inceler.
@@ -7749,10 +7749,10 @@ KARAR KURALLARI
         açıkça bildirir; tüm maliyetleri otomatik ilişkili varsaymaz.
         """
         project_id = _get_active_project_id()
-        currency = (request.args.get("currency") or "TRY").strip().upper()
+        currency = (currency_override or request.args.get("currency") or "TRY").strip().upper()
         if currency not in {"TRY", "USD", "EUR"}:
             currency = "TRY"
-        mode = (request.args.get("mode") or "cost_x_risk_score").lower()
+        mode = (mode_override or request.args.get("mode") or "cost_x_risk_score").lower()
         if mode not in {"cost", "rpn", "cost_x_risk_score"}:
             mode = "cost_x_risk_score"
         try:
@@ -8779,12 +8779,16 @@ KARAR KURALLARI
         # params
         # ----------------------------
         currency = norm_currency(request.args.get("currency"))
+        mode = (request.args.get("mode") or "cost_x_risk_score").strip().lower()
+        if mode not in ("cost", "rpn", "cost_x_risk_score"):
+            mode = "cost_x_risk_score"
         top_n = clamp_int(request.args.get("top_n"), 3, 50, 3)                # UI için sade varsayılan
         scenario_cut = clamp_float(request.args.get("cut"), 0.0, 0.9, 0.10)   # 0.10 = %10
         scenario_scope = (request.args.get("scope") or "top3").strip().lower()  # top3 | top80 | topcat
 
         # Cache key
-        cache_key = (currency, top_n, scenario_cut, scenario_scope)
+        # Proje ve mod ayrımı: farklı projelerin AI çıktısı karışmasın.
+        cache_key = (_get_active_project_id(), currency, mode, top_n, scenario_cut, scenario_scope)
         now = time.time()
         cached = _PARETO_AI_CACHE.get(cache_key)
         if cached and (now - cached[0]) <= _CACHE_TTL_SEC:
@@ -8793,7 +8797,7 @@ KARAR KURALLARI
         # ----------------------------
         # Pareto verisini içeriden al
         # ----------------------------
-        resp = pareto_cost()  # senin mevcut fonksiyonun
+        resp = pareto_cost(mode_override=mode, currency_override=currency)
         try:
             data = resp.get_json() if hasattr(resp, "get_json") else (resp or {})
         except Exception:
@@ -8806,12 +8810,78 @@ KARAR KURALLARI
         if not items or total <= 0:
             payload = {
                 "currency": currency,
-                "summary": "Bu para birimi için maliyet verisi yok (veya toplam 0).",
+                "mode": mode,
+                "summary": "Seçilen analiz türü için uygun risk verisi bulunamadı. Riske bağlı maliyetleri ve değerlendirme puanlarını kontrol edin.",
                 "insights": [],
                 "top_risks": [],
                 "actions": [],
                 "meta": {"total": total, "top_80_count": 0, "scenario_cut": scenario_cut, "scope": scenario_scope},
             }
+            _PARETO_AI_CACHE[cache_key] = (now, payload)
+            return jsonify(payload)
+
+        # RPN ve maliyet×RPN modlarında maliyet tasarrufu hesaplanmaz.
+        # Gerçek Pareto kayıtlarından açıklanabilir, kural tabanlı içgörü/aksiyon üretilir.
+        if mode != "cost":
+            ordered = sorted(items, key=lambda it: float(it.get("value") or 0), reverse=True)
+            top_count = top_80_count or compute_top80_count(ordered, total)
+            top_items = ordered[:max(1, top_count)]
+            leaders = ordered[:min(top_n, len(ordered))]
+            unit = "RPN puanı" if mode == "rpn" else "ağırlıklı öncelik puanı"
+            categories = defaultdict(float)
+            for item in ordered:
+                categories[stext(item.get("category")) or "GENEL"] += as_float(item.get("value"))
+            top_category, cat_value = max(categories.items(), key=lambda kv: kv[1]) if categories else ("GENEL", 0)
+            category_share = (100 * cat_value / total) if total else 0
+            leader_share = (100 * as_float(leaders[0].get("value")) / total) if leaders and total else 0
+            summary = (
+                f"{len(ordered)} risk {unit} üzerinden değerlendirildi. "
+                f"İlk {top_count} risk toplam etkinin yaklaşık %80'ini oluşturuyor. "
+                f"Öncelikli kategori: {top_category} (%{category_share:.1f}). "
+                "Bu sonuç parasal tasarruf tahmini değildir."
+            )
+            insights = [
+                {"type": "pareto", "title": "80/20 Yoğunlaşması",
+                 "text": f"{len(ordered)} riskin ilk {top_count} tanesi toplam {unit} değerinin en az %80'ini oluşturuyor."},
+                {"type": "category", "title": "Öne Çıkan Kategori",
+                 "text": f"{top_category} kategorisi toplam {unit} içinde %{category_share:.1f} paya sahip."},
+                {"type": "risk", "title": "En Yüksek Öncelik",
+                 "text": (f"{leaders[0].get('title') or 'Risk'} toplam {unit} içinde %{leader_share:.1f} paya sahip." if leaders else "Değerlendirilecek risk yok.")},
+            ]
+            if mode == "cost_x_risk_score":
+                insights.append({"type": "context", "title": "Maliyet Etkisi",
+                                 "text": "Maliyet × RPN bir öncelik indeksidir; para birimiyle ifade edilemez. Maliyet kalemleri ayrıca incelenmelidir."})
+            actions = [
+                {"type": "review", "priority": "high", "title": "İlk riskler için önlem planını gözden geçir",
+                 "details": f"Pareto ilk {top_count} riskinin mevcut önlemlerini ve sorumlularını inceleyin; yüksek puanlı kayıtları önceliklendirin.",
+                 "kpi": "Önlem ve sorumlu kontrolü tamamlanan risk oranı", "url": None},
+                {"type": "ownership", "priority": "medium", "title": "Öne çıkan kategoride ekip değerlendirmesi yap",
+                 "details": f"{top_category} riskleri için olasılık, şiddet ve mevcut kontrollerin güncelliğini doğrulayın.",
+                 "kpi": "Güncel değerlendirmeye sahip risk sayısı", "url": None},
+            ]
+            if leaders:
+                first = leaders[0]
+                actions.insert(0, {"type": "mitigation", "priority": "high",
+                    "title": f"{first.get('title') or 'En öncelikli risk'} için aksiyonları netleştir",
+                    "details": "Riskin kaydedilmiş önlemleri, sorumlusu ve hedef tarihini kontrol edip ilerlemeyi izleyin.",
+                    "kpi": "Tamamlanan önleyici faaliyet sayısı",
+                    "url": f"/risks/{first.get('risk_id')}" if first.get("risk_id") is not None else None})
+            top_risks = []
+            for item in leaders:
+                rid = item.get("risk_id", item.get("id"))
+                top_risks.append({
+                    "id": rid, "risk_id": rid, "title": item.get("title") or f"Risk #{rid}",
+                    "category": item.get("category") or "GENEL", "value": as_float(item.get("value")),
+                    "pct": as_float(item.get("pct")), "risk_score": as_float(item.get("risk_score")),
+                    "cost_value": as_float(item.get("cost_value")),
+                    "url": f"/risks/{rid}" if rid is not None else None,
+                })
+            payload = {"currency": currency, "mode": mode, "summary": summary,
+                       "insights": insights, "actions": actions, "top_risks": top_risks,
+                       "meta": {"total": total, "top_80_count": top_count,
+                                "scope": "top80", "scope_label": "Pareto öncelikleri",
+                                "top_category": top_category, "top_category_ratio": category_share / 100,
+                                "scenario_saving": None}}
             _PARETO_AI_CACHE[cache_key] = (now, payload)
             return jsonify(payload)
 
@@ -9269,6 +9339,7 @@ KARAR KURALLARI
 
         payload = {
             "currency": currency,
+            "mode": mode,
             "summary": summary,
             "insights": insights[:5],
             "top_risks": top_risks,

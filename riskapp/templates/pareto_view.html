@@ -3269,7 +3269,7 @@
 
           <span class="pt-badge">%${fmt(pct, 1)}</span>
 
-          <span class="pt-badge primary">${fmt(value)} ${currency}</span>
+          <span class="pt-badge primary">${fmt(value)} ${state.raw?.mode === "cost" ? currency : (state.raw?.mode === "rpn" ? "RPN" : "öncelik puanı")}</span>
 
         </div>
 
@@ -3327,16 +3327,6 @@
 
   async function loadAi(){
 
-    if (state.raw?.mode !== "cost") {
-
-      els.aiStatus.textContent = "Mod bilgilendirmesi";
-
-      els.aiSummary.textContent = "AI tasarruf senaryosu yalnızca maliyet modu için kullanılabilir. Maliyet × RPN parasal tutar değildir.";
-
-      return;
-
-    }
-
     renderAiLoading();
 
 
@@ -3351,7 +3341,8 @@
 
     const scope = els.scope.value || "top3";
 
-    const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&top_n=3&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
+    const mode = state.raw?.mode || els.mode.value || "cost_x_risk_score";
+    const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&mode=${encodeURIComponent(mode)}&top_n=3&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
 
 
 
@@ -3743,28 +3734,7 @@ ${risks || "-"}`;
 
 
 
-    if (state.raw?.mode !== "cost") {
-
-      els.aiStatus.textContent = "Mod bilgilendirmesi";
-
-      els.aiSummary.textContent = "Maliyet × RPN öncelik puanı veya yalnızca RPN modunda parasal tasarruf hesabı yapılmaz. Maliyet modunu seçebilirsiniz.";
-
-      els.aiInsights.innerHTML = "";
-
-      els.aiActions.innerHTML = "";
-
-      els.aiBadges.innerHTML = "";
-
-      els.aiTopRisks.innerHTML = "";
-
-      hideError(els.aiErr);
-
-    } else if (state.raw?.mode === "cost") {
-
-      await loadAi();
-
-    }
-
+    await loadAi();
   }
 
 
