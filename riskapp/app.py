@@ -7742,90 +7742,94 @@ KARAR KURALLARI
 
     @app.get("/analytics/pareto")
     def pareto_cost():
-        """Riske bağlı maliyet × RPN Pareto; maliyet yoksa açıkça RPN modu.
+        """Riske bağlı maliyet, RPN veya maliyet×RPN Pareto analizi.
 
-        Geriye dönük JSON biçimi korunur. Bu endpoint veri değiştirmez.
+        Yalnızca mevcut projeye ait risklerin maliyetlerini inceler.
+        Veritabanını değiştirmez. RPN modu maliyetin yerine geçtiğini
+        açıkça bildirir; tüm maliyetleri otomatik ilişkili varsaymaz.
         """
-        pid = _get_active_project_id()
+        project_id = _get_active_project_id()
         currency = (request.args.get("currency") or "TRY").strip().upper()
+        if currency not in {"TRY", "USD", "EUR"}:
+            currency = "TRY"
+        mode = (request.args.get("mode") or "cost_x_risk_score").lower()
+        if mode not in {"cost", "rpn", "cost_x_risk_score"}:
+            mode = "cost_x_risk_score"
         try:
-            limit = max(1, min(int(request.args.get("limit") or 50), 500))
+            limit = max(1, min(int(request.args.get("limit", 100)), 500))
         except (TypeError, ValueError):
-            limit = 50
+            limit = 100
 
-        q = Risk.query
-        if pid:
-            q = q.filter(Risk.project_id == pid)
-        risks = q.all()
+        risk_query = Risk.query
+        if project_id:
+            risk_query = risk_query.filter(Risk.project_id == project_id)
+        risks = risk_query.all()
         risk_map = {r.id: r for r in risks}
-        ids = list(risk_map)
+        totals = defaultdict(float)
+        cost_item_count = 0
+        unlinked_count = 0
+        other_currency_count = 0
+
+        if project_id:
+            all_costs = CostItem.query.filter(CostItem.project_id == project_id).all()
+        else:
+            all_costs = []
+        for cost in all_costs:
+            if (cost.currency or "TRY").upper() != currency:
+                other_currency_count += 1
+                continue
+            try:
+                amount = cost.total
+                if amount is None:
+                    amount = (cost.qty or 0) * (cost.unit_price or 0)
+                amount = float(amount or 0)
+            except (TypeError, ValueError, ArithmeticError):
+                amount = 0
+            if amount <= 0:
+                continue
+            cost_item_count += 1
+            if cost.risk_id in risk_map:
+                totals[cost.risk_id] += amount
+            else:
+                unlinked_count += 1
 
         def risk_score(r):
-            if r is None:
-                return 0.0
-            for name in ("score", "avg_rpn"):
-                fn = getattr(r, name, None)
-                if callable(fn):
-                    try:
-                        sc = fn()
-                        if sc is not None:
-                            return max(0.0, float(sc))
-                    except (TypeError, ValueError, AttributeError):
-                        pass
             try:
-                p, sv = r.avg_prob(), r.avg_sev()
-                if p is not None and sv is not None:
-                    return max(0.0, float(p) * float(sv))
-            except (TypeError, ValueError, AttributeError):
+                val = r.score()
+                if val is not None:
+                    return max(0.0, float(val))
+            except (AttributeError, TypeError, ValueError):
+                pass
+            try:
+                p, severity = r.avg_prob(), r.avg_sev()
+                if p is not None and severity is not None:
+                    return max(0.0, float(p) * float(severity))
+            except (AttributeError, TypeError, ValueError):
                 pass
             return 0.0
 
-        totals = defaultdict(float)
-        if ids:
-            cost_rows = (
-                CostItem.query
-                .filter(CostItem.risk_id.in_(ids))
-                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
-                .all()
-            )
-            for c in cost_rows:
-                try:
-                    amount = c.total
-                    if amount is None:
-                        amount = (c.qty or 0) * (c.unit_price or 0)
-                    amount = float(amount or 0)
-                except (TypeError, ValueError):
-                    amount = 0.0
-                if amount > 0:
-                    totals[c.risk_id] += amount
-
         items = []
-        for rid, amount in totals.items():
-            r = risk_map[rid]
-            score = risk_score(r)
-            value = amount * score
-            if value <= 0:
+        for risk in risks:
+            amount = totals.get(risk.id, 0.0)
+            score = risk_score(risk)
+            if mode == "cost":
+                val = amount
+            elif mode == "rpn":
+                val = score
+            else:
+                val = amount * score
+            if val <= 0:
                 continue
             items.append({
-                "risk_id": rid, "title": r.title or f"Risk #{rid}",
-                "category": r.category or "GENEL", "owner": r.responsible,
-                "value": round(value, 2), "cost_value": round(amount, 2),
-                "risk_score": round(score, 2), "priority_score": round(value, 2),
+                "risk_id": risk.id,
+                "title": risk.title or f"Risk #{risk.id}",
+                "category": risk.category_display if hasattr(risk, "category_display") else (risk.category or "GENEL"),
+                "owner": risk.responsible,
+                "value": round(val, 2),
+                "cost_value": round(amount, 2),
+                "risk_score": round(score, 2),
+                "priority_score": round(amount * score, 2),
             })
-
-        fallback = not items
-        if fallback:
-            for r in risks:
-                score = risk_score(r)
-                if score <= 0:
-                    continue
-                items.append({
-                    "risk_id": r.id, "title": r.title or f"Risk #{r.id}",
-                    "category": r.category or "GENEL", "owner": r.responsible,
-                    "value": round(score, 2), "cost_value": 0.0,
-                    "risk_score": round(score, 2), "priority_score": round(score, 2),
-                })
-
         items.sort(key=lambda x: x["value"], reverse=True)
         items = items[:limit]
         total = sum(x["value"] for x in items)
@@ -7834,21 +7838,54 @@ KARAR KURALLARI
             cumulative += item["value"]
             item["pct"] = round(100 * item["value"] / total, 2) if total else 0
             item["cum_pct"] = round(100 * cumulative / total, 2) if total else 0
-
-        top_80_count = next(
-            (i for i, x in enumerate(items, start=1) if x["cum_pct"] >= 80),
-            len(items),
-        ) if items else 0
+        top_80_count = next((n for n, item in enumerate(items, 1)
+                             if item["cum_pct"] >= 80), len(items)) if items else 0
+        messages = {
+            "cost": "Yalnızca riske bağlanmış pozitif maliyetler (%s)." % currency,
+            "rpn": "Yalnızca risk puanı; para birimi veya maliyet değildir.",
+            "cost_x_risk_score": "Maliyet × RPN, parasal tutar değil öncelik puanıdır."
+        }
         return jsonify({
-            "currency": currency,
-            "mode": "rpn_only" if fallback else "cost_x_risk_score",
-            "note": (
-                "Riske bağlı pozitif maliyet × RPN sonucu yok; yalnızca RPN puanları gösteriliyor."
-                if fallback else "Bağlı maliyet × RPN öncelik analizi"
-            ),
+            "currency": currency, "mode": mode,
+            "note": messages[mode],
             "total": round(total, 2), "top_80_count": top_80_count,
             "items": items,
+            "cost_item_count": cost_item_count,
+            "unlinked_cost_count": unlinked_count,
+            "other_currency_cost_count": other_currency_count,
         })
+
+
+    @app.get("/costs/export.csv")
+    def costs_export_csv():
+        """Aktif projeye ait maliyetleri Excel uyumlu CSV olarak dışa aktar."""
+        project_id = _active_project_id()
+        if not project_id:
+            abort(400, "Aktif proje bulunamadı")
+        qry = CostItem.query.filter(CostItem.project_id == project_id)
+        costs = qry.order_by(CostItem.id.asc()).all()
+        risks = {r.id: r for r in Risk.query.filter(Risk.project_id == project_id).all()}
+        q = (request.args.get("q") or "").strip().casefold()
+        currency = (request.args.get("currency") or "").strip().upper()
+        frequency = (request.args.get("frequency") or "").strip()
+        output = StringIO()
+        writer = csv.writer(output, delimiter=";", lineterminator="\r\n")
+        writer.writerow(["Maliyet ID", "Başlık", "Kategori", "Miktar", "Birim Fiyat",
+                         "Toplam", "Para Birimi", "Sıklık", "Risk ID", "Bağlı Risk"])
+        for cost in costs:
+            if q and q not in (f"{cost.title or ''} {cost.category or ''}").casefold():
+                continue
+            if currency and (cost.currency or "TRY").upper() != currency:
+                continue
+            if frequency and (cost.frequency or "Tek Sefer") != frequency:
+                continue
+            risk = risks.get(cost.risk_id)
+            writer.writerow([cost.id, cost.title or "", cost.category or "", cost.qty,
+                             cost.unit_price, cost.total, cost.currency or "TRY",
+                             cost.frequency or "Tek Sefer", cost.risk_id or "",
+                             risk.title if risk else "Bağlı değil"])
+        return Response("\ufeff" + output.getvalue(), mimetype="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": 'attachment; filename="maliyetler.csv"'})
 
 
     # ============================================================
