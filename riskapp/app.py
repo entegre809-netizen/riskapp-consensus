@@ -7745,7 +7745,7 @@ KARAR KURALLARI
 # -------------------------------------------------
 
     @app.get("/analytics/pareto")
-    def pareto_cost(mode_override=None, currency_override=None):
+    def pareto_cost(mode_override=None, currency_override=None, currency_scope_override=None):
         """Pareto: dövizleri ortak raporlama kuruna dönüştür; kalıcı maliyetleri değiştirme."""
         project_id = _get_active_project_id()
         currency = (currency_override or request.args.get("currency") or "TRY").strip().upper()
@@ -7754,6 +7754,48 @@ KARAR KURALLARI
         mode = (mode_override or request.args.get("mode") or "cost_x_probability").lower()
         if mode not in {"cost", "rpn", "cost_x_risk_score", "cost_x_probability"}:
             mode = "cost_x_probability"
+        currency_scope = (request.args.get("currency_scope") or "combined").strip().lower()
+        if currency_scope_override is not None:
+            currency_scope = currency_scope_override.strip().lower()
+        if currency_scope not in {"combined", "original", "automatic"}:
+            return jsonify({"error": "currency_scope combined, original veya automatic olmalı"}), 400
+
+        if currency_scope == "automatic" and mode != "rpn":
+            # Tanımlanmayan para birimleri sessizce atlanmaz.
+            active_project = _get_active_project_id()
+            auto_costs = (CostItem.query.filter(CostItem.project_id == active_project).all()
+                          if active_project else [])
+            for auto_cost in auto_costs:
+                source_currency = (auto_cost.currency or "TRY").strip().upper()
+                if source_currency not in {"TRY", "USD", "EUR"}:
+                    return jsonify({"error": f"Maliyet #{auto_cost.id}: desteklenmeyen para birimi {source_currency}"}), 422
+            # Her bir para birimi kendi toplamı, % katkısı ve Top 80 sınırı ile hesaplanır.
+            # Diğer iki yöntem aynen korunur; döviz kuru veya TCMB çağrısı yapılmaz.
+            groups = {}
+            for group_currency in ("TRY", "USD", "EUR"):
+                response = pareto_cost(mode_override=mode, currency_override=group_currency,
+                                       currency_scope_override="original")
+                if isinstance(response, tuple):
+                    return response
+                groups[group_currency] = response.get_json() if hasattr(response, "get_json") else response
+            selected = dict(groups[currency])
+            selected.update({
+                "currency_scope": "automatic",
+                "groups": {code: {
+                    "currency": code,
+                    "total": result["total"],
+                    "top_80_count": result["top_80_count"],
+                    "cost_item_count": result["cost_item_count"],
+                    "risk_count": len(result["items"]),
+                } for code, result in groups.items()},
+                "note": (f"Otomatik ayrım: TRY, USD ve EUR birbirine karıştırılmadan üç ayrı "
+                         f"Pareto oluşturuldu. Şu an {currency} grubunun grafiği gösteriliyor."),
+            })
+            return jsonify(selected)
+        if currency_scope == "automatic":
+            # RPN parasal bir analiz değildir; tek ortak RPN Pareto'su yeterlidir.
+            return pareto_cost(mode_override="rpn", currency_override=currency,
+                               currency_scope_override="combined")
         try:
             limit = max(1, min(int(request.args.get("limit", 100)), 500))
         except (TypeError, ValueError):
@@ -7789,6 +7831,10 @@ KARAR KURALLARI
 
         if mode != "rpn":
             for cost in all_costs:
+                source_currency = (cost.currency or "TRY").strip().upper()
+                if currency_scope == "original" and source_currency != currency:
+                    # Yalnızca seçilen para biriminin maliyetleri; kur isteği yok.
+                    continue
                 try:
                     raw_amount = cost.total
                     if raw_amount is None:
@@ -7805,7 +7851,7 @@ KARAR KURALLARI
                     return jsonify({"error": f"Maliyet #{cost.id}: desteklenmeyen para birimi {source_currency}"}), 422
                 cost_entries.append((cost, amount, source_currency))
 
-            if any(source_currency != currency for _, _, source_currency in cost_entries):
+            if currency_scope == "combined" and any(source_currency != currency for _, _, source_currency in cost_entries):
                 # İlk iki adımda oluşturulan FXRateCache yalnızca SQLite destekler.
                 # SQLite DB yolunu aynı Flask SQLAlchemy bağlantısından al.
                 if db.engine.dialect.name != "sqlite" or not db.engine.url.database:
@@ -7900,8 +7946,12 @@ KARAR KURALLARI
             "cost_x_risk_score": "Eski yöntem: Dönüştürülmüş Maliyet × P × S; parasal tutar değil öncelik puanıdır.",
             "cost_x_probability": "Dönüştürülmüş Maliyet × P (1–5); sonuç parasal tutar değil öncelik puanıdır."
         }
+        if currency_scope == "original" and mode != "rpn":
+            messages[mode] = (f"Yalnızca {currency} olarak kaydedilen maliyetler hesaba katıldı; "
+                              "başka para birimleri dönüştürülmedi. " + messages[mode])
         fx_info = {
-            "status": "converted" if fx_snapshot else ("not_required" if mode != "rpn" else "not_applicable"),
+            "status": "original_only" if currency_scope == "original" and mode != "rpn" else
+                      ("converted" if fx_snapshot else ("not_required" if mode != "rpn" else "not_applicable")),
             "source": fx_source,
             "published_date": fx_snapshot.published_date.isoformat() if fx_snapshot else None,
             "source_url": fx_snapshot.source_url if fx_snapshot else None,
@@ -7913,6 +7963,7 @@ KARAR KURALLARI
         }
         return jsonify({
             "currency": currency, "mode": mode,
+            "currency_scope": currency_scope,
             "note": messages[mode],
             "total": round(total, 2), "top_80_count": top_80_count,
             "items": items,
@@ -8849,13 +8900,16 @@ KARAR KURALLARI
         mode = (request.args.get("mode") or "cost_x_probability").strip().lower()
         if mode not in ("cost", "rpn", "cost_x_risk_score", "cost_x_probability"):
             mode = "cost_x_probability"
+        currency_scope = (request.args.get("currency_scope") or "combined").strip().lower()
+        if currency_scope not in ("combined", "original"):
+            return jsonify({"error": "currency_scope combined veya original olmalı"}), 400
         top_n = clamp_int(request.args.get("top_n"), 3, 50, 3)                # UI için sade varsayılan
         scenario_cut = clamp_float(request.args.get("cut"), 0.0, 0.9, 0.10)   # 0.10 = %10
         scenario_scope = (request.args.get("scope") or "top3").strip().lower()  # top3 | top80 | topcat
 
         # Cache key
         # Proje ve mod ayrımı: farklı projelerin AI çıktısı karışmasın.
-        cache_key = (_get_active_project_id(), currency, mode, top_n, scenario_cut,
+        cache_key = (_get_active_project_id(), currency, mode, currency_scope, top_n, scenario_cut,
                      scenario_scope, request.args.get("fx_date"), request.args.get("rate_type"))
         now = time.time()
         cached = _PARETO_AI_CACHE.get(cache_key)
@@ -9020,6 +9074,8 @@ KARAR KURALLARI
             rows_by_risk = defaultdict(list)
             for cost in matching_costs:
                 source_ccy = (cost.currency or "TRY").strip().upper()
+                if currency_scope == "original" and source_ccy != currency:
+                    continue
                 raw = cost.total
                 if raw is None:
                     raw = (cost.qty or 0) * (cost.unit_price or 0)

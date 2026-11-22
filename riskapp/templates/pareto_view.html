@@ -1969,6 +1969,7 @@
 
     <form method="get" action="{{ url_for('pareto_view') }}" class="pt-field" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0;">
       <input type="hidden" name="mode" id="currencyFormMode" value="cost_x_probability">
+      <input type="hidden" name="currency_scope" id="currencyFormScope" value="combined">
 
       <div>
 
@@ -1989,6 +1990,15 @@
     </form>
 
 
+
+    <div class="pt-field">
+      <label for="currencyScope">Para birimi analiz yöntemi</label>
+      <select class="pt-input" id="currencyScope" aria-label="Para birimi analiz yöntemi">
+        <option value="combined">Birleştirilmiş — dövizleri dönüştür</option>
+        <option value="original">Yalnızca seçilen para birimi</option>
+        <option value="automatic">Otomatik — girilen para birimine göre ayrı Pareto</option>
+      </select>
+    </div>
 
     <div class="pt-field">
       <label for="paretoMode">Analiz türü</label>
@@ -2127,6 +2137,12 @@
     </div>
     <div class="pt-fx-rates" id="fxRates"></div>
     <a class="pt-fx-source" id="fxSourceLink" target="_blank" rel="noopener noreferrer" style="display:none;">TCMB kur belgesini aç</a>
+  </section>
+
+  <section id="autoCurrencyGroups" class="pt-fx-panel" style="display:none;" aria-label="Otomatik para birimi Pareto grupları">
+    <div class="pt-fx-heading"><h3>Girilen Para Birimine Göre Ayrı Pareto</h3></div>
+    <p class="pt-fx-desc">Her para biriminin maliyetleri kendi içinde sıralanır. Toplamlar ve Top 80 eşikleri para birimleri arasında birleştirilmez. Aşağıda seçilen grubun grafiği ve tablosu gösterilir.</p>
+    <div id="autoCurrencyCards" class="pt-fx-facts" style="display:grid;"></div>
   </section>
 
   <div class="pt-section-kicker">Pareto Sonuçları</div>
@@ -2295,7 +2311,8 @@
 
   const currency = "{{ currency }}";
 
-  const paretoEndpoint = () => `/analytics/pareto?currency=${encodeURIComponent(currency)}&mode=${encodeURIComponent(document.getElementById("paretoMode").value)}`;
+  const selectedCurrencyScope = () => document.getElementById("currencyScope").value;
+  const paretoEndpoint = () => `/analytics/pareto?currency=${encodeURIComponent(currency)}&mode=${encodeURIComponent(document.getElementById("paretoMode").value)}&currency_scope=${encodeURIComponent(selectedCurrencyScope())}`;
 
   const aiEndpointBase = `/analytics/pareto/ai`;
 
@@ -2313,6 +2330,7 @@
 
     q: document.getElementById("q"),
     mode: document.getElementById("paretoMode"),
+    currencyScope: document.getElementById("currencyScope"),
 
     sort: document.getElementById("sort"),
 
@@ -2757,6 +2775,37 @@
   }
 
 
+  function renderAutomaticGroups(data){
+    const section = document.getElementById("autoCurrencyGroups");
+    const cards = document.getElementById("autoCurrencyCards");
+    const isAutomatic = data?.currency_scope === "automatic" && !!data.groups;
+    section.style.display = isAutomatic ? "block" : "none";
+    cards.replaceChildren();
+    if (!isAutomatic) return;
+    for (const code of ["TRY", "USD", "EUR"]){
+      const group = data.groups[code];
+      if (!group) continue;
+      const card = document.createElement("a");
+      card.className = "pt-fx-fact";
+      card.style.textDecoration = "none";
+      card.style.cursor = "pointer";
+      if (code === currency) card.style.outline = "2px solid var(--pt-primary)";
+      const url = new URL(window.location.href);
+      url.searchParams.set("currency", code);
+      url.searchParams.set("currency_scope", "automatic");
+      url.searchParams.set("mode", els.mode.value);
+      card.href = url.toString();
+      const heading = document.createElement("span");
+      heading.textContent = code + (code === currency ? " · Görüntüleniyor" : " · Görüntüle");
+      const total = document.createElement("strong");
+      total.textContent = `${fmt(group.total)} ${els.mode.value === "cost" ? code : "öncelik puanı"}`;
+      const detail = document.createElement("span");
+      detail.textContent = `${group.risk_count} risk · Top 80: ${group.top_80_count} risk · ${group.cost_item_count} maliyet kalemi`;
+      card.append(heading, total, detail);
+      cards.appendChild(card);
+    }
+  }
+
   function renderFxInfo(data, failed = false){
     const $ = id => document.getElementById(id);
     const fx = data?.fx || {};
@@ -2781,6 +2830,18 @@
     if (mode === "rpn" || fx.status === "not_applicable"){
       status.textContent = "Kur gerekmiyor";
       desc.textContent = "Yalnızca RPN analizinde parasal tutar kullanılmaz; döviz kuru uygulanmaz.";
+      return;
+    }
+    if (data?.currency_scope === "original" || data?.currency_scope === "automatic" || fx.status === "original_only"){
+      status.textContent = "Yalnızca " + currency;
+      desc.textContent = data?.currency_scope === "automatic"
+        ? `Otomatik analiz: TRY, USD ve EUR grupları birbirinden bağımsız hesaplandı. Şu an ${currency} grubu görüntüleniyor. TCMB isteği yapılmadı.`
+        : `Sadece ${currency} olarak kayıtlı maliyetler değerlendirildi. Başka para birimindeki kalemler analize katılmadı; TCMB isteği yapılmadı.`;
+      facts.style.display = "grid";
+      $("fxCurrency").textContent = currency;
+      $("fxDate").textContent = "Uygulanmadı";
+      $("fxSource").textContent = "Orijinal maliyetler";
+      $("fxConverted").textContent = "0 kayıt";
       return;
     }
     if (fx.status === "not_required"){
@@ -2831,6 +2892,12 @@
 
     const mode = state.raw?.mode || els.mode.value || "cost_x_probability";
     updateFlowDefinitions(mode);
+    if (selectedCurrencyScope() === "original" && mode !== "rpn") {
+      const list = document.getElementById("flowInputs");
+      if (list && list.children[1]) list.children[1].textContent = selectedCurrencyScope() === "automatic"
+          ? "Maliyetler girildikleri TRY, USD ve EUR para birimlerine göre ayrı gruplandırılır"
+          : `Yalnızca ${currency} para biriminde kayıtlı maliyetler; diğerleri hariç tutulur`;
+    }
     const labels = {cost:"Yalnızca Maliyet",rpn:"Yalnızca RPN",cost_x_risk_score:"Eski: Maliyet × RPN",cost_x_probability:"Maliyet × Olasılık (P)"};
     const unit = mode === "cost" ? currency : (mode === "rpn" ? "RPN puanı" : "öncelik puanı");
     els.metricTotal.textContent = `${fmt(total)} ${unit}`;
@@ -3483,7 +3550,8 @@
     const scope = els.scope.value || "top3";
 
     const mode = state.raw?.mode || els.mode.value || "cost_x_probability";
-    const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&mode=${encodeURIComponent(mode)}&top_n=3&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
+    const aiCurrencyScope = selectedCurrencyScope() === "automatic" ? "original" : selectedCurrencyScope();
+    const url = `${aiEndpointBase}?currency=${encodeURIComponent(currency)}&mode=${encodeURIComponent(mode)}&currency_scope=${encodeURIComponent(aiCurrencyScope)}&top_n=3&cut=${encodeURIComponent(cut)}&scope=${encodeURIComponent(scope)}`;
 
 
 
@@ -3822,7 +3890,14 @@ ${risks || "-"}`;
       }
       els.mode.dataset.urlRestored = "1";
     }
+    if (!els.currencyScope.dataset.urlRestored) {
+      const requestedScope = new URLSearchParams(window.location.search).get("currency_scope");
+      if (["combined", "original", "automatic"].includes(requestedScope)) els.currencyScope.value = requestedScope;
+      els.currencyScope.dataset.urlRestored = "1";
+    }
     // Currency changes and Refresh preserve the mode currently selected by the user.
+    const currencyFormScope = document.getElementById("currencyFormScope");
+    if (currencyFormScope) currencyFormScope.value = selectedCurrencyScope();
     const currencyFormMode = document.getElementById("currencyFormMode");
     if (currencyFormMode) currencyFormMode.value = els.mode.value;
     const refreshLink = document.getElementById("paretoRefresh");
@@ -3830,14 +3905,20 @@ ${risks || "-"}`;
       const refreshUrl = new URL(refreshLink.href, window.location.href);
       refreshUrl.searchParams.set("currency", currency);
       refreshUrl.searchParams.set("mode", els.mode.value);
+      refreshUrl.searchParams.set("currency_scope", selectedCurrencyScope());
       refreshLink.href = refreshUrl.toString();
     }
     updateFlowDefinitions(els.mode.value);
+    if (["original", "automatic"].includes(selectedCurrencyScope()) && els.mode.value !== "rpn") {
+      const list = document.getElementById("flowInputs");
+      if (list && list.children[1]) list.children[1].textContent = `Yalnızca ${currency} para biriminde kayıtlı maliyetler; diğerleri hariç tutulur`;
+    }
 
     if (!els.mode.dataset.bound) {
       bindEvents();
       els.mode.dataset.bound = "1";
       els.mode.addEventListener("change", init);
+      els.currencyScope.addEventListener("change", init);
     }
 
     try{
@@ -3862,6 +3943,7 @@ ${risks || "-"}`;
 
       };
 
+      renderAutomaticGroups(data);
       renderFxInfo(data);
 
       state.baseItems = normalized.items;
@@ -3874,6 +3956,7 @@ ${risks || "-"}`;
 
     } catch(error){
 
+      renderAutomaticGroups(null);
       renderFxInfo(null, true);
 
       state.raw = { total:0, top80Count:0 };
