@@ -96,6 +96,10 @@ from riskapp.models import (
      ps_grade_code, ps_grade_label, ps_priority_label
 )
 
+import sqlite3
+from riskapp.fx_service import FXError
+from riskapp.fx_cache import FXRateCache, get_rates_cached
+
 from riskapp.seeder import seed_if_empty
 from riskapp.ai_utils import ai_complete, ai_json, best_match
 
@@ -7742,12 +7746,7 @@ KARAR KURALLARI
 
     @app.get("/analytics/pareto")
     def pareto_cost(mode_override=None, currency_override=None):
-        """Riske bağlı maliyet, RPN veya maliyet×RPN Pareto analizi.
-
-        Yalnızca mevcut projeye ait risklerin maliyetlerini inceler.
-        Veritabanını değiştirmez. RPN modu maliyetin yerine geçtiğini
-        açıkça bildirir; tüm maliyetleri otomatik ilişkili varsaymaz.
-        """
+        """Pareto: dövizleri ortak raporlama kuruna dönüştür; kalıcı maliyetleri değiştirme."""
         project_id = _get_active_project_id()
         currency = (currency_override or request.args.get("currency") or "TRY").strip().upper()
         if currency not in {"TRY", "USD", "EUR"}:
@@ -7760,38 +7759,79 @@ KARAR KURALLARI
         except (TypeError, ValueError):
             limit = 100
 
+        # Kur parametreleri tüm maliyetlerde AYNI değerleme tarihi ve türü kullanır.
+        rate_type = (request.args.get("rate_type") or "ForexSelling").strip()
+        if rate_type not in {"ForexBuying", "ForexSelling"}:
+            return jsonify({"error": "Kur türü ForexBuying veya ForexSelling olmalı"}), 400
+        fx_day_text = (request.args.get("fx_date") or "").strip()
+        try:
+            fx_day = date.fromisoformat(fx_day_text) if fx_day_text else None
+        except ValueError:
+            return jsonify({"error": "fx_date YYYY-MM-DD biçiminde olmalı"}), 400
+        if fx_day and fx_day > date.today():
+            return jsonify({"error": "Gelecek tarihli kur kullanılamaz"}), 400
+
         risk_query = Risk.query
         if project_id:
             risk_query = risk_query.filter(Risk.project_id == project_id)
         risks = risk_query.all()
         risk_map = {r.id: r for r in risks}
+
+        all_costs = (CostItem.query.filter(CostItem.project_id == project_id).all()
+                     if project_id else [])
         totals = defaultdict(float)
         cost_item_count = 0
         unlinked_count = 0
-        other_currency_count = 0
+        converted_cost_count = 0
+        fx_snapshot = None
+        fx_source = None
+        cost_entries = []
 
-        if project_id:
-            all_costs = CostItem.query.filter(CostItem.project_id == project_id).all()
-        else:
-            all_costs = []
-        for cost in all_costs:
-            if (cost.currency or "TRY").upper() != currency:
-                other_currency_count += 1
-                continue
-            try:
-                amount = cost.total
-                if amount is None:
-                    amount = (cost.qty or 0) * (cost.unit_price or 0)
-                amount = float(amount or 0)
-            except (TypeError, ValueError, ArithmeticError):
-                amount = 0
-            if amount <= 0:
-                continue
-            cost_item_count += 1
-            if cost.risk_id in risk_map:
-                totals[cost.risk_id] += amount
-            else:
-                unlinked_count += 1
+        if mode != "rpn":
+            for cost in all_costs:
+                try:
+                    raw_amount = cost.total
+                    if raw_amount is None:
+                        raw_amount = (cost.qty or 0) * (cost.unit_price or 0)
+                    amount = Decimal(str(raw_amount or 0))
+                    if not amount.is_finite():
+                        raise ValueError("Geçersiz maliyet")
+                except (TypeError, ValueError, InvalidOperation, ArithmeticError):
+                    return jsonify({"error": f"Maliyet kaydı #{cost.id} geçersiz; Pareto hesaplanmadı"}), 422
+                if amount <= 0:
+                    continue
+                source_currency = (cost.currency or "TRY").strip().upper()
+                if source_currency not in {"TRY", "USD", "EUR"}:
+                    return jsonify({"error": f"Maliyet #{cost.id}: desteklenmeyen para birimi {source_currency}"}), 422
+                cost_entries.append((cost, amount, source_currency))
+
+            if any(source_currency != currency for _, _, source_currency in cost_entries):
+                # İlk iki adımda oluşturulan FXRateCache yalnızca SQLite destekler.
+                # SQLite DB yolunu aynı Flask SQLAlchemy bağlantısından al.
+                if db.engine.dialect.name != "sqlite" or not db.engine.url.database:
+                    return jsonify({"error": "Kur önbelleği şu anda yalnızca SQLite için kurulu; bu veritabanında döviz dönüşümü yapılamaz"}), 503
+                try:
+                    cache = FXRateCache(db.engine.url.database)
+                    fx_snapshot, fx_source = get_rates_cached(
+                        cache, day=fx_day, rate_type=rate_type, max_age_days=7
+                    )
+                except (FXError, OSError, ValueError, sqlite3.Error) as exc:
+                    # Asla dövizleri atlayıp eksik/yanlış bir Pareto toplamı üretme.
+                    return jsonify({"error": f"Döviz kuru alınamadı: {exc}", "currency": currency,
+                                    "mode": mode, "fx_status": "unavailable"}), 503
+
+            for cost, amount, source_currency in cost_entries:
+                if source_currency != currency:
+                    try:
+                        amount = fx_snapshot.convert(amount, source_currency, currency)
+                    except FXError as exc:
+                        return jsonify({"error": f"Maliyet #{cost.id} dönüştürülemedi: {exc}"}), 422
+                    converted_cost_count += 1
+                if cost.risk_id in risk_map:
+                    totals[cost.risk_id] += float(amount)
+                    cost_item_count += 1
+                else:
+                    unlinked_count += 1
 
         def risk_score(r):
             try:
@@ -7809,7 +7849,7 @@ KARAR KURALLARI
             return 0.0
 
         def risk_probability(r):
-            """P (1–5) derecesini değerlendirmelerden al; para olasılığı değil."""
+            """P: 1–5 derecesi; gerçek olasılık yüzdesi değildir."""
             try:
                 p = r.avg_prob()
                 if p is not None:
@@ -7855,10 +7895,21 @@ KARAR KURALLARI
         top_80_count = next((n for n, item in enumerate(items, 1)
                              if item["cum_pct"] >= 80), len(items)) if items else 0
         messages = {
-            "cost": "Yalnızca riske bağlanmış pozitif maliyetler (%s)." % currency,
+            "cost": f"Bütün riske bağlı pozitif maliyetler {currency} cinsinden gösterilir.",
             "rpn": "Yalnızca risk puanı; para birimi veya maliyet değildir.",
-            "cost_x_risk_score": "Eski yöntem: Maliyet × P × S; parasal tutar değil öncelik puanıdır.",
-            "cost_x_probability": "Maliyet × P derecesi (1–5), parasal tutar değil olasılık ağırlıklı öncelik puanıdır."
+            "cost_x_risk_score": "Eski yöntem: Dönüştürülmüş Maliyet × P × S; parasal tutar değil öncelik puanıdır.",
+            "cost_x_probability": "Dönüştürülmüş Maliyet × P (1–5); sonuç parasal tutar değil öncelik puanıdır."
+        }
+        fx_info = {
+            "status": "converted" if fx_snapshot else ("not_required" if mode != "rpn" else "not_applicable"),
+            "source": fx_source,
+            "published_date": fx_snapshot.published_date.isoformat() if fx_snapshot else None,
+            "source_url": fx_snapshot.source_url if fx_snapshot else None,
+            "rate_type": fx_snapshot.rate_type if fx_snapshot else rate_type,
+            "requested_date": (fx_day or date.today()).isoformat(),
+            "try_per_unit": ({k: str(v) for k, v in fx_snapshot.try_per_unit.items()}
+                             if fx_snapshot else None),
+            "converted_cost_count": converted_cost_count,
         }
         return jsonify({
             "currency": currency, "mode": mode,
@@ -7867,7 +7918,8 @@ KARAR KURALLARI
             "items": items,
             "cost_item_count": cost_item_count,
             "unlinked_cost_count": unlinked_count,
-            "other_currency_cost_count": other_currency_count,
+            "other_currency_cost_count": 0,
+            "fx": fx_info,
         })
 
 
@@ -8803,7 +8855,8 @@ KARAR KURALLARI
 
         # Cache key
         # Proje ve mod ayrımı: farklı projelerin AI çıktısı karışmasın.
-        cache_key = (_get_active_project_id(), currency, mode, top_n, scenario_cut, scenario_scope)
+        cache_key = (_get_active_project_id(), currency, mode, top_n, scenario_cut,
+                     scenario_scope, request.args.get("fx_date"), request.args.get("rate_type"))
         now = time.time()
         cached = _PARETO_AI_CACHE.get(cache_key)
         if cached and (now - cached[0]) <= _CACHE_TTL_SEC:
@@ -8813,6 +8866,9 @@ KARAR KURALLARI
         # Pareto verisini içeriden al
         # ----------------------------
         resp = pareto_cost(mode_override=mode, currency_override=currency)
+        if isinstance(resp, tuple):
+            # Pareto veri hatasını (özellikle kur yokluğu) AI özetinde saklama.
+            return resp
         try:
             data = resp.get_json() if hasattr(resp, "get_json") else (resp or {})
         except Exception:
@@ -8957,76 +9013,35 @@ KARAR KURALLARI
         top_costitems_by_risk = defaultdict(list)  # risk_id -> [{name,total,frequency}...]
 
         if top_ids:
-            # risk bazında adet + toplam
-            rows = (
-                db.session.query(
-                    CostItem.risk_id,
-                    func.count(CostItem.id).label("n_items"),
-                    func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
-                )
-                .filter(CostItem.risk_id.in_(top_ids))
-                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
-                .group_by(CostItem.risk_id)
-                .all()
-            )
-            cost_stats = {int(rid): {"n_items": int(n), "sum_total": float(s)} for rid, n, s in rows}
-
-            # periyot dağılımı (global)
-            freq_rows = (
-                db.session.query(
-                    func.lower(func.coalesce(CostItem.frequency, "belirsiz")).label("freq"),
-                    func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
-                )
-                .filter(CostItem.risk_id.in_(top_ids))
-                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
-                .group_by("freq")
-                .all()
-            )
-            for f, s in freq_rows:
-                freq_stats[f] += float(s)
-
-            # per risk periyot
-            prf_rows = (
-                db.session.query(
-                    CostItem.risk_id,
-                    func.lower(func.coalesce(CostItem.frequency, "belirsiz")).label("freq"),
-                    func.coalesce(func.sum(CostItem.total), 0).label("sum_total"),
-                )
-                .filter(CostItem.risk_id.in_(top_ids))
-                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
-                .group_by(CostItem.risk_id, "freq")
-                .all()
-            )
-            for rid, f, s in prf_rows:
-                per_risk_freq[int(rid)][f] += float(s)
-
-            # En pahalı costitem kalemleri (top 3)
-            # NOTE: CostItem.name alanı yoksa, title/description vb ile değiştir.
-            ci_rows = (
-                db.session.query(
-                    CostItem.risk_id,
-                    func.coalesce(getattr(CostItem, "name", None), "").label("name"),
-                    CostItem.total,
-                    func.lower(func.coalesce(CostItem.frequency, "belirsiz")).label("freq"),
-                )
-                .filter(CostItem.risk_id.in_(top_ids))
-                .filter(func.upper(func.coalesce(CostItem.currency, "TRY")) == currency)
-                .order_by(CostItem.risk_id.asc(), CostItem.total.desc())
-                .all()
-            )
-
-            # Her risk için ilk 3’ü al
-            seen = defaultdict(int)
-            for rid, name, total_ci, freq in ci_rows:
-                rid = int(rid)
-                if seen[rid] >= 3:
+            # API ile aynı kur görüntüsünü kullan: maliyet özeti de aynı para biriminde.
+            fx_rates = (data.get("fx") or {}).get("try_per_unit") or {}
+            selected_ids = set(top_ids)
+            matching_costs = CostItem.query.filter(CostItem.risk_id.in_(top_ids)).all()
+            rows_by_risk = defaultdict(list)
+            for cost in matching_costs:
+                source_ccy = (cost.currency or "TRY").strip().upper()
+                raw = cost.total
+                if raw is None:
+                    raw = (cost.qty or 0) * (cost.unit_price or 0)
+                amount = Decimal(str(raw or 0))
+                if not amount.is_finite() or amount <= 0:
                     continue
-                seen[rid] += 1
-                top_costitems_by_risk[rid].append({
-                    "name": (name or "").strip() or "Kalem",
-                    "total": float(total_ci or 0),
-                    "frequency": freq or "belirsiz"
-                })
+                if source_ccy != currency:
+                    if source_ccy not in fx_rates or currency not in fx_rates:
+                        # Döviz tutarsızlığı varsa eksik tasarruf hesabı yapma.
+                        return jsonify({"error": "AI maliyet dökümü için döviz kuru eksik"}), 503
+                    amount = amount * Decimal(str(fx_rates[source_ccy])) / Decimal(str(fx_rates[currency]))
+                val = float(amount)
+                rid = int(cost.risk_id)
+                freq = (cost.frequency or "belirsiz").strip().lower()
+                name = (getattr(cost, "name", None) or getattr(cost, "title", None) or "Kalem").strip()
+                rows_by_risk[rid].append({"name": name, "total": val, "frequency": freq})
+                freq_stats[freq] += val
+                per_risk_freq[rid][freq] += val
+            for rid, cost_rows in rows_by_risk.items():
+                cost_stats[rid] = {"n_items": len(cost_rows),
+                                   "sum_total": sum(item["total"] for item in cost_rows)}
+                top_costitems_by_risk[rid] = sorted(cost_rows, key=lambda it: it["total"], reverse=True)[:3]
 
         # ----------------------------
         # Quick win adayları: çok kalemli + yüksek toplam

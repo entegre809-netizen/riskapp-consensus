@@ -1772,6 +1772,21 @@
 
 
 
+
+  /* FX transparency panel: no exchange-rate assumptions are made in the browser. */
+  .pt-fx-panel{margin:0 0 16px;padding:16px 18px;border:1px solid var(--pt-line);border-radius:22px;background:var(--pt-card);box-shadow:var(--pt-shadow-sm)}
+  .pt-fx-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .pt-fx-heading h3{margin:0;font-size:15px;font-weight:950;color:var(--pt-text)}
+  .pt-fx-desc{margin:0;color:var(--pt-muted);font-size:12px;line-height:1.5;font-weight:650}
+  .pt-fx-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+  .pt-fx-fact{min-width:0;padding:11px 12px;border:1px solid var(--pt-line);border-radius:14px;background:var(--pt-bg)}
+  .pt-fx-fact span{display:block;font-size:11px;color:var(--pt-muted);font-weight:800;margin-bottom:5px}
+  .pt-fx-fact strong{font-size:13px;color:var(--pt-text);overflow-wrap:anywhere}
+  .pt-fx-rates{display:flex;flex-wrap:wrap;gap:8px}
+  .pt-fx-rate{padding:8px 10px;border:1px solid var(--pt-line);border-radius:12px;background:var(--pt-bg);color:var(--pt-text);font-weight:800;font-size:12px}
+  .pt-fx-source{display:inline-block;margin-top:10px;font-size:12px;font-weight:850;color:var(--pt-primary);overflow-wrap:anywhere}
+  @media(max-width:760px){.pt-fx-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:460px){.pt-fx-facts{grid-template-columns:1fr}}
 </style>
 
 
@@ -2096,6 +2111,23 @@
   </div>
 
 
+
+
+  <section class="pt-fx-panel" id="paretoFxPanel" aria-label="Pareto döviz kuru bilgileri" aria-live="polite">
+    <div class="pt-fx-heading">
+      <h3><span class="material-icons-outlined" style="font-size:19px;vertical-align:middle;margin-right:6px;">currency_exchange</span>Döviz Kuru ve Dönüşüm Bilgisi</h3>
+      <span class="pt-chip" id="fxStatus">Yükleniyor…</span>
+    </div>
+    <p class="pt-fx-desc" id="fxDescription">Döviz verileri kontrol ediliyor.</p>
+    <div class="pt-fx-facts" id="fxFacts" style="display:none;">
+      <div class="pt-fx-fact"><span>Rapor para birimi</span><strong id="fxCurrency">—</strong></div>
+      <div class="pt-fx-fact"><span>Kullanılan kur tarihi</span><strong id="fxDate">—</strong></div>
+      <div class="pt-fx-fact"><span>Kur kaynağı</span><strong id="fxSource">—</strong></div>
+      <div class="pt-fx-fact"><span>Dönüştürülen maliyet</span><strong id="fxConverted">—</strong></div>
+    </div>
+    <div class="pt-fx-rates" id="fxRates"></div>
+    <a class="pt-fx-source" id="fxSourceLink" target="_blank" rel="noopener noreferrer" style="display:none;">TCMB kur belgesini aç</a>
+  </section>
 
   <div class="pt-section-kicker">Pareto Sonuçları</div>
 
@@ -2722,6 +2754,71 @@
         return li;
       }));
     });
+  }
+
+
+  function renderFxInfo(data, failed = false){
+    const $ = id => document.getElementById(id);
+    const fx = data?.fx || {};
+    const status = $("fxStatus");
+    const desc = $("fxDescription");
+    const facts = $("fxFacts");
+    const rates = $("fxRates");
+    const link = $("fxSourceLink");
+    const mode = data?.mode || els.mode.value;
+    const toDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value).split("-").reverse().join(".") : "—";
+    const rateType = fx.rate_type === "forex_selling" ? "Döviz satış" : fx.rate_type === "forex_buying" ? "Döviz alış" : text(fx.rate_type || "Belirtilmemiş");
+    // A link is shown only when the backend supplies a trusted TCMB HTTPS URL.
+    link.style.display = "none";
+    link.removeAttribute("href");
+    rates.replaceChildren();
+    facts.style.display = "none";
+    if (failed){
+      status.textContent = "Kur / veri hatası";
+      desc.textContent = "Pareto bilgisi alınamadı. Kur ya da veri hatası çözümlenmeden sonuç gösterilmez.";
+      return;
+    }
+    if (mode === "rpn" || fx.status === "not_applicable"){
+      status.textContent = "Kur gerekmiyor";
+      desc.textContent = "Yalnızca RPN analizinde parasal tutar kullanılmaz; döviz kuru uygulanmaz.";
+      return;
+    }
+    if (fx.status === "not_required"){
+      status.textContent = "Dönüşüm gerekmiyor";
+      desc.textContent = `Maliyetler ${currency} olarak kaydedilmiş. Döviz kuru kullanılmadan analiz edildi.`;
+      facts.style.display = "grid";
+      $("fxCurrency").textContent = currency;
+      $("fxDate").textContent = "Uygulanmadı";
+      $("fxSource").textContent = "Kur kullanılmadı";
+      $("fxConverted").textContent = "0 kayıt";
+      return;
+    }
+    if (fx.status !== "converted" || !fx.published_date || !fx.try_per_unit){
+      status.textContent = "Kur bilgisi yok";
+      desc.textContent = "API yanıtında doğrulanabilir bir döviz kuru bilgisi bulunamadı.";
+      return;
+    }
+    status.textContent = fx.source === "cache" ? "Kayıtlı TCMB kuru" : "TCMB kuru";
+    desc.textContent = "Analizde farklı para birimindeki maliyetler ortak para birimine dönüştürüldü. Aşağıdaki tarihte yayımlanan kur esas alındı.";
+    facts.style.display = "grid";
+    $("fxCurrency").textContent = currency;
+    $("fxDate").textContent = toDate(fx.published_date);
+    $("fxSource").textContent = `${fx.source === "cache" ? "SQLite önbellek / TCMB" : "TCMB"} · ${rateType}`;
+    const count = Number(fx.converted_cost_count);
+    $("fxConverted").textContent = `${Number.isFinite(count) && count >= 0 ? count : 0} kayıt`;
+    for (const ccy of ["USD", "EUR"]){
+      const rawRate = Number(fx.try_per_unit[ccy]);
+      if (!Number.isFinite(rawRate) || rawRate <= 0) continue;
+      const box = document.createElement("span");
+      box.className = "pt-fx-rate mono";
+      box.textContent = `1 ${ccy} = ${fmt(rawRate, 4)} TRY`;
+      rates.appendChild(box);
+    }
+    const sourceUrl = text(fx.source_url);
+    if (/^https:\/\/www\.tcmb\.gov\.tr\/kurlar\//i.test(sourceUrl)){
+      link.href = sourceUrl;
+      link.style.display = "inline-block";
+    }
   }
 
   function renderMetrics(){
@@ -3765,6 +3862,8 @@ ${risks || "-"}`;
 
       };
 
+      renderFxInfo(data);
+
       state.baseItems = normalized.items;
 
       state.top80Ids = normalized.top80Ids;
@@ -3774,6 +3873,8 @@ ${risks || "-"}`;
       applyFilters();
 
     } catch(error){
+
+      renderFxInfo(null, true);
 
       state.raw = { total:0, top80Count:0 };
 
