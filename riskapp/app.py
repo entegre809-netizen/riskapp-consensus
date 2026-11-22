@@ -99,6 +99,7 @@ from riskapp.models import (
 import sqlite3
 from riskapp.fx_service import FXError
 from riskapp.fx_cache import FXRateCache, get_rates_cached
+from riskapp.risk_list_fx import converted_risk_costs
 
 from riskapp.seeder import seed_if_empty
 from riskapp.ai_utils import ai_complete, ai_json, best_match
@@ -2685,10 +2686,58 @@ def create_app():
             cost_totals = dict(sorted(cost_totals.items(), key=sort_key))
             costed_risk_count = len(cost_map)
 
+        # Salt-okunur isteğe bağlı görünüm. Varsayılan "original": eskisi gibi
+        # para birimleri ayrı gösterilir, kur servisi çalışmaz.
+        display_currency = (request.args.get("display_currency") or "original").strip().upper()
+        if display_currency not in {"ORIGINAL", "TRY", "USD", "EUR"}:
+            display_currency = "ORIGINAL"
+        converted_cost_map = {}
+        converted_cost_total = None
+        fx_info = None
+        fx_error = None
+        if display_currency != "ORIGINAL" and cost_map:
+            needs_conversion = any(
+                currency != display_currency
+                for amounts in cost_map.values() for currency, _ in amounts
+            )
+            try:
+                snapshot = None
+                if needs_conversion:
+                    if db.engine.dialect.name != "sqlite" or not db.engine.url.database:
+                        raise FXError("Ortak döviz önbelleği için kalıcı SQLite veritabanı gerekli")
+                    snapshot, _ = get_rates_cached(
+                        FXRateCache(db.engine.url.database),
+                        rate_type="ForexSelling", max_age_days=7,
+                    )
+                # Tüm kayıtlar hedef para birimindeyse ağ çağrısı gerekmiyor.
+                if snapshot is None:
+                    from riskapp.fx_service import RateSnapshot
+                    snapshot = RateSnapshot(date.today(),
+                        {"TRY": Decimal("1")}, "ForexSelling", "")
+                converted_cost_map, converted_cost_total = converted_risk_costs(
+                    cost_map, display_currency, snapshot
+                )
+                if needs_conversion:
+                    fx_info = {
+                        "date": snapshot.published_date.isoformat(),
+                        "rate_type": snapshot.rate_type,
+                        "source_url": snapshot.source_url,
+                    }
+            except (FXError, OSError, ValueError, sqlite3.Error) as exc:
+                # Hatalı veya eski kurdan tahmini rakam üretme. Orijinal maliyet
+                # görünmeye devam eder, dönüşüm sunulmaz.
+                fx_error = str(exc)
+                converted_cost_map = {}
+                converted_cost_total = None
+
         return render_template(
             "risk_select.html", risks=risks, q=q,
             cost_map=cost_map, cost_totals=cost_totals,
             costed_risk_count=costed_risk_count,
+            display_currency=display_currency,
+            converted_cost_map=converted_cost_map,
+            converted_cost_total=converted_cost_total,
+            fx_info=fx_info, fx_error=fx_error,
         )
 
     # -------------------------------------------------

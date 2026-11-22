@@ -1460,6 +1460,14 @@
         </div>
         <div class="rs-kpi-value">{{ costed_risk_count|default(0) }}</div>
         <div class="rs-kpi-note">
+          {% if display_currency|default('ORIGINAL') != 'ORIGINAL' and converted_cost_total is defined and converted_cost_total is not none %}
+            <span style="white-space:nowrap; font-weight:800;">
+              {{ "{:,.2f}".format(converted_cost_total).replace(",", "X").replace(".", ",").replace("X", ".") }}
+              {{ '₺' if display_currency == 'TRY' else ('$' if display_currency == 'USD' else '€') }}
+            </span>
+            <span style="display:block; font-size:.78rem;">Seçilen para birimine çevrilmiş toplam</span>
+          {% endif %}
+          <span {% if display_currency|default('ORIGINAL') != 'ORIGINAL' and converted_cost_total is defined and converted_cost_total is not none %}style="display:none"{% endif %}>
           {% if cost_totals %}
             {% for currency, value in cost_totals.items() %}
               <span style="display:inline-block; margin-right:10px; white-space:nowrap;">
@@ -1470,6 +1478,7 @@
           {% else %}
             Henüz bağlı maliyet yok
           {% endif %}
+          </span>
         </div>
       </article>
     </section>
@@ -1534,6 +1543,19 @@
         </div>
       </div>
 
+      <div class="rs-group">
+        <div>
+          <label class="rs-label" for="display_currency">Maliyeti görüntüle</label>
+          <select id="display_currency" class="rs-input" name="display_currency" style="min-width:190px;"
+                  onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+            <option value="original" {% if display_currency|default('ORIGINAL') == 'ORIGINAL' %}selected{% endif %}>Orijinal para birimi</option>
+            <option value="TRY" {% if display_currency|default('ORIGINAL') == 'TRY' %}selected{% endif %}>TRY (₺) karşılığı</option>
+            <option value="USD" {% if display_currency|default('ORIGINAL') == 'USD' %}selected{% endif %}>USD ($) karşılığı</option>
+            <option value="EUR" {% if display_currency|default('ORIGINAL') == 'EUR' %}selected{% endif %}>EUR (€) karşılığı</option>
+          </select>
+        </div>
+      </div>
+
       <div class="rs-fill"></div>
 
       <div class="rs-group">
@@ -1564,6 +1586,18 @@
         </div>
       </div>
     </form>
+
+    {% if fx_error %}
+      <div role="alert" style="margin:10px 0; padding:12px 16px; border:1px solid #dc2626; border-radius:10px;">
+        Döviz dönüşümü şu an yapılamadı: {{ fx_error }}. Aşağıda orijinal kayıtlı maliyetler gösteriliyor.
+      </div>
+    {% elif fx_info %}
+      <div style="margin:10px 0; font-size:.85rem; color:var(--rs-muted);">
+        Döviz dönüşümü: TCMB {{ fx_info.date }} · Döviz satış kuru ·
+        <a href="{{ fx_info.source_url }}" target="_blank" rel="noopener noreferrer">Kur kaynağı</a>.
+        Kayıtlı maliyetler değiştirilmedi.
+      </div>
+    {% endif %}
 
     {# Birleştirme + Tüm riskleri sil (sadece admin) #}
     {% if session.get('role') == 'admin' and risks and risks|length > 0 %}
@@ -1613,7 +1647,7 @@
               <th>Risk Bilgisi</th>
               <th style="width:220px;">Kategori</th>
               <th style="width:110px; text-align:center;">Skor</th>
-              <th style="width:170px; text-align:right;">Maliyet (Para Birimi)</th>
+              <th style="width:170px; text-align:right;">{{ ('Maliyet (' ~ display_currency ~ ' karşılığı)') if display_currency|default('ORIGINAL') != 'ORIGINAL' and converted_cost_total is defined and converted_cost_total is not none else 'Maliyet (Para Birimi)' }}</th>
               <th style="width:190px;">Son Güncelleme</th>
               <th style="width:170px; text-align:right;">İşlemler</th>
             </tr>
@@ -1666,7 +1700,17 @@
 
               <td style="text-align:right;">
                 {% set amounts = (cost_map.get(r.id, []) if cost_map is defined else []) %}
-                {% if amounts %}
+                {% if amounts and display_currency|default('ORIGINAL') != 'ORIGINAL' and converted_cost_total is not none and converted_cost_total is defined %}
+                  <div class="rs-cost" style="white-space:nowrap;" title="TCMB bazlı çevrilmiş görüntüleme tutarı; kayıt değiştirilmedi">
+                    {{ "{:,.2f}".format(converted_cost_map[r.id]).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                    {{ '₺' if display_currency == 'TRY' else ('$' if display_currency == 'USD' else '€') }}
+                  </div>
+                  <div style="font-size:.75rem; color:var(--rs-muted);" title="Kayıtlı orijinal maliyetler">
+                    {% for currency, value in amounts %}
+                      {{ "{:,.2f}".format(value).replace(",", "X").replace(".", ",").replace("X", ".") }} {{ currency }}{% if not loop.last %} · {% endif %}
+                    {% endfor %}
+                  </div>
+                {% elif amounts %}
                   {% for currency, value in amounts %}
                     <div class="rs-cost" title="{{ currency }} para biriminde kayıtlı maliyet; döviz dönüşümü yapılmadı" style="white-space:nowrap;">
                       {{ "{:,.2f}".format(value).replace(",", "X").replace(".", ",").replace("X", ".") }}
