@@ -1788,7 +1788,7 @@
 
         <h2 class="pt-title">Pareto Analizi</h2>
 
-        <p class="pt-sub">Risk puanı ve maliyet etkisini birlikte hesaplayarak kritik riskleri sırala, Top 80’i gör ve aksiyonları netleştir.</p>
+        <p class="pt-sub" id="paretoIntro">Riske bağlı maliyetleri olasılık derecesi (P) ile ağırlıklandır, öncelikleri sırala ve Top 80 kapsamını gör.</p>
 
       </div>
 
@@ -1854,13 +1854,13 @@
 
 
 
-      <ul class="pt-flow-list">
+      <ul class="pt-flow-list" id="flowInputs">
 
-        <li>Risk kayıtları, risk puanları / RPN değerleri ve kategori bilgileri</li>
+        <li>Risk kayıtları, olasılık derecesi (P: 1–5) ve kategori bilgileri</li>
 
         <li>Riske bağlı maliyet kayıtları ve seçilen para birimi</li>
 
-        <li>Öncelik hesabında kullanılacak maliyet ve risk etkisi verileri</li>
+        <li>Maliyet × P hesabı için olasılık derecesi ve riskle eşleşen maliyet tutarları</li>
 
         <li>AI senaryosu, kesinti oranı ve Top 80 filtre parametreleri</li>
 
@@ -1892,9 +1892,9 @@
 
 
 
-      <ul class="pt-flow-list">
+      <ul class="pt-flow-list" id="flowProcess">
 
-        <li>Risk puanı × maliyet yaklaşımıyla öncelik skorlarının hesaplanması</li>
+        <li>Maliyet × Olasılık (P) yöntemiyle öncelik puanlarının hesaplanması; şiddet (S) yeniden çarpılmaz</li>
 
         <li>Risklerin yüksekten düşüğe sıralanması ve yüzdesel katkılarının bulunması</li>
 
@@ -1930,13 +1930,13 @@
 
 
 
-      <ul class="pt-flow-list">
+      <ul class="pt-flow-list" id="flowOutputs">
 
         <li>Pareto sıralaması ve risk bazlı öncelik skorları</li>
 
         <li>Yüzde ve kümülatif yüzde değerleri ile Top 80 risk listesi</li>
 
-        <li>Kategori bazlı maliyet yoğunluğu ve kritik risk görünümü</li>
+        <li>Kategori bazlı olasılık ağırlıklı maliyet puanı yoğunluğu ve öncelikli riskler</li>
 
         <li>AI destekli içgörü, aksiyon önerileri ve CSV dışa aktarım çıktısı</li>
 
@@ -1953,6 +1953,7 @@
   <div class="pt-toolbar noprint">
 
     <form method="get" action="{{ url_for('pareto_view') }}" class="pt-field" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0;">
+      <input type="hidden" name="mode" id="currencyFormMode" value="cost_x_probability">
 
       <div>
 
@@ -2082,7 +2083,7 @@
 
       </button>
 
-      <a class="pt-btn primary" href="{{ url_for('pareto_view') }}?currency={{ currency }}">
+      <a class="pt-btn primary" id="paretoRefresh" href="{{ url_for('pareto_view') }}?currency={{ currency }}&amp;mode=cost_x_probability">
 
         <span class="material-icons-outlined" style="font-size:18px;">refresh</span>
 
@@ -2136,7 +2137,7 @@
 
           <canvas id="paretoChart" width="1100" height="330"></canvas>
 
-          <div class="pt-chart-note" id="paretoModeNote">Grafik, risk puanı × maliyet ile hesaplanan Pareto öncelik skoruna göre ilk 25 kalemi çizer. Kırmızı çizgi %80 eşiğidir.</div>
+          <div class="pt-chart-note" id="paretoModeNote">Grafik, seçilen yönteme göre hesaplanan ilk 25 öncelik değerini gösterir. Varsayılan: Maliyet × Olasılık (P). Kırmızı çizgi %80 eşiğidir.</div>
 
         </div>
 
@@ -2160,7 +2161,7 @@
 
               <th style="text-align:right;">Maliyet</th>
 
-              <th style="text-align:right;">Risk Puanı</th>
+              <th style="text-align:right;">Olasılık Puanı (P)</th>
 
               <th style="text-align:right;">Öncelik Skoru</th>
 
@@ -2682,6 +2683,47 @@
 
 
 
+  function updateFlowDefinitions(mode){
+    const $id = id => document.getElementById(id);
+    const modeInfo = {
+      cost_x_probability: {
+        intro: "Riske bağlı maliyetleri olasılık derecesi (P) ile ağırlıklandır, öncelikleri sırala ve Top 80 kapsamını gör.",
+        input: ["Risk kayıtları, olasılık derecesi (P: 1–5) ve kategori bilgileri", "Riske bağlı maliyet kayıtları ve seçilen para birimi", "Maliyet × P hesabı için riskle eşleşen maliyet tutarları", "AI senaryosu ve Top 80 filtre parametreleri"],
+        process: ["Maliyet × Olasılık (P) ile öncelik puanları hesaplanır; şiddet (S) tekrar çarpılmaz", "Riskler öncelik puanına göre sıralanır ve yüzdesel payları belirlenir", "Kümülatif payda %80 eşiği ve Top 80 kapsamı bulunur", "Olasılık ağırlıklı puana göre içgörüler ve önleyici aksiyonlar değerlendirilir"],
+        output: ["Olasılık ağırlıklı Pareto sıralaması ve öncelik puanları", "Yüzde, kümülatif yüzde ve Top 80 risk listesi", "Kategori bazında öncelik yoğunlaşması ve öne çıkan riskler", "AI içgörüleri, aksiyon önerileri ve CSV çıktısı"]
+      },
+      cost_x_risk_score: {
+        intro: "Eski yöntem: Maliyet × RPN (P × S) ile risklerin önceliğini karşılaştır.",
+        input: ["Risk kayıtları, P ve S dereceleri ile kategoriler", "Riske bağlı maliyet kayıtları ve seçilen para birimi", "RPN = P × S bilgisi", "AI senaryosu ve Top 80 filtre parametreleri"],
+        process: ["Maliyet × RPN (P × S) ile öncelik puanları hesaplanır", "Riskler puanlarına göre sıralanır ve yüzdesel payları belirlenir", "Kümülatif payda %80 eşiği bulunur", "Bu yöntemin maliyet ve şiddeti birlikte ağırlıklandırdığı dikkate alınır"],
+        output: ["Eski yöntemle hesaplanan Pareto öncelik sıralaması", "Yüzde, kümülatif yüzde ve Top 80 risk listesi", "Kategori bazlı öncelik yoğunlaşması", "AI içgörüleri, aksiyonlar ve CSV çıktısı"]
+      },
+      cost: {
+        intro: "Riske bağlı maliyetlerin büyüklüğüne göre Pareto sıralamasını görüntüle.",
+        input: ["Risk kayıtları ve kategorileri", "Riske bağlı maliyet kayıtları", "Seçilen para birimi", "Tasarruf senaryosu ve Top 80 parametreleri"],
+        process: ["Risk başına maliyet tutarları toplanır", "Riskler maliyete göre sıralanır", "Maliyet payı ve kümülatif %80 eşiği bulunur", "Maliyet odaklı senaryo ve aksiyon önerileri hesaplanır"],
+        output: ["Parasal maliyet Pareto sıralaması", "Yüzde, kümülatif yüzde ve Top 80 listesi", "Kategori bazlı maliyet dağılımı", "Maliyet senaryoları, AI önerileri ve CSV çıktısı"]
+      },
+      rpn: {
+        intro: "Maliyetlerden bağımsız olarak RPN (P × S) derecesiyle riskleri sırala.",
+        input: ["Risk kayıtları, olasılık (P), şiddet (S) ve kategoriler", "RPN = P × S değerleri", "Seçilen risk filtreleri", "Top 80 ve AI senaryosu"],
+        process: ["P × S ile risk dereceleri hesaplanır", "Riskler RPN değerine göre sıralanır", "RPN toplamındaki yüzde ve %80 eşiği belirlenir", "Kritik riskler için önleyici aksiyonlar değerlendirilir"],
+        output: ["RPN bazlı Pareto sıralaması", "Yüzde, kümülatif yüzde ve Top 80 risk listesi", "Kategorilere göre RPN yoğunlaşması", "AI risk önerileri ve CSV çıktısı"]
+      }
+    };
+    const info = modeInfo[mode] || modeInfo.cost_x_probability;
+    if ($id("paretoIntro")) $id("paretoIntro").textContent = info.intro;
+    [["flowInputs",info.input],["flowProcess",info.process],["flowOutputs",info.output]].forEach(([id,items])=>{
+      const list = $id(id);
+      if (!list) return;
+      list.replaceChildren(...items.map(item=>{
+        const li = document.createElement("li");
+        li.textContent = item;
+        return li;
+      }));
+    });
+  }
+
   function renderMetrics(){
 
     const total = Number(state.raw?.total || 0);
@@ -2690,7 +2732,8 @@
 
 
 
-    const mode = state.raw?.mode || "cost_x_probability";
+    const mode = state.raw?.mode || els.mode.value || "cost_x_probability";
+    updateFlowDefinitions(mode);
     const labels = {cost:"Yalnızca Maliyet",rpn:"Yalnızca RPN",cost_x_risk_score:"Eski: Maliyet × RPN",cost_x_probability:"Maliyet × Olasılık (P)"};
     const unit = mode === "cost" ? currency : (mode === "rpn" ? "RPN puanı" : "öncelik puanı");
     els.metricTotal.textContent = `${fmt(total)} ${unit}`;
@@ -2826,7 +2869,7 @@
 
         <td class="mono" style="text-align:right;">${fmt(it.cost_value ?? it.cost_total ?? it.total ?? 0)} ${currency}</td>
 
-        <td class="mono" style="text-align:right;">${fmt(it.risk_score ?? 0, 1)}</td>
+        <td class="mono" style="text-align:right;">${it.probability_grade == null ? "—" : fmt(it.probability_grade, 1)}</td>
 
         <td class="mono" style="text-align:right;">${fmt(it.value)} ${state.raw?.mode === "rpn" ? "RPN" : state.raw?.mode === "cost" ? currency : "öncelik puanı"}</td>
 
@@ -3435,7 +3478,8 @@
 
   function downloadCsv(){
 
-    const exportItems = state.viewItems.length ? state.viewItems : state.baseItems;
+    // CSV must respect the current search and Top 80 filters, even when zero rows match.
+    const exportItems = state.viewItems;
 
 
 
@@ -3499,7 +3543,7 @@
 
         "Maliyet",
 
-        "Risk Puanı",
+        "Olasılık Puanı (P)",
 
         "Seçilen Analiz Değeri",
 
@@ -3529,7 +3573,7 @@
 
         csvNumber(it.cost_value ?? it.cost_total ?? it.total ?? 0),
 
-        csvNumber(it.risk_score ?? 0),
+        it.probability_grade == null ? "" : csvNumber(it.probability_grade),
 
         csvNumber(it.value),
 
@@ -3674,6 +3718,24 @@ ${risks || "-"}`;
 
 
   async function init(){
+    if (!els.mode.dataset.urlRestored) {
+      const requestedMode = new URLSearchParams(window.location.search).get("mode");
+      if (requestedMode && [...els.mode.options].some(option => option.value === requestedMode)) {
+        els.mode.value = requestedMode;
+      }
+      els.mode.dataset.urlRestored = "1";
+    }
+    // Currency changes and Refresh preserve the mode currently selected by the user.
+    const currencyFormMode = document.getElementById("currencyFormMode");
+    if (currencyFormMode) currencyFormMode.value = els.mode.value;
+    const refreshLink = document.getElementById("paretoRefresh");
+    if (refreshLink) {
+      const refreshUrl = new URL(refreshLink.href, window.location.href);
+      refreshUrl.searchParams.set("currency", currency);
+      refreshUrl.searchParams.set("mode", els.mode.value);
+      refreshLink.href = refreshUrl.toString();
+    }
+    updateFlowDefinitions(els.mode.value);
 
     if (!els.mode.dataset.bound) {
       bindEvents();
