@@ -2651,32 +2651,45 @@ def create_app():
 
         risks = query.order_by(Risk.updated_at.desc()).all()
 
-        # ==========================================================
-        # ✅ YENİ: Risk başına TRY maliyet toplamı
-        # ==========================================================
+        # Risk başına maliyetleri ORİJİNAL para biriminde grupla.
+        # USD/EUR/TRY birbirine eklenmez; Pareto kur/analiz mantığına dokunulmaz.
         risk_ids = [r.id for r in risks]
-        cost_map = {}
-
+        cost_map = {}                 # {risk_id: [("USD", 100.0), ("EUR", 25.0), ...]}
+        cost_totals = {}              # {"USD": 100.0, "EUR": 25.0, ...}
+        costed_risk_count = 0
         if risk_ids:
             rows = (
                 db.session.query(
                     CostItem.risk_id,
-                    func.coalesce(func.sum(CostItem.total), 0).label("total_try")
+                    CostItem.currency,
+                    func.coalesce(func.sum(CostItem.total), 0).label("amount")
                 )
                 .filter(CostItem.risk_id.in_(risk_ids))
-                .filter(CostItem.currency == "TRY")          # listede TRY gösteriyoruz
                 .filter(CostItem.risk_id.isnot(None))
             )
-
             if pid:
                 rows = rows.filter(CostItem.project_id == pid)
+            rows = rows.group_by(CostItem.risk_id, CostItem.currency).all()
 
-            rows = rows.group_by(CostItem.risk_id).all()
+            grouped_costs = defaultdict(dict)
+            for rid, currency, amount in rows:
+                code = (currency or "TRY").strip().upper() or "TRY"
+                value = float(amount or 0)
+                grouped_costs[rid][code] = grouped_costs[rid].get(code, 0.0) + value
+                cost_totals[code] = cost_totals.get(code, 0.0) + value
 
-            # Decimal -> float (template'te rahat formatlamak için)
-            cost_map = {rid: float(total) for (rid, total) in rows}
+            preferred_order = {"TRY": 0, "USD": 1, "EUR": 2}
+            sort_key = lambda entry: (preferred_order.get(entry[0], 3), entry[0])
+            cost_map = {rid: sorted(values.items(), key=sort_key)
+                        for rid, values in grouped_costs.items()}
+            cost_totals = dict(sorted(cost_totals.items(), key=sort_key))
+            costed_risk_count = len(cost_map)
 
-        return render_template("risk_select.html", risks=risks, q=q, cost_map=cost_map)
+        return render_template(
+            "risk_select.html", risks=risks, q=q,
+            cost_map=cost_map, cost_totals=cost_totals,
+            costed_risk_count=costed_risk_count,
+        )
 
     # -------------------------------------------------
     #  Risk Sil (Admin)

@@ -1397,7 +1397,6 @@
     {% set kpi = namespace(
       evaluated=0,
       costed=0,
-      total_cost=0,
       categories=[]
     ) %}
 
@@ -1407,11 +1406,6 @@
         {% set kpi.evaluated = kpi.evaluated + 1 %}
       {% endif %}
 
-      {% set risk_cost = (cost_map.get(risk.id) if cost_map is defined else 0) or 0 %}
-      {% if risk_cost > 0 %}
-        {% set kpi.costed = kpi.costed + 1 %}
-        {% set kpi.total_cost = kpi.total_cost + risk_cost %}
-      {% endif %}
 
       {% set cname = (risk.category or 'Kategorisiz') %}
       {% if cname not in kpi.categories %}
@@ -1464,9 +1458,18 @@
             <span class="material-symbols-outlined" style="font-size:19px;">payments</span>
           </div>
         </div>
-        <div class="rs-kpi-value">{{ kpi.costed }}</div>
+        <div class="rs-kpi-value">{{ costed_risk_count|default(0) }}</div>
         <div class="rs-kpi-note">
-          {{ "{:,.0f}".format(kpi.total_cost).replace(",", ".") }} ₺ toplam TRY
+          {% if cost_totals %}
+            {% for currency, value in cost_totals.items() %}
+              <span style="display:inline-block; margin-right:10px; white-space:nowrap;">
+                {{ "{:,.2f}".format(value).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                {{ '₺' if currency == 'TRY' else ('$' if currency == 'USD' else ('€' if currency == 'EUR' else currency)) }}
+              </span>
+            {% endfor %}
+          {% else %}
+            Henüz bağlı maliyet yok
+          {% endif %}
         </div>
       </article>
     </section>
@@ -1610,7 +1613,7 @@
               <th>Risk Bilgisi</th>
               <th style="width:220px;">Kategori</th>
               <th style="width:110px; text-align:center;">Skor</th>
-              <th style="width:170px; text-align:right;">Maliyet (TRY)</th>
+              <th style="width:170px; text-align:right;">Maliyet (Para Birimi)</th>
               <th style="width:190px;">Son Güncelleme</th>
               <th style="width:170px; text-align:right;">İşlemler</th>
             </tr>
@@ -1662,13 +1665,16 @@
               </td>
 
               <td style="text-align:right;">
-                {% set v = (cost_map.get(r.id) if cost_map is defined else None) %}
-                {% if v and v > 0 %}
-                  <span class="rs-cost" title="Bu riske bağlı TRY maliyet toplamı">
-                    {{ "{:,.2f}".format(v).replace(",", "X").replace(".", ",").replace("X", ".") }} ₺
-                  </span>
+                {% set amounts = (cost_map.get(r.id, []) if cost_map is defined else []) %}
+                {% if amounts %}
+                  {% for currency, value in amounts %}
+                    <div class="rs-cost" title="{{ currency }} para biriminde kayıtlı maliyet; döviz dönüşümü yapılmadı" style="white-space:nowrap;">
+                      {{ "{:,.2f}".format(value).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                      {{ '₺' if currency == 'TRY' else ('$' if currency == 'USD' else ('€' if currency == 'EUR' else currency)) }}
+                    </div>
+                  {% endfor %}
                 {% else %}
-                  <span style="color:var(--rs-muted); font-weight:800;">—</span>
+                  <span style="color:var(--rs-muted); font-weight:800;" title="Bu riske bağlı maliyet kaydı bulunmuyor">—</span>
                 {% endif %}
               </td>
 
